@@ -55,7 +55,8 @@ def _variational_mat2vec(M, S):
 def _variational_model_params(M, S, projX):
     """replace mu and Sigma per their explicit estimator"""
     mu = projX @ M
-    Sigma = (M - mu).T @ (M - mu) / M.shape[0] + np.diag(S.mean(0))
+    S2 = S * S
+    Sigma = (M - mu).T @ (M - mu) / M.shape[0] + np.diag(S2.mean(0))
     return mu, Sigma
 
 def _laplace_model_params(Z, projX, threshold = 1e-5):
