@@ -64,7 +64,8 @@ class full_covariance(model):
     def variational_objective(self, M, S, mu, Sigma) :
     
         Omega = linalg.inv(Sigma)
-        A = np.exp(self._data['O'] + M + .5 * S * S)
+        S2 = S * S
+        A = np.exp(self._data['O'] + M + .5 * S2)
     
         # A. terms of the objective function
         # log p(Y|Z) integrated over E_q, with q the variational distribution
@@ -72,10 +73,10 @@ class full_covariance(model):
      
         # log p(Z) integrated over E_q, with q the variational distribution
         # with plugged estimator of Sigma and mu
-        E_log_p_Z = -.5 * (self._p + self._n * np.linalg.slogdet(Sigma)[1] - self._n * self._p)
+        E_log_p_Z = -.5 * (np.trace(Omega @ (M - mu).T @ (M - mu)) + sum(np.diag(Omega) * np.sum(S2, 0)) + self._n * np.linalg.slogdet(Sigma)[1] - self._n * self._p)
         
         # Entropy of the variational distribution q
-        H_q_Z = .5 * np.sum(np.log(S*S)) 
+        H_q_Z = .5 * np.sum(np.log(S2)) 
     
         # B. terms of the gradient
         grd_M = (M - mu) @ Omega - self._data['Y'] +  A
@@ -194,7 +195,7 @@ class full_covariance(model):
         results = {'means' : M, 'variances' : S * S, 'criterion' : vloglik, 'gradient' : gradient, 'objective': objective}
         return results        
 
-    def fit_variational_objective(self, M, S, solver = 'ccsa', ftol = 1e-6, xtol = 1e-4, nsteps = int(1e4), lr = 0.05, use_hessian = 'false'):
+    def fit_variational_objective(self, M, S, solver = 'ccsa', ftol = 1e-12, xtol = 1e-8, nsteps = int(1e4), lr = 0.05, use_hessian = 'false'):
 
         mu, Sigma = utils._variational_model_params(M, S, self._data['projX'])
         
