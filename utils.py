@@ -208,7 +208,7 @@ class sample_PLN():
         
         self.n = self.O.shape[0]
         self.p = self.Sigma.shape[0]
-        self.Z = torch.stack([self.Sigma@np.random.randn(self.p) for _ in range(self.n)])
+        self.Z = torch.stack([torch.cholesky(self.Sigma)@np.random.randn(self.p) for _ in range(self.n)])
         
 
         
@@ -216,7 +216,7 @@ class sample_PLN():
         
         parameter = torch.exp(self.O + self.covariates@self.beta + self.Z)
         self.Y = np.random.poisson(lam = parameter)
-        return self.Y 
+        return self.Y, self.Z
         #return parameter.numpy()
     def plot_Y(self): 
         '''
