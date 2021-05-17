@@ -208,7 +208,8 @@ class sample_PLN():
         
         self.n = self.O.shape[0]
         self.p = self.Sigma.shape[0]
-        self.Z = torch.stack([torch.cholesky(self.Sigma)@np.random.randn(self.p) for _ in range(self.n)])
+        chol = torch.cholesky(self.Sigma)
+        self.Z = torch.stack([chol@np.random.randn(self.p) for _ in range(self.n)])
         
 
         
