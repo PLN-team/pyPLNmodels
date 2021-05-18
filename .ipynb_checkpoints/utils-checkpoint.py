@@ -55,7 +55,8 @@ def _variational_mat2vec(M, S):
 def _variational_model_params(M, S, projX):
     """replace mu and Sigma per their explicit estimator"""
     mu = projX @ M
-    Sigma = (M - mu).T @ (M - mu) / M.shape[0] + np.diag(S.mean(0))
+    S2 = S * S
+    Sigma = (M - mu).T @ (M - mu) / M.shape[0] + np.diag(S2.mean(0))
     return mu, Sigma
 
 def _laplace_model_params(Z, projX, threshold = 1e-5):
@@ -197,7 +198,6 @@ class sample_PLN():
         The number of samples is the the first size of O, the number of species
         considered is the second size of O
         The number of covariates considered is the first size of beta. 
-        
         '''
         self.Sigma = Sigma # unknown parameter in practice
         self.beta = beta #unknown parameter in practice
@@ -207,7 +207,9 @@ class sample_PLN():
         
         self.n = self.O.shape[0]
         self.p = self.Sigma.shape[0]
-        self.Z = torch.stack([self.Sigma@np.random.randn(self.p) for _ in range(self.n)])
+        chol = torch.cholesky(self.Sigma)
+        self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
+        #self.Z = torch.stack([chol@np.random.randn(self.p) for _ in range(self.n)])
         
 
         
@@ -215,7 +217,7 @@ class sample_PLN():
         
         parameter = torch.exp(self.O + self.covariates@self.beta + self.Z)
         self.Y = np.random.poisson(lam = parameter)
-        return self.Y 
+        return self.Y, self.Z
         #return parameter.numpy()
     def plot_Y(self): 
         '''
