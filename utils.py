@@ -198,7 +198,6 @@ class sample_PLN():
         The number of samples is the the first size of O, the number of species
         considered is the second size of O
         The number of covariates considered is the first size of beta. 
-        
         '''
         self.Sigma = Sigma # unknown parameter in practice
         self.beta = beta #unknown parameter in practice
@@ -209,7 +208,8 @@ class sample_PLN():
         self.n = self.O.shape[0]
         self.p = self.Sigma.shape[0]
         chol = torch.cholesky(self.Sigma)
-        self.Z = torch.stack([chol@np.random.randn(self.p) for _ in range(self.n)])
+        self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
+        #self.Z = torch.stack([chol@np.random.randn(self.p) for _ in range(self.n)])
         
 
         
