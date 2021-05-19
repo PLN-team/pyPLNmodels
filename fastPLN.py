@@ -1,0 +1,147 @@
+import math
+import time 
+
+import numpy as np
+import torch
+import scipy.linalg as SLA 
+torch.set_default_dtype(torch.float64)
+
+#get the device
+if torch.cuda.is_available(): 
+    device = torch.device('cuda') 
+else : 
+    device = torch.device('cpu')
+print('device : ', device)
+
+
+def ELBO(Y, O,covariates ,M ,S ,Sigma ,beta):
+    '''
+    compute the ELBO. We use Sigma in this formula
+    '''
+    n,p = Y.shape
+    SrondS = torch.multiply(S,S)
+    OplusM = O+M
+    MmoinsXB = M-torch.mm(covariates, beta) 
+    tmp = torch.sum(  torch.multiply(Y, OplusM)  -torch.exp(OplusM+SrondS/2) +1/2*torch.log(SrondS))
+    tmp -= 1/2*torch.trace(  
+                            torch.mm(  
+                                        torch.inverse(Sigma), 
+                                        torch.diag(torch.sum(SrondS, dim = 0))+ torch.mm(MmoinsXB.T, MmoinsXB)
+                                    )
+                          )
+    tmp-= n/2*torch.log(torch.det(Sigma))
+    return tmp
+
+class fastPLN():
+    def __init__(self): 
+        '''
+        Initialization. We only define some useful stuff. The real initalization is done 
+        in the init_data() func. 
+        '''
+        self.old_loss = 1
+        # some lists to store some stats
+        self.ELBO_list = list()
+        self.running_times = list()
+
+        
+    def init_data(self,data): 
+        '''
+        function to extract the data and initialize the parameters. This function is just here to have a code more compact.
+        
+        args : 
+              'data': list with 3 elements : Y, O and covariates in this order. 
+        '''
+        #known variables
+        self.Y = data[0].to(device);self.O = data[1].to(device);self.covariates = data[2].to(device)
+        self.n, self.p = self.Y.shape
+        self.d = self.covariates.shape[1]
+        
+        #model parameter 
+        noise = torch.randn(self.p) 
+        self.Sigma =  (torch.diag(noise**2)+ 1e-1).to(device)
+        self.beta = torch.rand((self.d, self.p)).to(device)
+        #variational parameter
+        self.M = torch.randn((self.n,self.p)).to(device)
+        self.M.requires_grad_(True)
+        self.S = torch.randn((self.n,self.p)).to(device)
+        self.S.requires_grad_(True)
+        
+        self.params = {'S' : self.S,'M': self.M, 'beta' : self.beta, 'Sigma' : self.Sigma}
+        
+        
+    ###################### parametrisation centered in X@\beta, variance CC.T ##############
+    
+    
+    def compute_ELBO(self): 
+        '''
+        Computes the ELBO with the parameter of the model.
+        '''
+        return ELBO(self.Y,self.O , self.covariates,self.M ,self.S ,self.Sigma ,self.beta)
+    
+    
+    def fit(self,data, N_iter, tolerance = 0, optimizer = torch.optim.Rprop, lr = 1,verbose = False): 
+        self.t0 = time.time()
+        #initialize the data
+        self.init_data(data)
+        self.optimizer = optimizer([self.S,self.M], lr = lr)
+        stop_condition = False 
+        i = 0
+        while i < N_iter and stop_condition == False: 
+            self.optimizer.zero_grad()
+            loss = -self.compute_ELBO()
+            loss.backward()
+            self.optimizer.step()
+            
+            
+            delta = self.old_loss - loss.item() # precision 
+            # condition to see if we have reach the tolerance threshold
+            if  abs(delta) < tolerance :
+                stop_condition = True 
+            self.old_loss = loss.item()
+              
+            self.ELBO_list.append(-loss.item())# keep track of the ELBO
+            # print some stats if we want to
+            if i%10 == 0 and verbose : 
+                print('Iteration number: ', i)
+                print('-------UPDATE-------')
+                print('ELBO : ', np.round(-loss.item(),5))
+                print('Delta : ', delta)
+            i += 1
+            #keep track of the time 
+            self.running_times.append(time.time()-self.t0)
+            #uupdate the parameters with their closed form. 
+            self.beta = self.closed_beta()
+            self.Sigma = self.closed_Sigma()
+            
+        # print some stats if we want to 
+        if verbose : 
+            if stop_condition : 
+                print('----datas-----------------------------Tolerance {} reached in {} iterations'.format(tolerance, i))
+            else : 
+                print('---------------------------------Maximum number of iterations reached : ', N_iter, 'last delta = ', delta)
+
+        
+    def closed_Sigma(self):
+        '''
+        closed form for Sigma with the first parametrisation centered in X\beta and variance Sigma 
+        '''
+        n,p = self.M.shape
+        MmoinsXB = self.M-torch.mm(self.covariates,self.beta)
+        return 1/(n)*(torch.mm(MmoinsXB.T,MmoinsXB) + torch.diag(torch.sum(torch.multiply(self.S,self.S), dim = 0)))
+    def closed_beta(self): 
+        '''
+        closed form for beta with the first parametrisation above
+        '''
+        ## a améliorer l'inverse ! 
+        return torch.mm(torch.mm(torch.inverse(torch.mm(self.covariates.T,self.covariates)), self.covariates.T),self.M)
+
+
+
+
+
+
+
+
+
+
+
