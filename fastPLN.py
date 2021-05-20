@@ -10,7 +10,7 @@ torch.set_default_dtype(torch.float64)
 if torch.cuda.is_available(): 
     device = torch.device('cuda') 
 else : 
-    device = torch.device('cpu')Financement these date
+    device = torch.device('cpu')
 print('device : ', device)
 
 
@@ -116,7 +116,7 @@ class fastPLN():
         # print some stats if we want to 
         if verbose : 
             if stop_condition : 
-                print('----datas-----------------------------Tolerance {} reached in {} iterations'.format(tolerance, i))
+                print('---------------------------------Tolerance {} reached in {} iterations'.format(tolerance, i))
             else : 
                 print('---------------------------------Maximum number of iterations reached : ', N_iter, 'last delta = ', delta)
 
