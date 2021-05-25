@@ -207,12 +207,11 @@ class sample_PLN():
         
         self.n = self.O.shape[0]
         self.p = self.Sigma.shape[0]
-        chol = torch.cholesky(self.Sigma)
-        self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
-        #self.Z = torch.stack([chol@np.random.randn(self.p) for _ in range(self.n)])
-        
+        #chol = torch.cholesky(self.Sigma)
+        root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
+        #self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
+        self.Z = torch.mm(torch.randn(self.n,self.p),root)
 
-        
         self.d = self.covariates.shape[1]
         
         parameter = torch.exp(self.O + self.covariates@self.beta + self.Z)
