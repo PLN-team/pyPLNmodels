@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 import torch
+import seaborn as sns
 import scipy.linalg as SLA 
 torch.set_default_dtype(torch.float64)
 
@@ -79,10 +80,10 @@ class fastPLN():
         return ELBO(self.Y,self.O , self.covariates,self.M ,self.S ,self.Sigma ,self.beta)
     
     
-    def fit(self,data, N_iter, tolerance = 0, optimizer = torch.optim.Rprop, lr = 1,verbose = False): 
+    def fit(self,Y,O,covariates, N_iter, tolerance = 0, optimizer = torch.optim.Rprop, lr = 1,verbose = False): 
         self.t0 = time.time()
         #initialize the data
-        self.init_data(data)
+        self.init_data([Y,O,covariates])
         self.optimizer = optimizer([self.S,self.M], lr = lr)
         stop_condition = False 
         i = 0
@@ -135,7 +136,8 @@ class fastPLN():
         ## a améliorer l'inverse ! 
         return torch.mm(torch.mm(torch.inverse(torch.mm(self.covariates.T,self.covariates)), self.covariates.T),self.M)
 
-
+    def show_Sigma(self):
+        sns.heatmap(self.Sigma.detach().numpy())
 
 
 
