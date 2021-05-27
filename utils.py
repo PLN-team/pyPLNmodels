@@ -10,6 +10,7 @@ import numpy as np
 from scipy import linalg
 from scipy import optimize
 import torch
+torch.set_default_dtype(torch.float64)
 import scipy.linalg as SLA 
 
 def log_factorial(A):
@@ -191,7 +192,7 @@ class sample_PLN():
     
     def __init__(self): 
         pass 
-
+    
     def sample(self, Sigma, beta, O, covariates): 
         '''
         sample Poisson log Normal variables. 
@@ -209,15 +210,13 @@ class sample_PLN():
         self.p = self.Sigma.shape[0]
         #chol = torch.cholesky(self.Sigma)
         root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
-        #self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
         self.Z = torch.mm(torch.randn(self.n,self.p),root)
 
-        self.d = self.covariates.shape[1]
         
-        parameter = torch.exp(self.O + self.covariates@self.beta + self.Z)
+        parameter = np.exp(self.O + self.covariates@self.beta + self.Z.numpy())
         self.Y = np.random.poisson(lam = parameter)
         return self.Y, self.Z
-        #return parameter.numpy()
+
     def plot_Y(self): 
         '''
         plot all the Y_ij sampled before. There will be n*p values in total. The color represent the site number. 
