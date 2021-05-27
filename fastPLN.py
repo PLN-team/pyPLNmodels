@@ -53,7 +53,10 @@ class fastPLN():
               'data': list with 3 elements : Y, O and covariates in this order. 
         '''
         #known variables
-        self.Y = data[0].to(device);self.O = data[1].to(device);self.covariates = data[2].to(device)
+        try : 
+            self.Y = torch.from_numpy(data[0]).to(device);self.O = torch.from_numpy(data[1]).to(device);self.covariates =                   torch.from_numpy(data[2]).to(device)
+        except : 
+            self.Y = data[0].to(device);self.O = data[1].to(device);self.covariates = data[2].to(device)
         self.n, self.p = self.Y.shape
         self.d = self.covariates.shape[1]
         
