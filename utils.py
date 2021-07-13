@@ -182,7 +182,6 @@ def sample(O,X,true_beta):
         parameter = np.exp(O + X@true_beta)
         return torch.poisson(parameter)
 
-    
 class sample_PLN(): 
     '''
     simple class to sample some variables with the PLN model. 
@@ -211,7 +210,6 @@ class sample_PLN():
         #chol = torch.cholesky(self.Sigma)
         root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
         self.Z = torch.mm(torch.randn(self.n,self.p),root)
-
         
         parameter = np.exp(self.O + self.covariates@self.beta + self.Z.numpy())
         self.Y = np.random.poisson(lam = parameter)
