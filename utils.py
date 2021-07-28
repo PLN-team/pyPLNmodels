@@ -207,10 +207,9 @@ class sample_PLN():
         
         self.n = self.O.shape[0]
         self.p = self.Sigma.shape[0]
-        #chol = torch.cholesky(self.Sigma)
-        root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
-        self.Z = torch.mm(torch.randn(self.n,self.p),root)
-        
+        chol = torch.cholesky(self.Sigma)
+        #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
+        self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
         parameter = np.exp(self.O + self.covariates@self.beta + self.Z.numpy())
         self.Y = np.random.poisson(lam = parameter)
         return self.Y, self.Z
