@@ -12,6 +12,8 @@ from scipy import optimize
 import torch
 torch.set_default_dtype(torch.float64)
 import scipy.linalg as SLA 
+from scipy.linalg import toeplitz
+import math
 
 def log_factorial(A):
     """ 
@@ -232,3 +234,50 @@ class sample_PLN():
             mu_i = self.covariates[i].dot(self.beta[0])
             functions.append(lambda z : -z**2/(2*self.Sigma[0,0]**2)-np.exp(mu_i+z)+float(self.Y[i])*(mu_i+z))
         return functions 
+    
+    
+def M_x(t,mu,Sigma): 
+    return np.exp(mu@t + 1/2*t@Sigma@t)
+
+def build_block_Sigma(p,k): 
+    '''
+    build a matrix per block of size (p,p). There will be k+1 blocks of size p//k.
+    The first k ones will be the same size. The last one will be different (size (0,0) if k%p = 0)
+    '''
+    np.random.seed(0)
+    alea = np.random.randn(k+1)**2+1# will multiply each block by some random quantities 
+    Sigma = np.zeros((p,p))
+    block_size,last_block_size = p//k, p%k
+    for i in range(k): 
+        Sigma[i*block_size : (i+1)*block_size ,i*block_size : (i+1)*block_size] = alea[i]*toeplitz(0.7**np.arange(block_size))
+    if last_block_size >0 :
+        Sigma[-last_block_size:,-last_block_size:] = alea[k]*toeplitz(0.7**np.arange(last_block_size))
+    return Sigma+0.1*toeplitz(0.95**np.arange(p))
+
+
+def C_from_Sigma(Sigma,q): 
+    ''' 
+    get the best matrix of size (p,q) when Sigma is of size (p,p). i.e. reduces norm(Sigma-C@C.T)
+    args : 
+        Sigma : np.array of size (p,p). Should be positive definite and symmetric.
+        q : int. The number of columns you want in your matrix C. 
+        
+    returns : C_reduct : np.array of size (p,q) that contains the q eigenvectors with largest eigenvalues. 
+    '''
+    w,v = SLA.eigh(Sigma) # get the eigenvaluues and eigenvectors
+    C_reduct = v[:,-q:]@np.diag(np.sqrt(w[-q:])) # we take only the q best. 
+    return C_reduct
+
+
+def log_stirling(n_):
+    '''
+    this function computes log(n!) even for n large. We use the Stirling formula to avoid 
+    numerical infinite values of n!. It can also take tensors.
+    
+    args : 
+         n_ : tensor. 
+    return : an approximation of log(n!)
+    '''
+    n = torch.clone(n_) #clone the tensor by precaution
+    n+= (n==0) # replace the 0 with 1. It changes nothing since 0! = 1! 
+    return torch.log(torch.sqrt(2*np.pi*n))+n*torch.log(n/math.exp(1)) #Stirling formula
