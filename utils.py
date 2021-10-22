@@ -239,15 +239,17 @@ class sample_PLN():
 def M_x(t,mu,Sigma): 
     return np.exp(mu@t + 1/2*t@Sigma@t)
 
-def build_block_Sigma(p,k): 
+def build_block_Sigma(p,block_size): 
     '''
-    build a matrix per block of size (p,p). There will be k+1 blocks of size p//k.
-    The first k ones will be the same size. The last one will be different (size (0,0) if k%p = 0)
+    build a matrix per block of size (p,p). There will be p//block_size+1 blocks of size block_size.
+    The first p//k ones will be the same size. The last one will be different (size (0,0) if p%block_size = 0)
     '''
     np.random.seed(0)
+    k = p//block_size
     alea = np.random.randn(k+1)**2+1# will multiply each block by some random quantities 
     Sigma = np.zeros((p,p))
-    block_size,last_block_size = p//k, p%k
+    last_block_size = p-k*block_size
+    #block_size,last_block_size = p//k, p%k
     for i in range(k): 
         Sigma[i*block_size : (i+1)*block_size ,i*block_size : (i+1)*block_size] = alea[i]*toeplitz(0.7**np.arange(block_size))
     if last_block_size >0 :
