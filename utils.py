@@ -112,7 +112,7 @@ class Poisson_reg():
         
         args : 
                 '0' : offset, size (n,p)
-                'X' : covariates, size (n,p)
+                'X' : covariates, size (n,d)
                 'Y' : samples , size (n,p)
                 'Niter_max' :int  the number of iteration we are ready to do 
                 'tol' : float. the tolerance criteria. We will stop if the norm of the gradient is less than 
@@ -124,7 +124,7 @@ class Poisson_reg():
         '''
         
         #we initiate beta 
-        beta = torch.rand(X.shape[1])
+        beta = torch.rand(X.shape[0])
         i = 0
         grad_norm = 2*tol
         while i<Niter_max and  grad_norm > tol : # condition to keep going
@@ -146,13 +146,14 @@ class Poisson_reg():
         self.beta = beta # save beta 
         
         
-    def fit_torch(self,O,X,Y, Niter_max = 300, tol = 0.1, lr = 0.0001, verbose = False): 
+    def fit_torch(self,O,X,Y, Niter_max = 300, tol = 0.1, lr = 0.005, verbose = False): 
         '''
         Does exaclty the same as fit() but uses autodifferentiation of pytorch. 
         '''
         
-        beta = torch.rand(X.shape[1], requires_grad = True)
-        optimizer = torch.optim.Adam([beta], lr = lr)
+        beta = torch.rand((X.shape[1], Y.shape[1]), requires_grad = True)
+        
+        optimizer = torch.optim.RMSprop([beta], lr = lr)
         i = 0
         grad_norm = 2*tol
         while i<Niter_max and  grad_norm > tol :
@@ -175,10 +176,12 @@ class Poisson_reg():
     
 
 def grad_poiss_beta(O,X,Y,beta): 
+    
     return torch.sum(-torch.multiply(X,torch.exp(O+X@beta).reshape(-1,1))+torch.multiply(Y.reshape(-1,1),X),dim = 0)
     
 def compute_l(O,X,Y,beta):
-    return torch.sum(-torch.exp(O + X@beta)+torch.multiply(Y,O+X@beta))    
+    XB = torch.matmul(X.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    return torch.sum(-torch.exp(O + XB)+torch.multiply(Y,O+XB))    
     
 def sample(O,X,true_beta):
         parameter = np.exp(O + X@true_beta)
@@ -283,3 +286,9 @@ def log_stirling(n_):
     n = torch.clone(n_) #clone the tensor by precaution
     n+= (n==0) # replace the 0 with 1. It changes nothing since 0! = 1! 
     return torch.log(torch.sqrt(2*np.pi*n))+n*torch.log(n/math.exp(1)) #Stirling formula
+
+def MSE(tens): 
+    '''
+    computes the Mean Squared Error of a torch.tensor
+    '''
+    return torch.mean(tens**2)
