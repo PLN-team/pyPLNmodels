@@ -15,6 +15,13 @@ import scipy.linalg as SLA
 from scipy.linalg import toeplitz
 import math
 
+
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else : 
+    device = torch.device('cpu')
+
+
 def log_factorial(A):
     """ 
         function to compute an approximation of the sum of the log factorial for a matrix argument
@@ -151,7 +158,7 @@ class Poisson_reg():
         Does exaclty the same as fit() but uses autodifferentiation of pytorch. 
         '''
         
-        beta = torch.rand((X.shape[1], Y.shape[1]), requires_grad = True)
+        beta = torch.rand((X.shape[1], Y.shape[1]), requires_grad = True).to(device)
         
         optimizer = torch.optim.RMSprop([beta], lr = lr)
         i = 0
