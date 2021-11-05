@@ -14,7 +14,7 @@ torch.set_default_dtype(torch.float64)
 import scipy.linalg as SLA 
 from scipy.linalg import toeplitz
 import math
-
+torch.set_default_dtype(torch.float64)
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -193,6 +193,10 @@ def compute_l(O,X,Y,beta):
 def sample(O,X,true_beta):
         parameter = np.exp(O + X@true_beta)
         return torch.poisson(parameter)
+    
+def sigmoid(x):
+    return 1/(1+ torch.exp(-x))
+
 
 class sample_PLN(): 
     '''
@@ -201,10 +205,11 @@ class sample_PLN():
     The method conditional prior should not be used and have not been tested properly. 
     '''
     
-    def __init__(self): 
+    def __init__(self, ZI = False):
+        self.ZI = ZI
         pass 
     
-    def sample(self, Sigma, beta, O, covariates): 
+    def sample(self, Sigma, beta, O, covariates, B_zero = None ): 
         '''
         sample Poisson log Normal variables. 
         The number of samples is the the first size of O, the number of species
@@ -223,27 +228,21 @@ class sample_PLN():
         #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
         self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
         parameter = np.exp(self.O + self.covariates@self.beta + self.Z.numpy())
-        self.Y = np.random.poisson(lam = parameter)
-        return self.Y, self.Z
+        ZI_cov = self.covariates@B_zero
+        if self.ZI : 
+            ksi = np.random.binomial(1,1/(1+ np.exp(-ZI_cov)))
+        else :
+            ksi = 0 
+        self.Y = (1-ksi)*np.random.poisson(lam = parameter)
+        return self.Y, self.Z, ksi
 
-    def plot_Y(self): 
-        '''
-        plot all the Y_ij sampled before. There will be n*p values in total. The color represent the site number. 
-        Note that we need to have called self.sample() before otherwise it won't print anything 
-        '''
-        color = np.array([[site]*self.p for site in range(self.n) ]).ravel()*10
-        plt.scatter(np.arange(0,self.n*self.p),self.Y.ravel(), c = color, label = 'color = site number')
-        plt.legend()
-        plt.ylabel('count number')
-        plt.show()
+def logit_(x) : 
+    return torch.log(x/(1-x))
 
-    def conditionalprior(self): 
-        mu = self.O[0,0]
-        functions = list()
-        for i in range(self.n): 
-            mu_i = self.covariates[i].dot(self.beta[0])
-            functions.append(lambda z : -z**2/(2*self.Sigma[0,0]**2)-np.exp(mu_i+z)+float(self.Y[i])*(mu_i+z))
-        return functions 
+def logit(x):
+    y = x + (x==0)*0.5
+    return torch.nan_to_num(torch.log(x/(1-x)), nan =0, neginf = 0, posinf = 0)
+
     
     
 def M_x(t,mu,Sigma): 
