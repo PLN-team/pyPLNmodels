@@ -180,6 +180,19 @@ class Poisson_reg():
             else : 
                 print('-------------------Maxium number of iterations reached')
         self.beta = beta 
+        
+def init_C(O,X,Y,beta,q): 
+    log_Y = torch.log(Y + (Y==0))
+    log_Y_c = log_Y - torch.matmul(X.unsqueeze(1),beta.unsqueeze(0)).squeeze()
+    Sigma_hat = torch.mean(torch.matmul(log_Y_c.unsqueeze(2), log_Y_c.unsqueeze(1)), axis = 0)
+    C = torch.from_numpy(C_from_Sigma(Sigma_hat.detach(),q))
+    return C
+
+def init_Sigma(O,X,Y,beta): 
+    log_Y = torch.log(Y + (Y==0))
+    log_Y_c = log_Y - torch.matmul(X.unsqueeze(1),beta.unsqueeze(0)).squeeze()
+    Sigma_hat = torch.mean(torch.matmul(log_Y_c.unsqueeze(2), log_Y_c.unsqueeze(1)), axis = 0)
+    return Sigma_hat
     
 
 def grad_poiss_beta(O,X,Y,beta): 
