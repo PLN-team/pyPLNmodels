@@ -241,8 +241,9 @@ class sample_PLN():
         #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
         self.Z = torch.mm(torch.randn(self.n,self.p),chol.T)
         parameter = np.exp(self.O + self.covariates@self.beta + self.Z.numpy())
-        ZI_cov = self.covariates@B_zero
-        if self.ZI : 
+        
+        if self.ZI :
+            ZI_cov = self.covariates@B_zero
             ksi = np.random.binomial(1,1/(1+ np.exp(-ZI_cov)))
         else :
             ksi = 0 
