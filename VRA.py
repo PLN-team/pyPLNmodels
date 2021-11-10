@@ -87,19 +87,19 @@ class SVRGRAD():
             param.mean_table = torch.zeros(param.shape).to(device)
 
     
-    def update_new_grad(self, selected_indices):
+    def update_new_grad(self,batch_grads, selected_indices):
         '''
         update the gradients of each parameter with the formula given in the 
-        SVRG. Note that each parameter must already have a gradient, we will 
-        only update it (remove the old gradients and add the mean of the table)
+        SVRG. 
         '''
         means_batch_table = []
         self.batch_size = len(selected_indices)
 
         for i,param in enumerate(self.params): 
+            batch_grad = torch.mean(batch_grads[i], axis = 0)
             means_batch_table = torch.mean(param.table[selected_indices], axis = 0).detach()
             # gradient formula in the SAGA optimizer
-            param.grad = (param.grad-means_batch_table + param.mean_table).detach()
+            param.grad = (batch_grad-means_batch_table + param.mean_table).detach()
     def update_table(self, new_tables): 
         for i,param in enumerate(self.params): 
             param.table = new_tables[i].detach()
