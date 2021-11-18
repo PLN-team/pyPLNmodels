@@ -172,26 +172,26 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero = None, ZI = False):
         ksi: torch.tensor of size (n,p), the bernoulli latent variables. 
     """
     
-        n = self.O.shape[0]
-        p = self.Sigma.shape[0]
-        # Cholesky factorization. We need to take the cholesky of Sigma   
-        # in order to simulate a gaussian with variance Sigma. 
-        chol = torch.cholesky(Sigma)
-        # taking the square root of Sigma is another possibility,
-        # less stable than the cholesky factorization. 
-        #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double() 
-        
-        # Matrix multiplication between gaussians and the cholesky factorization
-        # of Sigma, giving a gaussian of mean 0 and covariance Sigma. 
-        Z = torch.mm(torch.randn(n,p),chol.T)
-        parameter = np.exp(O + covariates@beta + Z.numpy())
-        if ZI :
-            ZI_cov = covariates@B_zero
-            ksi = np.random.binomial(1,1/(1+ np.exp(-ZI_cov)))
-        else :
-            ksi = 0 
-        Y = (1-ksi)*np.random.poisson(lam = parameter)
-        return Y, Z, ksi
+    n = O.shape[0]
+    p = Sigma.shape[0]
+    # Cholesky factorization. We need to take the cholesky of Sigma   
+    # in order to simulate a gaussian with variance Sigma. 
+    chol = torch.cholesky(Sigma)
+    # taking the square root of Sigma is another possibility,
+    # less stable than the cholesky factorization. 
+    #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double() 
+
+    # Matrix multiplication between gaussians and the cholesky factorization
+    # of Sigma, giving a gaussian of mean 0 and covariance Sigma. 
+    Z = torch.mm(torch.randn(n,p),chol.T)
+    parameter = np.exp(O + covariates@beta + Z.numpy())
+    if ZI :
+        ZI_cov = covariates@B_zero
+        ksi = np.random.binomial(1,1/(1+ np.exp(-ZI_cov)))
+    else :
+        ksi = 0 
+    Y = (1-ksi)*np.random.poisson(lam = parameter)
+    return Y, Z, ksi
 
 
 def logit_(x) : 
