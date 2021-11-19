@@ -40,7 +40,7 @@ class Poisson_reg():
         pass
        
     def fit(
-            self,Y,O,X, Niter_max = 300,
+            self,Y,O,covariates, Niter_max = 300,
             tol = 0.001, lr = 0.005, verbose = False):
         """Run a gradient ascent to maximize the log likelihood, using 
         pytorch autodifferentiation. The log likelihood considered is 
@@ -50,27 +50,28 @@ class Poisson_reg():
         
         
         Args: 
-            0: torch.tensor. Offset, size (n,p)
-            X: torch.tensor. Covariates, size (n,d)
             Y: torch.tensor. Samples with size (n,p)
-            Niter_max: int  the maximum number of iteration we 
-                are ready to do 
-            tol: non negative float. The tolerance criteria. 
+            0: torch.tensor. Offset, size (n,p)
+            covariates: torch.tensor. Covariates, size (n,d)
+            Niter_max: int, optional. The maximum number of iteration we 
+                are ready to do. Default is 300. 
+            tol: non negative float, optional. The tolerance criteria. 
                 We will stop if the norm of the gradient is less than 
-                or equal to this threshold
-            lr: positive float. Learning rate for the gradient ascent
+                or equal to this threshold. Default is 0.001. 
+            lr: positive float, optional. Learning rate for the gradient ascent. 
+                Default is 0.005.
             verbose: bool. If True, will print some stats.  
 
         Returns : None. Update the parameter beta. You can access it 
-                by calling self.beta . 
+                by calling self.beta. 
         """
         # Initialization of beta of size (d,p) 
-        beta = torch.rand((X.shape[1], Y.shape[1]), requires_grad = True).to(device)
+        beta = torch.rand((covariates.shape[1], Y.shape[1]), requires_grad = True).to(device)
         optimizer = torch.optim.Rprop([beta], lr = lr)
         i = 0
         grad_norm = 2*tol  # Criterion
         while i<Niter_max and  grad_norm > tol :
-            loss = -compute_l(O,X,Y,beta)
+            loss = -compute_l(Y, O, covariates, beta)
             loss.backward()
             optimizer.step()
             grad_norm = torch.norm(beta.grad)
@@ -88,34 +89,34 @@ class Poisson_reg():
         self.beta = beta 
 
         
-def init_C(O,X,Y,beta,q):
+def init_C(Y, O, covariates, beta, q):
     """Inititalization for C for the PLN model. We get a first 
     guess for Sigma that is easier to estimate and then takes 
     the q largest eigenvectors to get C.
     Args : 
-        0: torch.tensor. Offset, size (n,p)
-        X: torch.tensor. Covariates, size (n,d)
         Y: torch.tensor. Samples with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covarites: torch.tensor. Covariates, size (n,d)
         beta: torch.tensor of size (d,p)
         q: int. The dimension of the latent space, i.e. the reducted dimension. 
     Returns : 
         torch.tensor of size (p,q). The initialization of C. 
     """
     # get a guess for Sigma
-    Sigma_hat = init_Sigma(O,X,Y,beta).detach()
+    Sigma_hat = init_Sigma(Y, O, covariates, beta).detach()
     # taking the q largest eigenvectors
-    C = torch.from_numpy(C_from_Sigma(Sigma_hat,q))
+    C = torch.from_numpy(C_from_Sigma(Sigma_hat, q))
     return C
 
 
-def init_Sigma(O,X,Y,beta): 
+def init_Sigma(Y, O, covariates, beta): 
     """ Initialization for Sigma for the PLN model. We take the log of Y
     (we are careful when Y=0), removed the covariates effects X@beta and 
     then do as a MLE for Gaussians samples. 
     Args : 
-            0: torch.tensor. Offset, size (n,p)
-            X: torch.tensor. Covariates, size (n,d)
             Y: torch.tensor. Samples with size (n,p)
+            0: torch.tensor. Offset, size (n,p)
+            covariates: torch.tensor. Covariates, size (n,d)
             beta: torch.tensor of size (d,p)
     Returns : torch.tensor of size (p,p). 
     """
@@ -124,7 +125,10 @@ def init_Sigma(O,X,Y,beta):
     log_Y = torch.log(Y + (Y==0)) # we should set the log of Y 
                                   # as -2 or something like this when Y=0 
     # we remove the mean so that we see only the covariances
-    log_Y_c = log_Y - torch.matmul(X.unsqueeze(1),beta.unsqueeze(0)).squeeze()
+    
+
+    
+    log_Y_c = log_Y - torch.matmul(covariates.unsqueeze(1),beta.unsqueeze(0)).squeeze()
     # MLE in a Gaussian setting 
     Sigma_hat = torch.mean(
                     torch.matmul(log_Y_c.unsqueeze(2), 
@@ -133,10 +137,10 @@ def init_Sigma(O,X,Y,beta):
     return Sigma_hat
     
     
-def compute_l(O,X,Y,beta):
+def compute_l(Y, O, covariates, beta):
     """Compute the log likelihood of a Poisson regression."""
     # Matrix multiplication of X and beta. 
-    XB = torch.matmul(X.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     # Returns the formula of the log likelihood of a poisson regression model. 
     return torch.sum(-torch.exp(O + XB)+torch.multiply(Y,O+XB))    
 
@@ -164,8 +168,10 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero = None, ZI = False):
         beta: torch.tensor of size (d,p). 
         0: torch.tensor. Offset, size (n,p)
         covariates : torch.tensor. Covariates, size (n,d)
-        B_zero: torch.tensor of size (d,p) (default = None) 
-        ZI: bool. If True, the model will be Zero Inflated. 
+        B_zero: torch.tensor of size (d,p), optional. the default is None. 
+            If you set ZI to True, it will raise an error if you don't set 
+            a value. 
+        ZI: bool. If True, the model will be Zero Inflated. Default is False.
     Returns : 
         Y: torch.tensor of size (n,p), the count variables. 
         Z: torch.tensor of size (n,p), the gaussian latent variables.
@@ -257,5 +263,5 @@ def log_stirling(n_):
     return torch.log(torch.sqrt(2*np.pi*n))+n*torch.log(n/math.exp(1)) #Stirling formula
 
 def MSE(tens): 
-    """Compute the mean of the squared tensor."""
+    """Compute the mean of the squared (element-wise) tensor."""
     return torch.mean(tens**2)
