@@ -13,8 +13,7 @@ else :
 
 
 class SAGARAD(): 
-    '''
-    class that aims at computing the effective gradients of the SAGA algorithm. For example, 
+    '''class that aims at computing the effective gradients of the SAGA algorithm. For example, 
     given a gradient computed on a batch of our dataset, SAGA 'correct' the gradients to 
     try to approximate the gradient of the whole dataset, doing the following : 
     takes the gradient computed on this batch, removing an old gradient, and adding 
