@@ -1,42 +1,76 @@
-# This file aims at building an object that will compute 
-# the gradients iteration of the SAGA, SAG and SVRG algorithm. 
-# We do so in order to give those gradients to an optimizer like RMSprop so that it goes faster.
-# since we do not have momentum or anything like this in the SAGA, SAG and SVRG optimizers. 
-# VRA for variance reductor algorithm
+#!/usr/bin/env python
+
+"""Implemented 3 variance reduction algorithms (i.e. algorithms that 
+approximate the gradient of a loss composed of a mean of n functions), namely: 
+    - SAGA,   see Defazio, Aaron et al. “SAGA: A Fast Incremental Gradient
+        Method With Support for Non-Strongly Convex Composite Objectives.” 
+        for more details. 
+    - Stochastic Average Gradient (SAG), see Schmidt, Mark W. et al. “Minimizing finite sums with the 
+        stochastic average gradient.” Mathematical Programming 162 (2017): 83-112.
+        for more details
+    - SVRG, see Rie Johnson and Tong Zhang. "Accelerating stochastic 
+    gradient descent using predictive variance reduction." NIPS, 2013 for more details.
+    
+
+Created on Wed Nov  17 09:39:30 2021
+
+@author: Bastien Batardiere, Julien Chiquet and Joon Kwon
+"""
 import torch
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else : 
     device = torch.device('cpu')
+#device = torch.device('cpu') # have to deal with this. 
 
 
 
-class SAGARAD(): 
-    '''class that aims at computing the effective gradients of the SAGA algorithm. For example, 
-    given a gradient computed on a batch of our dataset, SAGA 'correct' the gradients to 
-    try to approximate the gradient of the whole dataset, doing the following : 
+class SAGARAD():
+    '''Aims at computing the effective gradients of the SAGA algorithm. For example, 
+    given a gradient computed on a batch of our dataset, SAGA 'corrects' the gradients to 
+    try to approximate the gradient of the whole dataset, doing the following: 
+    SAGA will store the gradient with respect to each parameter for each sample in your 
+    dataset. For example, if your dataset has 200 samples and two parameter to optimize, 
+    then, it will store a list of two torch.tensor of size (200, parameter1.shape) 
+    and (200, parameter2.shape). Each of those tensors is here to approximate the 
+    gradient of the function (instead of taking only the gradient estimating on 
+    mini-batches, we try to estimate it taking the gradient of all the samples). 
+    We call in the following this list of torch.tensors 'table'.  
+    
     takes the gradient computed on this batch, removing an old gradient, and adding 
-    the old approximation of the gradient of the whole dataset. 
+    the old approximation of the gradient of the whole dataset, and then update the 
+    old approximation. 
     
-    How tu use it ? 
+    How tu use it? 
     
-    First, you need to declare it by calling for example 
-    sagarad = SAGARAD(list(first_param, second_param], sample_size)
-    where sample size is the size of your dataset. 
-    then, given a batch, you neeed to give him the gradient for each sample in 
-    your batch, for each parameter. To do so, just call
-    sagrad.update_new_grad([gradients for the first param, gradients for the second param], selected_indices)
+    First, you need to declare it by calling for example (if you have only two params)
+    'sagarad = SAGARAD([first_param, second_param], sample_size)'
+    where sample size is the size of your dataset. Then, given a batch, you neeed to
+    give him the gradient for each sample in your batch, for each parameter. To do so, 
+    just call 
+    'sagrad.update_new_grad([gradients for the first param, 
+                            gradients for the second param], selected_indices)'
     where selected_indices is the indices you selected for your batch, 
-    i.e. Y_batch = Y[selected_indices]
-    Then, it will update the gradient on his own. 
-    each parameter does not require to have a gradient (i.e. param.grad can be None before
-    calling self.update_new_grad()), but it will have a gradient after calling this function. 
+    i.e. Y_batch = Y[selected_indices]. Each parameter does not require to 
+    have a gradient (i.e. param.grad can be None before calling 
+    self.update_new_grad()), but it will have a gradient after calling this function.
+    The resulting gradient of the parameter will therefore be the variance reducted
+    gradient.
     
     '''
     
     
     def __init__(self,params,sample_size):
+        '''Defines some usefuls attributes of the object, such as the parameters 
+        and the sample size. We need the sample size in order to initialize the 
+        gradient of each sample (this large vector will be needed to average the gradient.)
+        
+        Args: 
+            params: list. Each element of the list should be a torch.tensor object.
+                
+        '''
+        
         self.params = params
         self.sample_size = sample_size
         self.nb_non_zero = 0
