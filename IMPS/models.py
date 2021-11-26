@@ -44,7 +44,10 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else : 
     device = torch.device('cpu')
+#device = torch.device('cpu') # have to deal with this. 
+    
 print('device ', device)
+
 
 
 def show(model, save = False, name_graphic = '', display_best_log_like = False): 
@@ -134,7 +137,6 @@ def log_likelihood(Y,O,covariates, C,beta, acc = 0.002, N_iter_mode = 1000, lr_m
     model.C_mean = C
     model.beta_mean = beta
     log_like = model.compute_best_loglike(acc, N_iter_mode, lr_mode)
-    print('nb iteration', model.nb_iteration_list)
     del(model)
     return log_like
  

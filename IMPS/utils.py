@@ -29,6 +29,8 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else : 
     device = torch.device('cpu')
+#device = torch.device('cpu') # have to deal with this    
+
 
 
 class Poisson_reg():
