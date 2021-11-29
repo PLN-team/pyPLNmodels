@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+
+"""Implement a variational algorithm infering the parameter of the PLN model.
+    We are only optimizing the ELBO (Evidence LOwer Bound), alternating between two steps:
+        -M step: update the model parameters. We have a closed form for both parameters 
+            for this step.
+        -VE step: update the variational parameters. We do one step of gradient ascent to 
+            update M and S. 
+            
+Created on Wed Nov  17 09:39:30 2021
+
+@author: Bastien Batardiere, Julien Chiquet and Joon Kwon
+"""
+
 import math
 import time 
 
@@ -17,8 +31,19 @@ print('device : ', device)
 
 
 def ELBO(Y, O,covariates ,M ,S ,Sigma ,beta):
-    '''
-    compute the ELBO. We use Sigma in this formula
+    '''Compute the ELBO (Evidence LOwer Bound. See the doc for more details 
+    on the computation
+    
+    Args: 
+        Y: torch.tensor. Samples with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        Sigma: torch.tensor. Model parameter with size (p,p)
+        beta: torch.tensor. Model parameter with size (d,p)
+    Returns: 
+        torch.tensor of size 1, with a gradient. The ELBO. 
     '''
     n,p = Y.shape
     SrondS = torch.multiply(S,S)
@@ -34,24 +59,29 @@ def ELBO(Y, O,covariates ,M ,S ,Sigma ,beta):
     tmp-= n/2*torch.log(torch.det(Sigma))
     return tmp
 
+
 class fastPLN():
+    '''Implement the variational algorithm infering the parameters of the PLN model,
+    with a closed form for the M step and a gradient step for the VE step. 
+    '''
     def __init__(self): 
-        '''
-        Initialization. We only define some useful stuff. The real initalization is done 
-        in the init_data() func. 
+        '''Defines some usefuls lists and variables for the object. A deeper initalization is done 
+        in the init_data() func, once the dataset is available.
         '''
         self.old_loss = 1
         # some lists to store some stats
         self.ELBO_list = list()
         self.running_times = list()
-
-        
+   
     def init_data(self,data): 
-        '''
-        function to extract the data and initialize the parameters. This function is just here to have a code more compact.
+        '''Initialize the parameters with the right shape given the data. 
         
-        args : 
-              'data': list with 3 elements : Y, O and covariates in this order. 
+        Args: 
+              data: list with 3 elements(torch.tensor): Y, O and covariates in this 
+              order. Y and O should be of size (n,p), covariates of size (n,d). 
+        Returns:
+            None but initialize some useful data. 
+        
         '''
         #known variables
         try : 
@@ -78,13 +108,27 @@ class fastPLN():
     
     
     def compute_ELBO(self): 
-        '''
-        Computes the ELBO with the parameter of the model.
-        '''
+        '''Compute the ELBO with the parameter of the model.'''
         return ELBO(self.Y,self.O , self.covariates,self.M ,self.S ,self.Sigma ,self.beta)
     
     
-    def fit(self,Y,O,covariates, N_iter, tolerance = 0, optimizer = torch.optim.Rprop, lr = 1,verbose = False): 
+    def fit(self,Y,O,covariates, N_iter, tolerance = 0, optimizer = torch.optim.Rprop, lr = 0.7,verbose = False): 
+        '''Main function of the class. Infer the best parameter Sigma and beta given the data.
+        
+        Args:
+            Y: torch.tensor. Samples with size (n,p)
+            0: torch.tensor. Offset, size (n,p)
+            covariates: torch.tensor. Covariates, size (n,d)
+            N_iter: int. The number of iteration you wnat to do.
+            tolerance: non negative float. Criterion for the model (Default is 0). 
+            optimizer: objects that inherits from torch.optim. The optimize you want. 
+                Default is torch.optim.Rprop.
+            lr: positive float. The learning rate of the optimizer. Default is 0.7
+            verbose: bool. If True, will print some stats during the fitting. Default is False. 
+            
+        Returns: None but INITIALIZATION
+        
+        '''
         self.t0 = time.time()
         #initialize the data
         self.init_data([Y,O,covariates])
