@@ -267,3 +267,23 @@ def log_stirling(n_):
 def MSE(tens): 
     """Compute the mean of the squared (element-wise) tensor."""
     return torch.mean(tens**2)
+
+def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta): 
+    '''Compute the log posterior of the PLN model. Compute it either 
+    for W of size (N_samples, N_batch,q) or (batch_size, q). We need to have
+    both cases since we do it for both cases. 
+    Args : 
+        Y_b : torch.tensor of size (batch_size, p) 
+        covariates_b : torch.tensor of size (batch_size, d) or (d)     
+    Returns: torch.tensor of size (N_samples, batch_size) or (batch_size).  
+    '''
+    length = len(W.shape)
+    q = W.shape[-1]
+    if length == 2 : 
+        CW = torch.matmul(C.unsqueeze(0),W.unsqueeze(2)).squeeze()
+    elif length == 3 : 
+        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1), W.unsqueeze(3)).squeeze()
+    A_b = O_b + CW + covariates_b@beta
+    first_term = -q/2*math.log(2*math.pi)-1/2*torch.norm(W, dim = -1)**2
+    second_term = torch.sum(-torch.exp(A_b)   + A_b*Y_b - log_stirling(Y_b) , axis = -1) 
+    return first_term + second_term
