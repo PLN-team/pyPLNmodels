@@ -37,7 +37,7 @@ import torch
 import torch.linalg as TLA
 from tqdm import tqdm
 
-from .utils import init_C, Poisson_reg, log_stirling
+from .utils import init_C, init_Sigma, Poisson_reg, log_stirling, batch_log_P_WgivenY, MSE
 from .VRA import SAGARAD, SAGRAD, SVRGRAD 
 
 if torch.cuda.is_available():
@@ -187,31 +187,15 @@ def log_gaussian_density(W, mu_p,Sigma_p):
 
 
 
-def batch_log_P_WgivenY(Y_b, covariates_b, O_b, W, C, beta): 
-    '''Compute the log posterior of the PLN model. Compute it either 
-    for W of size (N_samples, N_batch,q) or (batch_size, q). We need to have
-    both cases since we do it for both cases. 
-    Args : 
-        Y_b : torch.tensor of size (batch_size, p) 
-        covariates_b : torch.tensor of size (batch_size, d) or (d)     
-    Returns: torch.tensor of size (N_samples, batch_size) or (batch_size).  
-    '''
-    length = len(W.shape)
-    q = W.shape[-1]
-    if length == 2 : 
-        CW = torch.matmul(C.unsqueeze(0),W.unsqueeze(2)).squeeze()
-    elif length == 3 : 
-        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1), W.unsqueeze(3)).squeeze()
-    A_b = O_b + CW + covariates_b@beta
-    first_term = -q/2*math.log(2*math.pi)-1/2*torch.norm(W, dim = -1)**2
-    second_term = torch.sum(-torch.exp(A_b)   + A_b*Y_b - log_stirling(Y_b) , axis = -1) 
-    return first_term + second_term
+
 
 
 class IMPS_PLN():
-    '''Maximize the likelihood of the PLN-PCA model. The main function
-    is the method fit() that fits the model. Most of the others 
-    functions are here to support the fit method. 
+    '''Maximize the likelihood of the PLN-PCA model. The main method
+    is the fit() method that fits the model. Most of the others 
+    functions are here to support the fit method. Any value of n can be taken. 
+    However, p should not be greater than 200, and q should not be greater than
+    20. The greater q and p, the lower the accuracy should be taken.
     '''
     
     def __init__(self, q,nb_average_param = 100, nb_average_likelihood = 8):
@@ -725,7 +709,7 @@ class IMPS_PLN():
         '''
         # The loss we will use for the gradient ascent. 
         def batch_un_log_posterior(W): 
-            return batch_log_P_WgivenY(self.Y_b, self.covariates_b, self.O_b, W, self.C, self.beta) 
+            return batch_log_P_WgivenY(self.Y_b, self.O_b, self.covariates_b, W, self.C, self.beta) 
         self.batch_un_log_posterior = batch_un_log_posterior
         # get the corresponding starting point. 
         W = torch.clone(self.starting_point[self.selected_indices].detach()).to(device)
@@ -773,6 +757,221 @@ class IMPS_PLN():
         show(self)
         self.show_Sigma()
         return ''
+    
+#################################### FastPLN object #######################################################
+    
+    
+def ELBO(Y, O,covariates ,M ,S ,Sigma ,beta):
+    '''Compute the ELBO (Evidence LOwer Bound. See the doc for more details 
+    on the computation
+    
+    Args: 
+        Y: torch.tensor. Samples with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        Sigma: torch.tensor. Model parameter with size (p,p)
+        beta: torch.tensor. Model parameter with size (d,p)
+    Returns: 
+        torch.tensor of size 1, with a gradient. The ELBO. 
+    '''
+    n,p = Y.shape
+    SrondS = torch.multiply(S,S)
+    OplusM = O+M
+    MmoinsXB = M-torch.mm(covariates, beta) 
+    tmp = torch.sum( torch.multiply(Y, OplusM)  
+                     -torch.exp(OplusM+SrondS/2) 
+                     +1/2*torch.log(SrondS)
+                   )
+    DplusMmoinsXB2 = torch.diag(torch.sum(SrondS, dim = 0))+ torch.mm(MmoinsXB.T, MmoinsXB)
+    tmp -= 1/2*torch.trace(  
+                            torch.mm(  
+                                        torch.inverse(Sigma), 
+                                        DplusMmoinsXB2
+                                    )
+                          )
+    tmp-= n/2*torch.log(torch.det(Sigma))
+    return tmp
+
+
+class fastPLN():
+    '''Implement the variational algorithm infering the parameters of the PLN model,
+    with a closed form for the M step and a gradient step for the VE step. Any value of n 
+    and p can be taken.
+    '''
+    def __init__(self): 
+        '''Defines some usefuls lists and variables for the object. A deeper initalization is done 
+        in the init_data() func, once the dataset is available.
+        '''
+        self.old_loss = 1
+        # some lists to store some stats
+        self.ELBO_list = list()
+        self.running_times = list()
+   
+    def init_data(self,data): 
+        '''Initialize the parameters with the right shape given the data. 
+        
+        Args: 
+              data: list with 3 elements(torch.tensor): Y, O and covariates in this 
+              order. Y and O should be of size (n,p), covariates of size (n,d). 
+        Returns:
+            None but initialize some useful data. 
+        
+        '''
+        #known variables
+        try : 
+            self.Y = torch.from_numpy(data[0]).to(device);self.O = torch.from_numpy(data[1]).to(device);self.covariates =                   torch.from_numpy(data[2]).to(device)
+        except : 
+            self.Y = data[0].to(device);self.O = data[1].to(device);self.covariates = data[2].to(device)
+        self.n, self.p = self.Y.shape
+        self.d = self.covariates.shape[1]
+        
+        #model parameter 
+        poiss_reg = Poisson_reg()
+        poiss_reg.fit(self.Y, self.O, self.covariates)
+        self.beta = torch.clone(poiss_reg.beta.detach()).to(device)
+        
+        #self.Sigma =  init_Sigma(self.Y, self.O, self.covariates, self.beta).to(device) 
+        self.Sigma = torch.diag(torch.ones(self.p))
+        # Initialize C in order to initialize M. 
+        #self.C = torch.cholesky(self.Sigma).to(device)
+
+        #variational parameter
+        #self.M = self.init_M(300,0.1)
+        self.M = torch.ones(self.n, self.p)
+        self.S = 1/2*torch.ones((self.n,self.p)).to(device)
+        
+        #self.params = {'S' : self.S,'M': self.M, 'beta' : self.beta, 'Sigma' : self.Sigma}
+        
+        
+    ###################### parametrisation centered in X@\beta, variance CC.T ##############
+    def MSE(self,true_value): 
+        return MSE(self.Sigma-true_value)
+    
+    def compute_ELBO(self): 
+        '''Compute the ELBO with the parameter of the model.'''
+        return ELBO(self.Y,self.O , self.covariates,self.M ,self.S ,self.Sigma ,self.beta)
+    
+    
+    def fit(self,Y,O,covariates, N_iter, tolerance = 10e-4, optimizer = torch.optim.Rprop, lr = 0.1,verbose = False): 
+        '''Main function of the class. Infer the best parameter Sigma and beta given the data.
+        
+        Args:
+            Y: torch.tensor. Samples with size (n,p)
+            0: torch.tensor. Offset, size (n,p)
+            covariates: torch.tensor. Covariates, size (n,d)
+            N_iter: int. The number of iteration you wnat to do.
+            tolerance: non negative float. Criterion for the model (Default is 10-4). 
+            optimizer: objects that inherits from torch.optim. The optimize you want. 
+                Default is torch.optim.Rprop.
+            lr: positive float. The learning rate of the optimizer. Default is 0.1.
+            verbose: bool. If True, will print some stats during the fitting. Default is False. 
+            
+        Returns: 
+            None but update the parameter C and beta of the object.
+        '''
+        self.betas = list()
+        self.Sigmas = list()
+        self.deltas_beta = list()
+        self.deltas_Sigma = list()
+        
+        self.t0 = time.time()
+        #initialize the data
+        self.init_data([Y,O,covariates])
+        self.optimizer = optimizer([self.S,self.M], lr = lr)
+        stop_condition = False 
+        i = 0
+        self.old_beta = torch.clone(self.beta.detach())
+        self.old_Sigma = torch.clone(self.Sigma.detach())
+        while i < N_iter and stop_condition == False: 
+            # VE step
+            self.optimizer.zero_grad()
+            self.M.grad = -self.grad_M()
+            self.S.grad = -self.grad_S()
+            self.optimizer.step()
+            # M step
+            self.beta = self.closed_beta()
+            self.Sigma = self.closed_Sigma()
+            # Criterion
+            delta_beta = torch.norm(self.old_beta-self.beta).item()
+            delta_Sigma = torch.norm(self.old_Sigma-self.Sigma).item()#*1/(self.p**2)
+            delta = delta_beta + delta_Sigma# self.old_loss - loss.item() # precision 
+            # condition to see if we have reach the tolerance threshold
+            if  delta < tolerance:
+                stop_condition = True 
+            self.old_Sigma = torch.clone(self.Sigma.detach())
+            self.old_beta = torch.clone(self.beta.detach())
+            # print some stats if we want to
+            if i%10 == 0 and verbose : 
+                print('Iteration number: ', i)
+                print('-------UPDATE-------')
+                print('Delta : ', delta)
+            i += 1
+            #keep track of the time 
+            self.running_times.append(time.time()-self.t0)
+            
+        # print some stats if we want to 
+        if verbose : 
+            if stop_condition : 
+                print('---------------------------------Tolerance {} reached in {} iterations'.format(tolerance, i))
+            else : 
+                print('---------------------------------Maximum number of iterations reached : ', N_iter, 'last delta = ', delta)
+
+        
+    def grad_M(self):
+        '''Compute the gradient of the ELBO with respect to M'''
+        grad = self.Y - torch.exp(self.O+self.M+torch.multiply(self.S,self.S)/2)-torch.mm(self.M-torch.mm(self.covariates,self.beta), torch.inverse(self.Sigma))
+        return grad 
+
+    def grad_S(self): 
+        '''Compute the gradient of the ELBO with respect to S'''
+        return torch.div(1,self.S)-torch.multiply(self.S, torch.exp(self.O+self.M+torch.multiply(self.S,self.S)/2))-torch.mm(self.S, torch.diag(torch.diag(torch.inverse(self.Sigma))))
+
+    def closed_Sigma(self):
+        '''Closed form for Sigma for the M step.'''
+        n,p = self.M.shape
+        MmoinsXB = self.M-torch.mm(self.covariates,self.beta)
+        return 1/(n)*(torch.mm(MmoinsXB.T,MmoinsXB) + torch.diag(torch.sum(torch.multiply(self.S,self.S), dim = 0)))
+    def closed_beta(self): 
+        '''Closed form for beta for the M step.'''
+        ## a améliorer l'inverse ! 
+        return torch.mm(torch.mm(torch.inverse(torch.mm(self.covariates.T,self.covariates)), self.covariates.T),self.M)
+
+    def show_Sigma(self):
+        '''Simple method that displays Sigma to see the global structure.'''
+        sns.heatmap(self.Sigma.detach().numpy())
+        plt.show()
+    def init_M(self, N_iter, lr, eps = 7e-3):
+        '''Initialization for the variational parameter M. Basically, we take 
+        the mode of the log_posterior as initialization.
+        
+        Args: 
+            N_iter: int. The maximum number of iteration you are ready to 
+                do to find the mode. 
+            lr: positive float. The learning rater of the optimizer. A good 
+        '''
+        def batch_un_log_posterior(W): 
+            return batch_log_P_WgivenY(self.Y, self.O, self.covariates,  W, self.C, self.beta) 
+        self.batch_un_log_posterior = batch_un_log_posterior
+        W = torch.randn(self.n,self.p)
+        W.requires_grad_(True)
+        optimizer = torch.optim.Rprop([W], lr = lr)
+        criterion = 2*eps
+        old_W = torch.clone(W)
+        keep_condition = True
+        while  i < N_iter_max and keep_condition: 
+            loss = -torch.mean(self.batch_un_log_posterior(W))
+            loss.backward()
+            optimizer.step()
+            crit = torch.max(torch.abs(W-old_W))
+            optimizer.zero_grad()
+            if crit<eps and i > 2 : 
+                keep_condition = False 
+            old_W = torch.clone(W)
+        print('nb iteration to find the mode: ', i)
+        return W
+
     
    
 
