@@ -75,11 +75,9 @@ def show(model, save = False, name_graphic = '', display_best_log_like = False):
             print('Please fit the model before by calling model.fit(Y,O,covariates,N_epoch,acc)')
             raise AttributeError 
         else : 
-                
-            
             fig,ax = plt.subplots(2,1,figsize = (10,8))
             abscisse = model.running_times
-            
+            print('max likelihood :', np.max(np.array(model.log_likelihood_list)))
             # plot the negative likelihood of the model
             ax[0].plot(np.arange(0, len(model.log_likelihood_list)), 
                        -np.array(model.log_likelihood_list))
@@ -261,7 +259,7 @@ class IMPS_PLN():
         self.d = covariates.shape[1]
         # Tensor that will store the starting point for the 
         # gradient descent that finds the mode for IMPS. 
-        self.starting_point = torch.zeros(self.n, self.q) 
+        self.starting_point = torch.zeros(self.n, self.q, device = device) 
         
         # Initialization of the last beta and C. 
         self.last_betas = torch.zeros(self.nb_average_param,self.d,self.p) 
@@ -270,15 +268,15 @@ class IMPS_PLN():
         # initialization for beta with a poisson regression.
         poiss_reg = Poisson_reg()
         poiss_reg.fit(Y,O,covariates)
-        self.beta = torch.clone(poiss_reg.beta.detach()).to(device)
+        self.beta = torch.clone(poiss_reg.beta.detach())#.to(device)
         
         # initialization for C with an array of size (p,q) taking the q vectors associated to 
         # the q largest eigenvectors of the estimated variance of log(Y).
-        self.C = init_C(Y, O, covariates, self.beta, self.q).to(device)
+        self.C = init_C(Y, O, covariates, self.beta, self.q)#.to(device)
                 
         # mean of the last parameters, that are supposed to be more accurate.
-        self.C_mean = torch.clone(self.C)
-        self.beta_mean = torch.clone(self.beta)
+        self.C_mean = torch.clone(self.C.detach())
+        self.beta_mean = torch.clone(self.beta.detach())
         
     def get_batch(self,batch_size, save_batch_size = True): 
         '''Get the batches required to do a  minibatch gradient ascent.  
@@ -427,9 +425,13 @@ class IMPS_PLN():
         self.batch_size = batch_size
         self.acc = acc
         self.N_samples = int(1/acc) # We will sample 1/acc gaussians to estimate the likelihood.
+        t = time.time()
         self.init_data(Y,O, covariates)# initialize the data. 
+        #print('time init', time.time()-t)
         self.optim = class_optimizer([self.beta,self.C], lr = lr) # optimizer on C and beta
         self.optim.zero_grad() # We do this since it is possible that beta and C have gradients.
+        self.beta = self.beta.to(device)
+        self.C = self.C.to(device)
         
         # initialize the Variance Reductors. 
         if VR == 'SAGA' : 
@@ -448,15 +450,25 @@ class IMPS_PLN():
             log_like = 0  
             for Y_b, covariates_b, O_b, selected_indices in self.get_batch(batch_size):
                 # Store the batches for a nicer implementation.
+                t = time.time()
                 self.Y_b, self.covariates_b, self.O_b = Y_b.to(device), covariates_b.to(device), O_b.to(device)
+                print('time init batch', time.time()-t)
                 self.selected_indices = selected_indices
                 # compute the log likelihood of the batch and add it to log_likelihood 
                 # of the whole dataset.
                 # Note that we need to call this function in order to be 
                 # able to call self.get_batch_grad_(C/beta)()
+                t = time.time()
                 log_like += self.infer_batch_p_theta(N_iter_max_mode, lr_mode).item()
+                print('time log like', time.time()-t)
+                t = time.time()
                 batch_grad_C = -self.get_batch_grad_C() # add a minus since pytorch minimizes a function. 
+                print('time grad_C', time.time()-t)
+                t = time.time()
                 batch_grad_beta = -self.get_batch_grad_beta()
+                print('time grad_beta', time.time()-t)
+                
+                
                 # Given the gradients of the batch, we update the variance 
                 # reducted gradients if needed. 
                 # Note that we need to give the gradient of each sample in the 
@@ -466,7 +478,9 @@ class IMPS_PLN():
                 else: 
                     self.beta.grad = torch.mean(batch_grad_beta, axis = 0)
                     self.C.grad = torch.mean(batch_grad_C, axis = 0)
+                t = time.time()
                 self.optim.step() # optimize beta and C given the gradients.
+                print('time optim.step', time.time()-t)
                 self.optim.zero_grad()
                 self.keep_records() # keep track of some stat
             self.log_like = log_like/self.n*batch_size # the log likelihood of the whole dataset.
@@ -712,8 +726,10 @@ class IMPS_PLN():
             return batch_log_P_WgivenY(self.Y_b, self.O_b, self.covariates_b, W, self.C, self.beta) 
         self.batch_un_log_posterior = batch_un_log_posterior
         # get the corresponding starting point. 
-        W = torch.clone(self.starting_point[self.selected_indices].detach()).to(device)
+        W = self.starting_point[self.selected_indices].detach()
         W.requires_grad_(True)
+        # TODO: need to set an optimizer for the hole dataset, and then optimize only for a batch of them
+        # in order to remember the last lr and not do a full gradient ascent 
         optimizer = torch.optim.Rprop([W], lr = lr)
         criterion = 2*eps
         old_W = torch.clone(W)
@@ -830,8 +846,9 @@ class fastPLN():
         #model parameter 
         poiss_reg = Poisson_reg()
         poiss_reg.fit(self.Y, self.O, self.covariates)
-        self.beta = torch.clone(poiss_reg.beta.detach()).to(device)
-        
+        with torch.cuda.device_of(poiss_reg.beta.data): 
+            self.beta = torch.clone(poiss_reg.beta.detach())
+        print('beta device', self.beta.device)
         #self.Sigma =  init_Sigma(self.Y, self.O, self.covariates, self.beta).to(device) 
         self.Sigma = torch.diag(torch.ones(self.p))
         # Initialize C in order to initialize M. 
@@ -839,10 +856,8 @@ class fastPLN():
 
         #variational parameter
         #self.M = self.init_M(300,0.1)
-        self.M = torch.ones(self.n, self.p)
-        self.S = 1/2*torch.ones((self.n,self.p)).to(device)
-        
-        #self.params = {'S' : self.S,'M': self.M, 'beta' : self.beta, 'Sigma' : self.Sigma}
+        self.M = torch.ones(self.n, self.p, device = device )
+        self.S = 1/2*torch.ones((self.n,self.p), device = device)
         
         
     ###################### parametrisation centered in X@\beta, variance CC.T ##############
