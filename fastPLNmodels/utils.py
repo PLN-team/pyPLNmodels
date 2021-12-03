@@ -22,6 +22,7 @@ import numpy as np
 import scipy.linalg as SLA 
 import torch
 from scipy.linalg import toeplitz
+import torch.linalg as TLA
 torch.set_default_dtype(torch.float64)
 
 
@@ -50,7 +51,6 @@ class Poisson_reg():
         same as PLN without the latent layer Z. We are only trying 
         to have a good guess of beta before doing anything. 
         
-        
         Args: 
             Y: torch.tensor. Samples with size (n,p)
             0: torch.tensor. Offset, size (n,p)
@@ -68,7 +68,7 @@ class Poisson_reg():
                 by calling self.beta. 
         """
         # Initialization of beta of size (d,p) 
-        beta = torch.rand((covariates.shape[1], Y.shape[1]), requires_grad = True).to(device)
+        beta = torch.rand((covariates.shape[1], Y.shape[1]), device = device, requires_grad = True)
         optimizer = torch.optim.Rprop([beta], lr = lr)
         i = 0
         grad_norm = 2*tol  # Criterion
@@ -107,7 +107,7 @@ def init_C(Y, O, covariates, beta, q):
     # get a guess for Sigma
     Sigma_hat = init_Sigma(Y, O, covariates, beta).detach()
     # taking the q largest eigenvectors
-    C = torch.from_numpy(C_from_Sigma(Sigma_hat, q))
+    C = C_from_Sigma(Sigma_hat, q)
     return C
 
 
@@ -247,8 +247,8 @@ def C_from_Sigma(Sigma,q):
     Returns: 
         C_reduct: np.array of size (p,q) that contains the q eigenvectors with largest eigenvalues. 
     """
-    w,v = SLA.eigh(Sigma) # get the eigenvaluues and eigenvectors
-    C_reduct = v[:,-q:]@np.diag(np.sqrt(w[-q:])) # we take only the q best. 
+    w,v = TLA.eigh(Sigma) # get the eigenvaluues and eigenvectors
+    C_reduct = v[:,-q:]@torch.diag(torch.sqrt(w[-q:])) # we take only the q best. 
     return C_reduct
 
 
