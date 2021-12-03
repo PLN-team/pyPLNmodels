@@ -452,7 +452,7 @@ class IMPS_PLN():
                 # Store the batches for a nicer implementation.
                 t = time.time()
                 self.Y_b, self.covariates_b, self.O_b = Y_b.to(device), covariates_b.to(device), O_b.to(device)
-                print('time init batch', time.time()-t)
+                #print('time init batch', time.time()-t)
                 self.selected_indices = selected_indices
                 # compute the log likelihood of the batch and add it to log_likelihood 
                 # of the whole dataset.
@@ -460,13 +460,13 @@ class IMPS_PLN():
                 # able to call self.get_batch_grad_(C/beta)()
                 t = time.time()
                 log_like += self.infer_batch_p_theta(N_iter_max_mode, lr_mode).item()
-                print('time log like', time.time()-t)
+                #print('time log like', time.time()-t)
                 t = time.time()
                 batch_grad_C = -self.get_batch_grad_C() # add a minus since pytorch minimizes a function. 
-                print('time grad_C', time.time()-t)
+                #print('time grad_C', time.time()-t)
                 t = time.time()
                 batch_grad_beta = -self.get_batch_grad_beta()
-                print('time grad_beta', time.time()-t)
+                #print('time grad_beta', time.time()-t)
                 
                 
                 # Given the gradients of the batch, we update the variance 
@@ -480,7 +480,7 @@ class IMPS_PLN():
                     self.C.grad = torch.mean(batch_grad_C, axis = 0)
                 t = time.time()
                 self.optim.step() # optimize beta and C given the gradients.
-                print('time optim.step', time.time()-t)
+                #print('time optim.step', time.time()-t)
                 self.optim.zero_grad()
                 self.keep_records() # keep track of some stat
             self.log_like = log_like/self.n*batch_size # the log likelihood of the whole dataset.
@@ -850,7 +850,7 @@ class fastPLN():
             self.beta = torch.clone(poiss_reg.beta.detach())
         print('beta device', self.beta.device)
         #self.Sigma =  init_Sigma(self.Y, self.O, self.covariates, self.beta).to(device) 
-        self.Sigma = torch.diag(torch.ones(self.p))
+        self.Sigma = torch.diag(torch.ones(self.p)).to(device)
         # Initialize C in order to initialize M. 
         #self.C = torch.cholesky(self.Sigma).to(device)
 
@@ -936,6 +936,8 @@ class fastPLN():
         
     def grad_M(self):
         '''Compute the gradient of the ELBO with respect to M'''
+        
+        
         grad = self.Y - torch.exp(self.O+self.M+torch.multiply(self.S,self.S)/2)-torch.mm(self.M-torch.mm(self.covariates,self.beta), torch.inverse(self.Sigma))
         return grad 
 
