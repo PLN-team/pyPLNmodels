@@ -137,6 +137,41 @@ def init_Sigma(Y, O, covariates, beta):
                                  log_Y_c.unsqueeze(1)),
                                              axis = 0)
     return Sigma_hat
+
+
+def init_M(Y, O, covariates, beta,C,  N_iter_max, lr, eps = 7e-3):
+    '''Initialization for the variational parameter M. Basically, we take 
+    the mode of the log_posterior as initialization.
+
+    Args: 
+        Y: torch.tensor. Samples with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        beta: torch.tensor of size (d,p)
+        N_iter: int. The maximum number of iteration you are ready to 
+            do to find the mode. 
+        lr: positive float. The learning rater of the optimizer. A good 
+    '''
+    W = torch.randn(Y.shape[0], C.shape[1])
+    W.requires_grad_(True)
+    optimizer = torch.optim.Rprop([W], lr = lr)
+    criterion = 2*eps
+    old_W = torch.clone(W)
+    keep_condition = True
+    i = 0 
+    while  i < N_iter_max and keep_condition: 
+        loss = -torch.mean(batch_log_P_WgivenY(Y, O, covariates,  W, C, beta) )
+        loss.backward()
+        optimizer.step()
+        crit = torch.max(torch.abs(W-old_W))
+        optimizer.zero_grad()
+        
+        if crit<eps and i > 2 : 
+            keep_condition = False 
+        old_W = torch.clone(W)
+        i+=1
+    print('nb iteration to find the mode: ', i)
+    return W
     
     
 def compute_l(Y, O, covariates, beta):
@@ -184,14 +219,14 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero = None, ZI = False):
     p = Sigma.shape[0]
     # Cholesky factorization. We need to take the cholesky of Sigma   
     # in order to simulate a gaussian with variance Sigma. 
-    chol = torch.cholesky(Sigma)
+    chol = torch.cholesky(Sigma).to(device)
     # taking the square root of Sigma is another possibility,
     # less stable than the cholesky factorization. 
     #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double() 
 
     # Matrix multiplication between gaussians and the cholesky factorization
     # of Sigma, giving a gaussian of mean 0 and covariance Sigma. 
-    Z = torch.mm(torch.randn(n,p),chol.T)
+    Z = torch.mm(torch.randn(n,p, device = device),chol.T)
     parameter = np.exp(O + covariates@beta + Z.numpy())
     if ZI :
         ZI_cov = covariates@B_zero
@@ -268,6 +303,18 @@ def MSE(tens):
     """Compute the mean of the squared (element-wise) tensor."""
     return torch.mean(tens**2)
 
+def RMSE(tens): 
+    """Compute the root mean of the squared (element-wise) tensor."""
+    return torch.sqrt(torch.mean(tens**2))
+
+def refined_MSE(sparse_tensor): 
+    '''Compute the MSE of a tensor but only on the 9 largest diagonals.'''
+    diag = torch.diagonal(sparse_tensor**2, offset = 0)
+    for i in range(1,5): 
+        diag = torch.cat((diag, torch.diagonal(sparse_tensor**2, offset = i)))
+        diag = torch.cat((diag, torch.diagonal(sparse_tensor**2, offset = -i)))
+    return torch.mean(diag)
+
 def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta): 
     '''Compute the log posterior of the PLN model. Compute it either 
     for W of size (N_samples, N_batch,q) or (batch_size, q). We need to have
@@ -287,3 +334,5 @@ def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta):
     first_term = -q/2*math.log(2*math.pi)-1/2*torch.norm(W, dim = -1)**2
     second_term = torch.sum(-torch.exp(A_b)   + A_b*Y_b - log_stirling(Y_b) , axis = -1) 
     return first_term + second_term
+
+
