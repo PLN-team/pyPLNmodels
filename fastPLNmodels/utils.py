@@ -152,7 +152,7 @@ def init_M(Y, O, covariates, beta,C,  N_iter_max, lr, eps = 7e-3):
             do to find the mode. 
         lr: positive float. The learning rater of the optimizer. A good 
     '''
-    W = torch.randn(Y.shape[0], C.shape[1])
+    W = torch.randn(Y.shape[0], C.shape[1], device = device)
     W.requires_grad_(True)
     optimizer = torch.optim.Rprop([W], lr = lr)
     criterion = 2*eps
@@ -227,13 +227,13 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero = None, ZI = False):
     # Matrix multiplication between gaussians and the cholesky factorization
     # of Sigma, giving a gaussian of mean 0 and covariance Sigma. 
     Z = torch.mm(torch.randn(n,p, device = device),chol.T)
-    parameter = np.exp(O + covariates@beta + Z.numpy())
+    parameter = torch.exp(O + covariates@beta + Z)
     if ZI :
         ZI_cov = covariates@B_zero
-        ksi = np.random.binomial(1,1/(1+ np.exp(-ZI_cov)))
+        ksi = torch.distributions.bernoulli.Bernoulli(1/(1+ torch.exp(-ZI_cov)))
     else :
         ksi = 0 
-    Y = (1-ksi)*np.random.poisson(lam = parameter)
+    Y = (1-ksi)*torch.poisson(parameter)
     return Y, Z, ksi
 
 

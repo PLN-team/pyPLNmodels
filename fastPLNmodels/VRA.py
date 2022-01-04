@@ -106,8 +106,8 @@ class SAGARAD():
             means_batch_table = torch.mean(param.table[selected_indices], axis = 0)
             # Gradient formula in the SAGA optimizer
             batch_grad = torch.mean(batch_grads[i], axis = 0)
-            print('first_term',self.bias*(batch_grad-means_batch_table))
-            print('second_term', param.mean_table)
+            #print('first_term',self.bias*(batch_grad-means_batch_table))
+            #print('second_term', param.mean_table)
             param.grad = (self.bias*(batch_grad-means_batch_table) + param.mean_table)
             ## Update the table with the new gradients we just got
             if self.run_through == False : 
@@ -116,7 +116,7 @@ class SAGARAD():
             else : 
                 param.mean_table -= ((self.batch_size/self.sample_size)*(means_batch_table-batch_grad)).detach()
             # UPDATE OF THE TABLE 
-            print('param mean table', param.mean_table)
+            #print('param mean table', param.mean_table)
             param.table[selected_indices] = batch_grads[i].detach()
         if self.nb_non_zero == self.sample_size : 
             self.run_through = True
