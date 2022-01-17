@@ -219,7 +219,7 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero = None, ZI = False):
     p = Sigma.shape[0]
     # Cholesky factorization. We need to take the cholesky of Sigma   
     # in order to simulate a gaussian with variance Sigma. 
-    chol = torch.cholesky(Sigma).to(device)
+    chol = TLA.cholesky(Sigma).to(device)
     # taking the square root of Sigma is another possibility,
     # less stable than the cholesky factorization. 
     #root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double() 
