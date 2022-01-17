@@ -63,7 +63,7 @@ def log_likelihood(Y,O,covariates, C,beta, acc = 0.002, N_iter_mode = 1000, lr_m
     Args: 
         Y: torch.tensor. Samples with size (n,p)
         0: torch.tensor. Offset, size (n,p)
-        covarites: torch.tensor. Covariates, size (n,d)
+        covariates: torch.tensor. Covariates, size (n,d)
         C: torch.tensor of size (p,q)
         beta: torch.tensor of size (d,p)
         acc: positive float, optional. The accuracy you want. Basically, 
@@ -96,7 +96,9 @@ def sample_gaussians(N_samples, mean,sqrt_Sigma):
     Args: 
          N_samples : int. the number of samples you want to sample. 
          mean : torch.tensor of size (n_batch,q) 
-         sqrt_Sigma : torch.tensor or size (batch_size, q, q)
+         sqrt_Sigma : torch.tensor or size (batch_size, q, q). The square roots matrices 
+             of the covariance matrices. (e.g. if you want to sample a gaussian with 
+             covariance matrix A, you need to give the square root of A in argument.   
          
     Returns: 
         W: torch.tensor of size (N_samples, batch_size,q). It is a vector 
@@ -134,10 +136,6 @@ def log_gaussian_density(W, mu_p,Sigma_p):
     return log_d.squeeze() - torch.log(const)
 
 
-
-
-
-
 class IMPS_PLN():
     '''Maximize the likelihood of the PLN-PCA model. The main method
     is the fit() method that fits the model. Most of the others 
@@ -146,7 +144,7 @@ class IMPS_PLN():
     20. The greater q and p, the lower the accuracy should be taken.
     '''
     
-    def __init__(self, nb_average_param = 100, nb_average_likelihood = 8):
+    def __init__(self, q, nb_average_param = 100, nb_average_likelihood = 8):
         '''Init method. We set some global parameters of the class, such as 
         the dimension of the latent space, the number of elements we take 
         to set an average parameter that should be more accurate. We set 
@@ -171,19 +169,12 @@ class IMPS_PLN():
         Returns: 
             An IMPS_PLN object. 
         '''
+        self.q = q # the dimension of the latent space 
         self.nb_average_likelihood = nb_average_likelihood
         self.nb_average_param = nb_average_param 
-        self.running_times = list() # list to store the running times for a nice plot
-        self.log_likelihood_list = list() # list to store the likelihood to plot it after
-        self.last_likelihoods = list() # list that will store the last likelihoods
-                                       # in order to take the mean of those likelihoods to smooth it. 
-        self.criteria_list = list() # list that will store all the criterion. 
-        self.nb_iteration_list = list() # list that will store the number of 
-                                        # iteration we are doing at for each gradient ascent
-                                        # that finds the mode. 
-        self.epoch_time = list()
+        self.fitted = False # bool variable to know if we have fitted the model. 
         
-    def init_data(self, Y, O, covariates,q, good_init): 
+    def init_data(self, Y, O, covariates, good_init): 
         '''Initialise some usefuls variables given the data. 
         We also initialise C and beta. 
         
@@ -194,11 +185,6 @@ class IMPS_PLN():
         Returns: 
                 None
         '''
-        self.q = q # the dimension of the latent space 
-        self.fitted = False # bool variable to know if we have fitted the model. 
-        self.cmpt = 0 # variable that counts some iterations. 
-        self.crit_cmpt = 0 
-        self.crit_cmpt_list = list()
         #data 
         self.Y = torch.from_numpy(Y.values).to(device)
         self.O = torch.from_numpy(O.values).to(device)
@@ -210,6 +196,7 @@ class IMPS_PLN():
         # Tensor that will store the starting point for the 
         # gradient descent that finds the mode for IMPS. 
         self.starting_point = torch.zeros(self.n, self.q, device = device, requires_grad = False) 
+        # Optimizer that will finds the mode of the posterior likelihood. 
         self.mode_optimizer = torch.optim.Rprop([self.starting_point], lr = 0.1)
         
         # Initialization of the last beta and C. 
@@ -219,22 +206,22 @@ class IMPS_PLN():
         
         if good_init : 
             print('Intialization ...') 
-            # initialization for beta with a poisson regression.
+            # Initialization for beta with a poisson regression.
             poiss_reg = Poisson_reg()
             poiss_reg.fit(self.Y,self.O,self.covariates)
             self.beta = torch.clone(poiss_reg.beta.detach())#.to(device)
-            # initialization for C with an array of size (p,q) taking the q vectors associated to 
+            # Initialization for C with an array of size (p,q) taking the q vectors associated to 
             # the q largest eigenvectors of the estimated variance of log(Y).
             self.C = init_C(self.Y, self.O, self.covariates, self.beta, self.q)#.to(device)
             print('Initalization done')
         else : 
             self.beta = torch.randn((self.n, self.p)) 
             self.C = torch.randn((self.p, self.q))
-        # mean of the last parameters, that are supposed to be more accurate.
+        # mean of the last nb_average_param parameters, that are supposed to be more accurate.
         self.C_mean = torch.clone(self.C.detach())
         self.beta_mean = torch.clone(self.beta.detach())
         
-    def get_batch(self,batch_size, save_batch_size = True): 
+    def get_batch(self,batch_size): 
         '''Get the batches required to do a  minibatch gradient ascent.  
         
         Args: 
@@ -247,11 +234,10 @@ class IMPS_PLN():
             division is not always 0)
         '''
         indices = np.arange(self.n)
-        #shuffle the indices to avoid a regular path. 
+        # Shuffle the indices to avoid a regular path. 
         np.random.shuffle(indices)
-        #if we want to set the batch size of the model to the given batch_size 
-        if save_batch_size : 
-            self.batch_size = batch_size
+        # Set the batch size of the model to the right size
+        self.batch_size = batch_size
         # get the number of batches and the size of the last one. 
         nb_full_batch, last_batch_size  = self.n//batch_size, self.n % batch_size  
         for i in range(nb_full_batch): 
@@ -260,10 +246,10 @@ class IMPS_PLN():
                     self.O[indices[i*batch_size: (i+1)*batch_size]], 
                     indices[i*batch_size: (i+1)*batch_size]
                     ) 
-        # last batch
+        # Last batch
+        # Set the batch size of the model to the right size
         if last_batch_size != 0 : 
-            if save_batch_size : 
-                self.batch_size = last_batch_size
+            self.batch_size = last_batch_size
             yield   (self.Y[indices[-last_batch_size:]], 
                     self.covariates[indices[-last_batch_size:]],
                     self.O[indices[-last_batch_size:]],
@@ -300,31 +286,29 @@ class IMPS_PLN():
             None but update the mean of the last self.nb_average_param parameters.  
         '''
         
-        # remove the oldest parameters and add the more recent one.
+        # Remove the oldest parameters and add the more recent one.
         self.last_betas[1:self.nb_average_param] = torch.clone(self.last_betas[0: self.nb_average_param-1].detach())
         self.last_betas[0] = torch.clone(self.beta.detach())
         self.last_Cs[1:self.nb_average_param] = torch.clone(self.last_Cs[0: self.nb_average_param-1].detach())
         self.last_Cs[0] = torch.clone(self.C.detach())
-        # update the mean of the parameter
+        # Update the mean of the parameter
         
         # if we have enough parameters 
-        if self.cmpt > self.nb_average_param : 
+        if self.iteration_cmpt > self.nb_average_param : 
             self.C_mean = torch.mean(self.last_Cs, axis = 0)
             self.beta_mean = torch.mean(self.last_betas, axis = 0)
         
         # if we don't have enough parameters. 
         else : 
-            self.cmpt +=1 # to keep track of the number of parameters we have for the mean
-            self.C_mean = torch.sum(self.last_Cs, axis = 0)/self.cmpt
-            self.beta_mean = torch.sum(self.last_betas, axis = 0)/self.cmpt
-        
-        
+            self.iteration_cmpt +=1 # to keep track of the number of parameters we have for the mean
+            self.C_mean = torch.sum(self.last_Cs, axis = 0)/self.iteration_cmpt
+            self.beta_mean = torch.sum(self.last_betas, axis = 0)/self.iteration_cmpt
 
-
-    def fit(self, Y, O, covariates, acc,q,N_epoch_max = 200, lr = 0.015,
+            
+    def fit(self, Y, O, covariates, acc, N_epoch_max = 200, lr = 0.5,
             N_iter_max_mode = 100, lr_mode=0.3, VR = 'SAGA', batch_size = 15, 
-            class_optimizer = torch.optim.RMSprop, nb_plateau = 15, verbose = False,
-           good_init = True):
+            optimizer = torch.optim.Adagrad, nb_plateau = 15, nb_trigger = 5, 
+            verbose = False, good_init = True):
         '''Batch gradient ascent on the log likelihood given the data. We infer 
         p_theta with importance sampling and then computes the gradients by hand. 
         At each iteration, we look for the right importance sampling law running 
@@ -337,16 +321,15 @@ class IMPS_PLN():
         Args : 
                Y: pd.DataFrame of size (n, p). The counts
                O: pd.DataFrame of size (n,p). The offset
-               covariates: pd.DataFrame of size (n,p). 
-               acc: float strictly between. The accuracy you want when computing 
+               covariates: pd.DataFrame of size (n,p).  
+               acc: float strictly between 0 and 1. The accuracy you want when computing 
                    the estimation of p_theta. The lower the more accurate but 
-                   the slower the algorithm. We will sample 1/acc gaussians 
-                   to estimate the likelihood. 
-               q: int. The dimension of the latent space. 
+                   the slower the algorithm. We will sample int(1/acc) gaussians 
+                   to estimate the likelihood. Default is 0.005. 
                N_epoch_max: int. The maximum number of times we will loop over 
                    the data. We will see N_epoch times each sample. Default is 200. 
                lr: float greater than 0, optional. The learning rate of the batch gradient ascent.
-                   Default is 0.015.
+                   Default is 0.1.
                N_iter_mode: int, optional. The maximum iteration you are ready to do to find the 
                    mode of the posterior (i.e. the right importance law). Default is 
                    100. 
@@ -355,17 +338,18 @@ class IMPS_PLN():
                VR : string, optional. the Variance Reductor we want to use. Should be one of those :
                    - 'SAGA'
                    - 'SAG'
-                   - 'SVRG' 
+                   - 'SVRG'
                    - None 
                    if None, we are not doing any variance reduction. 
                batch_size : int between 2 and n (included), optional. The batch size of the batch
-                   gradient ascent. Default is 15. This is very task-dependant.
-               class_optimizer : torch.optim.optimizer object, optional. The optimizer you want to use.
+                   gradient ascent. Default is 15. This depends on the size of your dataset. 
+               optimizer : torch.optim.optimizer object, optional. The optimizer you want to use.
                    Default is torch.optim.RMSprop
                nb_plateau : int, optional. The criterion you want to use. The algorithm
                    will stop if the llikelihood has not increase for nb_plateau iteration 
-                   or if we have seen N_epoch_max times each sample. Default is 15. Should not
-                   changed (or if changed, should be lower).  
+                   or if we have seen N_epoch_max times each sample. Default is 15.  
+               nb_trigger : int, optional. The criterion will increase if the average likelihood 
+                   has not increased in nb_trigger epoch. Default is 5. 
                good_init: Bool. If True, we will do an initialization that is not random. 
                    Takes some time. Default is True. 
        Returns: 
@@ -374,14 +358,25 @@ class IMPS_PLN():
         '''
         self.t0 = time.time() # to keep track of the time
         self.nb_plateau = nb_plateau
+        self.nb_trigger = nb_trigger 
         self.batch_size = batch_size
-        self.acc = acc
         self.N_samples = int(1/acc) # We will sample 1/acc gaussians to estimate the likelihood.
+        self.running_times = list() # list to store the running times for a nice plot
+        self.log_likelihood_list = list() # list to store the likelihood to plot it after
+        self.last_likelihoods = list() # list that will store the last likelihoods
+                                       # in order to take the mean of those likelihoods to smooth it. 
+        self.nb_iteration_list = list() # list that will store the number of 
+                                        # iteration we are doing at for each gradient ascent
+                                        # that finds the mode. 
+        self.iteration_cmpt = 0 # Variable that will counts the number of 
+                                # iteration we have done
+        self.crit_list = [0]
+        self.counter_list = [0]*self.nb_trigger # will store the criterion to plot it after.
+        self.epoch_time = list()
         t = time.time()
-        self.init_data(self.Y,self.O, self.covariates, q, good_init)# initialize the data. 
-        #print('time init', time.time()-t)
-        self.optim = class_optimizer([self.beta,self.C], lr = lr) # optimizer on C and beta
-        self.optim.zero_grad() # We do this since it is possible that beta and C have gradients.
+        if self.fitted == False: 
+            self.init_data(Y,O, covariates, good_init)# initialize the data. 
+        self.optimizer = optimizer([self.beta,self.C], lr = lr) # optimizer on C and beta
         self.beta = self.beta.to(device)
         self.C = self.C.to(device)
         
@@ -394,13 +389,13 @@ class IMPS_PLN():
             vr = SVRGRAD([self.beta, self.C], self.n)
         else : 
             vr = None 
-        
         self.max_log_like = -100000000 #to keep track of the best log_likelihood. 
         for j in tqdm(range(N_epoch_max)): 
             # init the log likelihood. We will add each log likelihood of
             # each batch to get the log likelihood of the whole dataset.
             log_like = 0  
             for Y_b, covariates_b, O_b, selected_indices in self.get_batch(batch_size):
+                self.optimizer.zero_grad() # zero_grad the optimizer
                 # Store the batches for a nicer implementation.
                 self.Y_b, self.covariates_b, self.O_b = Y_b.to(device), covariates_b.to(device), O_b.to(device)
                 self.selected_indices = selected_indices
@@ -421,9 +416,7 @@ class IMPS_PLN():
                 else: 
                     self.beta.grad = torch.mean(batch_grad_beta, axis = 0)
                     self.C.grad = torch.mean(batch_grad_C, axis = 0)
-                self.optim.step() # optimize beta and C given the gradients.
-                #print('time optim.step', time.time()-t)
-                self.optim.zero_grad()
+                self.optimizer.step() # optimize beta and C given the gradients.
                 self.average_params() # keep track of some stat
             self.running_times.append(time.time()-self.t0)
             self.log_like = log_like/self.n*batch_size # the log likelihood of the whole dataset.
@@ -470,9 +463,9 @@ class IMPS_PLN():
             ready to do to find the mode. Default is 300.  
             lr_mode : float greater than 0. The learning of the gradient ascent 
             you do to find the mode. Default is 0.001. It is small since 
-            we are supposed not to bet far from the true mode. 
+            we are supposed not to be too far from the true mode. 
         Returns : 
-            float. The estimated likelihood of beta_mean and C_mean
+            float (non positive). The estimated log likelihood of beta_mean and C_mean
         '''
         self.Y_b, self.covariates_b, self.O_b = self.Y, self.covariates, self.O
         self.selected_indices = np.arange(0,self.n)
@@ -480,11 +473,11 @@ class IMPS_PLN():
         # Set beta and C as beta_mean and C_mean to compute the likelihood.
         self.beta = torch.clone(self.beta_mean)
         self.C = torch.clone(self.C_mean)
-        # infer p_theta
+        # Infer p_theta
         self.best_log_like = self.infer_batch_p_theta(N_iter_max_mode, lr_mode)
         return self.best_log_like
         
-    def compute_criterion(self, verbose = False):
+    def compute_criterion(self, verbose = True):
         '''Updates the criterion of the model. The criterion counts the 
         number of times the likelihood has not improved. We also append 
         the criterion in a list in order to plot it after. 
@@ -493,16 +486,25 @@ class IMPS_PLN():
                 Default is True. 
         Returns : int. The criterion. 
         '''
+        if verbose :
+            # Print the average log likelihood as indicator 
+            print('Average log likelihood : ', self.average_log_like)
+        # If the average likelihood has increased, 
+        # we update the maximum likelihood found
         if self.average_log_like > self.max_log_like : 
+            self.counter_list.append(self.counter_list[-1])
             self.max_log_like = self.average_log_like
+        # Else we add one to the counter
         else :
-            self.crit_cmpt +=1
-            if verbose: 
-                print(' Criterion : ', self.crit_cmpt , '/', self.nb_plateau)
-        self.crit_cmpt_list.append(self.crit_cmpt)
-        return self.crit_cmpt 
+            self.counter_list.append(self.counter_list[-1] +1)
+        triggered = int(self.counter_list[-1]
+                    - self.counter_list[-self.nb_trigger-1] > self.nb_trigger -1)
+        self.crit_list.append(self.crit_list[-1] + triggered)
+        if triggered > 0 and verbose : 
+            print(' Criterion updated : ', self.crit_list[-1] , '/', self.nb_plateau)
+        return self.crit_list[-1]
 
-    def infer_batch_p_theta(self, N_iter_max_mode, lr_mode,take_mean = True): 
+    def infer_batch_p_theta(self, N_iter_max_mode, lr_mode): 
         '''Infer p_theta that is computed for a batch of the dataset. The 
         parameter Y,O,cov are in the object itself, so that we don't need 
         to pass them in argument. 
@@ -511,22 +513,15 @@ class IMPS_PLN():
                 to do to find the mode of the posterior.
             lr_mode: postive float. The learning rate of the gradient 
                 ascent that finds the mode.
-            take_mean: bool. If we want the alogorithm to return 
-            the mean of the log likelihood or the log likelihood of each sample.
-            Defautl is True. 
         '''
         # Get the gradient requirement. It also computes the weights of the IMPS
         # that are stored in the object. 
         self.get_gradient_requirement(N_iter_max_mode, lr_mode)
         # Take the log of the weights and adjust with the missing constant 
         # self.const that has been removed before to avoid numerical 0. 
-        log = torch.log(torch.mean(self.weights,axis = 0))+self.const#*self.mask
-        # Return the mean of the log likelihood of the batch if we want to, 
-        # or the log of each sample in the batch.  
-        if take_mean :
-            return torch.mean(log)
-        else: 
-            return log 
+        log = torch.log(torch.mean(self.weights,axis = 0))+self.const
+        # Return the mean of the log likelihood of the batch   
+        return torch.mean(log)
     
     def get_gradient_requirement(self, N_iter_max_mode, lr_mode):
         '''Does all the operation that we need to compute the gradients. 
@@ -604,7 +599,7 @@ class IMPS_PLN():
         
     def get_batch_grad_beta(self): 
         ''' Computes the gradient with respect to beta of the log likelihood 
-        for the batch. To see why we do so, please see the doc. 
+        for the batch. To see why we do so, please see the formula in the README.
         
         Args: None
         
@@ -626,7 +621,7 @@ class IMPS_PLN():
     
     def get_batch_grad_C(self): 
         '''Computes the gradient with respect to C of the log likelihood for 
-        the batch. To see why we do so, please see the doc. 
+        the batch. To see why we do so, please see the formula in the README. 
         
         Args: None
         
@@ -700,7 +695,7 @@ class IMPS_PLN():
         self.starting_point[self.selected_indices] = torch.clone(W.detach())
         
     def get_Sigma(self): 
-        '''Get Sigma by computing C_mean@C_mean^T. '''
+        '''Getter. Get Sigma by computing C_mean@C_mean^T. '''
         return (self.C_mean.detach())@(self.C_mean.detach().T)
     
     def show_Sigma(self): 
@@ -710,13 +705,8 @@ class IMPS_PLN():
         
     def __str__(self):
         '''Show the model, Sigma and the likelihood.'''
-        try : 
-            self.best_log_like = torch.max(self.log_likelihood_list) 
-            print('Log likelihood of the model: ', self.best_log_like) 
-        except :  
-            print('Please fit the model')
-            raise AttributeError
-        show(self)
+        self.best_log_like = max(self.log_likelihood_list) 
+        self.show()
         self.show_Sigma()
         return ''
     
@@ -749,7 +739,7 @@ class IMPS_PLN():
             # plot the negative likelihood of the model
             ax[0].plot(np.arange(0, len(self.log_likelihood_list)), 
                        -np.array(self.log_likelihood_list))
-            ax[0].set_title('Negative log likelihood')
+            ax[0].set_title('Smoothed negative log likelihood')
             ax[0].set_ylabel('Negative loglikelihood')
             ax[0].set_xlabel('Seconds')
             if display_best_log_like :
@@ -761,9 +751,8 @@ class IMPS_PLN():
                               label = 'Negative likelihood of the best parameters')
             ax[0].set_yscale('log')
             ax[0].legend()
-            
             # plot the criteria of the model
-            ax[1].plot(np.arange(0, len(self.crit_cmpt_list)),self.crit_cmpt_list)
+            ax[1].plot(np.arange(0, len(self.crit_list)),self.crit_list)
             ax[1].set_title('Number of epoch the likelihood has not improved')
             ax[1].set_xlabel('Seconds')
             ax[1].legend()
@@ -849,7 +838,7 @@ class fastPLN():
             self.beta = torch.clone(poiss_reg.beta.detach()).to(device)
             self.Sigma =  init_Sigma(self.Y, self.O, self.covariates, self.beta).to(device) 
             # Initialize C in order to initialize M. 
-            self.C = torch.cholesky(self.Sigma).to(device)
+            self.C = TLA.cholesky(self.Sigma).to(device)
             self.M = init_M(self.Y, self.O, self.covariates, self.beta,self.C, 300, 0.1) 
             self.M.requires_grad_(True)
             print('Initialization finished')
@@ -1030,7 +1019,7 @@ class fastPLN():
         returns : 
                 None but displays the figure. It can also save the figure if save = True. 
         '''
-        fig,ax = plt.subplots(3,1,figsize = (15,15))
+        fig,ax = plt.subplots(3,1,figsize = (10,10))
         abscisse = self.running_times
         plt.subplots_adjust(hspace = 0.4)
 
@@ -1051,7 +1040,13 @@ class fastPLN():
         
         if save : 
             plt.savefig(name_doss)
-            plt.show()
+        plt.show()
+            
+    def __str__(self):
+        '''Show the stats of the model and Sigma'''
+        self.show()
+        self.show_Sigma()
+        return ''
         
         
 ######################################### fastPLNPCA object ##############################        
