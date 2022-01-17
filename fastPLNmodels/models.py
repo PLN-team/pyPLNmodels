@@ -36,6 +36,7 @@ import seaborn as sns
 import torch
 import torch.linalg as TLA
 from tqdm import tqdm
+import pandas as pd
 
 from .utils import init_C, init_M, init_Sigma, Poisson_reg, log_stirling, batch_log_P_WgivenY, MSE
 from .utils import refined_MSE, RMSE
@@ -187,9 +188,9 @@ class IMPS_PLN():
         We also initialise C and beta. 
         
         Args : 
-               Y: torch.tensor of size (n, p). The counts
-               O: torch.tensor of size (n,p). the offset
-               covariates: torch.tensor of size (n,p) 
+               Y: pd.DataFrame of size (n, p). The counts
+               O: pd.DataFrame of size (n,p). the offset
+               covariates: pd.DataFrame of size (n,p) 
         Returns: 
                 None
         '''
@@ -199,11 +200,11 @@ class IMPS_PLN():
         self.crit_cmpt = 0 
         self.crit_cmpt_list = list()
         #data 
-        self.Y = Y.float().to(device)
-        self.O = O.to(device)
-        self.covariates = covariates.to(device)
+        self.Y = torch.from_numpy(Y.values).to(device)
+        self.O = torch.from_numpy(O.values).to(device)
+        self.covariates = torch.from_numpy(covariates.values).to(device)
         
-        self.n = Y.shape[0] 
+        self.n = Y.shape[0]
         self.p = Y.shape[1]
         self.d = covariates.shape[1]
         # Tensor that will store the starting point for the 
@@ -220,11 +221,11 @@ class IMPS_PLN():
             print('Intialization ...') 
             # initialization for beta with a poisson regression.
             poiss_reg = Poisson_reg()
-            poiss_reg.fit(Y,O,covariates)
+            poiss_reg.fit(self.Y,self.O,self.covariates)
             self.beta = torch.clone(poiss_reg.beta.detach())#.to(device)
             # initialization for C with an array of size (p,q) taking the q vectors associated to 
             # the q largest eigenvectors of the estimated variance of log(Y).
-            self.C = init_C(Y, O, covariates, self.beta, self.q)#.to(device)
+            self.C = init_C(self.Y, self.O, self.covariates, self.beta, self.q)#.to(device)
             print('Initalization done')
         else : 
             self.beta = torch.randn((self.n, self.p)) 
@@ -334,9 +335,9 @@ class IMPS_PLN():
         the algorithm. 
         
         Args : 
-               Y: torch.tensor of size (n, p). The counts
-               O: torch.tensor of size (n,p). the offset
-               covariates: torch.tensor of size (n,p)
+               Y: pd.DataFrame of size (n, p). The counts
+               O: pd.DataFrame of size (n,p). The offset
+               covariates: pd.DataFrame of size (n,p). 
                acc: float strictly between. The accuracy you want when computing 
                    the estimation of p_theta. The lower the more accurate but 
                    the slower the algorithm. We will sample 1/acc gaussians 
@@ -377,7 +378,7 @@ class IMPS_PLN():
         self.acc = acc
         self.N_samples = int(1/acc) # We will sample 1/acc gaussians to estimate the likelihood.
         t = time.time()
-        self.init_data(Y,O, covariates, q, good_init)# initialize the data. 
+        self.init_data(self.Y,self.O, self.covariates, q, good_init)# initialize the data. 
         #print('time init', time.time()-t)
         self.optim = class_optimizer([self.beta,self.C], lr = lr) # optimizer on C and beta
         self.optim.zero_grad() # We do this since it is possible that beta and C have gradients.
@@ -828,20 +829,16 @@ class fastPLN():
         '''Initialize the parameters with the right shape given the data. 
         
         Args: 
-              data: list with 3 elements(torch.tensor): Y, O and covariates in this 
-              order. Y and O should be of size (n,p), covariates of size (n,d). 
+              Y: pd.DataFrame of size (n, p). The counts
+              O: pd.DataFrame of size (n,p). the offset
+              covariates: pd.DataFrame of size (n,p)
         Returns:
             None but initialize some useful data. 
         '''
         #known variables
-        try : 
-            self.Y = torch.from_numpy(Y).to(device)
-            self.O = torch.from_numpy(O).to(device)
-            self.covariates = torch.from_numpy(covariates).to(device)
-        except : 
-            self.Y = Y.to(device)
-            self.O = O.to(device)
-            self.covariates = covariates.to(device)
+        self.Y = torch.from_numpy(Y.values).to(device)
+        self.O = torch.from_numpy(O.values).to(device)
+        self.covariates = torch.from_numpy(covariates.values).to(device)
         self.n, self.p = self.Y.shape
         self.d = self.covariates.shape[1]
         if good_init : 
@@ -855,7 +852,6 @@ class fastPLN():
             self.C = torch.cholesky(self.Sigma).to(device)
             self.M = init_M(self.Y, self.O, self.covariates, self.beta,self.C, 300, 0.1) 
             self.M.requires_grad_(True)
-            #self.M+= covariates@self.beta
             print('Initialization finished')
         else:
             self.beta = torch.randn((self.d,self.p))
@@ -876,9 +872,9 @@ class fastPLN():
         '''Main function of the class. Infer the best parameter Sigma and beta given the data.
         
         Args:
-            Y: torch.tensor. Samples with size (n,p)
-            0: torch.tensor. Offset, size (n,p)
-            covariates: torch.tensor. Covariates, size (n,d)
+            Y: pd.DataFrame of size (n, p). The counts
+            O: pd.DataFrame of size (n,p). the offset
+            covariates: pd.DataFrame of size (n,p)
             N_iter_max: int. The maximum number of iteration you are ready to do.
                 Default is 200. 
             tol_delta: non negative float. Criterion for the model (Default is None).
@@ -989,7 +985,7 @@ class fastPLN():
 
     def show_Sigma(self):
         '''Simple method that displays Sigma to see the global structure.'''
-        sns.heatmap(self.Sigma.detach().numpy())
+        sns.heatmap(self.Sigma.detach().cpu().numpy())
         plt.show()
     def init_M(self, N_iter, lr, eps = 7e-3):
         '''Initialization for the variational parameter M. Basically, we take 
@@ -1035,27 +1031,27 @@ class fastPLN():
                 None but displays the figure. It can also save the figure if save = True. 
         '''
         fig,ax = plt.subplots(3,1,figsize = (15,15))
-        abscisse = model.running_times
+        abscisse = self.running_times
         plt.subplots_adjust(hspace = 0.4)
 
         # plot the L1 norm of the gradients. 
-        ax[0].plot(abscisse, model.deltas, label = 'Deltas')
+        ax[0].plot(abscisse, self.deltas, label = 'Deltas')
         ax[0].set_title('Delta Criteria')
         ax[0].set_yscale('log')
         ax[0].legend()
 
 
-        ax[1].plot(abscisse, model.norm_grad_M, label = ' norm grad M ')
+        ax[1].plot(abscisse, self.norm_grad_M, label = ' norm grad M ')
         ax[1].set_yscale('log')
         ax[1].legend()
 
-        ax[2].plot(abscisse, model.norm_grad_S, label = ' norm grad S')
+        ax[2].plot(abscisse, self.norm_grad_S, label = ' norm grad S')
         ax[2].set_yscale('log')
         ax[2].legend()
         
         if save : 
             plt.savefig(name_doss)
-        plt.show()
+            plt.show()
         
         
 ######################################### fastPLNPCA object ##############################        
@@ -1087,17 +1083,17 @@ class fastPLNPCA():
         '''Initialize the parameters with the right shape given the data. 
         
         Args: 
-            Y: torch.tensor. Samples with size (n,p)
-            0: torch.tensor. Offset, size (n,p)
-            covariates: torch.tensor. Covariates, size (n,d)
+            Y: pd.DataFrame of size (n, p). The counts
+            O: pd.DataFrame of size (n,p). the offset
+            covariates: pd.DataFrame of size (n,p)
             q: int. The dimension of the latent space. 
             good_init: bool. Tells if we want to do a good initialization (not random).
                   Takes some time. 
         Returns:
             None but initialize some useful data.'''
-        self.Y = Y.to(device)
-        self.O = O.to(device)
-        self.covariates = covariates.to(device)
+        self.Y = torch.from_numpy(Y.values).to(device)
+        self.O = torch.from_numpy(O.values).to(device)
+        self.covariates = torch.from_numpy(covariates.values).to(device)
         self.n, self.p = self.Y.shape
         self.d = self.covariates.shape[1]
         self.q = q 
@@ -1134,9 +1130,9 @@ class fastPLNPCA():
         '''Main function of the class. Infer the best parameter C and beta given the data.
         
         Args:
-            Y: torch.tensor. Samples with size (n,p)
-            0: torch.tensor. Offset, size (n,p)
-            covariates: torch.tensor. Covariates, size (n,d)
+            Y: pd.DataFrame of size (n, p). The counts
+            O: pd.DataFrame of size (n,p). The offset
+            covariates: pd.DataFrame of size (n,p). 
             N_iter_max: int. The maximum number of iteration you are ready 
                 to do (Default is 8000).  
             tolerance: non negative float. Criterion for the model (Default is 0.0002).
