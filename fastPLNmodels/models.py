@@ -385,7 +385,7 @@ class IMPS_PLN():
         self.init_data(Y, O, covariates, good_init)  # Initialize the data.
         # Optimizer on C and beta
         self.optimizer = optimizer([self.beta, self.C], lr=lr)
-        self.mode_step_sizes = torch.zeros((self.n, self.q)) + lr_mode
+        self.mode_step_sizes = torch.zeros((self.n, self.q), device = device) + lr_mode
         # initialize the Variance Reductor.
         if VR == 'SAGA':
             vr = SAGARAD([self.beta, self.C], self.n)
@@ -1361,7 +1361,7 @@ class fastPLNPCA():
         if save:
             plt.savefig(name_doss)
         plt.show()
-        sns.heatmap(self.get_Sigma().detach())
+        sns.heatmap(self.get_Sigma().cpu().detach())
         plt.show()
 
     def __str__(self):
