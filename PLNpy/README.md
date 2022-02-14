@@ -72,10 +72,7 @@ fast.fit(Y,O,cov)
 print(fast)
 ```
 
-
 ![](fastPLN_screenshot.png)
-
-
 
 ##### Hyperparameters
 
@@ -109,11 +106,7 @@ print(fastpca)
 ```
 
 
-
 ![Ceci est un exemple d’image](fastPLNPCA_screenshot.png)
-
-
-
 
 The hyperparameters of the ```.fit()``` method are the same as for the ```fastPLN``` object. Only the Default values  of ```N_iter_max ``` and ```tol``` are differents: 
 
@@ -133,8 +126,9 @@ print(imps)
 ```
 
 
-![Ceci est un exemple d’image](IMPS_screenshot.png)
 
+
+![Ceci est un exemple d’image](IMPS_screenshot.png)
 
 ##### Hyperparameters
 
@@ -234,6 +228,11 @@ We adopt two different approaches to circumvent this problem:
 
 
 
+
+
+
+
+
 ## Variational approach
 
 We want here to use the EM algorithm, but the E step is unreachable, since the law $Z|Y_i$ (resp $W|Y_i$) is unknown and can't be integrated out. We thus choose to approximate the law of $Z|Y_i$ (resp $W|Y_i$) with a law $\phi_i(Z)$ (resp $\phi_i(W)$), where $\phi_i$ is taken among a family of law. We thus change the objective function: 
@@ -289,6 +288,8 @@ This results in a fast algorithm, since we only need to go a gradient ascent on 
 When $p<q$, we do not have any analytical form and are forced to perform gradient ascent on all the parameters.  Practice shows that we can perform a gradient ascent on all the parameters at a time (doing each VE step and M step perfectly is quite inefficient). 
 
 
+
+
 ## Importance sampling based algorithm 
 
 In this section, we try to estimate the gradients with respect to $\theta = (C, \beta) $. 
@@ -322,7 +323,3 @@ $$$$
 
 
 Given the estimated gradients, we can run a gradient ascent to increase the likelihood. 
-
-
-
-
