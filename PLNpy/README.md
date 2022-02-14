@@ -301,10 +301,10 @@ One can use importance sampling to estimate the likelihood:
 where $g$ is the importance law, $n_s$ is the sampling effort and  
 
 
-$$\begin{array}{ll}
+\begin{array}{ll}
 \tilde p_{\theta}^{(u)}\ :& \mathbb R^{q}  \to  \mathbb R^+  \\
  & W \mapsto p_{\theta}(Y_i| W) p(W) = \exp \left(  - \frac  12 \| W_i\|^2 - \mathbf{1}_p^{\top} \exp(O_i + \beta^{\top}X_i  + CW_i) + Y_i^{\top}(O_i + \beta^{\top}X_i +CW_i)\right) \\
-\end{array}$$
+\end{array}
 
 To learn more about the (crucial) choice of $g$, please see [Memoire PLN](Memoire_PLN_21_01_2022.pdf), section 3.2.3.
 
