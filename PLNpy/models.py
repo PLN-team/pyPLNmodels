@@ -35,9 +35,9 @@ import torch
 import torch.linalg as TLA
 from tqdm import tqdm
 
-from utils import (C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C,
+from .utils import (C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C,
                     init_M, init_Sigma, log_stirling)
-from VRA import SAGARAD, SAGRAD, SVRGRAD
+from .VRA import SAGARAD, SAGRAD, SVRGRAD
  
 if torch.cuda.is_available():
     device = torch.device('cuda')
