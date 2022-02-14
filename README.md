@@ -72,7 +72,7 @@ fast.fit(Y,O,cov)
 print(fast)
 ```
 
-![](fastPLN_screenshot.png)
+![](images/fastPLN_screenshot.png)
 
 ##### Hyperparameters
 
@@ -106,7 +106,7 @@ print(fastpca)
 ```
 
 
-![Ceci est un exemple d’image](fastPLNPCA_screenshot.png)
+![](images/fastPLNPCA_screenshot.png)
 
 The hyperparameters of the ```.fit()``` method are the same as for the ```fastPLN``` object. Only the Default values  of ```N_iter_max ``` and ```tol``` are differents: 
 
@@ -128,7 +128,7 @@ print(imps)
 
 
 
-![Ceci est un exemple d’image](IMPS_screenshot.png)
+![](images/IMPS_screenshot.png)
 
 ##### Hyperparameters
 
