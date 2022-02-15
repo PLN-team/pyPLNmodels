@@ -9,8 +9,8 @@ The packages implements 3 differents classes that fits a PLN-PCA model (describe
 - The fastPLNPCA class fits a PLN-PCA  using variational approximation. 
 - The IMPS_PLN fits a PLN-PCA model using Importance sampling. 
 
-IMPS_PLN is always slower than fastPLN. fastPLNPCA is faster than fastPLN only for very large datasets. However, 
-fastPLNPCA is convenient since it allows to get the Principal Components (PCs) directly, in contrary to fastPLN. To get the PCs using fastPLN, you first need to fit the model and do a PCA on the matrix $\Sigma$  found. 
+IMPS_PLN is always slower than fastPLN. fastPLNPCA is faster than fastPLN only for datasets with very large number of genes (p>5000, see [here](https://github.com/PLN-team/PLNpy/blob/master/images/Comparison_fastPLN_vs_fastPLNPCA_n%3D1000.png)). However, 
+fastPLNPCA is convenient since it allows to get the Principal Components (PCs) directly, in contrary to fastPLN. To get the PCs using fastPLN, you first need to fit the model and do a PCA on the matrix $\Sigma$  found. The numerical complexity is always linear with respect to the number of samples n (see [here](https://github.com/PLN-team/PLNpy/blob/master/images/Comparison_fastPLN_vs_fastPLNPCA_p%3D1000.png)) 
 
 
 All of these class are aggregated into the class PLNmodel, so that you don't need to deal with multiple classes. This class will automatically fit the data with one of those classes.  
@@ -64,6 +64,7 @@ Sigma = mypln.get_Sigma()
 
 #### Fit the PLN model
 
+The numerical complexity is quadratic with respect to the number of genes p. 
 You have to call : 
 
 ```
@@ -95,7 +96,7 @@ fast.fit(Y,O,cov, N_iter_max = 500, tol = 1e-5)
 ```
 
 ### Fit the fastPLNPCA model
-
+The numerical complexity is linear with respect to the number of genes p.
 To fit the ```fastPLNPCA``` object, you first need to declare the number of PCs you want, and then you can fit the object:
 
 ```
@@ -117,6 +118,7 @@ You can check if the algorithm has converged following the same guidelines as fr
 
 ### Fit the IMPS_PLN model
 
+The numerical complexity is linear with respect to the number of genes p.
 To fit the IMPS based model, you need to declare the number of Principal composents, and then you can fit the model:  
 ```
 nbpcs = 5
