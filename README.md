@@ -64,7 +64,7 @@ Sigma = mypln.get_Sigma()
 
 #### Fit the PLN model
 
-The numerical complexity is quadratic with respect to the number of genes p. 
+ 
 You have to call : 
 
 ```
@@ -94,9 +94,10 @@ Note that you don't need to restart the algorithm from the beginning, you can st
 ```
 fast.fit(Y,O,cov, N_iter_max = 500, tol = 1e-5)
 ```
+The numerical complexity is quadratic with respect to the number of genes p.
 
 ### Fit the fastPLNPCA model
-The numerical complexity is linear with respect to the number of genes p.
+
 To fit the ```fastPLNPCA``` object, you first need to declare the number of PCs you want, and then you can fit the object:
 
 ```
@@ -114,11 +115,12 @@ The hyperparameters of the ```.fit()``` method are the same as for the ```fastPL
 - ```N_iter_max ``` default is : 5000
 - ```tol  ``` default is : 1e-3
 
-You can check if the algorithm has converged following the same guidelines as fro ```fastPLN```. 
+You can check if the algorithm has converged following the same guidelines as for ```fastPLN```. 
+The numerical complexity is linear with respect to the number of genes p.
 
 ### Fit the IMPS_PLN model
 
-The numerical complexity is linear with respect to the number of genes p.
+
 To fit the IMPS based model, you need to declare the number of Principal composents, and then you can fit the model:  
 ```
 nbpcs = 5
@@ -145,6 +147,7 @@ The hyperparameters of the ```.fit()``` method of the ```IMPS_PLN``` are more co
 - ```good_init```: If set to ```True```, the algorithm will do a precise initialization (that takes some time). You can remove this step by setting ```good_init = False ```. Default is True. 
 
 You can see the progress of the algorithm in real time by setting ```verbose = True``` in the ```.fit()``` method. 
+The numerical complexity is linear with respect to the number of genes p.
 
 ##### How to be sure the algorithm has converged ? 
 
