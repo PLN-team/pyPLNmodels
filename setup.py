@@ -17,6 +17,6 @@ setup(
     license_files = ('LICENSE.txt',),
     long_description=long_description,
     packages=find_packages(),
-    python_requires='>=3.9',
+    python_requires='>=3.8',
     install_requires=requirements,
 )
