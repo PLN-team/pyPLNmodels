@@ -959,7 +959,7 @@ class fastPLN():
 
         Args:
               Y: pd.DataFrame of size (n, p). The counts
-              O: pd.DataFrame of size (n,p). the offset
+              O: pd.DataFrame of size (n,p). The offset
               covariates: pd.DataFrame of size (n,p)
               good_init: bool. If True,  a good initialization (not random)
                   will be performed. Takes some time.
@@ -1248,7 +1248,7 @@ class fastPLNPCA():
             print('Initialization ...')
             # If a good initialization is wanted.
             if self.p > 1500: 
-                print('p is too large (>1500) to do a good initialization, random intialization')
+                print('p is too large (>1500) to do a good initialization, random intialization is performed instead')
                 good_init = False
             if good_init:
                 poiss_reg = Poisson_reg()
