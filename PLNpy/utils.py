@@ -191,7 +191,7 @@ def sigmoid(x):
     return 1 / (1 + torch.exp(-x))
 
 
-def sample_PLN(Sigma, beta, O, covariates, B_zero=None, ZI=False):
+def sample_PLN(C, beta, O, covariates, B_zero=None, ZI=False):
     """Sample Poisson log Normal variables. If ZI is True, then the model will
     be zero inflated.
     The sample size n is the the first size of O, the number p of variables
@@ -199,7 +199,7 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero=None, ZI=False):
     is the first size of beta.
 
     Args:
-        Sigma: torch.tensor of size (p,p). Should be symmetric.
+        C: torch.tensor of size (p,q). The matrix c of the PLN model
         beta: torch.tensor of size (d,p).
         0: torch.tensor. Offset, size (n,p)
         covariates : torch.tensor. Covariates, size (n,d)
@@ -213,17 +213,9 @@ def sample_PLN(Sigma, beta, O, covariates, B_zero=None, ZI=False):
     """
 
     n = O.shape[0]
-    p = Sigma.shape[0]
-    # Cholesky factorization. Need take the cholesky of Sigma
-    # in order to simulate a gaussian with variance Sigma.
-    chol = TLA.cholesky(Sigma).to(device)
-    # taking the square root of Sigma is another possibility,
-    # less stable than the cholesky factorization:
-    # root = torch.from_numpy(SLA.sqrtm(self.Sigma)).double()
+    q = C.shape[1]
 
-    # Matrix multiplication between gaussians and the cholesky factorization
-    # of Sigma, giving a gaussian of mean 0 and covariance Sigma.
-    Z = torch.mm(torch.randn(n, p, device=device), chol.T)
+    Z = torch.mm(torch.randn(n, q, device=device), C.T)
     parameter = torch.exp(O + covariates @ beta + Z)
     if ZI:
         ZI_cov = covariates @ B_zero

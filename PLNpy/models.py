@@ -4,8 +4,9 @@
     - Variational model for PLN: fastPLN. It is very fast, but
         can't do dimension reduction. We can only infer Sigma that
         has size (p,p).
+    - Variational model for PLN-PCA: fastPLNPCA
     - Importance Sampling based model for PLN-PCA. Relatively slow
-        compared to fastPLN. However, we don't do any approximation
+        compared to fastPLN and fastPLNPCA. However, we don't do any approximation
         and infers the MLE.
 
 
@@ -35,17 +36,16 @@ import torch
 import torch.linalg as TLA
 from tqdm import tqdm
 
-from .utils import (C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C,
-                    init_M, init_Sigma, log_stirling)
+from .utils import C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C
+from .utils import init_M, init_Sigma, log_stirling
 from .VRA import SAGARAD, SAGRAD, SVRGRAD
  
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-# device = torch.device('cpu') # have to deal with this.
 
-print('device ', device)
+print('Device ', device)
 
 
 def log_likelihood(Y, O, covariates, C, beta, acc=0.002,
@@ -75,7 +75,8 @@ def log_likelihood(Y, O, covariates, C, beta, acc=0.002,
     # Initialize an IMPS_PLN model that will estimate the log likelihood.
     model = IMPS_PLN(q)
     model.nb_trigger = 5
-    model.init_data(Y, O, covariates, good_init=True)
+    model.j = 1
+    model.init_data(Y, O, covariates, good_init=False)
     model.Y_b, model.O_b, model.covariates_b = model.Y, model.O, model.covariates
     model.C_mean = C
     model.beta_mean = beta
@@ -250,34 +251,46 @@ class IMPS_PLN():
         Returns:
                 None
         '''
-        # data
-        self.Y = torch.from_numpy(Y.values).to(device)
-        self.O = torch.from_numpy(O.values).to(device)
-        self.covariates = torch.from_numpy(covariates.values).to(device)
 
-        self.n = Y.shape[0]
-        self.p = Y.shape[1]
-        self.d = covariates.shape[1]
-        # Initialize some lists
-        self.running_times = list()  # store the running times for a nice plot
-        self.log_likelihood_list = list()  # store the likelihood to plot it after
-        self.last_likelihoods = list()  # store the last likelihoods in order to take
-        # the mean of those likelihoods to smooth it.
-        self.nb_iteration_list = list()  # store the number of iteration
-        # done at each gradient ascent
-        # that finds the mode.
-        self.iteration_cmpt = 0  # counts the number of
-        # iteration we have done
-        self.crit_list = [0]  # store the criterion to plot it after.
         self.counter_list = [0] * self.nb_trigger  # counter for the criterion
         self.t_mode_list = list()  # store the time took to find the mode at each iteration
-        # store the time took to estimate the gradiens.
-        self.t_grad_estim_list = list()
+        self.t_grad_estim_list = list() # store the time took to estimate the gradiens.
         if self.fitted == False:
+            self.crit_list = [0]  # store the criterion to plot it after.
+            # Import the data. We take either pandas.DataFrames or torch.tensor
+            # pandas.DataFrame
+            try: 
+                self.Y = torch.from_numpy(Y.values).to(device)
+                self.O = torch.from_numpy(O.values).to(device)
+                self.covariates = torch.from_numpy(covariates.values).to(device)
+            # torch.tensor (if not torch.tensor, will launch an error after) 
+            except: 
+                try:   
+                    self.Y = Y.to(device)
+                    self.O = O.to(device)
+                    self.covariates = covariates.to(device)
+                except: 
+                    raise ValueError('Every Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
+
+            self.n = Y.shape[0]
+            self.p = Y.shape[1]
+            self.d = covariates.shape[1]
+            # Initialize some lists
+            self.running_times = list()  # store the running times for a nice plot
+            self.log_likelihood_list = list()  # store the likelihood to plot it after
+            self.last_likelihoods = list()  # store the last likelihoods in order to take
+            # the mean of those likelihoods to smooth it.
+            self.nb_iteration_list = list()  # store the number of iteration
+            # done at each gradient ascent
+            # that finds the mode.
+            self.iteration_cmpt = 0  # counts the number of
+            # iteration we have done
             # Tensor that will store the starting point for the
             # gradient descent finding the mode for IMPS.
             self.starting_point = torch.zeros(
                 self.n, self.q, device=device, requires_grad=False)
+            
+            self.mode_step_sizes= torch.zeros((self.n, self.q), device = device)
 
             # Initialization of the last beta and C.
             self.last_betas = torch.zeros(
@@ -451,7 +464,7 @@ class IMPS_PLN():
         self.init_data(Y, O, covariates, good_init)  # Initialize the data.
         # Optimizer on C and beta
         self.optimizer = optimizer([self.beta, self.C], lr=lr)
-        self.mode_step_sizes = torch.zeros((self.n, self.q), device = device) + lr_mode
+        self.mode_step_sizes += lr_mode
         # initialize the Variance Reductor.
         if VR == 'SAGA':
             vr = SAGARAD([self.beta, self.C], self.n)
@@ -967,19 +980,44 @@ class fastPLN():
             None but initialize some useful data.
         '''
         # Known variables
-        self.Y = torch.from_numpy(Y.values).to(device)
-        self.O = torch.from_numpy(O.values).to(device)
-        self.covariates = torch.from_numpy(covariates.values).to(device)
-
-        self.n, self.p = self.Y.shape
-        self.d = self.covariates.shape[1]
-
-        # Lists to store some stats
-        self.running_times = list()
-        self.deltas = [1] * self.window
-        self.normalized_ELBOs = list()
+        if self.fitted == False:
+            # import the data. We take either pandas.DataFrames or torch.tensor
+            # pandas.DataFrame
+            try: 
+                self.Y = torch.from_numpy(Y.values).to(device)
+                self.O = torch.from_numpy(O.values).to(device)
+                self.covariates = torch.from_numpy(covariates.values).to(device)
+            # torch.tensor (if not torch.tensor, will launch an error after) 
+            except: 
+                try:   
+                    self.Y = Y.to(device)
+                    self.O = O.to(device)
+                    self.covariates = covariates.to(device)
+                except: 
+                    raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
+        
 
         if self.fitted == False:
+            try: 
+                self.Y = torch.from_numpy(Y.values).to(device)
+                self.O = torch.from_numpy(O.values).to(device)
+                self.covariates = torch.from_numpy(covariates.values).to(device)
+            # torch.tensor (if not torch.tensor, will launch an error after) 
+            except: 
+                try:   
+                    self.Y = Y.to(device)
+                    self.O = O.to(device)
+                    self.covariates = covariates.to(device)
+                except: 
+                    raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
+        
+            self.n, self.p = self.Y.shape
+            self.d = self.covariates.shape[1]
+
+            # Lists to store some stats
+            self.running_times = list()
+            self.deltas = [1] * self.window
+            self.normalized_ELBOs = list()
             print('Initialization ...')
             if good_init:
                 # Model parameters
@@ -1165,7 +1203,7 @@ class fastPLN():
         plt.show()
     def __str__(self):
         '''Show the stats of the model and Sigma'''
-        print('Last ELBO :', self.normalized_ELBOs[-1])
+        print('Last ELBO :', -self.normalized_ELBOs[-1])
         self.show()
         return ''
 
@@ -1205,8 +1243,6 @@ def ELBO_PCA(Y, O, covariates, M, S, C, beta):
     return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - log_stirlingY + n * q / 2
 
 
-
-
 class fastPLNPCA():
     def __init__(self, q):
         '''Define some usefuls lists and variables for the object. A deeper initalization is done
@@ -1226,9 +1262,9 @@ class fastPLNPCA():
         '''Initialize the parameters with the right shape given the data.
 
         Args:
-            Y: pd.DataFrame of size (n, p). The counts
-            O: pd.DataFrame of size (n,p). the offset
-            covariates: pd.DataFrame of size (n,p)
+            Y: pd.DataFrame of size (n, p) or torch.tensor of size (n,p). The counts
+            O: pd.DataFrame of size (n,p), or torch.tensor of size (n,p). the offset
+            covariates: pd.DataFrame of size (n,p) or torch.tensor of size (n,p). The covariates
             good_init: bool. If True a good initialization (not random)
                 will be performed. Takes some time.
         Returns:
@@ -1238,11 +1274,21 @@ class fastPLNPCA():
         self.running_times = list()
         self.deltas = [1] * self.window
         self.normalized_ELBOs = list()
-
         if self.fitted == False:
-            self.Y = torch.from_numpy(Y.values).to(device)
-            self.O = torch.from_numpy(O.values).to(device)
-            self.covariates = torch.from_numpy(covariates.values).to(device)
+            # import the data. We take either pandas.DataFrames or torch.tensor
+            # pandas.DataFrame
+            try: 
+                self.Y = torch.from_numpy(Y.values).to(device)
+                self.O = torch.from_numpy(O.values).to(device)
+                self.covariates = torch.from_numpy(covariates.values).to(device)
+            # torch.tensor (if not torch.tensor, will launch an error after) 
+            except: 
+                try:   
+                    self.Y = Y.to(device)
+                    self.O = O.to(device)
+                    self.covariates = covariates.to(device)
+                except: 
+                    raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
             self.n, self.p = self.Y.shape
             self.d = self.covariates.shape[1]
             print('Initialization ...')
@@ -1289,7 +1335,7 @@ class fastPLNPCA():
         return ELBO_PCA(self.Y, self.O, self.covariates,
                         self.M, self.S, self.C, self.beta)
 
-    def fit(self, Y, O, covariates, N_iter_max=5000, lr=0.01, optimizer=torch.optim.Rprop,
+    def fit(self, Y, O, covariates, N_iter_max=15000, lr=0.01, optimizer=torch.optim.Rprop,
             tol=1e-3, good_init=True, verbose=False):
         '''Main function of the class. Infer the best parameter C and beta given the data.
 
@@ -1297,7 +1343,7 @@ class fastPLNPCA():
             Y: pd.DataFrame of size (n, p). The counts.
             O: pd.DataFrame of size (n,p). The offset.
             covariates: pd.DataFrame of size (n,p).
-            N_iter_max: int, optional. The maximum number of iteration. (Default is 5000).
+            N_iter_max: int, optional. The maximum number of iteration. (Default is 15000).
             lr: positive float, optional. The learning rate of the optimizer. Default is 0.01.
             optimizer: objects that inherits from torch.optim, optional. The optimize wanted.
                 Default is torch.optim.Rprop.
@@ -1311,6 +1357,7 @@ class fastPLNPCA():
             None but update the parameter C and beta of the object.
         '''
         self.max_Sigma = []
+        self.interval = interval
         self.t0 = time.time()
         # initialize the data
         self.init_data(Y, O, covariates, good_init)
@@ -1341,6 +1388,15 @@ class fastPLNPCA():
             # Keep track of the time
             self.running_times.append(time.time() - self.t0)
             self.max_Sigma.append(torch.max(self.get_Sigma()).item())
+            if self.compare_with_likelihood ==True:
+                '''
+                if i%interval == 0: 
+                    log_like = log_likelihood(self.Y, self.O, self.covariates, self.C, self.beta).item()
+                    print('loglike :', log_like)
+                    self.likelihood_list.append(log_like)
+                else: 
+                    self.likelihood_list.append(self.likelihood_list[-1])
+                '''
             i += 1
         if stop_condition:
             print('Tolerance {} reached in {} iterations'.format(tol, i))
@@ -1429,8 +1485,11 @@ class fastPLNPCA():
         plt.subplots_adjust(hspace=0.4)
         length = len(self.running_times)
         # Plot the negative ELBO
+       
         ax[0].plot(abscisse[int(length/4):], - np.array(self.normalized_ELBOs)
-                   [int(length/4):], label='Negative ELBO')
+               [int(length/4):], label='Negative ELBO')
+                   
+        
         ax[0].legend()
         ax[0].set_yscale('log')
         ax[0].set_title('Negative ELBO')

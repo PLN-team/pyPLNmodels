@@ -1,0 +1,6 @@
+include *.ipynb
+include *.json
+include *.pdf
+include *.txt
+recursive-include Tests_notebooks *.ipynb
+recursive-include images *.png
