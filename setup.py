@@ -10,7 +10,7 @@ with open("requirements.txt", "r") as fh:
 setup(
     name='PLNpy',
     version=__version__,
-    Descrition = 'Package that implements PLN models', 
+    description = 'Package implementing PLN models', 
     url='https://github.com/PLN-team/PLNpy/tree/master/PLNpy',
     author='Bastien Batardière, Julien Chiquet, Joon Kwon',
     author_email='bastien.batardiere@gmail.com',
@@ -19,4 +19,5 @@ setup(
     packages=find_packages(),
     python_requires='>=3.8',
     install_requires=requirements,
+    py_modules=['PLNpy/utils','PLNpy/VRA','PLNpy/models'],
 )
