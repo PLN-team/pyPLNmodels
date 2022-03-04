@@ -1,6 +1,0 @@
-include *.in
-include *.ipynb
-include *.json
-include *.pdf
-include *.txt
-recursive-include images *.png
