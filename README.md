@@ -2,7 +2,11 @@
 
 ### Description of the package
 
+First,you need to pip install pyPLNmodels. It is recommended to create a new environment first. Once you have created a new environment, launch this in a terminal : 
 
+```
+pip install pyPLNmodels
+```
 
 The packages implements 3 differents classes that fits a PLN-PCA model (described in the mathematical description above). Basically, it tries to find the correlation between features and the effect of covariables on these features. As main characteristic, this model takes into account count data. 
 - The fastPLN class fits a PLN model (a special PLN-PCA model) using variational approximation. 
