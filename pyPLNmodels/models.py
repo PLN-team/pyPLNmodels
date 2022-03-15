@@ -298,7 +298,7 @@ class IMPS_PLN():
             self.last_Cs = torch.zeros(self.nb_average_param, self.p, self.q)
 
             print('Intialization ...')
-            if good_init:
+            if good_init and self.p<1500:
                 # Initialization for beta with a poisson regression.
                 poiss_reg = Poisson_reg()
                 poiss_reg.fit(self.Y, self.O, self.covariates)
@@ -313,6 +313,8 @@ class IMPS_PLN():
                     self.beta,
                     self.q).to(device)
             else:
+                if self.p>1500 and good_init: 
+                    print('p is too large to do a good initialization, random initialization is performed instead') 
                 self.beta = torch.randn((self.n, self.p), device=device)
                 self.C = torch.randn((self.p, self.q), device=device)
             print('Initalization done')
@@ -1357,7 +1359,6 @@ class fastPLNPCA():
             None but update the parameter C and beta of the object.
         '''
         self.max_Sigma = []
-        self.interval = interval
         self.t0 = time.time()
         # initialize the data
         self.init_data(Y, O, covariates, good_init)
@@ -1388,15 +1389,6 @@ class fastPLNPCA():
             # Keep track of the time
             self.running_times.append(time.time() - self.t0)
             self.max_Sigma.append(torch.max(self.get_Sigma()).item())
-            if self.compare_with_likelihood ==True:
-                '''
-                if i%interval == 0: 
-                    log_like = log_likelihood(self.Y, self.O, self.covariates, self.C, self.beta).item()
-                    print('loglike :', log_like)
-                    self.likelihood_list.append(log_like)
-                else: 
-                    self.likelihood_list.append(self.likelihood_list[-1])
-                '''
             i += 1
         if stop_condition:
             print('Tolerance {} reached in {} iterations'.format(tol, i))

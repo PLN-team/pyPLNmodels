@@ -20,4 +20,5 @@ setup(
     python_requires='>=3.8',
     install_requires=requirements,
     py_modules=['pyPLNmodels/utils','pyPLNmodels/VRA','pyPLNmodels/models'],
+    long_description_content_type='text/markdown'
 )

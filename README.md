@@ -4,7 +4,7 @@
 
 
 
-The packages implements 3 differents classes that fits a PLN-PCA model (described in the mathematical description above). Basically, it tries to find the correlation between features and the effect of covariables on these features. As main characteristic, this model takes into account count data. 
+The package implements 3 differents classes that fits a PLN-PCA model (described in the mathematical description above). Basically, it tries to find the correlation between features and the effect of covariables on these features. As main characteristic, this model takes into account count data. 
 - The fastPLN class fits a PLN model (a special PLN-PCA model) using variational approximation. 
 - The fastPLNPCA class fits a PLN-PCA  using variational approximation. 
 - The IMPS_PLN fits a PLN-PCA model using Importance sampling. 
@@ -20,16 +20,18 @@ All of these class are aggregated into the class PLNmodel, so that you don't nee
 The package comes with an artificial dataset to present the functionality. You can load it doing the following: 
 
 ```
-Y = pd.read_csv('Y_test')
-O = pd.read_csv('O_test')
-cov = pd.read_csv('cov_test')
+import pandas as pd
+Y = pd.read_csv('example_data/Y_test')
+O = pd.read_csv('example_data/O_test')
+cov = pd.read_csv('example_data/cov_test')
 ```
 
 If you want $q$ Principal Composants, you only need to call: 
 
 ```
-q = 5
-mypln = PLNmodel(q)
+from pyPLNmodels.models import PLNmodel
+nbpcs = 5 # number of principal components 
+mypln = PLNmodel(q= nbpcs)
 mypln.fit(Y,O,cov)
 print(mypln)
 ```
@@ -37,8 +39,8 @@ print(mypln)
 Note that if you do not specify $q$, it will take the maximum possible value. You can look for a better approximation by setting ```fast = False ``` in the ```.fit()``` method, but it will take much more time:
 
 ```
-q = 5 
-mypln = PLNmodel(q)
+nbpcs = 5 
+mypln = PLNmodel(nbpcs)
 mypln.fit(Y,O,cov, fast = False)
 print(mypln)
 ```
@@ -68,6 +70,7 @@ Sigma = mypln.get_Sigma()
 You have to call : 
 
 ```
+from pyPLNmodels.models import fastPLN
 fast = fastPLN()
 fast.fit(Y,O,cov)
 print(fast)
@@ -101,6 +104,7 @@ The numerical complexity is quadratic with respect to the number of genes p.
 To fit the ```fastPLNPCA``` object, you first need to declare the number of PCs you want, and then you can fit the object:
 
 ```
+from pyPLNmodels.models import fastPLNPCA
 nbpcs = 5
 fastpca = fastPLNPCA(q=nbpcs)
 fastpca.fit(Y,O,cov)
@@ -123,9 +127,10 @@ The numerical complexity is linear with respect to the number of genes p.
 
 To fit the IMPS based model, you need to declare the number of Principal composents, and then you can fit the model:  
 ```
+from pyPLNmodels.models import IMPS_PLN
 nbpcs = 5
-imps = IMPS_PLN()
-imps.fit(Y,O,cov,q = nbpcs)
+imps = IMPS_PLN(nbpcs)
+imps.fit(Y,O,cov)
 print(imps)
 ```
 
@@ -191,8 +196,7 @@ We consider the following model PLN-PCA model:
 - Consider $n$ samples $(i=1 \ldots n)$
 
 - Measure $x_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ :
-$x_{i h}=$ (covariate) for sample $i$
-(altitude, temperature, categorical covariate, ...)
+$x_{i h}=$ (covariate) for sample $i$ (altitude, temperature, categorical covariate, ...)
 
 - Consider $p$ features (genes) $(j=1 \ldots p)$ Measure $Y=\left(Y_{i j}\right)_{1 \leq i \leq n, 1 \leq j \leq p}$ :
 
