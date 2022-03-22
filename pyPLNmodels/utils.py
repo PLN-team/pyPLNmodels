@@ -112,10 +112,9 @@ def init_Sigma(Y, O, covariates, beta):
     log_Y_c = log_Y - \
         torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     # MLE in a Gaussian setting
-    Sigma_hat = torch.mean(
-        torch.matmul(log_Y_c.unsqueeze(2),
-                     log_Y_c.unsqueeze(1)),
-        axis=0)
+    n = Y.shape[0]
+    Sigma_hat = 1/(n-1)*(log_Y_c.T)@log_Y_c
+    
     return Sigma_hat
 
 
