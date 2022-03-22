@@ -251,12 +251,11 @@ class IMPS_PLN():
         Returns:
                 None
         '''
-
         self.counter_list = [0] * self.nb_trigger  # counter for the criterion
+        self.crit_list = [0]  # store the criterion to plot it after.
         self.t_mode_list = list()  # store the time took to find the mode at each iteration
         self.t_grad_estim_list = list() # store the time took to estimate the gradiens.
         if self.fitted == False:
-            self.crit_list = [0]  # store the criterion to plot it after.
             # Import the data. We take either pandas.DataFrames or torch.tensor
             # pandas.DataFrame
             try: 
@@ -298,7 +297,7 @@ class IMPS_PLN():
             self.last_Cs = torch.zeros(self.nb_average_param, self.p, self.q)
 
             print('Intialization ...')
-            if good_init and self.p<1500:
+            if good_init:
                 # Initialization for beta with a poisson regression.
                 poiss_reg = Poisson_reg()
                 poiss_reg.fit(self.Y, self.O, self.covariates)
@@ -313,10 +312,9 @@ class IMPS_PLN():
                     self.beta,
                     self.q).to(device)
             else:
-                if self.p>1500 and good_init: 
-                    print('p is too large to do a good initialization, random initialization is performed instead') 
-                self.beta = torch.randn((self.n, self.p), device=device)
-                self.C = torch.randn((self.p, self.q), device=device)
+                print(' Random initialization is performed instead')
+                self.beta = torch.randn((self.d, self.p), device=device)
+                self.C = 0*torch.randn((self.p, self.q), device=device)
             print('Initalization done')
 
         # Mean of the last nb_average_param parameters, that are
@@ -754,67 +752,94 @@ class IMPS_PLN():
             num / (denum.unsqueeze(0).unsqueeze(2).unsqueeze(3)), axis=0)
         return batch_grad
 
-    def show_Sigma(self):
-        '''Displays Sigma'''
-        sns.heatmap(self.get_Sigma())
-        plt.show()
+    def show_Sigma(self, ax = None, save=False, name_doss='IMPS_PLN_Sigma'):
+        '''Displays Sigma
+        args: 
+            'ax': AxesSubplot object. Sigma will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'IMPS_PLN_Sigma'.   
+        returns: None but displays Sigma. 
+        '''
+        fig = plt.figure()
+        if self.p >400: 
+            print('The heatmap only displays Sigma[:400,:400]') 
+            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach(), ax = ax)
+        else : 
+            sns.heatmap(self.get_Sigma().cpu().detach(), ax = ax)
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+        
+    def show_loss(self, ax = None, save=False, name_doss='IMPS_PLN_log_likelihood'): 
+        '''Show the log likelihood of the algorithm along the iterations.  
+        
+        args: 
+            'ax': AxesSubplot object. The ELBO will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'IMPS_PLN_log_likelihood'.   
+        returns: None but displays the log likelihood. 
+        '''
+        if not self.fitted:
+            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None: 
+            ax = plt.gca()
+        ax.plot(np.arange(0, len(self.log_likelihood_list)),
+                   -np.array(self.log_likelihood_list))
+        ax.set_title('Smoothed negative log likelihood')
+        ax.set_ylabel('Negative loglikelihood')
+        ax.set_xlabel('Seconds')
+        ax.set_yscale('log')
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+    def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
+        '''Show the criterion of the algorithm along the iterations.  
+        
+        args: 
+            'ax': AxesSubplot object. The criterion will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None. 
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'IMPS_PLN_criterion'.   
+                
+        returns: None but displays the criterion. 
+        '''
+
+        
+        if not self.fitted:
+            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None: 
+            ax = plt.gca()
+        ax.plot(np.arange(0, len(self.crit_list)), self.crit_list)
+        ax.set_title('Number of epoch the likelihood has not improved')
+        ax.set_xlabel('Seconds')
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
 
     def __str__(self):
-        '''Show the model, Sigma and the likelihood.'''
+        '''Show the criterion of the algorithm, Sigma and the log likelihood.'''
         self.best_log_like = max(self.log_likelihood_list)
-        self.show()
-        self.show_Sigma()
+        print('Best likelihood: ', self.best_log_like) 
+        fig, axes = plt.subplots(1,3, figsize = (20,5))
+        self.show_loss(ax = axes[0])
+        self.show_criterion(ax= axes[1])
+        self.show_Sigma(ax = axes[2])
+        self.fig = fig
+        plt.show()
         return ''
-
-    def show(self, save=False, name_doss='IMPS_PLN_graphic'):
-        """Show some useful stats of the model. Plot the estimated log_likelihood
-        and the criterion in the y axis with the runtime in the x-axis. The model
-        should have been fitted beofre calling show().
-
-        Args :
-            save: bool, optional. If True, the graphic will be saved. If false, won't be saved.
-                default is False.
-            name_doss: str, optional. The name of the file the graphic will be saved to.
+    def save_stat(self, name_doss= 'IMPS_PLN_graphic'): 
+        '''save some useful stats of the model. 
+        Args:
+            'name_doss' : str. The name of the file the graphic will be saved to.
                 Default is 'IMPS_PLN_graphic'.
         Returns :
-                None but displays the figure. It can also save the figure if save = True.
-        Raises:
-            AttributeError when the model has not been fitted.
-        """
-        # Make sure the model has been fitted
-        if not self.fitted:
-            print(
-                'Please fit the model before by calling model.fit(Y,O,covariates,N_epoch,acc)')
-            raise AttributeError
-        else:
-            fig, ax = plt.subplots(2, 1, figsize=(10, 8))
-            plt.subplots_adjust(hspace=0.4)
-            abscisse = self.running_times
-
-            print(
-                'Max likelihood:', np.max(
-                    np.array(
-                        self.log_likelihood_list)))
-            # plot the negative likelihood of the model
-            ax[0].plot(np.arange(0, len(self.log_likelihood_list)),
-                       -np.array(self.log_likelihood_list))
-            ax[0].set_title('Smoothed negative log likelihood')
-            ax[0].set_ylabel('Negative loglikelihood')
-            ax[0].set_xlabel('Seconds')
-            ax[0].set_yscale('log')
-            # Plot the criteria of the model
-            ax[1].plot(np.arange(0, len(self.crit_list)), self.crit_list)
-            ax[1].set_title('Number of epoch the likelihood has not improved')
-            ax[1].set_xlabel('Seconds')
-            # save the graphic if needed
-            if save:
-                plt.savefig(name_doss)
-            plt.show()
-            if self.p >400: 
-                print('The heatmap only displays Sigma[:400,:400]') 
-                sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach())
-            else : 
-                sns.heatmap(self.get_Sigma().cpu().detach())
+                None but displays the figure.
+        '''
+        print(self)
+        self.fig.savefig(name_doss)
+   
     def get_beta(self):
         '''Getter for beta. Returns the mean of the last betas computed to reduce variance.'''
         return self.beta_mean.detach()
@@ -1158,10 +1183,98 @@ class fastPLN():
                 self.covariates.T),
             self.M)
 
-    def show_Sigma(self):
-        '''Simple method that displays Sigma to see the global structure.'''
-        sns.heatmap(self.Sigma.detach().cpu().numpy())
+    def show_Sigma(self, ax = None, save=False, name_doss='fastPLN_Sigma'):
+        '''Displays Sigma
+        args: 
+            'ax': AxesSubplot object. Sigma will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLN_Sigma'.   
+        returns: None but displays Sigma. 
+        '''
+        fig = plt.figure()
+        if self.p >400: 
+            print('The heatmap only displays Sigma[:400,:400]') 
+            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach(), ax = ax)
+        else : 
+            sns.heatmap(self.get_Sigma().cpu().detach(), ax = ax)
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+        
+        
+    def show_loss(self, ax = None, save=False, name_doss='fastPLN_ELBO'): 
+        '''Show the ELBO of the algorithm along the iterations.  
+        
+        args: 
+            'ax': AxesSubplot object. The ELBO will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLN_ELBO'.   
+        returns: None but displays the ELBO. 
+        '''
+        if not self.fitted:
+            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None: 
+            ax = plt.gca()
+        ax.plot(self.running_times, np.array(self.normalized_ELBOs),
+                   label='Negative ELBO')
+        ax.set_title('Negative ELBO')
+        ax.set_yscale('log')
+        ax.set_xlabel('Seconds')
+        ax.set_ylabel('ELBO')
+        ax.legend()
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+    def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
+        '''Show the criterion of the algorithm along the iterations.  
+        
+        args: 
+            'ax': AxesSubplot object. The criterion will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLN_criterion'.   
+        returns: None but displays the criterion. 
+        '''
+        if not self.fitted:
+            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None: 
+            ax = plt.gca()
+        ax.plot(self.running_times[self.window:],
+                   self.deltas[self.window:], label='Delta')
+        ax.set_yscale('log')
+        ax.set_xlabel('Seconds')
+        ax.set_ylabel('Delta')
+        ax.set_title('Increments')
+        ax.legend()
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+
+    def __str__(self):
+        '''Show the criterion of the algorithm, Sigma and the normalized ELBO.'''
+        self.best_ELBO = -max(-np.array(self.normalized_ELBOs))
+        print('Best likelihood: ', self.best_ELBO) 
+        fig, axes = plt.subplots(1,3, figsize = (20,5))
+        self.show_loss(ax = axes[0])
+        self.show_criterion(ax= axes[1])
+        self.show_Sigma(ax = axes[2])
+        self.fig = fig
         plt.show()
+        return ''
+    
+    def save_stat(self, name_doss='fastPLN_graphic'): 
+        '''save some useful stats of the model. 
+        Args :
+            'name_doss' : str. The name of the file the graphic will be saved to.
+                Default is 'fastPLN_graphic'.
+
+        Returns :
+                None but displays the figure.
+        '''
+        print(self) # print the model and also compute the figure fig 
+        self.fig.savefig(name_doss)
 
     def show(self, name_doss='fastPLN_graphic', save=False):
         '''displays some useful stats of the model.
@@ -1203,11 +1316,6 @@ class fastPLN():
         else : 
             sns.heatmap(self.get_Sigma().cpu().detach())
         plt.show()
-    def __str__(self):
-        '''Show the stats of the model and Sigma'''
-        print('Last ELBO :', -self.normalized_ELBOs[-1])
-        self.show()
-        return ''
 
     def get_Sigma(self):
         '''Getter for Sigma'''
@@ -1461,59 +1569,96 @@ class fastPLNPCA():
             2 * torch.multiply(matC, torch.mm(exp.T, SrondS))
         return first + second
 
-    def show(self, name_doss='fastPLNPCA_graphic', save=False):
-        '''Display some useful stats of the model.
-
-        args :
-            'name_doss': str, optional. The name of the file the graphic will be saved to.
-                Default is 'fastPLNPCA_graphic'.
-            'save': Bool, optional. If True, the graphic will be saved. If false, won't be saved.
-
-        returns :
-                None but displays the figure. It can also save the figure if save = True.
+    def show_Sigma(self, ax = None, save=False, name_doss='fastPLNPCA_Sigma'):
+        '''Displays Sigma
+        args: 
+            'ax': AxesSubplot object. Sigma will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLNPCA_Sigma'.   
+        returns: None but displays Sigma. 
         '''
-        fig, ax = plt.subplots(3, 1, figsize=(10, 8))
-        abscisse = self.running_times
-        plt.subplots_adjust(hspace=0.4)
-        length = len(self.running_times)
-        # Plot the negative ELBO
-       
-        ax[0].plot(abscisse[int(length/4):], - np.array(self.normalized_ELBOs)
-               [int(length/4):], label='Negative ELBO')
-                   
-        
-        ax[0].legend()
-        ax[0].set_yscale('log')
-        ax[0].set_title('Negative ELBO')
-        ax[0].set_ylabel('Negative ELBO')
-        ax[0].set_xlabel('Seconds')
-
-        # Plot the criteria of the algorithm.
-        ax[1].plot(abscisse[self.window+int(length/4):],
-                   self.deltas[self.window+int(length/4):],
-                   label='Deltas')
-        ax[1].set_title('Increments')
-        ax[1].set_yscale('log')
-        ax[1].legend()
-        ax[2].plot(np.arange(len(self.max_Sigma)), self.max_Sigma)
-                                  
-
-        if save:
-            plt.savefig(name_doss)
-        plt.show()
+        fig = plt.figure()
         if self.p >400: 
             print('The heatmap only displays Sigma[:400,:400]') 
-            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach())
-        else: 
-            sns.heatmap(self.get_Sigma().cpu().detach())
-        plt.show()
+            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach(), ax = ax)
+        else : 
+            sns.heatmap(self.get_Sigma().cpu().detach(), ax = ax)
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+        
+    def show_loss(self, ax = None, save=False, name_doss='fastPLNPCA_ELBO'): 
+        '''Show the ELBO of the algorithm along the iterations.  
+        
+        args: 
+            'ax': AxesSubplot object. The ELBO will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLNPCA_ELBO'.   
+        returns: None but displays the ELBO. 
+        '''
+        if not self.fitted:
+            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None: 
+            ax = plt.gca()
+        ax.plot(self.running_times, -np.array(self.normalized_ELBOs),
+                   label='Negative ELBO')
+        ax.set_title('Negative ELBO')
+        ax.set_yscale('log')
+        ax.set_xlabel('Seconds')
+        ax.set_ylabel('ELBO')
+        ax.legend()
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
+    def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
+        '''Show the criterion of the algorithm along the iterations.  
+        
+        args: 
+            'ax': AxesSubplot object. The criterion will be displayed in this ax 
+                if not None. If None, will simply create an axis. Default is None.  
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLN_criterion'.   
+        returns: None but displays the criterion. 
+        '''
+        if not self.fitted:
+            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None: 
+            ax = plt.gca()
+        ax.plot(self.running_times[self.window:],
+                   self.deltas[self.window:], label='Delta')
+        ax.set_yscale('log')
+        ax.set_xlabel('Seconds')
+        ax.set_ylabel('Delta')
+        ax.set_title('Increments')
+        ax.legend()
+        # save the graphic if needed
+        if save:
+            plt.savefig(name_doss)
 
     def __str__(self):
-        '''Show the stats of the model and Sigma'''
-        print('Last ELBO :', self.normalized_ELBOs[-1])
-        print('Dimension of the latent space :', self.q)
-        self.show()
+        '''Show the model, Sigma and the likelihood.'''
+        self.best_ELBO = -max(-np.array(self.normalized_ELBOs))
+        print('Best likelihood: ', self.best_ELBO) 
+        fig, axes = plt.subplots(1,3, figsize = (20,5))
+        self.show_loss(ax = axes[0])
+        self.show_criterion(ax= axes[1])
+        self.show_Sigma(ax = axes[2])
+        self.fig = fig
+        plt.show()
         return ''
+    
+    def save_stat(self, name_doss= 'fastPLNPCA_graphic'): 
+        '''save some useful stats of the model. 
+        Args :
+            'name_doss' : str. The name of the file the graphic will be saved to.
+                Default is 'fastPLNPCA_graphic'.
+        Returns :
+                None but displays the figure.
+        '''
+        print(self)
+        self.fig.savefig(name_doss)
 
     def get_Sigma(self):
         '''Return the parameter Sigma of the model, that is CC^T'''
