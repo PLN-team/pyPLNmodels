@@ -19,7 +19,13 @@ fastPLNPCA is convenient since it allows to get the Principal Components (PCs) d
 
 All of these class are aggregated into the class PLNmodel, so that you don't need to deal with multiple classes. This class will automatically fit the data with one of those classes.  
 
-### How to fit the data? 
+### How to use the package? 
+
+First, you need to pip install the package. We recommend to create a new environment before installing the package.  
+
+```
+pip install pyPLNmodels
+```
 
 The package comes with an artificial dataset to present the functionality. You can load it doing the following: 
 
