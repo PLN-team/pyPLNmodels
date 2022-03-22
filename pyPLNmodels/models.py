@@ -47,7 +47,6 @@ else:
 
 print('Device ', device)
 
-
 def log_likelihood(Y, O, covariates, C, beta, acc=0.002,
                    N_iter_mode=1000, lr_mode=0.1):
     """Estimate the log likelihood of C and beta given Y,O,covariates.
@@ -770,7 +769,8 @@ class IMPS_PLN():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
-        
+        if ax is None: 
+            plt.show()
     def show_loss(self, ax = None, save=False, name_doss='IMPS_PLN_log_likelihood'): 
         '''Show the log likelihood of the algorithm along the iterations.  
         
@@ -785,6 +785,9 @@ class IMPS_PLN():
             raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
         if ax is None: 
             ax = plt.gca()
+            to_show = True
+        else: 
+            to_show = False
         ax.plot(np.arange(0, len(self.log_likelihood_list)),
                    -np.array(self.log_likelihood_list))
         ax.set_title('Smoothed negative log likelihood')
@@ -794,6 +797,8 @@ class IMPS_PLN():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
+        if to_show: 
+            plt.show()
     def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
         '''Show the criterion of the algorithm along the iterations.  
         
@@ -805,18 +810,22 @@ class IMPS_PLN():
                 
         returns: None but displays the criterion. 
         '''
-
-        
         if not self.fitted:
             raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
         if ax is None: 
             ax = plt.gca()
+            to_show = True
+        else: 
+            to_show = False
+        
         ax.plot(np.arange(0, len(self.crit_list)), self.crit_list)
         ax.set_title('Number of epoch the likelihood has not improved')
         ax.set_xlabel('Seconds')
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
+        if to_show: 
+            plt.show()
 
     def __str__(self):
         '''Show the criterion of the algorithm, Sigma and the log likelihood.'''
@@ -1217,6 +1226,9 @@ class fastPLN():
             raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
         if ax is None: 
             ax = plt.gca()
+            to_show = True
+        else: 
+            to_show = False
         ax.plot(self.running_times, np.array(self.normalized_ELBOs),
                    label='Negative ELBO')
         ax.set_title('Negative ELBO')
@@ -1227,6 +1239,8 @@ class fastPLN():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
+        if to_show: 
+            plt.show()
     def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
         '''Show the criterion of the algorithm along the iterations.  
         
@@ -1241,6 +1255,9 @@ class fastPLN():
             raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
         if ax is None: 
             ax = plt.gca()
+            to_show = True
+        else: 
+            to_show = False
         ax.plot(self.running_times[self.window:],
                    self.deltas[self.window:], label='Delta')
         ax.set_yscale('log')
@@ -1251,7 +1268,9 @@ class fastPLN():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
-
+        if to_show: 
+            plt.show()
+            
     def __str__(self):
         '''Show the criterion of the algorithm, Sigma and the normalized ELBO.'''
         self.best_ELBO = -max(-np.array(self.normalized_ELBOs))
@@ -1602,6 +1621,9 @@ class fastPLNPCA():
             raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
         if ax is None: 
             ax = plt.gca()
+            to_show = True
+        else: 
+            to_show = False
         ax.plot(self.running_times, -np.array(self.normalized_ELBOs),
                    label='Negative ELBO')
         ax.set_title('Negative ELBO')
@@ -1612,6 +1634,9 @@ class fastPLNPCA():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
+            
+        if to_show: 
+            plt.show()
     def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
         '''Show the criterion of the algorithm along the iterations.  
         
@@ -1626,6 +1651,9 @@ class fastPLNPCA():
             raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
         if ax is None: 
             ax = plt.gca()
+            to_show = True
+        else: 
+            to_show = False
         ax.plot(self.running_times[self.window:],
                    self.deltas[self.window:], label='Delta')
         ax.set_yscale('log')
@@ -1636,7 +1664,8 @@ class fastPLNPCA():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
-
+        if to_show: 
+            plt.show()
     def __str__(self):
         '''Show the model, Sigma and the likelihood.'''
         self.best_ELBO = -max(-np.array(self.normalized_ELBOs))
