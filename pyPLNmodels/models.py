@@ -1134,7 +1134,7 @@ class fastPLN():
             self.Sigma = self.closed_Sigma()
             # Keep records
             self.normalized_ELBOs.append(
-                -1 / self.n * self.compute_ELBO().item())
+                1 / self.n * self.compute_ELBO().item())
             self.running_times.append(time.time() - self.t0)
             # Criterions
             if i > self.window - 1:  # To be sure we have seen enough data
@@ -1229,7 +1229,7 @@ class fastPLN():
             to_show = True
         else: 
             to_show = False
-        ax.plot(self.running_times, np.array(self.normalized_ELBOs),
+        ax.plot(self.running_times, -np.array(self.normalized_ELBOs),
                    label='Negative ELBO')
         ax.set_title('Negative ELBO')
         ax.set_yscale('log')
@@ -1273,7 +1273,7 @@ class fastPLN():
             
     def __str__(self):
         '''Show the criterion of the algorithm, Sigma and the normalized ELBO.'''
-        self.best_ELBO = -max(-np.array(self.normalized_ELBOs))
+        self.best_ELBO = max(self.normalized_ELBOs)
         print('Best likelihood: ', self.best_ELBO) 
         fig, axes = plt.subplots(1,3, figsize = (20,5))
         self.show_loss(ax = axes[0])
@@ -1668,8 +1668,8 @@ class fastPLNPCA():
             plt.show()
     def __str__(self):
         '''Show the model, Sigma and the likelihood.'''
-        self.best_ELBO = -max(-np.array(self.normalized_ELBOs))
-        print('Best likelihood: ', self.best_ELBO) 
+        self.best_ELBO = max(self.normalized_ELBOs)
+        print('Best ELBO: ', self.best_ELBO) 
         fig, axes = plt.subplots(1,3, figsize = (20,5))
         self.show_loss(ax = axes[0])
         self.show_criterion(ax= axes[1])
