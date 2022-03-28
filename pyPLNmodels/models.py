@@ -1063,7 +1063,7 @@ class fastPLN():
                 self.Sigma = init_Sigma(
                     self.Y, self.O, self.covariates, self.beta).to(device)
                 # Initialize C in order to initialize M.
-                self.C = TLA.cholesky(self.Sigma).to(device)
+                self.C = C_from_Sigma(self.Sigma,self.p).to(device)
                 # Variational parameter
                 self.M = init_M(
                     self.Y,
