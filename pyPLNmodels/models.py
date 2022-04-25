@@ -788,7 +788,9 @@ class IMPS_PLN():
             to_show = True
         else: 
             to_show = False
-        ax.plot(np.arange(0, len(self.log_likelihood_list)),
+        print('len log_list', len(self.log_likelihood_list))
+        print('len runtime', len(self.running_times))
+        ax.plot(self.running_times,
                    -np.array(self.log_likelihood_list))
         ax.set_title('Smoothed negative log likelihood')
         ax.set_ylabel('Negative loglikelihood')
@@ -818,7 +820,7 @@ class IMPS_PLN():
         else: 
             to_show = False
         
-        ax.plot(np.arange(0, len(self.crit_list)), self.crit_list)
+        ax.plot(self.running_times,self.crit_list[1:])
         ax.set_title('Number of epoch the likelihood has not improved')
         ax.set_xlabel('Seconds')
         # save the graphic if needed
@@ -935,8 +937,8 @@ class IMPS_PLN():
         Returns:
             None but displays a figure.
         '''
-        l_estim = imps.t_grad_estim_list
-        l_mode = imps.t_mode_list
+        l_estim = self.t_grad_estim_list
+        l_mode = self.t_mode_list
         l_total = np.array(l_estim) + np.array(l_mode)
 
         plt.plot(np.arange(len(l_estim)), l_estim, label='Gradient estimation')
