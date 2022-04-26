@@ -325,15 +325,8 @@ def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta):
     length = len(W.shape)
     q = W.shape[-1]
     if length == 2:
-        ##print('first', C.unsqueeze(0).shape)
-        ##print('second', W.unsqueeze(2).shape)
-        ##print('end', torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).shape)
         CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
     elif length == 3:
-        print("size W", W.shape)
-        ##print('first', C.unsqueeze(0).shape)
-        ##print('second', W.unsqueeze(2).shape)
-        ##print('end', torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).shape)
         CW = torch.matmul(
             C.unsqueeze(0).unsqueeze(1),
             W.unsqueeze(3)).squeeze()

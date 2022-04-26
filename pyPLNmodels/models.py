@@ -596,7 +596,7 @@ class IMPS_PLN():
                         - self.counter_list[-self.nb_trigger - 1] > self.nb_trigger - 1)
         self.crit_list.append(self.crit_list[-1] + triggered)
         if triggered > 0 and verbose:
-            print(' Criterion updated : ',
+            print('Criterion updated : ',
                   self.crit_list[-1], '/', self.nb_plateau)
         return self.crit_list[-1]
 
@@ -788,8 +788,6 @@ class IMPS_PLN():
             to_show = True
         else: 
             to_show = False
-        print('len log_list', len(self.log_likelihood_list))
-        print('len runtime', len(self.running_times))
         ax.plot(self.running_times,
                    -np.array(self.log_likelihood_list))
         ax.set_title('Smoothed negative log likelihood')
@@ -1151,6 +1149,7 @@ class fastPLN():
                 print('Iteration number: ', i)
                 print('-------UPDATE-------')
                 print('Delta : ', delta)
+                print('Last ELBO:', self.normalized_ELBOs[-1])
             i += 1
         if stop_condition:
             print('Last delta: {},  reached in {} iterations'.format(delta, i))
@@ -1514,7 +1513,8 @@ class fastPLNPCA():
             if i % 100 == 0 and verbose:
                 print('Iteration number: ', i)
                 print('-------UPDATE-------')
-                print('Delta : ', delta)
+                print('Delta: ', delta)
+                print('Last ELBO:', self.normalized_ELBOs[-1])
             # Keep track of the time
             self.running_times.append(time.time() - self.t0)
             self.max_Sigma.append(torch.max(self.get_Sigma()).item())
