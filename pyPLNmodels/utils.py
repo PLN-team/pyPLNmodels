@@ -190,25 +190,23 @@ def sigmoid(x):
     return 1 / (1 + torch.exp(-x))
 
 
-def sample_PLN(C, beta, O, covariates, B_zero=None, ZI=False):
-    """Sample Poisson log Normal variables. If ZI is True, then the model will
+def sample_PLN(C, beta, O, covariates, B_zero=None):
+    """Sample Poisson log Normal variables. If B_zero is not None, the model will
     be zero inflated.
-    The sample size n is the the first size of O, the number p of variables
-    considered is the second size of O. The number d of covariates considered
-    is the first size of beta.
-
+  
     Args:
-        C: torch.tensor of size (p,q). The matrix c of the PLN model
-        beta: torch.tensor of size (d,p).
-        0: torch.tensor. Offset, size (n,p)
-        covariates : torch.tensor. Covariates, size (n,d)
-        B_zero: torch.tensor of size (d,p), optional. If ZI is True,
-            it will raise an error if you don't set a value. Default is None.
-        ZI: Bool, optional. If True, the model will be Zero Inflated. Default is False.
+        C: torch.tensor of size (p,q). The matrix C of the PLN model
+        beta: torch.tensor of size (d,p). Regression parameter. 
+        0: torch.tensor of size (n,p0. Offsets. 
+        covariates : torch.tensor of size (n,d). Covariates. 
+        B_zero: torch.tensor of size (d,p), optional. If B_zero is not None,
+             the ZIPLN model is chosen, so that it will add a 
+             Bernouilli layer. Default is None.
     Returns :
         Y: torch.tensor of size (n,p), the count variables.
         Z: torch.tensor of size (n,p), the gaussian latent variables.
-        ksi: torch.tensor of size (n,p), the bernoulli latent variables.
+        ksi: torch.tensor of size (n,p), the bernoulli latent variables 
+        (full of zeros if B_zero is None).
     """
 
     n = O.shape[0]
@@ -216,7 +214,7 @@ def sample_PLN(C, beta, O, covariates, B_zero=None, ZI=False):
 
     Z = torch.mm(torch.randn(n, q, device=device), C.T)
     parameter = torch.exp(O + covariates @ beta + Z)
-    if ZI:
+    if B_zero is not None:
         ZI_cov = covariates @ B_zero
         ksi = torch.distributions.bernoulli.Bernoulli(
             1 / (1 + torch.exp(-ZI_cov)))
@@ -279,18 +277,17 @@ def C_from_Sigma(Sigma, q):
     return C_reduct
 
 
-def log_stirling(n_):
+def log_stirling(n):
     """Compute log(n!) even for n large. We use the Stirling formula to avoid
     numerical infinite values of n!.
     Args:
-         n_: torch.tensor of any size.
+         n: torch.tensor of any size.
     Returns:
         An approximation of log(n_!) element-wise.
     """
-    n = torch.clone(n_)  # Clone the tensor for precaution
-    n += (n == 0)  # Replace the 0 with 1. It changes nothing since 0! = 1!
-    return torch.log(torch.sqrt(2 * np.pi * n)) + n * \
-        torch.log(n / math.exp(1))  # Stirling formula
+    n_ = n + (n == 0)  # Replace the 0 with 1. It doesn't change anything since 0! = 1!
+    return torch.log(torch.sqrt(2 * np.pi * n_)) + n_ * \
+        torch.log(n_ / math.exp(1))  # Stirling formula
 
 
 def MSE(tens):
@@ -330,6 +327,7 @@ def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta):
         CW = torch.matmul(
             C.unsqueeze(0).unsqueeze(1),
             W.unsqueeze(3)).squeeze()
+    
     A_b = O_b + CW + covariates_b @ beta
     first_term = -q / 2 * math.log(2 * math.pi) - \
         1 / 2 * torch.norm(W, dim=-1)**2

@@ -47,11 +47,15 @@ else:
 
 print('Device ', device)
 
+
+torch.autograd.set_detect_anomaly(True)
+
+
 def log_likelihood(Y, O, covariates, C, beta, acc=0.002,
                    N_iter_mode=1000, lr_mode=0.1):
-    """Estimate the log likelihood of C and beta given Y,O,covariates.
-    The process is a little bit complicated since it needs to find
-    the mode of the posterior in order to sample the right Gaussians.
+    """Estimate the log likelihood of C and beta given Y,O,covariates. First 
+    find the mode of the posterior in order to sample the right Gaussians and 
+    use importance sampling estimate. 
 
     Args:
         Y: pd.DataFrame of size (n, p). The counts
@@ -117,8 +121,10 @@ def log_gaussian_density(W, mu_p, Sigma_p):
 
     Args :
         W: torch.tensor of size (N_samples, batch_size, q)
-        mu_p : torch.tensor : the mean from which the gaussian has been sampled.
-        Sigma_p : torch.tensor. The variance from which the gaussian has been sampled.
+        mu_p : torch.tensor of size (batch_size,q): the mean from which 
+            the gaussian has been sampled.
+        Sigma_p : torch.tensor of size (batch_size,q,q): The variance 
+            from which the gaussian has been sampled.
     Returns :
         torch.tensor. The log of the density of W, taken along the last axis.
     '''
@@ -136,7 +142,6 @@ def log_gaussian_density(W, mu_p, Sigma_p):
 
 
 class PLNmodel():
-    
     def __init__(self,q= None,nb_average_param= 100, nb_average_likelihood= 8): 
         self.q = q 
         self.nb_average_param = nb_average_param
@@ -259,13 +264,13 @@ class IMPS_PLN():
             # pandas.DataFrame
             try: 
                 self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.from_numpy(O.values).to(device)
+                self.O = torch.log(torch.from_numpy(O.values)).to(device)
                 self.covariates = torch.from_numpy(covariates.values).to(device)
             # torch.tensor (if not torch.tensor, will launch an error after) 
             except: 
                 try:   
                     self.Y = Y.to(device)
-                    self.O = O.to(device)
+                    self.O = torch.log(O).to(device)
                     self.covariates = covariates.to(device)
                 except: 
                     raise ValueError('Every Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
@@ -313,7 +318,8 @@ class IMPS_PLN():
             else:
                 print(' Random initialization is performed instead')
                 self.beta = torch.randn((self.d, self.p), device=device)
-                self.C = 0*torch.randn((self.p, self.q), device=device)
+                self.C = torch.randn((self.p, self.q), device=device)
+            print('C grad', self.C.grad)
             print('Initalization done')
 
         # Mean of the last nb_average_param parameters, that are
@@ -333,7 +339,7 @@ class IMPS_PLN():
         '''
         indices = np.arange(self.n)
         # Shuffle the indices to avoid a regular path.
-        np.random.shuffle(indices)
+        #np.random.shuffle(indices)
         # Set the batch size of the model to the right size
         self.batch_size = batch_size
         # get the number of batches and the size of the last one.
@@ -405,7 +411,7 @@ class IMPS_PLN():
             self.beta_mean = torch.sum(
                 self.last_betas, axis=0) / self.iteration_cmpt
 
-    def fit(self, Y, O, covariates,  N_iter_max=500, lr=0.1,optimizer=torch.optim.Adagrad,
+    def fit(self, Y, O, covariates, N_iter_max=500, lr=0.1,optimizer=torch.optim.Adagrad,
              VR='SAGA', batch_size=40,acc=0.005, 
              nb_plateau=15, nb_trigger=5,good_init=True, verbose=False, ):
         '''Batch gradient ascent on the log likelihood given the data. Infer
@@ -513,6 +519,7 @@ class IMPS_PLN():
             self.running_times.append(time.time() - self.t0)
             # The log likelihood of the whole dataset.
             self.log_like = log_like / self.n * batch_size
+            print('log like random', self.log_like) 
             # Average the  log likelihood for a criterion less random.
             self.average_likelihood()
             crit = self.compute_criterion(verbose)  # compute the criterion
@@ -661,6 +668,7 @@ class IMPS_PLN():
         Returns: torch.tensor of size (N_samples,N_batch). The computed weights.
         '''
         # Log likelihood of the posterior
+        self.samples = self.samples#*0+1
         self.log_f = self.batch_un_log_posterior(self.samples)
         # Log likelihood of the gaussian density
         self.log_g = log_gaussian_density(
@@ -906,6 +914,7 @@ class IMPS_PLN():
                     self.mode_step_sizes[self.selected_indices, :]
             loss = -torch.mean(self.batch_un_log_posterior(W))
             # Propagate the gradients
+            
             loss.backward()
             # Update the parameter
             optim.step()
@@ -970,13 +979,16 @@ def ELBO(Y, O, covariates, M, S, Sigma, beta):
     SrondS = torch.multiply(S, S)
     OplusM = O + M
     MmoinsXB = M - torch.mm(covariates, beta)
-    tmp = torch.sum(torch.multiply(Y, OplusM)
+    
+    tmp = - n / 2 * torch.logdet(Sigma)
+    print('first', tmp) 
+    tmp += torch.sum(torch.multiply(Y, OplusM)
                     - torch.exp(OplusM + SrondS / 2)
                     + 1 / 2 * torch.log(SrondS)
                     )
+    print('sec', tmp) 
     DplusMmoinsXB2 = torch.diag(
         torch.sum(SrondS, dim=0)) + torch.mm(MmoinsXB.T, MmoinsXB)
-    
     
     tmp -= 1 / 2 * torch.trace(
         torch.mm(
@@ -984,9 +996,11 @@ def ELBO(Y, O, covariates, M, S, Sigma, beta):
             DplusMmoinsXB2
         )
     )
-    tmp -= n / 2 * torch.logdet(Sigma)
+    print('third', tmp) 
     tmp -= torch.sum(log_stirling(Y))
+    print('fourth', tmp) 
     tmp += n * p / 2 
+    print('last', tmp) 
     return tmp
 
 
@@ -1021,7 +1035,7 @@ class fastPLN():
             # pandas.DataFrame
             try: 
                 self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.from_numpy(O.values).to(device)
+                self.O = torch.log(torch.from_numpy(O.values)).to(device)
                 self.covariates = torch.from_numpy(covariates.values).to(device)
             # torch.tensor (if not torch.tensor, will launch an error after) 
             except: 
@@ -1036,13 +1050,13 @@ class fastPLN():
         if self.fitted == False:
             try: 
                 self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.from_numpy(O.values).to(device)
+                self.O = torch.log(torch.from_numpy(O.values)).to(device)
                 self.covariates = torch.from_numpy(covariates.values).to(device)
             # torch.tensor (if not torch.tensor, will launch an error after) 
             except: 
                 try:   
                     self.Y = Y.to(device)
-                    self.O = O.to(device)
+                    self.O = torch.log(O).to(device)
                     self.covariates = covariates.to(device)
                 except: 
                     raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
@@ -1409,13 +1423,13 @@ class fastPLNPCA():
             # pandas.DataFrame
             try: 
                 self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.from_numpy(O.values).to(device)
+                self.O = torch.log(torch.from_numpy(O.values)).to(device)
                 self.covariates = torch.from_numpy(covariates.values).to(device)
             # torch.tensor (if not torch.tensor, will launch an error after) 
             except: 
                 try:   
                     self.Y = Y.to(device)
-                    self.O = O.to(device)
+                    self.O = torch.log(O).to(device)
                     self.covariates = covariates.to(device)
                 except: 
                     raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
