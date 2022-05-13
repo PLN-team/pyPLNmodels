@@ -412,7 +412,7 @@ class IMPS_PLN():
 
     def fit(self, Y, O, covariates, N_iter_max=500, lr=0.1,optimizer=torch.optim.Adagrad,
              VR='SAGA', batch_size=40,acc=0.005, 
-             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False,debiasing = True, Sigma = None, beta = None):
+             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False,debiasing = False, Sigma = None, beta = None):
         '''Batch gradient ascent on the log likelihood given the data. Infer
         p_theta with importance sampling and then computes the gradients by hand.
         At each iteration, look for the right importance sampling law running
@@ -466,6 +466,8 @@ class IMPS_PLN():
         # Will sample 1/acc gaussians to estimate the likelihood.
         self.N_samples = int(1 / acc)
         self.init_data(Y, O, covariates, good_init)  # Initialize the data.
+        self.C = C_from_Sigma(Sigma,self.q)
+        self.beta = beta
         # Optimizer on C and beta
         self.optimizer = optimizer([self.beta, self.C], lr=lr)
         self.mode_step_sizes += lr_mode
@@ -515,14 +517,17 @@ class IMPS_PLN():
                         N_iter_max_mode, lr_mode).item()
                 batch_grad_C = self.get_grad_C()
                 batch_grad_beta = self.get_grad_beta()
+                self.get_stat_weights()
+                print('mean var', torch.mean(self.var_weights))
+                print('mean eff sample size', torch.mean(self.eff_sample_size))
                 if debiasing: 
                     bias_C = self.get_bias('C')
                     bias_beta = self.get_bias('beta')
                     batch_grad_C += bias_C
                     batch_grad_beta += bias_beta
                 self.t_grad_estim_list.append(time.time() - self.t_grad_estim)
-                ####print('MSE_Sigma', MSE(Sigma-self.get_Sigma()))
-                ####print('MSE_beta', MSE(beta - self.get_beta()))
+                print('MSE_Sigma', MSE(Sigma-self.get_Sigma()))
+                print('MSE_beta', MSE(beta - self.get_beta()))
                 # Given the gradients of the batch, update the variance
                 # reducted gradients if needed.
                 # Note that there is a need to give the gradient of each sample in the
@@ -890,6 +895,10 @@ class IMPS_PLN():
             plt.savefig(name_doss)
         if ax is None: 
             plt.show()
+            
+    def get_stat_weights(self):
+        self.var_weights = torch.var(self.normalized_weights, axis = 0)
+        self.eff_sample_size = torch.div(torch.sum(self.normalized_weights, axis = 0)**2,torch.sum(self.normalized_weights**2, axis = 0))  
     def show_loss(self, ax = None, save=False, name_doss='IMPS_PLN_log_likelihood'): 
         '''Show the log likelihood of the algorithm along the iterations.  
         
