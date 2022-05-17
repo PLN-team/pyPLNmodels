@@ -212,9 +212,10 @@ def sample_PLN(C, beta, O, covariates, B_zero=None):
     n = O.shape[0]
     q = C.shape[1]
 
-    Z = torch.mm(torch.randn(n, q, device=device), C.T)
-    parameter = torch.exp(O + covariates @ beta + Z)
+    Z = torch.mm(torch.randn(n, q, device=device), C.T) + covariates @ beta
+    parameter = torch.exp(O+Z)
     if B_zero is not None:
+        print('ZIPLN is sampled')
         ZI_cov = covariates @ B_zero
         ksi = torch.distributions.bernoulli.Bernoulli(
             1 / (1 + torch.exp(-ZI_cov)))

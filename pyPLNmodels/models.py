@@ -36,7 +36,7 @@ import torch
 import torch.linalg as TLA
 from tqdm import tqdm
 
-from .utils import C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C
+from .utils import C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C, MSE
 from .utils import init_M, init_Sigma, log_stirling
 from .VRA import SAGARAD, SAGRAD, SVRGRAD
  
@@ -299,7 +299,6 @@ class IMPS_PLN():
             self.last_betas = torch.zeros(
                 self.nb_average_param, self.d, self.p)
             self.last_Cs = torch.zeros(self.nb_average_param, self.p, self.q)
-
             print('Intialization ...')
             if good_init:
                 # Initialization for beta with a poisson regression.
@@ -413,7 +412,7 @@ class IMPS_PLN():
 
     def fit(self, Y, O, covariates, N_iter_max=500, lr=0.1,optimizer=torch.optim.Adagrad,
              VR='SAGA', batch_size=40,acc=0.005, 
-             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False, ):
+             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False,debiasing = False, Sigma = None, beta = None):
         '''Batch gradient ascent on the log likelihood given the data. Infer
         p_theta with importance sampling and then computes the gradients by hand.
         At each iteration, look for the right importance sampling law running
@@ -467,6 +466,8 @@ class IMPS_PLN():
         # Will sample 1/acc gaussians to estimate the likelihood.
         self.N_samples = int(1 / acc)
         self.init_data(Y, O, covariates, good_init)  # Initialize the data.
+        self.C = C_from_Sigma(Sigma,self.q)
+        self.beta = beta
         # Optimizer on C and beta
         self.optimizer = optimizer([self.beta, self.C], lr=lr)
         self.mode_step_sizes += lr_mode
@@ -492,27 +493,51 @@ class IMPS_PLN():
                 # Store the batches for a nicer implementation.
                 self.Y_b, self.covariates_b, self.O_b = Y_b.to(
                     device), covariates_b.to(device), O_b.to(device)
-                self.selected_indices = selected_indices
+                self.selected_indices = selected_indices 
                 # compute the log likelihood of the batch and add it to log_likelihood
                 # of the whole dataset.
                 # Note that there is a need to call this function in order to be
                 # able to call self.get_batch_grad_(C/beta)()
-                log_like += self.infer_batch_p_theta(
-                    N_iter_max_mode, lr_mode).item()
-                # add a minus since pytorch minimizes a function.
-                batch_grad_C = -self.get_batch_grad_C()
-                batch_grad_beta = -self.get_batch_grad_beta()
+                '''
+                for i in range(8): 
+                    self.N_samples = int(10**(i/2) +1) 
+                    print('N_samples', self.N_samples)
+                    log_like += (i == 0)*self.infer_batch_p_theta(
+                        N_iter_max_mode, lr_mode).item()
+                    batch_grad_C = self.get_batch_grad_C()
+                    batch_grad_beta = self.get_batch_grad_beta()
+                    print('mean var grad_beta', self.get_variance_grad('beta')[1])
+                    #print('mean var grad_C', self.get_variance_grad('C')[1])
+                    bias_C = self.get_bias('C')
+                    bias_beta = self.get_bias('beta')
+                    #print('mean bias C ', torch.abs(bias_C)[1])
+                    #print('mean bias beta', torch.abs(bias_beta)[1])
+                '''
+                log_like +=self.infer_batch_p_theta(
+                        N_iter_max_mode, lr_mode).item()
+                batch_grad_C = self.get_grad_C()
+                batch_grad_beta = self.get_grad_beta()
+                self.get_stat_weights()
+                print('mean var', torch.mean(self.var_weights))
+                print('mean eff sample size', torch.mean(self.eff_sample_size))
+                if debiasing: 
+                    bias_C = self.get_bias('C')
+                    bias_beta = self.get_bias('beta')
+                    batch_grad_C += bias_C
+                    batch_grad_beta += bias_beta
                 self.t_grad_estim_list.append(time.time() - self.t_grad_estim)
+                print('MSE_Sigma', MSE(Sigma-self.get_Sigma()))
+                print('MSE_beta', MSE(beta - self.get_beta()))
                 # Given the gradients of the batch, update the variance
                 # reducted gradients if needed.
                 # Note that there is a need to give the gradient of each sample in the
                 # batch, not the average gradient of the batch.
                 if vr is not None:
                     vr.update_new_grad(
-                        [batch_grad_beta, batch_grad_C], selected_indices)
+                        [-batch_grad_beta, -batch_grad_C], selected_indices)
                 else:
-                    self.beta.grad = torch.mean(batch_grad_beta, axis=0)
-                    self.C.grad = torch.mean(batch_grad_C, axis=0)
+                    self.beta.grad = -torch.mean(batch_grad_beta, axis=0)
+                    self.C.grad = -torch.mean(batch_grad_C, axis=0)
                 # optimize beta and C given the gradients.
                 self.optimizer.step()
                 self.average_params()  # keep track of some stat
@@ -546,7 +571,6 @@ class IMPS_PLN():
             # C won't move very much, the mode for the new beta and C won't move very much
             # either. We can lower the learning rate so that the optimizer will only adjust
             # a little bit its starting position.
-
             if j == 0:
                 lr_mode /= 10
             if j == 1 or j == 2:
@@ -652,9 +676,9 @@ class IMPS_PLN():
         self.samples = sample_gaussians(
             self.N_samples, self.batch_mode, self.sqrt_Sigma_b)
         # get the weights
-        self.weights = self.get_batch_weights()
+        self.get_weights()
 
-    def get_batch_weights(self):
+    def get_weights(self):
         '''Compute the weights of the IMPS formula. Given the gaussian samples
         stored in the object,the weights are computed as the ratio of the
         likelihood of the posterior and the likelihood of the gaussian samples.
@@ -678,8 +702,8 @@ class IMPS_PLN():
         self.const = torch.max(diff_log, axis=0)[0]
         # remove the maximum to avoid numerical zero.
         diff_log -= torch.max(diff_log, axis=0)[0]
-        weights = torch.exp(diff_log)
-        return weights
+        self.weights = torch.exp(diff_log)
+        self.normalized_weights = torch.div(self.weights, torch.sum(self.weights, axis = 0))
 
     def get_batch_best_var(self):
         '''Compute the best variance for the importance law. Given the mode,
@@ -711,15 +735,15 @@ class IMPS_PLN():
         eps = torch.diag(torch.full((self.q, 1), 1e-8).squeeze()).to(device)
         self.sqrt_Sigma_b = TLA.cholesky(self.Sigma_b + eps)
 
-    def get_batch_grad_beta(self):
-        ''' Computes the gradient with respect to beta of the log likelihood
-        for the batch. The derivation of the formula is in the README.
-
-        Args: None
-
-        Returns: torch.tensor of size (batch_size,d,p). The gradient wrt beta.
+    def get_batch_grad_log_post_beta(self): 
         '''
-        first = torch.matmul(
+        Computes the gradient of the log posterior with respect to beta. See the README for the formula. 
+        
+        Args: None
+        
+        Returns: torch.tensor of size (N_samples, batch_size,p,q) 
+        '''
+        XY= torch.matmul(
             self.covariates_b.unsqueeze(2),
             self.Y_b.unsqueeze(1).double())
         XB = torch.matmul(self.covariates_b.unsqueeze(1),
@@ -728,21 +752,117 @@ class IMPS_PLN():
                           self.samples.unsqueeze(2).unsqueeze(4)).squeeze()
         Xexp = torch.matmul(self.covariates_b.unsqueeze(0).unsqueeze(3),
                             torch.exp(self.O_b + XB + CV).unsqueeze(2))
-        WXexp = torch.sum(
-            torch.multiply(
-                self.weights.unsqueeze(2).unsqueeze(3),
-                Xexp), axis=0)
-        sec = WXexp / (torch.sum(self.weights,
-                                 axis=0).unsqueeze(1).unsqueeze(2))
-        return first - sec
+        return XY.unsqueeze(0) - Xexp
+    
+    def get_bias_beta(self,i):
+        '''
+        non vectorized version of get_bias for the parameter beta. 
+        It calculates the bias for one sample only. Just here as a double check for 
+        the more general function get_bias. 
+        '''
+        
+        p_theta_i = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const)[i])  
+        I_chap = self.get_batch_grad_beta()[i]
+        Dbar = self.weights[:,i]*torch.exp(self.const[i])
+        grad_log_post_i = self.get_batch_grad_log_post_beta()[:,i]
+        Nbar = torch.multiply(Dbar.unsqueeze(1).unsqueeze(2), grad_log_post_i)  
+        Nbar_centered = Nbar - torch.mean(Nbar, axis = 0)
+        Dbar_centered = Dbar - torch.mean(Dbar)
+        cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(1).unsqueeze(2), Nbar_centered), axis = 0)
+        return 1/(p_theta_i**2)*(I_chap*torch.var(Dbar) - cov)
+    
+    def get_variance_grad(self, parameter): 
+        '''Compute the variance of the gradient for either C or beta for every sample
+        in the dataset.
+        
+        Args: 
+            parameter: string. Eiter 'C' or 'beta'. If none of those, will raise an error. 
+                We will compute the bias of the gradient with respect of parameter
+        Returns: 
+            torch.tensor of size (batch_size, prod(gradient_size)), where prod is the product
+            of all the two dimensions. 
+        '''
+        p_theta = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const))  
+        Dbar = torch.multiply(self.weights,torch.exp(self.const).unsqueeze(0))
+        if parameter == 'C': 
+            I_chap = self.get_batch_grad_C()
+            grad_log_post = self.get_batch_grad_log_post_C()
+        elif parameter == 'beta':
+            I_chap = self.get_batch_grad_beta()
+            grad_log_post = self.get_batch_grad_log_post_beta()
+        else:
+            raise ValueError('You can calculate the variance with respect to C or beta only')
+        Nbar = torch.multiply(Dbar.unsqueeze(2).unsqueeze(3), grad_log_post)
+        vecNbar = Nbar.flatten(start_dim = -2)
+        vecNbar_centered = vecNbar - torch.mean(vecNbar, axis = 0)
+        varNbar = torch.mean(torch.matmul(vecNbar_centered.unsqueeze(3), vecNbar_centered.unsqueeze(2)),axis = 0)
+        vecI_chap = I_chap.flatten(start_dim = -2) 
+        Dbar_centered = Dbar - torch.mean(Dbar, axis = 0)
+        covDbarNbar = torch.mean(torch.multiply(Dbar_centered.unsqueeze(2), vecNbar_centered), axis = 0) 
+        I_chapcov = torch.matmul(vecI_chap.unsqueeze(2), covDbarNbar.unsqueeze(1))
+        covI_chap = torch.matmul(covDbarNbar.unsqueeze(2), vecI_chap.unsqueeze(1))
+        varDIIt = torch.multiply(torch.matmul(vecI_chap.unsqueeze(2), vecI_chap.unsqueeze(1)), torch.var(Dbar, axis = 0).unsqueeze(1).unsqueeze(2))
+        return torch.div(varNbar -I_chapcov  - covI_chap + varDIIt,(p_theta**2).unsqueeze(1).unsqueeze(2))
+        
+    def get_bias(self, parameter):
+        '''Compute the estimated bias of the estimator of the gradient 
+        for either beta or C (for every sample in the dataset). 
+        
+        Args: 
+            parameter: string. Eiter 'C' or 'beta'. If none of those, will raise an error. 
+                We will compute the bias of the gradient with respect of parameter
+        Returns: 
+            torch.tensor of size (batch_size, gradient_size)
+        '''
+        p_theta = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const))  
+        Dbar = torch.multiply(self.weights,torch.exp(self.const).unsqueeze(0))
+        if parameter == 'C': 
+            grad_log_post = self.get_batch_grad_log_post_C()
+            I_chap = self.get_batch_grad_C()
+        elif parameter == 'beta': 
+            grad_log_post = self.get_batch_grad_log_post_beta()
+            I_chap = self.get_batch_grad_beta()
+        else: 
+            ValueError('You can calculate the bias with respect to C or beta only')
+        Nbar = torch.multiply(Dbar.unsqueeze(2).unsqueeze(3), grad_log_post)
+        Nbar_centered = Nbar - torch.mean(Nbar, axis = 0)
+        Dbar_centered = Dbar - torch.mean(Dbar, axis = 0)
+        cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(2).unsqueeze(3), Nbar_centered), axis = 0)
+        return torch.div(I_chap*(torch.var(Dbar, axis = 0).unsqueeze(1).unsqueeze(2)) - cov, (p_theta**2).unsqueeze(1).unsqueeze(2))
+        
+    def get_grad_beta(self): 
+        ''' Computes the gradient with respect to beta of the log likelihood
+        for the batch. The derivation of the formula is in the README.
+        We only multiply the gradient of the log posterior with the normalized weights
+        and sum the first axis. 
+        
+        Args: None
 
-    def get_batch_grad_C(self):
+        Returns: torch.tensor of size (batch_size,d,p). The gradient wrt beta.
+        '''
+        grad_log_post = self.get_batch_grad_log_post_beta()
+        return torch.sum(torch.multiply(grad_log_post, self.normalized_weights.unsqueeze(2).unsqueeze(3)), axis = 0)
+    
+    def get_grad_C(self):
         '''Computes the gradient with respect to C of the log likelihood for
         the batch. The derivation of the formula is in the README.
-
+        We only multiply the gradient of the log posterior with the normalized weights
+        and sum the first axis. 
+        
         Args: None
 
         Returns: torch.tensor of size (batch_size,d,p). The gradient wrt C.
+        '''
+        grad_log_post = self.get_batch_grad_log_post_C()
+        return torch.sum(torch.multiply(grad_log_post, self.normalized_weights.unsqueeze(2).unsqueeze(3)), axis = 0)
+    
+    def get_batch_grad_log_post_C(self): 
+        '''
+        Computes the gradient of the log posterior with respect to C. See the README for the formula. 
+        
+        Args: None
+        
+        Returns: torch.tensor of size (N_samples, batch_size,p,q) 
         '''
         XB = torch.matmul(
             self.covariates_b.unsqueeze(1),
@@ -753,12 +873,8 @@ class IMPS_PLN():
         ).squeeze()
         Ymoinsexp = self.Y_b - torch.exp(self.O_b + XB + CV)
         outer = torch.matmul(Ymoinsexp.unsqueeze(3), self.samples.unsqueeze(2))
-        denum = torch.sum(self.weights, axis=0)
-        num = torch.multiply(self.weights.unsqueeze(2).unsqueeze(3), outer)
-        batch_grad = torch.sum(
-            num / (denum.unsqueeze(0).unsqueeze(2).unsqueeze(3)), axis=0)
-        return batch_grad
-
+        return outer 
+    
     def show_Sigma(self, ax = None, save=False, name_doss='IMPS_PLN_Sigma'):
         '''Displays Sigma
         args: 
@@ -779,6 +895,10 @@ class IMPS_PLN():
             plt.savefig(name_doss)
         if ax is None: 
             plt.show()
+            
+    def get_stat_weights(self):
+        self.var_weights = torch.var(self.normalized_weights, axis = 0)
+        self.eff_sample_size = torch.div(torch.sum(self.normalized_weights, axis = 0)**2,torch.sum(self.normalized_weights**2, axis = 0))  
     def show_loss(self, ax = None, save=False, name_doss='IMPS_PLN_log_likelihood'): 
         '''Show the log likelihood of the algorithm along the iterations.  
         
