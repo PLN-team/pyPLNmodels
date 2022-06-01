@@ -1101,26 +1101,20 @@ def ELBO(Y, O, covariates, M, S, Sigma, beta):
     MmoinsXB = M - torch.mm(covariates, beta)
     
     tmp = - n / 2 * torch.logdet(Sigma)
-    print('first', tmp) 
     tmp += torch.sum(torch.multiply(Y, OplusM)
                     - torch.exp(OplusM + SrondS / 2)
                     + 1 / 2 * torch.log(SrondS)
                     )
-    print('sec', tmp) 
     DplusMmoinsXB2 = torch.diag(
         torch.sum(SrondS, dim=0)) + torch.mm(MmoinsXB.T, MmoinsXB)
-    
     tmp -= 1 / 2 * torch.trace(
         torch.mm(
             torch.inverse(Sigma),
             DplusMmoinsXB2
         )
     )
-    print('third', tmp) 
     tmp -= torch.sum(log_stirling(Y))
-    print('fourth', tmp) 
     tmp += n * p / 2 
-    print('last', tmp) 
     return tmp
 
 
@@ -1557,9 +1551,6 @@ class fastPLNPCA():
             self.d = self.covariates.shape[1]
             print('Initialization ...')
             # If a good initialization is wanted.
-            if self.p > 1500: 
-                print('p is too large (>1500) to do a good initialization, random intialization is performed instead')
-                good_init = False
             if good_init:
                 poiss_reg = Poisson_reg()
                 poiss_reg.fit(self.Y, self.O, self.covariates)
@@ -1582,6 +1573,7 @@ class fastPLNPCA():
                     0.1)
             # Else, random initalization. Faster but worst.
             else:
+                print('Random initialization is performed')
                 self.C = torch.randn((self.p, self.q)).to(device)
                 self.beta = torch.randn((self.d, self.p)).to(device)
                 self.M = torch.randn((self.n, self.q)).to(device)
