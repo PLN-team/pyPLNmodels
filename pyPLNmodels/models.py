@@ -412,7 +412,7 @@ class IMPS_PLN():
 
     def fit(self, Y, O, covariates, N_iter_max=500, lr=0.1,optimizer=torch.optim.Adagrad,
              VR='SAGA', batch_size=40,acc=0.005, 
-             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False,debiasing = False, Sigma = None, beta = None):
+             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False,debiasing = False):
         '''Batch gradient ascent on the log likelihood given the data. Infer
         p_theta with importance sampling and then computes the gradients by hand.
         At each iteration, look for the right importance sampling law running
@@ -466,8 +466,6 @@ class IMPS_PLN():
         # Will sample 1/acc gaussians to estimate the likelihood.
         self.N_samples = int(1 / acc)
         self.init_data(Y, O, covariates, good_init)  # Initialize the data.
-        self.C = C_from_Sigma(Sigma,self.q)
-        self.beta = beta
         # Optimizer on C and beta
         self.optimizer = optimizer([self.beta, self.C], lr=lr)
         self.mode_step_sizes += lr_mode
@@ -518,16 +516,18 @@ class IMPS_PLN():
                 batch_grad_C = self.get_grad_C()
                 batch_grad_beta = self.get_grad_beta()
                 self.get_stat_weights()
-                print('mean var', torch.mean(self.var_weights))
-                print('mean eff sample size', torch.mean(self.eff_sample_size))
+                #print('mean var', torch.mean(self.var_weights))
+                #print('mean eff sample size', torch.mean(self.eff_sample_size))
                 if debiasing: 
-                    bias_C = self.get_bias('C')
-                    bias_beta = self.get_bias('beta')
-                    batch_grad_C += bias_C
-                    batch_grad_beta += bias_beta
+                    batch_grad_C = self.getUnbiasedGrad('C')
+                    batch_grad_beta = self.getUnbiasedGrad('beta')
+                    #debias_beta = self.get_bias('beta')
+                    #print('grad_not debiased ', torch.mean(batch_grad_C, axis = 0)[0])
+                    #print('debias .shape', debias_C.shape)
+                    #print(' debias', torch.mean(debias_C, axis = 0)[0])
+                    #batch_grad_C += bias_C
+                    #batch_grad_beta += bias_beta
                 self.t_grad_estim_list.append(time.time() - self.t_grad_estim)
-                print('MSE_Sigma', MSE(Sigma-self.get_Sigma()))
-                print('MSE_beta', MSE(beta - self.get_beta()))
                 # Given the gradients of the batch, update the variance
                 # reducted gradients if needed.
                 # Note that there is a need to give the gradient of each sample in the
@@ -544,7 +544,6 @@ class IMPS_PLN():
             self.running_times.append(time.time() - self.t0)
             # The log likelihood of the whole dataset.
             self.log_like = log_like / self.n * batch_size
-            print('log like random', self.log_like) 
             # Average the  log likelihood for a criterion less random.
             self.average_likelihood()
             crit = self.compute_criterion(verbose)  # compute the criterion
@@ -785,10 +784,10 @@ class IMPS_PLN():
         p_theta = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const))  
         Dbar = torch.multiply(self.weights,torch.exp(self.const).unsqueeze(0))
         if parameter == 'C': 
-            I_chap = self.get_batch_grad_C()
+            I_chap = self.get_grad_C()
             grad_log_post = self.get_batch_grad_log_post_C()
         elif parameter == 'beta':
-            I_chap = self.get_batch_grad_beta()
+            I_chap = self.get_grad_beta()
             grad_log_post = self.get_batch_grad_log_post_beta()
         else:
             raise ValueError('You can calculate the variance with respect to C or beta only')
@@ -804,7 +803,7 @@ class IMPS_PLN():
         varDIIt = torch.multiply(torch.matmul(vecI_chap.unsqueeze(2), vecI_chap.unsqueeze(1)), torch.var(Dbar, axis = 0).unsqueeze(1).unsqueeze(2))
         return torch.div(varNbar -I_chapcov  - covI_chap + varDIIt,(p_theta**2).unsqueeze(1).unsqueeze(2))
         
-    def get_bias(self, parameter):
+    def getUnbiasedGrad(self, parameter):
         '''Compute the estimated bias of the estimator of the gradient 
         for either beta or C (for every sample in the dataset). 
         
@@ -818,16 +817,37 @@ class IMPS_PLN():
         Dbar = torch.multiply(self.weights,torch.exp(self.const).unsqueeze(0))
         if parameter == 'C': 
             grad_log_post = self.get_batch_grad_log_post_C()
-            I_chap = self.get_batch_grad_C()
-        elif parameter == 'beta': 
+            I_chap = self.get_grad_C()
+        elif parameter == 'beta':
             grad_log_post = self.get_batch_grad_log_post_beta()
-            I_chap = self.get_batch_grad_beta()
+            I_chap = self.get_grad_beta()
         else: 
             ValueError('You can calculate the bias with respect to C or beta only')
         Nbar = torch.multiply(Dbar.unsqueeze(2).unsqueeze(3), grad_log_post)
         Nbar_centered = Nbar - torch.mean(Nbar, axis = 0)
         Dbar_centered = Dbar - torch.mean(Dbar, axis = 0)
         cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(2).unsqueeze(3), Nbar_centered), axis = 0)
+        #print('cov shape', cov.shape)
+        #print('var shape', torch.var(Dbar, axis = 0).shape) 
+        #print('ptheta shape', p_theta.shape)
+        #print('I_chap.shape', (I_chap).shape)
+        #print('cov shape', cov.shape) 
+        #print('var ', torch.var(Dbar, axis = 0).shape)
+        #print('mean I_chap', torch.mean(I_chap))
+        #print('mean cov', torch.mean(cov))
+        #print('mean var', torch.mean(torch.var(Dbar, axis = 0)))
+        I_chapMuSquared = torch.multiply(I_chap, (p_theta**2).unsqueeze(1).unsqueeze(2))
+        var = torch.var(Dbar, axis = 0)
+        #print('IchapMu', I_chapMuSquared.shape)
+        #print('cov', cov.shape)
+        #print('var', var.shape)
+        #print('Phteta', p_theta.shape)
+        return torch.div(I_chapMuSquared + cov, (var + p_theta**2).unsqueeze(1).unsqueeze(2))
+        #return 
+        #print('sec :', torch.div(p_theta, 1 +torch.var(Dbar, axis = 0)).unsqueeze(1).unsqueeze(2).shape)
+        #print('without mult', torch.mean(I_chap + cov, axis = 0)[0])
+        #print('cov :', torch.mean(cov, axis = 0)[0])
+        return torch.multiply(I_chap + cov, torch.div(p_theta**2, 1 +torch.var(Dbar, axis = 0)).unsqueeze(1).unsqueeze(1)) 
         return torch.div(I_chap*(torch.var(Dbar, axis = 0).unsqueeze(1).unsqueeze(2)) - cov, (p_theta**2).unsqueeze(1).unsqueeze(2))
         
     def get_grad_beta(self): 
@@ -1313,6 +1333,9 @@ class fastPLN():
 
     def closed_beta(self):
         '''Closed form for beta for the M step.'''
+        print('cov cov', torch.mm(
+                    self.covariates.T,
+                    self.covariates))
         return torch.mm(
             torch.mm(
                 torch.inverse(torch.mm(
@@ -1620,6 +1643,8 @@ class fastPLNPCA():
         stop_condition = False
         i = 0
         delta = 1
+        self.elapsedEval = 3
+        self.trueLogLikeList = list()
         while i < N_iter_max and stop_condition == False:
             self.optimizer.zero_grad()
             loss = -self.compute_ELBO_PCA()
@@ -1645,13 +1670,44 @@ class fastPLNPCA():
             self.running_times.append(time.time() - self.t0)
             self.max_Sigma.append(torch.max(self.get_Sigma()).item())
             i += 1
+            
+            if i % self.elapsedEval == 0: 
+                loglike = self.getLogLike()
+                self.trueLogLikeList.append(loglike)
+                                            
         if stop_condition:
             print('Tolerance {} reached in {} iterations'.format(tol, i))
         else:
             print('Maximum number of iterations reached : ',
                   N_iter_max, 'last delta = ', delta)
         self.fitted = True
-
+        
+    def getLogLike(self):
+        return log_likelihood(self.Y,np.exp(self.O),self.covariates,self.C, self.beta).item()
+        
+    def plotComparison(self, begin, maxLog):
+        fig, axes   = plt.subplots(2,1)
+        
+        xLog =  np.take(self.running_times, np.arange(0,len(self.trueLogLikeList))*self.elapsedEval) 
+        yLog = np.log(-np.array(self.trueLogLikeList))
+        xELBO = self.running_times
+        yELBO = np.log(-np.array(self.normalized_ELBOs))
+        
+        axes[0].plot(xLog , yLog, label = 'log likelihood')
+        axes[0].plot(xELBO, yELBO,label='Negative ELBO')
+        axes[0].set_title('Negative ELBO')
+        axes[0].set_yscale('log')
+        axes[0].set_xlabel('Seconds')
+        axes[0].set_ylabel('ELBO')
+        axes[0].axhline(maxLog, c = 'red')
+        
+        axes[0].legend()
+        
+        axes[1].axhline(maxLog, c = 'red')
+        
+        axes[1].plot(xLog[begin:], yLog[begin:])
+        axes[1].plot(xELBO[begin*self.elapsedEval:], yELBO[begin*self.elapsedEval:])
+        
     def gradPCA_beta(self):
         '''Compute the gradient of the ELBO with respect to beta. Sanity check'''
         matC = self.C
