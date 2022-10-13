@@ -17,7 +17,7 @@ __email__ = "bastien.batardiere@gmail.com"
 __status__ = "Production"
 
 import math
-
+import matplotlib.pyplot as plt 
 import numpy as np
 import scipy.linalg as SLA
 import torch
@@ -25,13 +25,71 @@ import torch.linalg as TLA
 from scipy.linalg import toeplitz
 
 torch.set_default_dtype(torch.float64)
-
+### O is not doing anything in the initialization of Sigma. should be fixed. 
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
 # device = torch.device('cpu') # have to deal with this
+class PLNPlotArgs(): 
+    def __init__(self, window):
+        self.window = window 
+        self.runningTimes = list()
+        self.deltas = [1] * window
+        self.normalizedELBOsList = list()
+    @property 
+    def length(self):       
+        return len(self.normalizedELBOsList)
+      
+    def showLoss(self, ax=None, savefig=False, nameDoss=''):
+        '''Show the ELBO of the algorithm along the iterations.
+
+        args:
+            'ax': AxesSubplot object. The ELBO will be displayed in this ax
+                if not None. If None, will simply create an axis. Default is None.
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLNPCA_ELBO'.
+        returns: None but displays the ELBO.
+        '''
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.runningTimes, -np.array(self.normalizedELBOsList),
+                label='Negative ELBO') 
+        ax.set_title('Negative ELBO. Best ELBO = '+ str(np.round(self.normalizedELBOsList[-1], 6)))
+        ax.set_yscale('log')
+        ax.set_xlabel('Seconds')
+        ax.set_ylabel('ELBO')
+        ax.legend()
+        # save the graphic if needed
+        if savefig:
+            plt.savefig(nameDoss)
+
+
+    def showCriterion(self, ax=None, savefig=False, nameDoss=''):
+        '''Show the criterion of the algorithm along the iterations.
+
+        args:
+            'ax': AxesSubplot object. The criterion will be displayed in this ax
+                if not None. If None, will simply create an axis. Default is None.
+            'name_doss': str. The name of the file the graphic will be saved to.
+                Default is 'fastPLN_criterion'.
+        returns: None but displays the criterion.
+        '''
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.runningTimes[self.window:],
+                self.deltas[self.window:], label='Delta')
+        ax.set_yscale('log')
+        ax.set_xlabel('Seconds')
+        ax.set_ylabel('Delta')
+        ax.set_title('Increments')
+        ax.legend()
+        # save the graphic if needed
+        if savefig:
+            plt.savefig(nameDoss)
+
+
 
 
 class Poisson_reg():
@@ -67,25 +125,21 @@ class Poisson_reg():
                 by calling self.beta.
         """
         # Initialization of beta of size (d,p)
-        beta = torch.rand(
-            (covariates.shape[1],
-             Y.shape[1]),
-            device=device,
-            requires_grad=True)
+        beta = torch.rand( (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True)
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
-        grad_norm = 2 * tol  # Criterion
-        while i < Niter_max and grad_norm > tol:
+        gradNorm = 2 * tol  # Criterion
+        while i < Niter_max and gradNorm > tol:
             loss = -compute_l(Y, O, covariates, beta)
             loss.backward()
             optimizer.step()
-            grad_norm = torch.norm(beta.grad)
+            gradNorm = torch.norm(beta.grad)
             beta.grad.zero_()
             i += 1
             if verbose:
                 if i % 10 == 0:
                     print('log like : ', -loss)
-                    print('grad_norm : ', grad_norm)
+                    print('gradNorm : ', gradNorm)
         if verbose:
             if i < Niter_max:
                 print('Tolerance reached in {} iterations'.format(i))
@@ -94,7 +148,7 @@ class Poisson_reg():
         self.beta = beta
 
 
-def init_Sigma(Y, O, covariates, beta):
+def initSigma(Y, O, covariates, beta):
     """ Initialization for Sigma for the PLN model. Take the log of Y
     (careful when Y=0), remove the covariates effects X@beta and
     then do as a MLE for Gaussians samples.
@@ -118,7 +172,7 @@ def init_Sigma(Y, O, covariates, beta):
     return Sigma_hat
 
 
-def init_C(Y, O, covariates, beta, q):
+def initC(Y, O, covariates, beta, q):
     """Inititalization for C for the PLN model. Get a first
     guess for Sigma that is easier to estimate and then takes
     the q largest eigenvectors to get C.
@@ -132,9 +186,9 @@ def init_C(Y, O, covariates, beta, q):
         torch.tensor of size (p,q). The initialization of C.
     """
     # get a guess for Sigma
-    Sigma_hat = init_Sigma(Y, O, covariates, beta).detach()
+    Sigma_hat = initSigma(Y, O, covariates, beta).detach()
     # taking the q largest eigenvectors
-    C = C_from_Sigma(Sigma_hat, q)
+    C = CFromSigma(Sigma_hat, q)
     return C
 
 
@@ -211,13 +265,12 @@ def sample_PLN(C, beta, O, covariates, B_zero=None):
 
     n = O.shape[0]
     q = C.shape[1]
-
     Z = torch.mm(torch.randn(n, q, device=device), C.T) + covariates @ beta
     parameter = torch.exp(O+Z)
     if B_zero is not None:
         print('ZIPLN is sampled')
         ZI_cov = covariates @ B_zero
-        ksi = torch.distributions.bernoulli.Bernoulli(
+        ksi = torch.bernoulli(
             1 / (1 + torch.exp(-ZI_cov)))
     else:
         ksi = 0
@@ -262,7 +315,7 @@ def build_block_Sigma(p, block_size):
     return Sigma
 
 
-def C_from_Sigma(Sigma, q):
+def CFromSigma(Sigma, q):
     """Get the best matrix of size (p,q) when Sigma is of
     size (p,p). i.e. reduces norm(Sigma-C@C.T)
     Args :
