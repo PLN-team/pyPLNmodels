@@ -39,7 +39,7 @@ from tqdm import tqdm
 from .utils import C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C, MSE
 from .utils import init_M, init_Sigma, log_stirling
 from .VRA import SAGARAD, SAGRAD, SVRGRAD
- 
+
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
@@ -53,9 +53,9 @@ torch.autograd.set_detect_anomaly(True)
 
 def log_likelihood(Y, O, covariates, C, beta, acc=0.002,
                    N_iter_mode=1000, lr_mode=0.1):
-    """Estimate the log likelihood of C and beta given Y,O,covariates. First 
-    find the mode of the posterior in order to sample the right Gaussians and 
-    use importance sampling estimate. 
+    """Estimate the log likelihood of C and beta given Y,O,covariates. First
+    find the mode of the posterior in order to sample the right Gaussians and
+    use importance sampling estimate.
 
     Args:
         Y: pd.DataFrame of size (n, p). The counts
@@ -86,6 +86,8 @@ def log_likelihood(Y, O, covariates, C, beta, acc=0.002,
     log_like = model.compute_best_loglike(acc, N_iter_mode, lr_mode)
     del(model)
     return log_like
+
+
 
 
 def sample_gaussians(N_samples, mean, sqrt_Sigma):
@@ -121,9 +123,9 @@ def log_gaussian_density(W, mu_p, Sigma_p):
 
     Args :
         W: torch.tensor of size (N_samples, batch_size, q)
-        mu_p : torch.tensor of size (batch_size,q): the mean from which 
+        mu_p : torch.tensor of size (batch_size,q): the mean from which
             the gaussian has been sampled.
-        Sigma_p : torch.tensor of size (batch_size,q,q): The variance 
+        Sigma_p : torch.tensor of size (batch_size,q,q): The variance
             from which the gaussian has been sampled.
     Returns :
         torch.tensor. The log of the density of W, taken along the last axis.
@@ -142,53 +144,51 @@ def log_gaussian_density(W, mu_p, Sigma_p):
 
 
 class PLNmodel():
-    def __init__(self,q= None,nb_average_param= 100, nb_average_likelihood= 8): 
-        self.q = q 
+    def __init__(self, q=None, nb_average_param=100, nb_average_likelihood=15):
+        self.q = q
         self.nb_average_param = nb_average_param
         self.nb_average_likelihood = nb_average_likelihood
-        
+
     def fit(self, Y, O, covariates, N_iter_max=500,  lr=0.1,
-            optimizer=torch.optim.Rprop, tol = 1e-1,  good_init=True,
-            imps_optimizer = torch.optim.Adagrad, fast = True,
-             VR='SAGA', batch_size=40, acc=0.005,nb_plateau=15,
-             nb_trigger=5, verbose=False): 
+            optimizer=torch.optim.Rprop, tol=1e-1,  good_init=True,
+            imps_optimizer=torch.optim.Adagrad, fast=True,
+            VR='SAGA', batch_size=40, acc=0.005, nb_plateau=15,
+            nb_trigger=5, verbose=False):
         self.p = Y.shape[1]
         if self. q == None:
-            print('You did not put any PCs in argument, so that the number') 
-            print('of PCs is arbitrarily set to the maximum value.') 
-            self.q = self.p 
-        if self.q > self.p: 
-            raise AttributeError('The number of PCs q cant be greater than p') 
-        if self.q == self.p and fast == True: 
-            print('Fitting a PLN model. Number of PCs: ', self.p) 
+            print('You did not put any PCs in argument, so that the number')
+            print('of PCs is arbitrarily set to the maximum value.')
+            self.q = self.p
+        if self.q > self.p:
+            raise AttributeError('The number of PCs q cant be greater than p')
+        if self.q == self.p and fast == True:
+            print('Fitting a PLN model. Number of PCs: ', self.p)
             self.model = fastPLN()
-            self.model.fit(Y, O, covariates, N_iter_max=N_iter_max, tol= tol,
-            optimizer=optimizer, lr=lr, good_init=good_init, verbose=verbose)
+            self.model.fit(Y, O, covariates, N_iter_max=N_iter_max, tol=tol,
+                           optimizer=optimizer, lr=lr, good_init=good_init, verbose=verbose)
         elif self.q < self.p and fast == True:
             print('Fitting a PLNPCA model. Number of PCs: ', self.q)
-            self.model = fastPLNPCA(self.q) 
-            self.model.fit(Y, O, covariates, N_iter_max=N_iter_max*10, tol=tol*1e-2, 
-                           optimizer=optimizer, lr=lr, good_init=good_init, verbose=verbose) 
-        else: # In this case: fast = False and we do importance sampling based inference.
-            print('Fitting a PLNPCA model with importance sampling. Number of PCs: ', self.p)
-            self.model = IMPS_PLN(self.q, self.nb_average_param, self.nb_average_likelihood)
+            self.model = fastPLNPCA(self.q)
+            self.model.fit(Y, O, covariates, N_iter_max=N_iter_max*10, tol=tol*1e-2,
+                           optimizer=optimizer, lr=lr, good_init=good_init, verbose=verbose)
+        else:  # In this case: fast = False and we do importance sampling based inference.
+            print(
+                'Fitting a PLNPCA model with importance sampling. Number of PCs: ', self.p)
+            self.model = IMPS_PLN(
+                self.q, self.nb_average_param, self.nb_average_likelihood)
             self.model.fit(Y, O, covariates, acc=acc, N_iter_max=N_iter_max*2, lr=lr,
-             VR=VR, batch_size=batch_size, optimizer=imps_optimizer,
-             nb_plateau=nb_plateau, nb_trigger=nb_trigger, 
-             good_init=good_init, verbose=verbose)
-        
-            
-            
-            
+                           VR=VR, batch_size=batch_size, optimizer=imps_optimizer,
+                           nb_plateau=nb_plateau, nb_trigger=nb_trigger,
+                           good_init=good_init, verbose=verbose)
+
     def plot_runtime(self):
         self.model.plot_runtime()
-        
+
     def __str__(self):
         '''Print the model that have been fitted'''
         print(self.model)
         return ''
-    
-    
+
     def get_beta(self):
         '''Getter for beta. Returns the estimated beta'''
         return self.model.get_beta()
@@ -200,11 +200,6 @@ class PLNmodel():
     def get_C(self):
         '''Getter for C.'''
         return self.model.get_C()
-        
-            
-            
-        
-    
 
 
 class IMPS_PLN():
@@ -214,8 +209,9 @@ class IMPS_PLN():
     However, q should not be greater than 40. The greater q, the
     lower the accuracy parameter should be taken.
     '''
+    NAME = 'IMPS_PLN'
 
-    def __init__(self, q, nb_average_param=100, nb_average_likelihood=8):
+    def __init__(self, q, nb_average_param=100, nb_average_likelihood=15):
         '''Init method. Set some global parameters of the class, such as
         the dimension of the latent space and the number of elements took
         to set an average parameter that should be more accurate.
@@ -258,22 +254,25 @@ class IMPS_PLN():
         self.counter_list = [0] * self.nb_trigger  # counter for the criterion
         self.crit_list = [0]  # store the criterion to plot it after.
         self.t_mode_list = list()  # store the time took to find the mode at each iteration
-        self.t_grad_estim_list = list() # store the time took to estimate the gradiens.
+        # store the time took to estimate the gradiens.
+        self.t_grad_estim_list = list()
         if self.fitted == False:
             # Import the data. We take either pandas.DataFrames or torch.tensor
             # pandas.DataFrame
-            try: 
+            try:
                 self.Y = torch.from_numpy(Y.values).to(device)
                 self.O = torch.log(torch.from_numpy(O.values)).to(device)
-                self.covariates = torch.from_numpy(covariates.values).to(device)
-            # torch.tensor (if not torch.tensor, will launch an error after) 
-            except: 
-                try:   
+                self.covariates = torch.from_numpy(
+                    covariates.values).to(device)
+            # torch.tensor (if not torch.tensor, will launch an error after)
+            except:
+                try:
                     self.Y = Y.to(device)
                     self.O = torch.log(O).to(device)
                     self.covariates = covariates.to(device)
-                except: 
-                    raise ValueError('Every Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
+                except:
+                    raise ValueError(
+                        'Every Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
 
             self.n = Y.shape[0]
             self.p = Y.shape[1]
@@ -292,8 +291,7 @@ class IMPS_PLN():
             # gradient descent finding the mode for IMPS.
             self.starting_point = torch.zeros(
                 self.n, self.q, device=device, requires_grad=False)
-            
-            self.mode_step_sizes= torch.zeros((self.n, self.q), device = device)
+            self.mode_step_sizes = torch.zeros((self.n, self.q), device=device)
 
             # Initialization of the last beta and C.
             self.last_betas = torch.zeros(
@@ -315,10 +313,9 @@ class IMPS_PLN():
                     self.beta,
                     self.q).to(device)
             else:
-                print(' Random initialization is performed instead')
-                self.beta = torch.randn((self.d, self.p), device=device)
-                self.C = torch.randn((self.p, self.q), device=device)
-            print('C grad', self.C.grad)
+                print('null initialization is performed instead')
+                self.beta = torch.zeros((self.d, self.p), device=device)
+                self.C = torch.zeros((self.p, self.q), device=device)
             print('Initalization done')
 
         # Mean of the last nb_average_param parameters, that are
@@ -338,7 +335,7 @@ class IMPS_PLN():
         '''
         indices = np.arange(self.n)
         # Shuffle the indices to avoid a regular path.
-        #np.random.shuffle(indices)
+        # np.random.shuffle(indices)
         # Set the batch size of the model to the right size
         self.batch_size = batch_size
         # get the number of batches and the size of the last one.
@@ -375,7 +372,7 @@ class IMPS_PLN():
         self.average_log_like = np.mean(np.array(self.last_likelihoods))
         # Store the average likelihood
         self.log_likelihood_list.append(self.average_log_like)
-
+        print('log likelihood:', self.average_log_like)
     def average_params(self):
         '''Averages the parameters in order to smooth the variance.
         Will take, for example, the last self.nb_average_param betas computed to make
@@ -410,9 +407,9 @@ class IMPS_PLN():
             self.beta_mean = torch.sum(
                 self.last_betas, axis=0) / self.iteration_cmpt
 
-    def fit(self, Y, O, covariates, N_iter_max=500, lr=0.1,optimizer=torch.optim.Adagrad,
-             VR='SAGA', batch_size=40,acc=0.005, 
-             nb_plateau=15, nb_trigger=5,good_init=True, verbose=False,debiasing = False):
+    def fit(self, Y, O, covariates, N_iter_max=500, lr=0.1, optimizer=torch.optim.Adagrad,
+            VR='SAGA', batch_size=40, acc=0.005,
+                nb_plateau=15, nb_trigger=5, good_init=False, verbose=False, debiasing=False):
         '''Batch gradient ascent on the log likelihood given the data. Infer
         p_theta with importance sampling and then computes the gradients by hand.
         At each iteration, look for the right importance sampling law running
@@ -451,14 +448,14 @@ class IMPS_PLN():
                    has not increased in nb_trigger epoch. Default is 5.
                good_init: Bool, optional. If True, will do an initialization that is not random.
                    Takes some time. Default is True.
-               verbose: Bool, optional. If True, will plot the evolution of the algorithm 
-                   in real time. Default is False. 
+               verbose: Bool, optional. If True, will plot the evolution of the algorithm
+                   in real time. Default is False.
        Returns:
            None, but updates the parameter beta and C. Note that beta_mean
            and C_mean are more accurate and achieve a better likelihood in general.
         '''
-        N_iter_max_mode=100
-        lr_mode=0.3
+        N_iter_max_mode = 100
+        lr_mode = 0.3
         self.t0 = time.time()  # To keep track of the time
         self.nb_plateau = nb_plateau
         self.nb_trigger = nb_trigger
@@ -491,14 +488,14 @@ class IMPS_PLN():
                 # Store the batches for a nicer implementation.
                 self.Y_b, self.covariates_b, self.O_b = Y_b.to(
                     device), covariates_b.to(device), O_b.to(device)
-                self.selected_indices = selected_indices 
+                self.selected_indices = selected_indices
                 # compute the log likelihood of the batch and add it to log_likelihood
                 # of the whole dataset.
                 # Note that there is a need to call this function in order to be
                 # able to call self.get_batch_grad_(C/beta)()
                 '''
-                for i in range(8): 
-                    self.N_samples = int(10**(i/2) +1) 
+                for i in range(8):
+                    self.N_samples = int(10**(i/2) +1)
                     print('N_samples', self.N_samples)
                     log_like += (i == 0)*self.infer_batch_p_theta(
                         N_iter_max_mode, lr_mode).item()
@@ -511,14 +508,14 @@ class IMPS_PLN():
                     #print('mean bias C ', torch.abs(bias_C)[1])
                     #print('mean bias beta', torch.abs(bias_beta)[1])
                 '''
-                log_like +=self.infer_batch_p_theta(
-                        N_iter_max_mode, lr_mode).item()
+                log_like += self.infer_batch_p_theta(
+                    N_iter_max_mode, lr_mode).item()
                 batch_grad_C = self.get_grad_C()
                 batch_grad_beta = self.get_grad_beta()
                 self.get_stat_weights()
                 #print('mean var', torch.mean(self.var_weights))
                 #print('mean eff sample size', torch.mean(self.eff_sample_size))
-                if debiasing: 
+                if debiasing:
                     batch_grad_C = self.getUnbiasedGrad('C')
                     batch_grad_beta = self.getUnbiasedGrad('beta')
                     #debias_beta = self.get_bias('beta')
@@ -691,7 +688,7 @@ class IMPS_PLN():
         Returns: torch.tensor of size (N_samples,N_batch). The computed weights.
         '''
         # Log likelihood of the posterior
-        self.samples = self.samples#*0+1
+        self.samples = self.samples  # *0+1
         self.log_f = self.batch_un_log_posterior(self.samples)
         # Log likelihood of the gaussian density
         self.log_g = log_gaussian_density(
@@ -702,7 +699,8 @@ class IMPS_PLN():
         # remove the maximum to avoid numerical zero.
         diff_log -= torch.max(diff_log, axis=0)[0]
         self.weights = torch.exp(diff_log)
-        self.normalized_weights = torch.div(self.weights, torch.sum(self.weights, axis = 0))
+        self.normalized_weights = torch.div(
+            self.weights, torch.sum(self.weights, axis=0))
 
     def get_batch_best_var(self):
         '''Compute the best variance for the importance law. Given the mode,
@@ -734,15 +732,15 @@ class IMPS_PLN():
         eps = torch.diag(torch.full((self.q, 1), 1e-8).squeeze()).to(device)
         self.sqrt_Sigma_b = TLA.cholesky(self.Sigma_b + eps)
 
-    def get_batch_grad_log_post_beta(self): 
+    def get_batch_grad_log_post_beta(self):
         '''
-        Computes the gradient of the log posterior with respect to beta. See the README for the formula. 
-        
+        Computes the gradient of the log posterior with respect to beta. See the README for the formula.
+
         Args: None
-        
-        Returns: torch.tensor of size (N_samples, batch_size,p,q) 
+
+        Returns: torch.tensor of size (N_samples, batch_size,p,q)
         '''
-        XY= torch.matmul(
+        XY = torch.matmul(
             self.covariates_b.unsqueeze(2),
             self.Y_b.unsqueeze(1).double())
         XB = torch.matmul(self.covariates_b.unsqueeze(1),
@@ -752,137 +750,131 @@ class IMPS_PLN():
         Xexp = torch.matmul(self.covariates_b.unsqueeze(0).unsqueeze(3),
                             torch.exp(self.O_b + XB + CV).unsqueeze(2))
         return XY.unsqueeze(0) - Xexp
-    
-    def get_bias_beta(self,i):
+
+    def get_bias_beta(self, i):
         '''
-        non vectorized version of get_bias for the parameter beta. 
-        It calculates the bias for one sample only. Just here as a double check for 
-        the more general function get_bias. 
+        non vectorized version of get_bias for the parameter beta.
+        It calculates the bias for one sample only. Just here as a double check for
+        the more general function get_bias.
         '''
-        
-        p_theta_i = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const)[i])  
+        p_theta_i = torch.exp(
+            (torch.log(torch.mean(self.weights, axis=0)) + self.const)[i])
         I_chap = self.get_batch_grad_beta()[i]
-        Dbar = self.weights[:,i]*torch.exp(self.const[i])
-        grad_log_post_i = self.get_batch_grad_log_post_beta()[:,i]
-        Nbar = torch.multiply(Dbar.unsqueeze(1).unsqueeze(2), grad_log_post_i)  
-        Nbar_centered = Nbar - torch.mean(Nbar, axis = 0)
+        Dbar = self.weights[:, i]*torch.exp(self.const[i])
+        grad_log_post_i = self.get_batch_grad_log_post_beta()[:, i]
+        Nbar = torch.multiply(Dbar.unsqueeze(1).unsqueeze(2), grad_log_post_i)
+        Nbar_centered = Nbar - torch.mean(Nbar, axis=0)
         Dbar_centered = Dbar - torch.mean(Dbar)
-        cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(1).unsqueeze(2), Nbar_centered), axis = 0)
+        cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(
+            1).unsqueeze(2), Nbar_centered), axis=0)
         return 1/(p_theta_i**2)*(I_chap*torch.var(Dbar) - cov)
-    
-    def get_variance_grad(self, parameter): 
+
+    def get_variance_grad(self, parameter):
         '''Compute the variance of the gradient for either C or beta for every sample
         in the dataset.
-        
-        Args: 
-            parameter: string. Eiter 'C' or 'beta'. If none of those, will raise an error. 
+
+        Args:
+            parameter: string. Eiter 'C' or 'beta'. If none of those, will raise an error.
                 We will compute the bias of the gradient with respect of parameter
-        Returns: 
+        Returns:
             torch.tensor of size (batch_size, prod(gradient_size)), where prod is the product
-            of all the two dimensions. 
+            of all the two dimensions.
         '''
-        p_theta = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const))  
-        Dbar = torch.multiply(self.weights,torch.exp(self.const).unsqueeze(0))
-        if parameter == 'C': 
+        p_theta = torch.exp(
+            (torch.log(torch.mean(self.weights, axis=0)) + self.const))
+        Dbar = torch.multiply(self.weights, torch.exp(self.const).unsqueeze(0))
+        if parameter == 'C':
             I_chap = self.get_grad_C()
             grad_log_post = self.get_batch_grad_log_post_C()
         elif parameter == 'beta':
-            I_chap = self.get_grad_beta()
-            grad_log_post = self.get_batch_grad_log_post_beta()
-        else:
-            raise ValueError('You can calculate the variance with respect to C or beta only')
-        Nbar = torch.multiply(Dbar.unsqueeze(2).unsqueeze(3), grad_log_post)
-        vecNbar = Nbar.flatten(start_dim = -2)
-        vecNbar_centered = vecNbar - torch.mean(vecNbar, axis = 0)
-        varNbar = torch.mean(torch.matmul(vecNbar_centered.unsqueeze(3), vecNbar_centered.unsqueeze(2)),axis = 0)
-        vecI_chap = I_chap.flatten(start_dim = -2) 
-        Dbar_centered = Dbar - torch.mean(Dbar, axis = 0)
-        covDbarNbar = torch.mean(torch.multiply(Dbar_centered.unsqueeze(2), vecNbar_centered), axis = 0) 
-        I_chapcov = torch.matmul(vecI_chap.unsqueeze(2), covDbarNbar.unsqueeze(1))
-        covI_chap = torch.matmul(covDbarNbar.unsqueeze(2), vecI_chap.unsqueeze(1))
-        varDIIt = torch.multiply(torch.matmul(vecI_chap.unsqueeze(2), vecI_chap.unsqueeze(1)), torch.var(Dbar, axis = 0).unsqueeze(1).unsqueeze(2))
-        return torch.div(varNbar -I_chapcov  - covI_chap + varDIIt,(p_theta**2).unsqueeze(1).unsqueeze(2))
-        
-    def getUnbiasedGrad(self, parameter):
-        '''Compute the estimated bias of the estimator of the gradient 
-        for either beta or C (for every sample in the dataset). 
-        
-        Args: 
-            parameter: string. Eiter 'C' or 'beta'. If none of those, will raise an error. 
-                We will compute the bias of the gradient with respect of parameter
-        Returns: 
-            torch.tensor of size (batch_size, gradient_size)
-        '''
-        p_theta = torch.exp((torch.log(torch.mean(self.weights,axis=0)) + self.const))  
-        Dbar = torch.multiply(self.weights,torch.exp(self.const).unsqueeze(0))
-        if parameter == 'C': 
-            grad_log_post = self.get_batch_grad_log_post_C()
-            I_chap = self.get_grad_C()
-        elif parameter == 'beta':
-            grad_log_post = self.get_batch_grad_log_post_beta()
             I_chap = self.get_grad_beta()
         else: 
-            ValueError('You can calculate the bias with respect to C or beta only')
+            raise ValueError(
+                'You can calculate the variance with respect to C or beta only')
         Nbar = torch.multiply(Dbar.unsqueeze(2).unsqueeze(3), grad_log_post)
-        Nbar_centered = Nbar - torch.mean(Nbar, axis = 0)
-        Dbar_centered = Dbar - torch.mean(Dbar, axis = 0)
-        cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(2).unsqueeze(3), Nbar_centered), axis = 0)
-        #print('cov shape', cov.shape)
-        #print('var shape', torch.var(Dbar, axis = 0).shape) 
-        #print('ptheta shape', p_theta.shape)
-        #print('I_chap.shape', (I_chap).shape)
-        #print('cov shape', cov.shape) 
-        #print('var ', torch.var(Dbar, axis = 0).shape)
-        #print('mean I_chap', torch.mean(I_chap))
-        #print('mean cov', torch.mean(cov))
-        #print('mean var', torch.mean(torch.var(Dbar, axis = 0)))
-        I_chapMuSquared = torch.multiply(I_chap, (p_theta**2).unsqueeze(1).unsqueeze(2))
-        var = torch.var(Dbar, axis = 0)
-        #print('IchapMu', I_chapMuSquared.shape)
-        #print('cov', cov.shape)
-        #print('var', var.shape)
-        #print('Phteta', p_theta.shape)
+        vecNbar = Nbar.flatten(start_dim=-2)
+        vecNbar_centered = vecNbar - torch.mean(vecNbar, axis=0)
+        varNbar = torch.mean(torch.matmul(vecNbar_centered.unsqueeze(
+            3), vecNbar_centered.unsqueeze(2)), axis=0)
+        vecI_chap = I_chap.flatten(start_dim=-2)
+        Dbar_centered = Dbar - torch.mean(Dbar, axis=0)
+        covDbarNbar = torch.mean(torch.multiply(
+            Dbar_centered.unsqueeze(2), vecNbar_centered), axis=0)
+        I_chapcov = torch.matmul(
+            vecI_chap.unsqueeze(2), covDbarNbar.unsqueeze(1))
+        covI_chap = torch.matmul(
+            covDbarNbar.unsqueeze(2), vecI_chap.unsqueeze(1))
+        varDIIt = torch.multiply(torch.matmul(vecI_chap.unsqueeze(
+            2), vecI_chap.unsqueeze(1)), torch.var(Dbar, axis=0).unsqueeze(1).unsqueeze(2))
+        return torch.div(varNbar - I_chapcov - covI_chap + varDIIt, (p_theta**2).unsqueeze(1).unsqueeze(2))
+
+    def getUnbiasedGrad(self, parameter):
+        '''Compute the estimated bias of the estimator of the gradient
+        for either beta or C (for every sample in the dataset).
+
+        Args:
+            parameter: string. Eiter 'C' or 'beta'. If none of those, will raise an error.
+                We will compute the bias of the gradient with respect of parameter
+        Returns:
+            torch.tensor of size (batch_size, gradient_size)
+        '''
+        p_theta = torch.exp(
+            (torch.log(torch.mean(self.weights, axis=0)) + self.const))
+        Dbar = torch.multiply(self.weights, torch.exp(self.const).unsqueeze(0))
+        if parameter == 'C':
+            grad_log_post = self.get_batch_grad_log_post_C()
+            I_chap = self.get_grad_C()
+        elif parameter == 'beta':
+            grad_log_post = self.get_batch_grad_log_post_beta()
+            I_chap = self.get_grad_beta()
+        else:
+            ValueError(
+                'You can calculate the bias with respect to C or beta only')
+        Nbar = torch.multiply(Dbar.unsqueeze(2).unsqueeze(3), grad_log_post)
+        Nbar_centered = Nbar - torch.mean(Nbar, axis=0)
+        Dbar_centered = Dbar - torch.mean(Dbar, axis=0)
+        cov = torch.mean(torch.multiply(Dbar_centered.unsqueeze(
+            2).unsqueeze(3), Nbar_centered), axis=0)
+        I_chapMuSquared = torch.multiply(
+            I_chap, (p_theta**2).unsqueeze(1).unsqueeze(2))
+        var = torch.var(Dbar, axis=0)
         return torch.div(I_chapMuSquared + cov, (var + p_theta**2).unsqueeze(1).unsqueeze(2))
-        #return 
-        #print('sec :', torch.div(p_theta, 1 +torch.var(Dbar, axis = 0)).unsqueeze(1).unsqueeze(2).shape)
-        #print('without mult', torch.mean(I_chap + cov, axis = 0)[0])
-        #print('cov :', torch.mean(cov, axis = 0)[0])
-        return torch.multiply(I_chap + cov, torch.div(p_theta**2, 1 +torch.var(Dbar, axis = 0)).unsqueeze(1).unsqueeze(1)) 
-        return torch.div(I_chap*(torch.var(Dbar, axis = 0).unsqueeze(1).unsqueeze(2)) - cov, (p_theta**2).unsqueeze(1).unsqueeze(2))
-        
-    def get_grad_beta(self): 
+        return torch.multiply(I_chap + cov, torch.div(p_theta**2, 1 + torch.var(Dbar, axis=0)).unsqueeze(1).unsqueeze(1))
+        return torch.div(I_chap*(torch.var(Dbar, axis=0).unsqueeze(1).unsqueeze(2)) - cov, (p_theta**2).unsqueeze(1).unsqueeze(2))
+
+    def get_grad_beta(self):
         ''' Computes the gradient with respect to beta of the log likelihood
         for the batch. The derivation of the formula is in the README.
         We only multiply the gradient of the log posterior with the normalized weights
-        and sum the first axis. 
-        
+        and sum the first axis.
+
         Args: None
 
         Returns: torch.tensor of size (batch_size,d,p). The gradient wrt beta.
         '''
         grad_log_post = self.get_batch_grad_log_post_beta()
-        return torch.sum(torch.multiply(grad_log_post, self.normalized_weights.unsqueeze(2).unsqueeze(3)), axis = 0)
-    
+        return torch.sum(torch.multiply(grad_log_post, self.normalized_weights.unsqueeze(2).unsqueeze(3)), axis=0)
+
     def get_grad_C(self):
         '''Computes the gradient with respect to C of the log likelihood for
         the batch. The derivation of the formula is in the README.
         We only multiply the gradient of the log posterior with the normalized weights
-        and sum the first axis. 
-        
+        and sum the first axis.
+
         Args: None
 
         Returns: torch.tensor of size (batch_size,d,p). The gradient wrt C.
         '''
         grad_log_post = self.get_batch_grad_log_post_C()
-        return torch.sum(torch.multiply(grad_log_post, self.normalized_weights.unsqueeze(2).unsqueeze(3)), axis = 0)
-    
-    def get_batch_grad_log_post_C(self): 
+        return torch.sum(torch.multiply(grad_log_post, self.normalized_weights.unsqueeze(2).unsqueeze(3)), axis=0)
+
+    def get_batch_grad_log_post_C(self):
         '''
-        Computes the gradient of the log posterior with respect to C. See the README for the formula. 
-        
+        Computes the gradient of the log posterior with respect to C. See the README for the formula.
+
         Args: None
-        
-        Returns: torch.tensor of size (N_samples, batch_size,p,q) 
+
+        Returns: torch.tensor of size (N_samples, batch_size,p,q)
         '''
         XB = torch.matmul(
             self.covariates_b.unsqueeze(1),
@@ -893,51 +885,54 @@ class IMPS_PLN():
         ).squeeze()
         Ymoinsexp = self.Y_b - torch.exp(self.O_b + XB + CV)
         outer = torch.matmul(Ymoinsexp.unsqueeze(3), self.samples.unsqueeze(2))
-        return outer 
-    
-    def show_Sigma(self, ax = None, save=False, name_doss='IMPS_PLN_Sigma'):
+        return outer
+
+    def show_Sigma(self, ax=None, save=False, name_doss='IMPS_PLN_Sigma'):
         '''Displays Sigma
-        args: 
-            'ax': AxesSubplot object. Sigma will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
+        args:
+            'ax': AxesSubplot object. Sigma will be displayed in this ax
+                if not None. If None, will simply create an axis. Default is None.
             'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'IMPS_PLN_Sigma'.   
-        returns: None but displays Sigma. 
+                Default is 'IMPS_PLN_Sigma'.
+        returns: None but displays Sigma.
         '''
         fig = plt.figure()
-        if self.p >400: 
-            print('The heatmap only displays Sigma[:400,:400]') 
-            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach(), ax = ax)
-        else : 
-            sns.heatmap(self.get_Sigma().cpu().detach(), ax = ax)
+        if self.p > 400:
+            print('The heatmap only displays Sigma[:400,:400]')
+            sns.heatmap(self.get_Sigma()[:400, :400].cpu().detach(), ax=ax)
+        else:
+            sns.heatmap(self.get_Sigma().cpu().detach(), ax=ax)
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
-        if ax is None: 
+        if ax is None:
             plt.show()
-            
+
     def get_stat_weights(self):
-        self.var_weights = torch.var(self.normalized_weights, axis = 0)
-        self.eff_sample_size = torch.div(torch.sum(self.normalized_weights, axis = 0)**2,torch.sum(self.normalized_weights**2, axis = 0))  
-    def show_loss(self, ax = None, save=False, name_doss='IMPS_PLN_log_likelihood'): 
-        '''Show the log likelihood of the algorithm along the iterations.  
-        
-        args: 
-            'ax': AxesSubplot object. The ELBO will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
+        self.var_weights = torch.var(self.normalized_weights, axis=0)
+        self.eff_sample_size = torch.div(torch.sum(
+            self.normalized_weights, axis=0)**2, torch.sum(self.normalized_weights**2, axis=0))
+
+    def show_loss(self, ax=None, save=False, name_doss='IMPS_PLN_log_likelihood'):
+        '''Show the log likelihood of the algorithm along the iterations.
+
+        args:
+            'ax': AxesSubplot object. The ELBO will be displayed in this ax
+                if not None. If None, will simply create an axis. Default is None.
             'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'IMPS_PLN_log_likelihood'.   
-        returns: None but displays the log likelihood. 
+                Default is 'IMPS_PLN_log_likelihood'.
+        returns: None but displays the log likelihood.
         '''
         if not self.fitted:
-            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
-        if ax is None: 
+            raise AttributeError(
+                'Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None:
             ax = plt.gca()
             to_show = True
-        else: 
+        else:
             to_show = False
         ax.plot(self.running_times,
-                   -np.array(self.log_likelihood_list))
+                -np.array(self.log_likelihood_list), label = self.NAME)
         ax.set_title('Smoothed negative log likelihood')
         ax.set_ylabel('Negative loglikelihood')
         ax.set_xlabel('Seconds')
@@ -945,49 +940,52 @@ class IMPS_PLN():
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
-        if to_show: 
+        if to_show:
             plt.show()
-    def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
-        '''Show the criterion of the algorithm along the iterations.  
-        
-        args: 
-            'ax': AxesSubplot object. The criterion will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None. 
+
+    def show_criterion(self, ax=None, save=False, name_doss='IMPS_PLN_criterion'):
+        '''Show the criterion of the algorithm along the iterations.
+
+        args:
+            'ax': AxesSubplot object. The criterion will be displayed in this ax
+                if not None. If None, will simply create an axis. Default is None.
             'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'IMPS_PLN_criterion'.   
-                
-        returns: None but displays the criterion. 
+                Default is 'IMPS_PLN_criterion'.
+
+        returns: None but displays the criterion.
         '''
         if not self.fitted:
-            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
-        if ax is None: 
+            raise AttributeError(
+                'Please fit the model before by calling model.fit(Y,O,covariates)')
+        if ax is None:
             ax = plt.gca()
             to_show = True
-        else: 
+        else:
             to_show = False
-        
-        ax.plot(self.running_times,self.crit_list[1:])
+
+        ax.plot(self.running_times, self.crit_list[1:])
         ax.set_title('Number of epoch the likelihood has not improved')
         ax.set_xlabel('Seconds')
         # save the graphic if needed
         if save:
             plt.savefig(name_doss)
-        if to_show: 
+        if to_show:
             plt.show()
 
     def __str__(self):
         '''Show the criterion of the algorithm, Sigma and the log likelihood.'''
         self.best_log_like = max(self.log_likelihood_list)
-        print('Best likelihood: ', self.best_log_like) 
-        fig, axes = plt.subplots(1,3, figsize = (20,5))
-        self.show_loss(ax = axes[0])
-        self.show_criterion(ax= axes[1])
-        self.show_Sigma(ax = axes[2])
+        print('Best likelihood: ', self.best_log_like)
+        fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+        self.show_loss(ax=axes[0])
+        self.show_criterion(ax=axes[1])
+        self.show_Sigma(ax=axes[2])
         self.fig = fig
         plt.show()
         return ''
-    def save_stat(self, name_doss= 'IMPS_PLN_graphic'): 
-        '''save some useful stats of the model. 
+
+    def save_stat(self, name_doss='IMPS_PLN_graphic'):
+        '''save some useful stats of the model.
         Args:
             'name_doss' : str. The name of the file the graphic will be saved to.
                 Default is 'IMPS_PLN_graphic'.
@@ -996,7 +994,7 @@ class IMPS_PLN():
         '''
         print(self)
         self.fig.savefig(name_doss)
-   
+
     def get_beta(self):
         '''Getter for beta. Returns the mean of the last betas computed to reduce variance.'''
         return self.beta_mean.detach()
@@ -1054,7 +1052,7 @@ class IMPS_PLN():
                     self.mode_step_sizes[self.selected_indices, :]
             loss = -torch.mean(self.batch_un_log_posterior(W))
             # Propagate the gradients
-            
+
             loss.backward()
             # Update the parameter
             optim.step()
@@ -1119,12 +1117,12 @@ def ELBO(Y, O, covariates, M, S, Sigma, beta):
     SrondS = torch.multiply(S, S)
     OplusM = O + M
     MmoinsXB = M - torch.mm(covariates, beta)
-    
+
     tmp = - n / 2 * torch.logdet(Sigma)
     tmp += torch.sum(torch.multiply(Y, OplusM)
-                    - torch.exp(OplusM + SrondS / 2)
-                    + 1 / 2 * torch.log(SrondS)
-                    )
+                     - torch.exp(OplusM + SrondS / 2)
+                     + 1 / 2 * torch.log(SrondS)
+                     )
     DplusMmoinsXB2 = torch.diag(
         torch.sum(SrondS, dim=0)) + torch.mm(MmoinsXB.T, MmoinsXB)
     tmp -= 1 / 2 * torch.trace(
@@ -1134,753 +1132,6 @@ def ELBO(Y, O, covariates, M, S, Sigma, beta):
         )
     )
     tmp -= torch.sum(log_stirling(Y))
-    tmp += n * p / 2 
+    tmp += n * p / 2
     return tmp
 
-
-class fastPLN():
-    '''Implement the variational algorithm infering the parameters of the PLN model,
-    with a closed form for the M step and a gradient step for the VE step. Any value of n
-    and p can be taken.
-    '''
-
-    def __init__(self):
-        '''Defines some usefuls lists and variables for the object. A deeper initalization is done
-        in the init_data() method, once the dataset is available.
-        '''
-        self.window = 3
-        self.fitted = False
-
-    def init_data(self, Y, O, covariates, good_init):
-        '''Initialize the parameters with the right shape given the data.
-
-        Args:
-              Y: pd.DataFrame of size (n, p). The counts
-              O: pd.DataFrame of size (n,p). The offset
-              covariates: pd.DataFrame of size (n,p)
-              good_init: bool. If True,  a good initialization (not random)
-                  will be performed. Takes some time.
-        Returns:
-            None but initialize some useful data.
-        '''
-        # Known variables
-        if self.fitted == False:
-            # import the data. We take either pandas.DataFrames or torch.tensor
-            # pandas.DataFrame
-            try: 
-                self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.log(torch.from_numpy(O.values)).to(device)
-                self.covariates = torch.from_numpy(covariates.values).to(device)
-            # torch.tensor (if not torch.tensor, will launch an error after) 
-            except: 
-                try:   
-                    self.Y = Y.to(device)
-                    self.O = O.to(device)
-                    self.covariates = covariates.to(device)
-                except: 
-                    raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
-        
-
-        if self.fitted == False:
-            try: 
-                self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.log(torch.from_numpy(O.values)).to(device)
-                self.covariates = torch.from_numpy(covariates.values).to(device)
-            # torch.tensor (if not torch.tensor, will launch an error after) 
-            except: 
-                try:   
-                    self.Y = Y.to(device)
-                    self.O = torch.log(O).to(device)
-                    self.covariates = covariates.to(device)
-                except: 
-                    raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
-        
-            self.n, self.p = self.Y.shape
-            self.d = self.covariates.shape[1]
-
-            # Lists to store some stats
-            self.running_times = list()
-            self.deltas = [1] * self.window
-            self.normalized_ELBOs = list()
-            print('Initialization ...')
-            if good_init:
-                # Model parameters
-                poiss_reg = Poisson_reg()
-                poiss_reg.fit(self.Y, self.O, self.covariates)
-                self.beta = torch.clone(poiss_reg.beta.detach()).to(device)
-                self.Sigma = init_Sigma(
-                    self.Y, self.O, self.covariates, self.beta).to(device)
-                # Initialize C in order to initialize M.
-                self.C = C_from_Sigma(self.Sigma,self.p).to(device)
-                # Variational parameter
-                self.M = init_M(
-                    self.Y,
-                    self.O,
-                    self.covariates,
-                    self.beta,
-                    self.C,
-                    300,
-                    0.1).to(device) 
-                self.M.requires_grad_(True)
-                
-            else:
-                # Random initialization with the right shape
-                self.beta = torch.randn((self.d, self.p), device = device)
-                self.Sigma = torch.diag(torch.ones(self.p)).to(device)
-                self.M = torch.ones(self.n, self.p, device = device)
-            print('Initialization finished')
-
-            # No better initialization possible for S
-            self.S = 1 / 2 * torch.ones((self.n, self.p)).to(device)
-
-    def compute_ELBO(self):
-        '''Compute the ELBO with the parameter of the model.'''
-        return ELBO(self.Y, self.O, self.covariates,
-                    self.M, self.S, self.Sigma, self.beta)
-
-    def fit(self, Y, O, covariates, N_iter_max=200, lr=0.1,optimizer=torch.optim.Rprop, 
-            tol=1e-1,good_init=True, verbose=False):
-              
-        '''Main function of the class. Infer the best parameter Sigma and beta given the data.
-
-        Args:
-            Y: pd.DataFrame of size (n, p). The counts.
-            O: pd.DataFrame of size (n,p). The offset
-            covariates: pd.DataFrame of size (n,p)
-            N_iter_max: int, optional. The maximum number of iteration.
-                Default is 200.
-            lr: positive float, optional. The learning rate of the optimizer. Default is 0.1.
-            optimizer: objects that inherits from torch.optim, optional. The optimizer wanted.
-                Default is torch.optim.Rprop.
-            tol: non negative float, optional. The algorithm will stop if the ELBO has not
-                improved more than tol. Default is 1e-1.
-            good_init: bool, optional. If True, will do a smart initialization instead of
-                a random initialization. Default is True.
-            verbose: bool, optional. If True, will print some stats during the fitting. Default is
-                False.
-
-        Returns:
-            None but update the parameter C and beta of the object.
-        '''
-        self.t0 = time.time()
-        # Initialize the data
-        self.init_data(Y, O, covariates, good_init)
-        self.optimizer = optimizer([self.S, self.M], lr=lr)
-        stop_condition = False
-        i = 0
-        self.old_beta = torch.clone(self.beta.detach())
-        self.old_Sigma = torch.clone(self.Sigma.detach())
-        delta = 2 * tol
-        while i < N_iter_max and stop_condition == False:
-            # VE step
-            self.optimizer.zero_grad()
-            self.M.grad = -self.grad_M()
-            self.S.grad = -self.grad_S()
-            self.optimizer.step()
-            # M step
-            self.beta = self.closed_beta()
-            self.Sigma = self.closed_Sigma()
-            # Keep records
-            self.normalized_ELBOs.append(
-                1 / self.n * self.compute_ELBO().item())
-            self.running_times.append(time.time() - self.t0)
-            # Criterions
-            if i > self.window - 1:  # To be sure we have seen enough data
-                delta = abs(
-                    self.normalized_ELBOs[-1] - self.normalized_ELBOs[-1 - self.window])
-                self.deltas.append(delta)
-            # Condition to see if the tolerance has been reached.
-            if delta < tol:
-                stop_condition = True
-            # Print some stats if wanted.
-            if i % 10 == 0 and verbose:
-                print('Iteration number: ', i)
-                print('-------UPDATE-------')
-                print('Delta : ', delta)
-                print('Last ELBO:', self.normalized_ELBOs[-1])
-            i += 1
-        if stop_condition:
-            print('Last delta: {},  reached in {} iterations'.format(delta, i))
-        else:
-            print('Maximum number of iterations reached : ',
-                  N_iter_max, 'last delta = ', delta)
-        self.fitted = True
-
-    def grad_M(self):
-        '''Compute the gradient of the ELBO with respect to M'''
-        grad = self.Y - torch.exp(self.O + self.M +
-                                  torch.multiply(self.S, self.S) / 2)
-        grad -= torch.mm(self.M - torch.mm(self.covariates,
-                         self.beta), torch.inverse(self.Sigma))
-        return grad
-
-    def grad_S(self):
-        '''Compute the gradient of the ELBO with respect to S'''
-        grad = torch.div(1, self.S)
-        grad -= torch.multiply(self.S, torch.exp(self.O +
-                               self.M + torch.multiply(self.S, self.S) / 2))
-        grad -= torch.mm(self.S,
-                         torch.diag(torch.diag(torch.inverse(self.Sigma))))
-        return grad
-
-    def closed_Sigma(self):
-        '''Closed form for Sigma for the M step.'''
-        n, p = self.M.shape
-        MmoinsXB = self.M - torch.mm(self.covariates, self.beta)
-        closed = torch.mm(MmoinsXB.T, MmoinsXB)
-        closed += torch.diag(torch.sum(torch.multiply(self.S, self.S), dim=0))
-        return 1 / (n) * closed
-
-    def closed_beta(self):
-        '''Closed form for beta for the M step.'''
-        print('cov cov', torch.mm(
-                    self.covariates.T,
-                    self.covariates))
-        return torch.mm(
-            torch.mm(
-                torch.inverse(torch.mm(
-                    self.covariates.T,
-                    self.covariates)),
-                self.covariates.T),
-            self.M)
-
-    def show_Sigma(self, ax = None, save=False, name_doss='fastPLN_Sigma'):
-        '''Displays Sigma
-        args: 
-            'ax': AxesSubplot object. Sigma will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLN_Sigma'.   
-        returns: None but displays Sigma. 
-        '''
-        fig = plt.figure()
-        if self.p >400: 
-            print('The heatmap only displays Sigma[:400,:400]') 
-            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach(), ax = ax)
-        else : 
-            sns.heatmap(self.get_Sigma().cpu().detach(), ax = ax)
-        # save the graphic if needed
-        if save:
-            plt.savefig(name_doss)
-        
-        
-    def show_loss(self, ax = None, save=False, name_doss='fastPLN_ELBO'): 
-        '''Show the ELBO of the algorithm along the iterations.  
-        
-        args: 
-            'ax': AxesSubplot object. The ELBO will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLN_ELBO'.   
-        returns: None but displays the ELBO. 
-        '''
-        if not self.fitted:
-            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
-        if ax is None: 
-            ax = plt.gca()
-            to_show = True
-        else: 
-            to_show = False
-        ax.plot(self.running_times, -np.array(self.normalized_ELBOs),
-                   label='Negative ELBO')
-        ax.set_title('Negative ELBO')
-        ax.set_yscale('log')
-        ax.set_xlabel('Seconds')
-        ax.set_ylabel('ELBO')
-        ax.legend()
-        # save the graphic if needed
-        if save:
-            plt.savefig(name_doss)
-        if to_show: 
-            plt.show()
-    def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
-        '''Show the criterion of the algorithm along the iterations.  
-        
-        args: 
-            'ax': AxesSubplot object. The criterion will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLN_criterion'.   
-        returns: None but displays the criterion. 
-        '''
-        if not self.fitted:
-            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
-        if ax is None: 
-            ax = plt.gca()
-            to_show = True
-        else: 
-            to_show = False
-        ax.plot(self.running_times[self.window:],
-                   self.deltas[self.window:], label='Delta')
-        ax.set_yscale('log')
-        ax.set_xlabel('Seconds')
-        ax.set_ylabel('Delta')
-        ax.set_title('Increments')
-        ax.legend()
-        # save the graphic if needed
-        if save:
-            plt.savefig(name_doss)
-        if to_show: 
-            plt.show()
-            
-    def __str__(self):
-        '''Show the criterion of the algorithm, Sigma and the normalized ELBO.'''
-        self.best_ELBO = max(self.normalized_ELBOs)
-        print('Best likelihood: ', self.best_ELBO) 
-        fig, axes = plt.subplots(1,3, figsize = (20,5))
-        self.show_loss(ax = axes[0])
-        self.show_criterion(ax= axes[1])
-        self.show_Sigma(ax = axes[2])
-        self.fig = fig
-        plt.show()
-        return ''
-    
-    def save_stat(self, name_doss='fastPLN_graphic'): 
-        '''save some useful stats of the model. 
-        Args :
-            'name_doss' : str. The name of the file the graphic will be saved to.
-                Default is 'fastPLN_graphic'.
-
-        Returns :
-                None but displays the figure.
-        '''
-        print(self) # print the model and also compute the figure fig 
-        self.fig.savefig(name_doss)
-
-    def show(self, name_doss='fastPLN_graphic', save=False):
-        '''displays some useful stats of the model.
-
-        Args :
-            'name_doss' : str. The name of the file the graphic will be saved to.
-                Default is 'fastPLN_graphic'.
-            'save' : bool. If True, the graphic will be saved. If false, won't be saved.
-                Default is False.
-
-        Returns :
-                None but displays the figure. It can also save the figure if save = True.
-        '''
-        fig, ax = plt.subplots(2, 1, figsize=(10, 10))
-        abscisse = self.running_times
-        plt.subplots_adjust(hspace=0.4)
-
-        ax[0].plot(abscisse, np.array(self.normalized_ELBOs),
-                   label='Negative ELBO')
-        ax[0].set_title('Negative ELBO')
-        ax[0].set_yscale('log')
-        ax[0].set_xlabel('Seconds')
-        ax[0].set_ylabel('ELBO')
-        ax[0].legend()
-
-        ax[1].plot(abscisse[self.window:],
-                   self.deltas[self.window:], label='Delta')
-        ax[1].set_yscale('log')
-        ax[1].set_xlabel('Seconds')
-        ax[1].set_ylabel('Delta')
-        ax[1].set_title('Increments')
-        ax[1].legend()
-        if save:
-            plt.savefig(name_doss)
-        plt.show()
-        if self.p >400: 
-            print('The heatmap only displays Sigma[:400,:400]') 
-            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach())
-        else : 
-            sns.heatmap(self.get_Sigma().cpu().detach())
-        plt.show()
-
-    def get_Sigma(self):
-        '''Getter for Sigma'''
-        return self.Sigma.detach()
-
-    def get_beta(self):
-        '''Getter for beta'''
-        return self.beta.detach()
-
-    def get_C(self, q=None):
-        '''Getter for C. We do an ACP on Sigma and take the q largest eigenvectors.
-        if q is None, we will take p.'''
-        if q is None:
-            q = self.p
-        return C_from_Sigma(self.Sigma, q).detach()
-
-######################################### fastPLNPCA object ##############
-
-
-
-def ELBO_PCA(Y, O, covariates, M, S, C, beta):
-    '''compute the ELBO with a PCA parametrization'''
-    n = Y.shape[0]
-    q = C.shape[1]
-    # Store some variables that will need to be computed twice
-    A = O + torch.mm(covariates, beta) + torch.mm(M, C.T)
-    SrondS = torch.multiply(S, S)
-    # Next, we add the four terms of the ELBO_PCA
-    YA = torch.sum(torch.multiply(Y, A))
-    moinsexpAplusSrondSCCT = torch.sum(-torch.exp(A + 1 / 2 *
-                       torch.mm(SrondS, torch.multiply(C, C).T)))
-    moinslogSrondS = 1 / 2 * torch.sum(torch.log(SrondS))
-    MMplusSrondS = torch.sum(-1 / 2 * (torch.multiply(M, M) + torch.multiply(S, S)))
-    log_stirlingY = torch.sum(log_stirling(Y))
-    return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - log_stirlingY + n * q / 2
-
-
-class fastPLNPCA():
-    def __init__(self, q):
-        '''Define some usefuls lists and variables for the object. A deeper initalization is done
-        in the init_data() method, once the dataset is available.
-        Args:
-            q: int. The dimension of the latent space.
-        Returns:
-            A fastPLNPCA object
-        '''
-        self.old_loss = 1
-        self.q = q
-        # Lists to store some stats
-        self.fitted = False
-        self.window = 3
-
-    def init_data(self, Y, O, covariates, good_init):
-        '''Initialize the parameters with the right shape given the data.
-
-        Args:
-            Y: pd.DataFrame of size (n, p) or torch.tensor of size (n,p). The counts
-            O: pd.DataFrame of size (n,p), or torch.tensor of size (n,p). the offset
-            covariates: pd.DataFrame of size (n,p) or torch.tensor of size (n,p). The covariates
-            good_init: bool. If True a good initialization (not random)
-                will be performed. Takes some time.
-        Returns:
-            None but initialize some useful data.'''
-        # Lists to store some stats.
-        self.ELBO_list = list()
-        self.running_times = list()
-        self.deltas = [1] * self.window
-        self.normalized_ELBOs = list()
-        if self.fitted == False:
-            # import the data. We take either pandas.DataFrames or torch.tensor
-            # pandas.DataFrame
-            try: 
-                self.Y = torch.from_numpy(Y.values).to(device)
-                self.O = torch.log(torch.from_numpy(O.values)).to(device)
-                self.covariates = torch.from_numpy(covariates.values).to(device)
-            # torch.tensor (if not torch.tensor, will launch an error after) 
-            except: 
-                try:   
-                    self.Y = Y.to(device)
-                    self.O = torch.log(O).to(device)
-                    self.covariates = covariates.to(device)
-                except: 
-                    raise ValueError('Each of Y,O, covariates should be either a pandas.DataFrame or a torch.tensor')
-            self.n, self.p = self.Y.shape
-            self.d = self.covariates.shape[1]
-            print('Initialization ...')
-            # If a good initialization is wanted.
-            if good_init:
-                poiss_reg = Poisson_reg()
-                poiss_reg.fit(self.Y, self.O, self.covariates)
-                # Model parameter
-                self.beta = torch.clone(poiss_reg.beta.detach()).to(device)
-                self.C = init_C(
-                    self.Y,
-                    self.O,
-                    self.covariates,
-                    self.beta,
-                    self.q).to(device)
-                # Variational parameter
-                self.M = init_M(
-                    self.Y,
-                    self.O,
-                    self.covariates,
-                    self.beta,
-                    self.C,
-                    300,
-                    0.1)
-            # Else, random initalization. Faster but worst.
-            else:
-                print('Random initialization is performed')
-                self.C = torch.randn((self.p, self.q)).to(device)
-                self.beta = torch.randn((self.d, self.p)).to(device)
-                self.M = torch.randn((self.n, self.q)).to(device)
-            print('Initialization finished')
-            # Can't do any further initialization
-            self.S = torch.randn((self.n, self.q)).to(device)
-            # Set some gradients for optimization
-            self.beta.requires_grad_(True)
-            self.M.requires_grad_(True)
-            self.S.requires_grad_(True)
-            self.C.requires_grad_(True)
-
-    def compute_ELBO_PCA(self):
-        '''Compute the ELBO of the PCA parametrisation with the parameter of the model.'''
-        return ELBO_PCA(self.Y, self.O, self.covariates,
-                        self.M, self.S, self.C, self.beta)
-
-    def fit(self, Y, O, covariates, N_iter_max=15000, lr=0.01, optimizer=torch.optim.Rprop,
-            tol=1e-3, good_init=True, verbose=False):
-        '''Main function of the class. Infer the best parameter C and beta given the data.
-
-        Args:
-            Y: pd.DataFrame of size (n, p). The counts.
-            O: pd.DataFrame of size (n,p). The offset.
-            covariates: pd.DataFrame of size (n,p).
-            N_iter_max: int, optional. The maximum number of iteration. (Default is 15000).
-            lr: positive float, optional. The learning rate of the optimizer. Default is 0.01.
-            optimizer: objects that inherits from torch.optim, optional. The optimize wanted.
-                Default is torch.optim.Rprop.
-            tol: non negative float. Criterion for the model. The algorithm will
-                stop if the ELBO has not improved more than tol(Default is 1e-3).
-            good_init: Bool, optional. If True, will do a good initialization. Takes some time.
-                Default is True.
-            verbose: Bool, optional. If True, will print some stats during the fitting. Default is
-                False.
-        Returns:
-            None but update the parameter C and beta of the object.
-        '''
-        self.max_Sigma = []
-        self.t0 = time.time()
-        # initialize the data
-        self.init_data(Y, O, covariates, good_init)
-        self.optimizer = optimizer([self.beta, self.C, self.M, self.S], lr=lr)
-        stop_condition = False
-        i = 0
-        delta = 1
-        self.elapsedEval = 3
-        self.trueLogLikeList = list()
-        while i < N_iter_max and stop_condition == False:
-            self.optimizer.zero_grad()
-            loss = -self.compute_ELBO_PCA()
-            loss.backward()
-            self.optimizer.step()
-            # Keep records
-            self.normalized_ELBOs.append(-1 / self.n * loss.item())
-            # Criterion
-            if i > self.window - 1:
-                delta = abs(
-                    self.normalized_ELBOs[-1] - self.normalized_ELBOs[-1 - self.window])
-                self.deltas.append(delta)
-            # Condition to see if we have reached the tolerance threshold
-            if abs(delta) < tol:
-                stop_condition = True
-            # Print some stats if we want to
-            if i % 100 == 0 and verbose:
-                print('Iteration number: ', i)
-                print('-------UPDATE-------')
-                print('Delta: ', delta)
-                print('Last ELBO:', self.normalized_ELBOs[-1])
-            # Keep track of the time
-            self.running_times.append(time.time() - self.t0)
-            self.max_Sigma.append(torch.max(self.get_Sigma()).item())
-            i += 1
-            
-            if i % self.elapsedEval == 0: 
-                loglike = self.getLogLike()
-                self.trueLogLikeList.append(loglike)
-                                            
-        if stop_condition:
-            print('Tolerance {} reached in {} iterations'.format(tol, i))
-        else:
-            print('Maximum number of iterations reached : ',
-                  N_iter_max, 'last delta = ', delta)
-        self.fitted = True
-        
-    def getLogLike(self):
-        return log_likelihood(self.Y,np.exp(self.O),self.covariates,self.C, self.beta).item()
-        
-    def plotComparison(self, begin, maxLog):
-        fig, axes   = plt.subplots(2,1)
-        
-        xLog =  np.take(self.running_times, np.arange(0,len(self.trueLogLikeList))*self.elapsedEval) 
-        yLog = np.log(-np.array(self.trueLogLikeList))
-        xELBO = self.running_times
-        yELBO = np.log(-np.array(self.normalized_ELBOs))
-        
-        axes[0].plot(xLog , yLog, label = 'log likelihood')
-        axes[0].plot(xELBO, yELBO,label='Negative ELBO')
-        axes[0].set_title('Negative ELBO')
-        axes[0].set_yscale('log')
-        axes[0].set_xlabel('Seconds')
-        axes[0].set_ylabel('ELBO')
-        axes[0].axhline(maxLog, c = 'red')
-        
-        axes[0].legend()
-        
-        axes[1].axhline(maxLog, c = 'red')
-        
-        axes[1].plot(xLog[begin:], yLog[begin:])
-        axes[1].plot(xELBO[begin*self.elapsedEval:], yELBO[begin*self.elapsedEval:])
-        
-    def gradPCA_beta(self):
-        '''Compute the gradient of the ELBO with respect to beta. Sanity check'''
-        matC = self.C
-        CrondC = torch.multiply(matC, matC)
-        SrondS = torch.multiply(self.S, self.S)
-        first_term = torch.mm(self.covariates.T, self.Y)
-        second_term = -1 / 2 * torch.mm(
-            self.covariates.T,
-            torch.exp(self.O + torch.mm(
-                self.covariates,
-                self.beta
-            )
-                + torch.mm(self.M, matC.T) + 1 / 2 * torch.mm(SrondS, CrondC.T))
-        )
-        return first_term + second_term
-
-    def gradPCA_M(self):
-        '''Compute the gradient of the ELBO with respect to M. Sanity check'''
-        CrondC = torch.multiply(self.C, self.C)
-        SrondS = torch.multiply(self.S, self.S)
-        A = self.O + torch.mm(self.covariates, self.beta) + \
-            torch.mm(self.M, self.C.T)
-        first = torch.mm(self.Y, self.C)
-        second = -1 / 2 * \
-            torch.mm(torch.exp(A + 1 / 2 * torch.mm(SrondS, CrondC.T)), self.C)
-        third = -self.M
-        return first + second + third
-
-    def gradPCA_S(self):
-        '''Compute the gradient of the ELBO with respect to S. Sanity check'''
-        matC = self.C
-        CrondC = torch.multiply(matC, matC)
-        SrondS = torch.multiply(self.S, self.S)
-        A = self.O + torch.mm(self.covariates, self.beta) + \
-            torch.mm(self.M, matC.T)
-        first = -1 / 2 * \
-            torch.multiply(
-                self.S,
-                torch.mm(
-                    torch.exp(
-                        A +
-                        1 /
-                        2 *
-                        torch.mm(
-                            SrondS,
-                            CrondC.T)),
-                    CrondC))
-        second = torch.div(1, self.S)
-        third = -self.S
-        return first + second + third
-
-    def gradPCA_C(self):
-        '''Compute the gradient of the ELBO with respect to C. Sanity check'''
-        matC = self.C
-        CrondC = torch.multiply(matC, matC)
-        SrondS = torch.multiply(self.S, self.S)
-        first = torch.mm(self.Y.T, self.M)
-        A = self.O + torch.mm(self.covariates, self.beta) + \
-            torch.mm(self.M, matC.T)
-        exp = torch.exp(A + 1 / 2 * torch.mm(SrondS, CrondC.T))
-        second = -1 / 2 * torch.mm(exp.T, self.M) - 1 / \
-            2 * torch.multiply(matC, torch.mm(exp.T, SrondS))
-        return first + second
-
-    def show_Sigma(self, ax = None, save=False, name_doss='fastPLNPCA_Sigma'):
-        '''Displays Sigma
-        args: 
-            'ax': AxesSubplot object. Sigma will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLNPCA_Sigma'.   
-        returns: None but displays Sigma. 
-        '''
-        fig = plt.figure()
-        if self.p >400: 
-            print('The heatmap only displays Sigma[:400,:400]') 
-            sns.heatmap(self.get_Sigma()[:400,:400].cpu().detach(), ax = ax)
-        else : 
-            sns.heatmap(self.get_Sigma().cpu().detach(), ax = ax)
-        # save the graphic if needed
-        if save:
-            plt.savefig(name_doss)
-        
-    def show_loss(self, ax = None, save=False, name_doss='fastPLNPCA_ELBO'): 
-        '''Show the ELBO of the algorithm along the iterations.  
-        
-        args: 
-            'ax': AxesSubplot object. The ELBO will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLNPCA_ELBO'.   
-        returns: None but displays the ELBO. 
-        '''
-        if not self.fitted:
-            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
-        if ax is None: 
-            ax = plt.gca()
-            to_show = True
-        else: 
-            to_show = False
-        ax.plot(self.running_times, -np.array(self.normalized_ELBOs),
-                   label='Negative ELBO')
-        ax.set_title('Negative ELBO')
-        ax.set_yscale('log')
-        ax.set_xlabel('Seconds')
-        ax.set_ylabel('ELBO')
-        ax.legend()
-        # save the graphic if needed
-        if save:
-            plt.savefig(name_doss)
-            
-        if to_show: 
-            plt.show()
-    def show_criterion(self, ax = None, save=False, name_doss='IMPS_PLN_criterion'): 
-        '''Show the criterion of the algorithm along the iterations.  
-        
-        args: 
-            'ax': AxesSubplot object. The criterion will be displayed in this ax 
-                if not None. If None, will simply create an axis. Default is None.  
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLN_criterion'.   
-        returns: None but displays the criterion. 
-        '''
-        if not self.fitted:
-            raise AttributeError('Please fit the model before by calling model.fit(Y,O,covariates)')
-        if ax is None: 
-            ax = plt.gca()
-            to_show = True
-        else: 
-            to_show = False
-        ax.plot(self.running_times[self.window:],
-                   self.deltas[self.window:], label='Delta')
-        ax.set_yscale('log')
-        ax.set_xlabel('Seconds')
-        ax.set_ylabel('Delta')
-        ax.set_title('Increments')
-        ax.legend()
-        # save the graphic if needed
-        if save:
-            plt.savefig(name_doss)
-        if to_show: 
-            plt.show()
-    def __str__(self):
-        '''Show the model, Sigma and the likelihood.'''
-        self.best_ELBO = max(self.normalized_ELBOs)
-        print('Best ELBO: ', self.best_ELBO) 
-        fig, axes = plt.subplots(1,3, figsize = (20,5))
-        self.show_loss(ax = axes[0])
-        self.show_criterion(ax= axes[1])
-        self.show_Sigma(ax = axes[2])
-        self.fig = fig
-        plt.show()
-        return ''
-    
-    def save_stat(self, name_doss= 'fastPLNPCA_graphic'): 
-        '''save some useful stats of the model. 
-        Args :
-            'name_doss' : str. The name of the file the graphic will be saved to.
-                Default is 'fastPLNPCA_graphic'.
-        Returns :
-                None but displays the figure.
-        '''
-        print(self)
-        self.fig.savefig(name_doss)
-
-    def get_Sigma(self):
-        '''Return the parameter Sigma of the model, that is CC^T'''
-        return (self.C @ (self.C.T)).detach()
-
-    def get_C(self):
-        '''Getter for C.'''
-        return self.C.detach()
-
-    def get_beta(self):
-        '''Getter for beta'''
-        return self.beta.detach()
