@@ -24,7 +24,7 @@ import torch
 import torch.linalg as TLA
 from scipy.linalg import toeplitz
 
-torch.set_default_dtype(torch.float64)
+#torch.set_default_dtype(torch.float64)
 ### O is not doing anything in the initialization of Sigma. should be fixed. 
 
 if torch.cuda.is_available():
@@ -92,7 +92,7 @@ class PLNPlotArgs():
 
 
 
-class Poisson_reg():
+class poissonReg():
     """Poisson regressor class.
     """
 
@@ -126,11 +126,12 @@ class Poisson_reg():
         """
         # Initialization of beta of size (d,p)
         beta = torch.rand( (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True)
+        print('beta poisson reg :', beta.dtype)
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         gradNorm = 2 * tol  # Criterion
         while i < Niter_max and gradNorm > tol:
-            loss = -compute_l(Y, O, covariates, beta)
+            loss = -computePoissRegLogLike(Y, O, covariates, beta)
             loss.backward()
             optimizer.step()
             gradNorm = torch.norm(beta.grad)
@@ -192,6 +193,8 @@ def initC(Y, O, covariates, beta, q):
     return C
 
 
+
+
 def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
     '''Initialization for the variational parameter M. Basically,
     the mode of the log_posterior is computed.
@@ -217,7 +220,7 @@ def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
     keep_condition = True
     i = 0
     while i < N_iter_max and keep_condition:
-        loss = -torch.mean(batch_log_P_WgivenY(Y, O, covariates, W, C, beta))
+        loss = -torch.mean(batchLogPWgivenY(Y, O, covariates, W, C, beta))
         loss.backward()
         optimizer.step()
         crit = torch.max(torch.abs(W - old_W))
@@ -231,7 +234,7 @@ def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
     return W
 
 
-def compute_l(Y, O, covariates, beta):
+def computePoissRegLogLike(Y, O, covariates, beta):
     """Compute the log likelihood of a Poisson regression."""
     # Matrix multiplication of X and beta.
     XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
@@ -330,6 +333,12 @@ def CFromSigma(Sigma, q):
     C_reduct = v[:, -q:] @ torch.diag(torch.sqrt(w[-q:]))
     return C_reduct
 
+def initBeta(Y, O, covariates): 
+    poiss_reg = poissonReg()
+    poiss_reg.fit(Y, O, covariates)
+    return torch.clone(poiss_reg.beta.detach()).to(device)
+
+
 
 def log_stirling(n):
     """Compute log(n!) even for n large. We use the Stirling formula to avoid
@@ -363,7 +372,60 @@ def refined_MSE(sparse_tensor):
     return torch.mean(diag)
 
 
-def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta):
+
+def sampleGaussians(NSamples, mean, sqrtSigma):
+    '''Sample some gaussians with the right mean and variance.
+    Be careful, we ask for the square root of Sigma, not Sigma.
+
+    Args:
+         NSamples : int. the number of samples wanted.
+         mean : torch.tensor of size (nBatch,q)
+         sqrtSigma : torch.tensor or size (batchSize, q, q). The square roots matrices
+             of the covariance matrices. (e.g. if you want to sample a gaussian with
+             covariance matrix A, you need to give the square root of A in argument.
+
+    Returns:
+        W: torch.tensor of size (NSamples, batchSize,q). It is a vector
+        of NSamples gaussian of dimension mean.shape. For each  1< i< NSample,
+        1<k< nBatch , W[i,k] is a gaussian with mean mean[k,:] and variance
+        sqrtSigma[k,:,:]@sqrtSigma[k,:,:].
+    '''
+    q = mean.shape[1]
+    WOrig = torch.randn(NSamples, 1, q, 1).to(device)
+    # just add the mean and multiply by the square root matrice to sample from
+    # the right distribution.
+    W = torch.matmul(
+        sqrtSigma.unsqueeze(0),
+        WOrig).squeeze() + mean.unsqueeze(0)
+    return W
+
+def logGaussianDensity(W, muP, SigmaP):
+    '''Compute the log density of a gaussian W of size
+    (NSamples, nBatch, q) With mean muP and SigmaP.
+
+    Args :
+        W: torch.tensor of size (NSamples, batchSize, q)
+        muP : torch.tensor of size (batchSize,q): the mean from which
+            the gaussian has been sampled.
+        SigmaP : torch.tensor of size (batchSize,q,q): The variance
+            from which the gaussian has been sampled.
+    Returns :
+        torch.tensor. The log of the density of W, taken along the last axis.
+    '''
+    dim = W.shape[-1]  # dimension q
+    # Constant of the gaussian density
+    const = torch.sqrt((2 * math.pi)**dim * torch.det(SigmaP))
+    Wmoinsmu = W - muP.unsqueeze(0)
+    invSig = torch.inverse(SigmaP)
+    # Log density of a gaussian.
+    logD = -1 / 2 * torch.matmul(
+        torch.matmul(invSig.unsqueeze(0),
+                     Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
+        Wmoinsmu.unsqueeze(3))
+    return logD.squeeze() - torch.log(const)
+
+
+def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
     '''Compute the log posterior of the PLN model. Compute it either
     for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
     both cases since it is done for both cases after. Please the mathematical 
@@ -388,3 +450,8 @@ def batch_log_P_WgivenY(Y_b, O_b, covariates_b, W, C, beta):
     second_term = torch.sum(-torch.exp(A_b) + A_b *
                             Y_b - log_stirling(Y_b), axis=-1)
     return first_term + second_term
+
+def plotList(myList,label, ax = None): 
+    if ax == None: 
+        ax = plt.gca()
+    ax.plot(np.arange(len(myList)), myList, label = label)

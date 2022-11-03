@@ -36,7 +36,7 @@ import torch
 import torch.linalg as TLA
 from tqdm import tqdm
 
-from .utils import C_from_Sigma, Poisson_reg, batch_log_P_WgivenY, init_C, MSE
+from .utils import Poisson_reg, batch_log_P_WgivenY, init_C, MSE
 from .utils import init_M, init_Sigma, log_stirling
 from .VRA import SAGARAD, SAGRAD, SVRGRAD
 
@@ -141,65 +141,6 @@ def log_gaussian_density(W, mu_p, Sigma_p):
                      Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
         Wmoinsmu.unsqueeze(3))
     return log_d.squeeze() - torch.log(const)
-
-
-class PLNmodel():
-    def __init__(self, q=None, nb_average_param=100, nb_average_likelihood=15):
-        self.q = q
-        self.nb_average_param = nb_average_param
-        self.nb_average_likelihood = nb_average_likelihood
-
-    def fit(self, Y, O, covariates, N_iter_max=500,  lr=0.1,
-            optimizer=torch.optim.Rprop, tol=1e-1,  good_init=True,
-            imps_optimizer=torch.optim.Adagrad, fast=True,
-            VR='SAGA', batch_size=40, acc=0.005, nb_plateau=15,
-            nb_trigger=5, verbose=False):
-        self.p = Y.shape[1]
-        if self. q == None:
-            print('You did not put any PCs in argument, so that the number')
-            print('of PCs is arbitrarily set to the maximum value.')
-            self.q = self.p
-        if self.q > self.p:
-            raise AttributeError('The number of PCs q cant be greater than p')
-        if self.q == self.p and fast == True:
-            print('Fitting a PLN model. Number of PCs: ', self.p)
-            self.model = fastPLN()
-            self.model.fit(Y, O, covariates, N_iter_max=N_iter_max, tol=tol,
-                           optimizer=optimizer, lr=lr, good_init=good_init, verbose=verbose)
-        elif self.q < self.p and fast == True:
-            print('Fitting a PLNPCA model. Number of PCs: ', self.q)
-            self.model = fastPLNPCA(self.q)
-            self.model.fit(Y, O, covariates, N_iter_max=N_iter_max*10, tol=tol*1e-2,
-                           optimizer=optimizer, lr=lr, good_init=good_init, verbose=verbose)
-        else:  # In this case: fast = False and we do importance sampling based inference.
-            print(
-                'Fitting a PLNPCA model with importance sampling. Number of PCs: ', self.p)
-            self.model = IMPS_PLN(
-                self.q, self.nb_average_param, self.nb_average_likelihood)
-            self.model.fit(Y, O, covariates, acc=acc, N_iter_max=N_iter_max*2, lr=lr,
-                           VR=VR, batch_size=batch_size, optimizer=imps_optimizer,
-                           nb_plateau=nb_plateau, nb_trigger=nb_trigger,
-                           good_init=good_init, verbose=verbose)
-
-    def plot_runtime(self):
-        self.model.plot_runtime()
-
-    def __str__(self):
-        '''Print the model that have been fitted'''
-        print(self.model)
-        return ''
-
-    def get_beta(self):
-        '''Getter for beta. Returns the estimated beta'''
-        return self.model.get_beta()
-
-    def get_Sigma(self):
-        '''Getter for Sigma. Returns the estimated Sigma'''
-        return self.model.get_Sigma()
-
-    def get_C(self):
-        '''Getter for C.'''
-        return self.model.get_C()
 
 
 class IMPS_PLN():
@@ -839,8 +780,6 @@ class IMPS_PLN():
             I_chap, (p_theta**2).unsqueeze(1).unsqueeze(2))
         var = torch.var(Dbar, axis=0)
         return torch.div(I_chapMuSquared + cov, (var + p_theta**2).unsqueeze(1).unsqueeze(2))
-        return torch.multiply(I_chap + cov, torch.div(p_theta**2, 1 + torch.var(Dbar, axis=0)).unsqueeze(1).unsqueeze(1))
-        return torch.div(I_chap*(torch.var(Dbar, axis=0).unsqueeze(1).unsqueeze(2)) - cov, (p_theta**2).unsqueeze(1).unsqueeze(2))
 
     def get_grad_beta(self):
         ''' Computes the gradient with respect to beta of the log likelihood
@@ -1094,44 +1033,4 @@ class IMPS_PLN():
         plt.legend()
         print('Total time :', np.sum(l_total))
         plt.show()
-
-#################################### FastPLN object ######################
-
-
-def ELBO(Y, O, covariates, M, S, Sigma, beta):
-    '''Compute the ELBO (Evidence LOwer Bound. See the doc for more details
-    on the computation.
-
-    Args:
-        Y: torch.tensor. Counts with size (n,p)
-        0: torch.tensor. Offset, size (n,p)
-        covariates: torch.tensor. Covariates, size (n,d)
-        M: torch.tensor. Variational parameter with size (n,p)
-        S: torch.tensor. Variational parameter with size (n,p)
-        Sigma: torch.tensor. Model parameter with size (p,p)
-        beta: torch.tensor. Model parameter with size (d,p)
-    Returns:
-        torch.tensor of size 1 with a gradient. The ELBO.
-    '''
-    n, p = Y.shape
-    SrondS = torch.multiply(S, S)
-    OplusM = O + M
-    MmoinsXB = M - torch.mm(covariates, beta)
-
-    tmp = - n / 2 * torch.logdet(Sigma)
-    tmp += torch.sum(torch.multiply(Y, OplusM)
-                     - torch.exp(OplusM + SrondS / 2)
-                     + 1 / 2 * torch.log(SrondS)
-                     )
-    DplusMmoinsXB2 = torch.diag(
-        torch.sum(SrondS, dim=0)) + torch.mm(MmoinsXB.T, MmoinsXB)
-    tmp -= 1 / 2 * torch.trace(
-        torch.mm(
-            torch.inverse(Sigma),
-            DplusMmoinsXB2
-        )
-    )
-    tmp -= torch.sum(log_stirling(Y))
-    tmp += n * p / 2
-    return tmp
 

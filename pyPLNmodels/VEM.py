@@ -5,10 +5,11 @@ from abc import ABC, abstractmethod
 import torch 
 import pandas as pd 
 import numpy as np 
-from utils import PLNPlotArgs, Poisson_reg, initSigma, initC
+from utils import PLNPlotArgs, poissonReg, initSigma, initC, initBeta  
 import time 
 import seaborn as sns
 import matplotlib.pyplot as plt 
+
 if torch.cuda.is_available(): 
     device = 'cuda'
 else: 
@@ -22,31 +23,25 @@ print('device:', device)
 
 class PLN(): 
     def __init__(self):
-        
         self.window = 3
         self.fitted = False
-
-    def betaInit(self): 
-        poiss_reg = Poisson_reg()
-        poiss_reg.fit(self.Y, self.O, self.covariates)
-        return torch.clone(poiss_reg.beta.detach()).to(device)
-
     def formatDatas(self, Y,O,covariates):
         self.Y = self.formatData(Y)
+        print('y type', self.Y.dtype)
         self.O = self.formatData(O)
         self.covariates = self.formatData(covariates)
     @abstractmethod
     def GoodInitModelParameters(self): 
-        self.beta = self.betaInit()
+        self.beta = initBeta(self.Y, self.O, self.covariates)
     @abstractmethod
     def randomInitModelParameters(self): 
         self.beta = torch.randn((self.d, self.p), device=device)
 
     def formatData(self,data): 
         if isinstance(data, pd.DataFrame): 
-            return torch.from_numpy(data.values).to(device)
+            return torch.from_numpy(data.values).float().to(device)
         elif isinstance(data, np.array): 
-            return  torch.from_numpy(data.values).to(device)
+            return  torch.from_numpy(data.values).float().to(device)
         elif isinstance(data, torch.tensor): 
             return data 
         else: 
@@ -161,6 +156,16 @@ class PLN():
     @abstractmethod
     def getSigma(self): 
         pass 
+
+
+
+
+
+
+
+
+
+
 class PLNnoPCA(PLN): 
     NAME = 'PLNnoPCA'    
     def goodInitModelParameters(self): 
