@@ -99,7 +99,6 @@ class IMPSPLN():
 
     def goodInitModelParameters(self): 
         self.beta = initBeta(self.Y, self.O, self.covariates)
-        print('betainit :', self.beta.dtype)
         self.C = initC(self.Y,self.O,self.covariates,self.beta,self.q).to(device)
 
         
@@ -129,7 +128,7 @@ class IMPSPLN():
             division is not always 0)
         '''
         indices = np.arange(self.n)
-        np.random.shuffle(indices)
+        #np.random.shuffle(indices)
         self.batchSize = batchSize
         nbFullBatch, lastBatchSize = self.n // batchSize, self.n % batchSize
         for i in range(nbFullBatch):
@@ -223,6 +222,9 @@ class IMPSPLN():
            None, but updates the parameter beta and C. Note that betaMean
            and CMean are more accurate and achieve a better likelihood in general.
         '''
+        self.passed = False
+        self.listDiff = list()
+        self.listMeanESS = list()
         nbIterMaxToFindMode = 100
         self.t0 = time.time()  # To keep track of the time
         self.criterionMax = criterionMax
@@ -232,9 +234,6 @@ class IMPSPLN():
         if self.fitted == False: 
             self.initFromData(Y, O, covariates, doGoodInit)
             self.initUsefulListsAndTensors()
-        print('y shape', self.Y.shape)
-        print('O shape', self.O.shape)
-        print('cov', self.covariates.shape)
         self.optimizer = classOptimizer([self.C, self.beta], lr=lr)
         if takeVarianceReducedGradients:
             vr = SAGA([self.beta, self.C], self.n)
@@ -242,21 +241,47 @@ class IMPSPLN():
         for epochNumber in tqdm(range(nbEpochMax)):
             logLike = 0
             self.epochNumber = epochNumber
+            #no shuffle is performed for analysis, shoudl shuffle again
             for YB, covariatesB, OB, selectedIndices in self.getBatch(batchSize):
+                if epochNumber>1: 
+                    #print('mode', self.batchMode)
+                    def batchUnLogPosterior(W):
+                        return batchLogPWgivenY(self.YB, self.OB, self.covariatesB, W, self.C, self.beta)
+                    self.batchUnLogPosterior = batchUnLogPosterior   
+                    weights = self.getWeights()
+                    #print('normalized weights :', self.normalizedWeights.shape)
+                    #print('samples ', self.samples)
+                    self.expectationMean = torch.sum(torch.multiply(self.normalizedWeights.unsqueeze(2), self.samples), axis = 0)
+                    #print('naive mean: ', torch.mean(self.samples, axis = 0))
+                    samplesCentered = self.samples - self.expectationMean
+                    outerW = torch.matmul(samplesCentered.unsqueeze(3), samplesCentered.unsqueeze(2)) 
+                    print('outer w . shape', outerW.shape)
+                    self.expectationVar = torch.sum(torch.multiply(self.normalizedWeights.unsqueeze(2).unsqueeze(3),outerW), axis = 0) 
+                    self.naiveVar = torch.mean(outerW, axis = 0)
+                    #print('expectation outer', expectationOuter.shape)
+                    #outerMean = torch.multiply(self.expectationMean.unsqueeze(2), self.expectationMean.unsqueeze(1))
+                    #print('outermean shape', outerMean.shape)
+                    #self.expectationVar =  expectationOuter - outerMean 
+                    #print('expectationMean:',self.expectation)
+
+                else: 
+                    print('no weights')
                 beginningBatchTime = time.time()
                 self.optimizer.zero_grad()
                 self.YB, self.covariatesB, self.OB = YB.to(device), covariatesB.to(device), OB.to(device)
                 self.selectedIndices = selectedIndices
                 batchLogLike, batchGradC, batchGradBeta = self.getGradientsAndLogLike(nbIterMaxToFindMode)
+                try: 
+                    self.listDiff.append(torch.mean(torch.abs(self.expectationMean - self.batchMode)))
+                    print('me :', torch.mean(torch.abs(self.expectationMean - self.batchMode)))
+                    print('me var', torch.mean(torch.abs(self.expectationVar - self.SigmaB)))
+                except: 
+                    print('not possible')
                 logLike+= batchLogLike
                 self.getStatWeights()
                 if debiasing:
                     batchGradC = self.getUnbiasedGrad('C')
                     batchGradBeta = self.getUnbiasedGrad('beta')
-                    #print('batch grad beta ', batchGradBeta)
-                    #print('batchGradC', batchGradC)
-                    #batchGradC += biasC
-                    #batchGradBeta += biasBeta
                 if takeVarianceReducedGradients:
                     vr.computeAndSetVarianceReducedGrad([-batchGradBeta, -batchGradC], selectedIndices)
                 else:
@@ -265,7 +290,10 @@ class IMPSPLN():
                 self.keepTrackOfTimeTook(beginningBatchTime)
                 self.optimizer.step()
                 self.averageParams()  
-
+                varWeights, effectiveSampleSize = self.getStatWeights()
+                print('mean varWeights :', torch.mean(varWeights))
+                self.listMeanESS.append(torch.mean(effectiveSampleSize))
+                print('mean ess', torch.mean(effectiveSampleSize))
             self.runningTimes.append(time.time() - self.t0)
             self.logLike = logLike / self.n * batchSize
             self.averageLikelihood()
@@ -273,7 +301,9 @@ class IMPSPLN():
             if crit > self.criterionMax - 1:
                 print('Algorithm stopped after ', self.epochNumber, ' epochs.')
                 self.fitted = True
+
                 break
+            self.passed = True 
         self.fitted = True
     def keepTrackOfTimeTook(self, beginningBatchTime): 
         timeToProcessBatch = time.time() - beginningBatchTime  
@@ -337,6 +367,7 @@ class IMPSPLN():
 
     def incrementCriterion(self):
         self.CriterionCounterList.append(self.CriterionCounterList[-1] + 1)
+
     def updateMaxLogLikeAndDontIncrementCriterion(self): 
         self.CriterionCounterList.append(self.CriterionCounterList[-1])
         self.maxLogLike = self.meanOfLastLogLikes
@@ -361,6 +392,11 @@ class IMPSPLN():
         computed here. The gaussians samples needs to be sampled from the
         right mean and variance, found by calling findBatchMode and
         getBatchBestVar methods. The formula of the variance
+        try: 
+            #pass 
+            self.batchMode = self.expectationMean
+        except: 
+            pass 
         can be found in the mathematical description.
         Args:
             NIterMode : int. The maximum number of iterations to do
@@ -375,10 +411,8 @@ class IMPSPLN():
         # Thanks to the mode, the best variance can be computed.
         self.getBatchBestVar()
         self.tGradEstim = time.time()
-        # get the samples generated with the mean (mode) and variance found.
         self.samples = sampleGaussians(
             self.nbMonteCarloSamples, self.batchMode, self.sqrtSigmaB)
-        # get the weights
         weights = self.getWeights()
         return weights
 
@@ -396,7 +430,6 @@ class IMPSPLN():
         Returns: torch.tensor of size (nbMonteCarloSamples,NBatch). The computed weights.
         '''
         # Log likelihood of the posterior
-        self.samples = self.samples  # *0+1
         self.logF = self.batchUnLogPosterior(self.samples)
         # Log likelihood of the gaussian density
         self.logG = logGaussianDensity(
@@ -426,8 +459,6 @@ class IMPSPLN():
         CW = torch.matmul(
             self.C.unsqueeze(0),
             self.batchMode.unsqueeze(2)).squeeze()
-        #print('C :', self.C)
-        #print('beta', self.beta)
         common = torch.exp(
             self.OB
             + self.covariatesB @ self.beta
@@ -436,7 +467,30 @@ class IMPSPLN():
         prod = batchMatrix * common
         # The hessian of the posterior
         HessPost = torch.sum(prod, axis=1) + torch.eye(self.q).to(device)
+        self.oldSigmaB = torch.clone(self.SigmaB)
         self.SigmaB = torch.inverse(HessPost.detach())
+        if self.passed: 
+            self.SigmaB = self.expectationVar
+            #self.SigmaB = self.expectationVar + torch.diag(torch.full((self.q, 1), 1e-8).squeeze()).to(device)
+            trueMat = torch.inverse(HessPost.detach())
+            for i in range(self.batchSize): 
+                mat = self.expectationVar[i]
+            #    trueMati = trueMat[i]
+                eigvals, _ = TLA.eigh(mat)
+                
+                print('mat :', mat)
+                print('old mat',self.oldSigmaB[i])
+            #    trueEigvals, _ = TLA.eigh(trueMati)
+            #    print('trueEigvals = ', trueEigvals)
+                print('eigvals:', eigvals)
+                TLA.cholesky(mat)
+            #    
+            #print('eigvals:', eigvals)
+            #print('shape', eigvals.shape)
+            self.batchMode = self.expectationMean
+
+        else:
+            print('impossible')
         # Add a term to avoid non-invertible matrix.
         #eps = torch.diag(torch.full((self.q, 1), 1e-8).squeeze()).to(device)
         self.sqrtSigmaB = TLA.cholesky(self.SigmaB) 
@@ -529,7 +583,6 @@ class IMPSPLN():
         '''
         pTheta = torch.exp(
             (torch.log(torch.mean(self.weights, axis=0)) + self.const))
-        #print('weigths', self.weights)
         Dbar = torch.multiply(self.weights, torch.exp(self.const).unsqueeze(0))
         
         
@@ -549,17 +602,7 @@ class IMPSPLN():
             2).unsqueeze(3), NbarCentered), axis=0)
         IChapMuSquared = torch.multiply(
             IChap, (pTheta**2).unsqueeze(1).unsqueeze(2))
-        #print('Dbar :', Dbar)
-        #print('denominatordd and pTheta squared', var + pTheta**2)
         var = torch.var(Dbar, axis=0)
-        #print('var :', var)
-        #print('Ichap', IChapMuSquared)
-        #print('denominatordd and pTheta squared', var + pTheta**2)
-        #print('denominatordd and pTheta squared', var + pTheta**2)
-        #print('cov', cov)
-        #print('pthetaSqaured', pTheta**2)
-        #print('denominator', var + pTheta)
-        #print('numerator', IChapMuSquared + cov)
         return torch.div(IChapMuSquared + cov, (var + pTheta**2).unsqueeze(1).unsqueeze(2))
 
     def getGradBeta(self):
@@ -629,9 +672,9 @@ class IMPSPLN():
             plt.show()
 
     def getStatWeights(self):
-        self.varWeights = torch.var(self.normalizedWeights, axis=0)
-        self.effectiveSampleSize = torch.div(torch.sum(self.normalizedWeights, axis=0)**2, torch.sum(self.normalizedWeights**2, axis=0))
-
+        varWeights = torch.var(self.normalizedWeights, axis=0)
+        effectiveSampleSize = torch.div(torch.sum(self.normalizedWeights, axis=0)**2, torch.sum(self.normalizedWeights**2, axis=0))/self.nbMonteCarloSamples
+        return varWeights, effectiveSampleSize
     def showLoss(self, ax=None, save=False, nameDoss='IMPSPLNLogLikelihood'):
         '''Show the log likelihood of the algorithm along the iterations.
 
