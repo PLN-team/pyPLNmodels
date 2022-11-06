@@ -1,7 +1,7 @@
 import torch 
 import pandas as pd 
 import numpy as np 
-from utils import sampleGaussians, logGaussianDensity, initC, initBeta, batchLogPWgivenY, plotList
+from utils import sampleGaussians, logGaussianDensity, initC, initBeta, batchLogPWgivenY, plotList, sampleStudents, logStudentDensity
 import matplotlib.pyplot as plt 
 import time 
 from tqdm import tqdm 
@@ -177,7 +177,7 @@ class IMPSPLN():
 
     def fit(self, Y, O, covariates, nbEpochMax=500, lr=0.1, classOptimizer=torch.optim.Adagrad,
             takeVarianceReducedGradients=True, batchSize=40, nbMonteCarloSamples = 200,
-                criterionMax=15, nbPlateauBeforeIncrementingCritertion=5, doGoodInit=True, verbose=False, debiasing=False):
+                criterionMax=15, nbPlateauBeforeIncrementingCritertion=5, doGoodInit=True, verbose=False, debiasing=False, takeMoyenne = False, takeVariance = False):
         '''Batch gradient ascent on the log likelihood given the data. Infer
         pTheta with importance sampling and then computes the gradients by hand.
         At each iteration, look for the right importance sampling law running
@@ -222,10 +222,12 @@ class IMPSPLN():
            None, but updates the parameter beta and C. Note that betaMean
            and CMean are more accurate and achieve a better likelihood in general.
         '''
+        self.takeMoyenne = takeMoyenne
+        self.takeVariance = takeVariance
         self.passed = False
         self.listDiff = list()
         self.listMeanESS = list()
-        nbIterMaxToFindMode = 100
+        nbIterMaxToFindMode = 700
         self.t0 = time.time()  # To keep track of the time
         self.criterionMax = criterionMax
         self.nbPlateauBeforeIncrementingCritertion = nbPlateauBeforeIncrementingCritertion
@@ -243,7 +245,7 @@ class IMPSPLN():
             self.epochNumber = epochNumber
             #no shuffle is performed for analysis, shoudl shuffle again
             for YB, covariatesB, OB, selectedIndices in self.getBatch(batchSize):
-                if epochNumber>1: 
+                if epochNumber>0: 
                     #print('mode', self.batchMode)
                     def batchUnLogPosterior(W):
                         return batchLogPWgivenY(self.YB, self.OB, self.covariatesB, W, self.C, self.beta)
@@ -255,7 +257,6 @@ class IMPSPLN():
                     #print('naive mean: ', torch.mean(self.samples, axis = 0))
                     samplesCentered = self.samples - self.expectationMean
                     outerW = torch.matmul(samplesCentered.unsqueeze(3), samplesCentered.unsqueeze(2)) 
-                    print('outer w . shape', outerW.shape)
                     self.expectationVar = torch.sum(torch.multiply(self.normalizedWeights.unsqueeze(2).unsqueeze(3),outerW), axis = 0) 
                     self.naiveVar = torch.mean(outerW, axis = 0)
                     #print('expectation outer', expectationOuter.shape)
@@ -273,8 +274,6 @@ class IMPSPLN():
                 batchLogLike, batchGradC, batchGradBeta = self.getGradientsAndLogLike(nbIterMaxToFindMode)
                 try: 
                     self.listDiff.append(torch.mean(torch.abs(self.expectationMean - self.batchMode)))
-                    print('me :', torch.mean(torch.abs(self.expectationMean - self.batchMode)))
-                    print('me var', torch.mean(torch.abs(self.expectationVar - self.SigmaB)))
                 except: 
                     print('not possible')
                 logLike+= batchLogLike
@@ -291,9 +290,7 @@ class IMPSPLN():
                 self.optimizer.step()
                 self.averageParams()  
                 varWeights, effectiveSampleSize = self.getStatWeights()
-                print('mean varWeights :', torch.mean(varWeights))
                 self.listMeanESS.append(torch.mean(effectiveSampleSize))
-                print('mean ess', torch.mean(effectiveSampleSize))
             self.runningTimes.append(time.time() - self.t0)
             self.logLike = logLike / self.n * batchSize
             self.averageLikelihood()
@@ -413,6 +410,7 @@ class IMPSPLN():
         self.tGradEstim = time.time()
         self.samples = sampleGaussians(
             self.nbMonteCarloSamples, self.batchMode, self.sqrtSigmaB)
+        self.samples = sampleStudents(self.nbMonteCarloSamples, self.batchMode, self.sqrtSigmaB,2)
         weights = self.getWeights()
         return weights
 
@@ -434,6 +432,7 @@ class IMPSPLN():
         # Log likelihood of the gaussian density
         self.logG = logGaussianDensity(
             self.samples, self.batchMode, self.SigmaB)
+        self.logG = logStudentDensity(self.samples, self.batchMode, self.SigmaB, 2)
         # Difference between the two logarithm
         diffLog = self.logF - self.logG
         self.const = torch.max(diffLog, axis=0)[0]
@@ -453,6 +452,9 @@ class IMPSPLN():
         Returns: None but compute the best covariance matrix and
             its square root, stored in the IMPSPLN object.
         '''
+        if self.passed: 
+            if self.takeMoyenne: 
+                self.batchMode = self.expectationMean
         batchMatrix = torch.matmul(
             self.C.unsqueeze(2),
             self.C.unsqueeze(1)).unsqueeze(0)
@@ -467,27 +469,30 @@ class IMPSPLN():
         prod = batchMatrix * common
         # The hessian of the posterior
         HessPost = torch.sum(prod, axis=1) + torch.eye(self.q).to(device)
-        self.oldSigmaB = torch.clone(self.SigmaB)
         self.SigmaB = torch.inverse(HessPost.detach())
         if self.passed: 
-            self.SigmaB = self.expectationVar
+            #self.oldSigmaB = torch.clone(self.SigmaB)
+            if self.takeVariance: 
+                self.SigmaB = self.expectationVar
             #self.SigmaB = self.expectationVar + torch.diag(torch.full((self.q, 1), 1e-8).squeeze()).to(device)
-            trueMat = torch.inverse(HessPost.detach())
-            for i in range(self.batchSize): 
-                mat = self.expectationVar[i]
-            #    trueMati = trueMat[i]
+            #trueMat = torch.inverse(HessPost.detach())
+            for i in range(self.batchSize):
+                mat = self.SigmaB[i]
+            ##    trueMati = trueMat[i]
                 eigvals, _ = TLA.eigh(mat)
-                
-                print('mat :', mat)
-                print('old mat',self.oldSigmaB[i])
-            #    trueEigvals, _ = TLA.eigh(trueMati)
-            #    print('trueEigvals = ', trueEigvals)
-                print('eigvals:', eigvals)
+            #    
+                if torch.sum(torch.isnan(mat)): 
+                    print('mat :', mat)
+                    print('C : ', self.C)
+                    print('beta :', self.beta)
+                    print( 'batch mode', self.batchMode[i])
+            #    print('old mat',self.oldSigmaB[i])
+            ##    trueEigvals, _ = TLA.eigh(trueMati)
+            ##    print('trueEigvals = ', trueEigvals)
                 TLA.cholesky(mat)
             #    
             #print('eigvals:', eigvals)
             #print('shape', eigvals.shape)
-            self.batchMode = self.expectationMean
 
         else:
             print('impossible')
@@ -769,7 +774,7 @@ class IMPSPLN():
         '''Getter for C. We return CMean to reduce variance'''
         return self.CMean.detach()
 
-    def findBatchMode(self, nbepochNumberMax, eps=9e-3):
+    def findBatchMode(self, nbepochNumberMax, eps=9e-6):
         '''Find the mode of the posterior with a gradient ascent.
         The last mode computed is used as starting point. However,
         each mode depends on the batch (YB,OB, covariatesB), so that

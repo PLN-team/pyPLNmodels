@@ -126,7 +126,6 @@ class poissonReg():
         """
         # Initialization of beta of size (d,p)
         beta = torch.rand( (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True)
-        print('beta poisson reg :', beta.dtype)
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         gradNorm = 2 * tol  # Criterion
@@ -373,6 +372,37 @@ def refined_MSE(sparse_tensor):
 
 
 
+def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
+    '''Compute the log posterior of the PLN model. Compute it either
+    for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
+    both cases since it is done for both cases after. Please the mathematical 
+    description of the package for the formula. 
+    Args :
+        Y_b : torch.tensor of size (batch_size, p)
+        covariates_b : torch.tensor of size (batch_size, d) or (d)
+    Returns: torch.tensor of size (N_samples, batch_size) or (batch_size).
+    '''
+    length = len(W.shape)
+    q = W.shape[-1]
+    if length == 2:
+        CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
+    elif length == 3:
+        CW = torch.matmul(
+            C.unsqueeze(0).unsqueeze(1),
+            W.unsqueeze(3)).squeeze()
+    
+    A_b = O_b + CW + covariates_b @ beta
+    first_term = -q / 2 * math.log(2 * math.pi) - \
+        1 / 2 * torch.norm(W, dim=-1)**2
+    second_term = torch.sum(-torch.exp(A_b) + A_b *
+                            Y_b - log_stirling(Y_b), axis=-1)
+    return first_term + second_term
+
+def plotList(myList,label, ax = None): 
+    if ax == None: 
+        ax = plt.gca()
+    ax.plot(np.arange(len(myList)), myList, label = label)
+
 def sampleGaussians(NSamples, mean, sqrtSigma):
     '''Sample some gaussians with the right mean and variance.
     Be careful, we ask for the square root of Sigma, not Sigma.
@@ -425,33 +455,41 @@ def logGaussianDensity(W, muP, SigmaP):
     return logD.squeeze() - torch.log(const)
 
 
-def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
-    '''Compute the log posterior of the PLN model. Compute it either
-    for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
-    both cases since it is done for both cases after. Please the mathematical 
-    description of the package for the formula. 
-    Args :
-        Y_b : torch.tensor of size (batch_size, p)
-        covariates_b : torch.tensor of size (batch_size, d) or (d)
-    Returns: torch.tensor of size (N_samples, batch_size) or (batch_size).
-    '''
-    length = len(W.shape)
-    q = W.shape[-1]
-    if length == 2:
-        CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
-    elif length == 3:
-        CW = torch.matmul(
-            C.unsqueeze(0).unsqueeze(1),
-            W.unsqueeze(3)).squeeze()
-    
-    A_b = O_b + CW + covariates_b @ beta
-    first_term = -q / 2 * math.log(2 * math.pi) - \
-        1 / 2 * torch.norm(W, dim=-1)**2
-    second_term = torch.sum(-torch.exp(A_b) + A_b *
-                            Y_b - log_stirling(Y_b), axis=-1)
-    return first_term + second_term
 
-def plotList(myList,label, ax = None): 
-    if ax == None: 
-        ax = plt.gca()
-    ax.plot(np.arange(len(myList)), myList, label = label)
+def sampleStudents(N_samples,mu,sqrtSigma,nu):
+    '''sample some variables from a student law with mean mu, variance sigma and nu degrees of freedom.\n",
+    '''
+    dim = mu.shape[1]
+    gaussian = torch.randn(N_samples,1,dim,1)
+    num = torch.matmul(
+        sqrtSigma.unsqueeze(0),
+        gaussian).squeeze() 
+    #num = torch.matmul(gaussian, sqrtSigma.unsqueeze(0)).squeeze()
+    denom = torch.sum(torch.randn(nu,N_samples)**2,axis = 0)
+    prod = torch.multiply(num, torch.sqrt(nu/denom).unsqueeze(1).unsqueeze(2))
+    return mu.unsqueeze(0) + prod
+def studentDensity(W,mu,Sigma,nu):
+    '''
+    density of a student law. The student law has heavier tails than the gaussian, so we will\n",
+    avoid infinite variance. This function takes W of size either (N_s, q) or q. Returns the density \n",
+    along the last axis. \n",
+    '''
+    q = W.shape[-1]
+    const = math.gamma((nu+q)/2)
+    const/= math.gamma(nu/2)
+    const/= (nu*math.pi)**(q/2)
+    const/= torch.sqrt(torch.det(Sigma))
+    if torch.sum(torch.isnan(torch.log(torch.det(Sigma))))>0 : 
+        print('det :', Sigma)
+    Wmoinsmu = W-mu.unsqueeze(0)
+
+    #W_term = torch.matmul(torch.matmul(torch.inverse(Sigma).unsqueeze(0), Wmoinsmu.unsqueeze(2)).squeeze().unsqueeze(1),Wmoinsmu.unsqueeze(2))
+    invSig = torch.inverse(Sigma)
+    W_term = torch.matmul(torch.matmul(invSig.unsqueeze(0),
+                     Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
+        Wmoinsmu.unsqueeze(3)).squeeze()
+    return const*(1+W_term/nu)**(-(nu+q)/2)
+
+def logStudentDensity(W,mu,Sigma,nu):
+    return torch.log(studentDensity(W,mu,Sigma,nu))
+   
