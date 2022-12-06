@@ -641,6 +641,12 @@ class IMPSPLN:
             self.findMeanPropositionWithGradientAscent()
         elif self.method == 'recycling': 
             self.findMeanPropositionWithRecycling()
+        elif self.method == 'both': 
+            self.findMeanPropositionWithGradientAscent()
+            self.getBatchBestVar()
+            self.getSamples()
+            _ = self.getWeights()
+            self.findMeanPropositionWithRecycling()
         else: 
             raise ValueError('should be either gradient or recycling method')
 
