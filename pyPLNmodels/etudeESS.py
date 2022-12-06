@@ -21,11 +21,53 @@ nbEpochMax = 100
 q = 10
 lr = 0.1
 window = 4
-doLissage = False
+doLissage = True
 
 
 
 plt.figure(figsize = (20,10))
+
+bigBothImps = IMPSPLN(q=q)
+bigBothImps.fit(
+    Y.iloc[:n, :],
+    O.iloc[:n, :],
+    covariates.iloc[:n, :],
+    nbEpochMax=nbEpochMax,
+    criterionMax=30,
+    batchSize=n,
+    nbMonteCarloSamples=nbMonteCarloSamplesBig,
+    method="both",
+    lr=lr,
+)
+lx, ly = np.arange(0, len(bigBothImps.listMeanESS)), 1 - np.array(bigBothImps.listMeanESS)
+if doLissage:
+    lx, ly = lissage(lx, ly, window)
+
+plt.plot(
+    lx, ly, color="black", label="moyenne IMPS+MG  et variance deterministe,1000 particules"
+)
+
+smallBothImps = IMPSPLN(q=q)
+smallBothImps.fit(
+    Y.iloc[:n, :],
+    O.iloc[:n, :],
+    covariates.iloc[:n, :],
+    nbEpochMax=nbEpochMax,
+    criterionMax=30,
+    batchSize=n,
+    nbMonteCarloSamples=nbMonteCarloSamplesSmall,
+    method="both",
+    lr=lr,
+)
+lx, ly = np.arange(0, len(smallBothImps.listMeanESS)), 1 - np.array(smallBothImps.listMeanESS)
+if doLissage:
+    lx, ly = lissage(lx, ly, window)
+
+plt.plot(
+    lx, ly, color="black", label="moyenne IMPS+MG  et variance deterministe,25 particules", linestyle = '--'
+)
+
+
 
 
 
