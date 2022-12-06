@@ -10,40 +10,43 @@ Created on Wed Nov  17 09:39:30 2021
 __authors__ = "Bastien Batardiere, Julien Chiquet and Joon Kwon"
 # __copyright__ =
 __credits__ = ["Bastien Batardiere", "Julien Chiquet", "Joon Kwon"]
-#__license__ = "GPL"
+# __license__ = "GPL"
 __version__ = "0.0.1"
 __maintainer__ = "Bastien Batardière"
 __email__ = "bastien.batardiere@gmail.com"
 __status__ = "Production"
 
 import math
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.linalg as SLA
 import torch
 import torch.linalg as TLA
 from scipy.linalg import toeplitz
 
-#torch.set_default_dtype(torch.float64)
-### O is not doing anything in the initialization of Sigma. should be fixed. 
+# torch.set_default_dtype(torch.float64)
+### O is not doing anything in the initialization of Sigma. should be fixed.
 
 if torch.cuda.is_available():
-    device = torch.device('cuda')
+    device = torch.device("cuda")
 else:
-    device = torch.device('cpu')
+    device = torch.device("cpu")
 # device = torch.device('cpu') # have to deal with this
-class PLNPlotArgs(): 
+
+
+class PLNPlotArgs:
     def __init__(self, window):
-        self.window = window 
+        self.window = window
         self.runningTimes = list()
         self.deltas = [1] * window
         self.normalizedELBOsList = list()
-    @property 
-    def length(self):       
+
+    @property
+    def length(self):
         return len(self.normalizedELBOsList)
-      
-    def showLoss(self, ax=None, savefig=False, nameDoss=''):
-        '''Show the ELBO of the algorithm along the iterations.
+
+    def showLoss(self, ax=None, savefig=False, nameDoss=""):
+        """Show the ELBO of the algorithm along the iterations.
 
         args:
             'ax': AxesSubplot object. The ELBO will be displayed in this ax
@@ -51,23 +54,28 @@ class PLNPlotArgs():
             'name_doss': str. The name of the file the graphic will be saved to.
                 Default is 'fastPLNPCA_ELBO'.
         returns: None but displays the ELBO.
-        '''
+        """
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.runningTimes, -np.array(self.normalizedELBOsList),
-                label='Negative ELBO') 
-        ax.set_title('Negative ELBO. Best ELBO = '+ str(np.round(self.normalizedELBOsList[-1], 6)))
-        ax.set_yscale('log')
-        ax.set_xlabel('Seconds')
-        ax.set_ylabel('ELBO')
+        ax.plot(
+            self.runningTimes,
+            -np.array(self.normalizedELBOsList),
+            label="Negative ELBO",
+        )
+        ax.set_title(
+            "Negative ELBO. Best ELBO = "
+            + str(np.round(self.normalizedELBOsList[-1], 6))
+        )
+        ax.set_yscale("log")
+        ax.set_xlabel("Seconds")
+        ax.set_ylabel("ELBO")
         ax.legend()
         # save the graphic if needed
         if savefig:
             plt.savefig(nameDoss)
 
-
-    def showCriterion(self, ax=None, savefig=False, nameDoss=''):
-        '''Show the criterion of the algorithm along the iterations.
+    def showCriterion(self, ax=None, savefig=False, nameDoss=""):
+        """Show the criterion of the algorithm along the iterations.
 
         args:
             'ax': AxesSubplot object. The criterion will be displayed in this ax
@@ -75,24 +83,23 @@ class PLNPlotArgs():
             'name_doss': str. The name of the file the graphic will be saved to.
                 Default is 'fastPLN_criterion'.
         returns: None but displays the criterion.
-        '''
+        """
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.runningTimes[self.window:],
-                self.deltas[self.window:], label='Delta')
-        ax.set_yscale('log')
-        ax.set_xlabel('Seconds')
-        ax.set_ylabel('Delta')
-        ax.set_title('Increments')
+        ax.plot(
+            self.runningTimes[self.window :], self.deltas[self.window :], label="Delta"
+        )
+        ax.set_yscale("log")
+        ax.set_xlabel("Seconds")
+        ax.set_ylabel("Delta")
+        ax.set_title("Increments")
         ax.legend()
         # save the graphic if needed
         if savefig:
             plt.savefig(nameDoss)
 
 
-
-
-class poissonReg():
+class poissonReg:
     """Poisson regressor class.
     """
 
@@ -100,9 +107,7 @@ class poissonReg():
         """No particular initialization is needed."""
         pass
 
-    def fit(
-            self, Y, O, covariates, Niter_max=300,
-            tol=0.001, lr=0.005, verbose=False):
+    def fit(self, Y, O, covariates, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
         """Run a gradient ascent to maximize the log likelihood, using
         pytorch autodifferentiation. The log likelihood considered is
         the one from a poisson regression model. It is roughly the
@@ -125,7 +130,9 @@ class poissonReg():
                 by calling self.beta.
         """
         # Initialization of beta of size (d,p)
-        beta = torch.rand( (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True)
+        beta = torch.rand(
+            (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True
+        )
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         gradNorm = 2 * tol  # Criterion
@@ -138,13 +145,13 @@ class poissonReg():
             i += 1
             if verbose:
                 if i % 10 == 0:
-                    print('log like : ', -loss)
-                    print('gradNorm : ', gradNorm)
+                    print("log like : ", -loss)
+                    print("gradNorm : ", gradNorm)
         if verbose:
             if i < Niter_max:
-                print('Tolerance reached in {} iterations'.format(i))
+                print("Tolerance reached in {} iterations".format(i))
             else:
-                print('Maxium number of iterations reached')
+                print("Maxium number of iterations reached")
         self.beta = beta
 
 
@@ -163,12 +170,11 @@ def initSigma(Y, O, covariates, beta):
     # then we set the log(Y) as 0.
     log_Y = torch.log(Y + (Y == 0) * math.exp(-2))
     # we remove the mean so that we see only the covariances
-    log_Y_c = log_Y - \
-        torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    log_Y_c = log_Y - torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     # MLE in a Gaussian setting
     n = Y.shape[0]
-    Sigma_hat = 1/(n-1)*(log_Y_c.T)@log_Y_c
-    
+    Sigma_hat = 1 / (n - 1) * (log_Y_c.T) @ log_Y_c
+
     return Sigma_hat
 
 
@@ -192,10 +198,8 @@ def initC(Y, O, covariates, beta, q):
     return C
 
 
-
-
 def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
-    '''Initialization for the variational parameter M. Basically,
+    """Initialization for the variational parameter M. Basically,
     the mode of the log_posterior is computed.
 
     Args:
@@ -210,7 +214,7 @@ def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
             the maximum of |W_t-W_{t-1}| is lower than eps, where W_t
             is the t-th iteration of the algorithm.This parameter
             changes a lot the resulting time of the algorithm. Default is 9e-3.
-    '''
+    """
     W = torch.randn(Y.shape[0], C.shape[1], device=device)
     W.requires_grad_(True)
     optimizer = torch.optim.Rprop([W], lr=lr)
@@ -229,7 +233,7 @@ def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
             keep_condition = False
         old_W = torch.clone(W)
         i += 1
-    print('nb iteration to find the mode: ', i)
+    print("nb iteration to find the mode: ", i)
     return W
 
 
@@ -268,12 +272,11 @@ def sample_PLN(C, beta, O, covariates, B_zero=None):
     n = O.shape[0]
     q = C.shape[1]
     Z = torch.mm(torch.randn(n, q, device=device), C.T) + covariates @ beta
-    parameter = torch.exp(O+Z)
+    parameter = torch.exp(O + Z)
     if B_zero is not None:
-        print('ZIPLN is sampled')
+        print("ZIPLN is sampled")
         ZI_cov = covariates @ B_zero
-        ksi = torch.bernoulli(
-            1 / (1 + torch.exp(-ZI_cov)))
+        ksi = torch.bernoulli(1 / (1 + torch.exp(-ZI_cov)))
     else:
         ksi = 0
     Y = (1 - ksi) * torch.poisson(parameter)
@@ -303,17 +306,19 @@ def build_block_Sigma(p, block_size):
     # np.random.seed(0)
     k = p // block_size  # number of matrices of size p//block_size.
     # will multiply each block by some random quantities
-    alea = np.random.randn(k + 1)**2 + 1
+    alea = np.random.randn(k + 1) ** 2 + 1
     Sigma = np.zeros((p, p))
     last_block_size = p - k * block_size
     # We need to form the k matrics of size p//block_size
     for i in range(k):
-        Sigma[i * block_size: (i + 1) * block_size, i * block_size:
-              (i + 1) * block_size] = alea[i] * toeplitz(0.7**np.arange(block_size))
+        Sigma[
+            i * block_size : (i + 1) * block_size, i * block_size : (i + 1) * block_size
+        ] = alea[i] * toeplitz(0.7 ** np.arange(block_size))
     # Last block matrix.
     if last_block_size > 0:
         Sigma[-last_block_size:, -last_block_size:] = alea[k] * toeplitz(
-            0.7**np.arange(last_block_size))
+            0.7 ** np.arange(last_block_size)
+        )
     return Sigma
 
 
@@ -332,11 +337,11 @@ def CFromSigma(Sigma, q):
     C_reduct = v[:, -q:] @ torch.diag(torch.sqrt(w[-q:]))
     return C_reduct
 
-def initBeta(Y, O, covariates): 
+
+def initBeta(Y, O, covariates):
     poiss_reg = poissonReg()
     poiss_reg.fit(Y, O, covariates)
     return torch.clone(poiss_reg.beta.detach()).to(device)
-
 
 
 def log_stirling(n):
@@ -348,32 +353,32 @@ def log_stirling(n):
         An approximation of log(n_!) element-wise.
     """
     n_ = n + (n == 0)  # Replace the 0 with 1. It doesn't change anything since 0! = 1!
-    return torch.log(torch.sqrt(2 * np.pi * n_)) + n_ * \
-        torch.log(n_ / math.exp(1))  # Stirling formula
+    return torch.log(torch.sqrt(2 * np.pi * n_)) + n_ * torch.log(
+        n_ / math.exp(1)
+    )  # Stirling formula
 
 
 def MSE(tens):
     """Compute the mean of the squared (element-wise) tensor."""
-    return torch.mean(tens**2)
+    return torch.mean(tens ** 2)
 
 
 def RMSE(tens):
     """Compute the root mean of the squared (element-wise) tensor."""
-    return torch.sqrt(torch.mean(tens**2))
+    return torch.sqrt(torch.mean(tens ** 2))
 
 
 def refined_MSE(sparse_tensor):
-    '''Compute the MSE of a tensor but only on the 9 largest diagonals.'''
-    diag = torch.diagonal(sparse_tensor**2, offset=0)
+    """Compute the MSE of a tensor but only on the 9 largest diagonals."""
+    diag = torch.diagonal(sparse_tensor ** 2, offset=0)
     for i in range(1, 5):
-        diag = torch.cat((diag, torch.diagonal(sparse_tensor**2, offset=i)))
-        diag = torch.cat((diag, torch.diagonal(sparse_tensor**2, offset=-i)))
+        diag = torch.cat((diag, torch.diagonal(sparse_tensor ** 2, offset=i)))
+        diag = torch.cat((diag, torch.diagonal(sparse_tensor ** 2, offset=-i)))
     return torch.mean(diag)
 
 
-
 def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
-    '''Compute the log posterior of the PLN model. Compute it either
+    """Compute the log posterior of the PLN model. Compute it either
     for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
     both cases since it is done for both cases after. Please the mathematical 
     description of the package for the formula. 
@@ -381,30 +386,28 @@ def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
         Y_b : torch.tensor of size (batch_size, p)
         covariates_b : torch.tensor of size (batch_size, d) or (d)
     Returns: torch.tensor of size (N_samples, batch_size) or (batch_size).
-    '''
+    """
     length = len(W.shape)
     q = W.shape[-1]
     if length == 2:
         CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
     elif length == 3:
-        CW = torch.matmul(
-            C.unsqueeze(0).unsqueeze(1),
-            W.unsqueeze(3)).squeeze()
-    
+        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1), W.unsqueeze(3)).squeeze()
+
     A_b = O_b + CW + covariates_b @ beta
-    first_term = -q / 2 * math.log(2 * math.pi) - \
-        1 / 2 * torch.norm(W, dim=-1)**2
-    second_term = torch.sum(-torch.exp(A_b) + A_b *
-                            Y_b - log_stirling(Y_b), axis=-1)
+    first_term = -q / 2 * math.log(2 * math.pi) - 1 / 2 * torch.norm(W, dim=-1) ** 2
+    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - log_stirling(Y_b), axis=-1)
     return first_term + second_term
 
-def plotList(myList,label, ax = None): 
-    if ax == None: 
+
+def plotList(myList, label, ax=None):
+    if ax == None:
         ax = plt.gca()
-    ax.plot(np.arange(len(myList)), myList, label = label)
+    ax.plot(np.arange(len(myList)), myList, label=label)
+
 
 def sampleGaussians(NSamples, mean, sqrtSigma):
-    '''Sample some gaussians with the right mean and variance.
+    """Sample some gaussians with the right mean and variance.
     Be careful, we ask for the square root of Sigma, not Sigma.
 
     Args:
@@ -419,18 +422,17 @@ def sampleGaussians(NSamples, mean, sqrtSigma):
         of NSamples gaussian of dimension mean.shape. For each  1< i< NSample,
         1<k< nBatch , W[i,k] is a gaussian with mean mean[k,:] and variance
         sqrtSigma[k,:,:]@sqrtSigma[k,:,:].
-    '''
+    """
     q = mean.shape[1]
     WOrig = torch.randn(NSamples, 1, q, 1).to(device)
     # just add the mean and multiply by the square root matrice to sample from
     # the right distribution.
-    W = torch.matmul(
-        sqrtSigma.unsqueeze(0),
-        WOrig).squeeze() + mean.unsqueeze(0)
+    W = torch.matmul(sqrtSigma.unsqueeze(0), WOrig).squeeze() + mean.unsqueeze(0)
     return W
 
+
 def logGaussianDensity(W, muP, SigmaP):
-    '''Compute the log density of a gaussian W of size
+    """Compute the log density of a gaussian W of size
     (NSamples, nBatch, q) With mean muP and SigmaP.
 
     Args :
@@ -441,55 +443,79 @@ def logGaussianDensity(W, muP, SigmaP):
             from which the gaussian has been sampled.
     Returns :
         torch.tensor. The log of the density of W, taken along the last axis.
-    '''
+    """
     dim = W.shape[-1]  # dimension q
     # Constant of the gaussian density
-    const = torch.sqrt((2 * math.pi)**dim * torch.det(SigmaP))
+    const = torch.sqrt((2 * math.pi) ** dim * torch.det(SigmaP))
     Wmoinsmu = W - muP.unsqueeze(0)
     invSig = torch.inverse(SigmaP)
     # Log density of a gaussian.
-    logD = -1 / 2 * torch.matmul(
-        torch.matmul(invSig.unsqueeze(0),
-                     Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
-        Wmoinsmu.unsqueeze(3))
+    logD = (
+        -1
+        / 2
+        * torch.matmul(
+            torch.matmul(invSig.unsqueeze(0), Wmoinsmu.unsqueeze(3))
+            .squeeze()
+            .unsqueeze(2),
+            Wmoinsmu.unsqueeze(3),
+        )
+    )
     return logD.squeeze() - torch.log(const)
 
 
-
-def sampleStudents(N_samples,mu,sqrtSigma,nu):
-    '''sample some variables from a student law with mean mu, variance sigma and nu degrees of freedom.\n",
-    '''
+def sampleStudents(N_samples, mu, sqrtSigma, nu):
+    """sample some variables from a student law with mean mu, variance sigma and nu degrees of freedom.\n",
+    """
     dim = mu.shape[1]
-    gaussian = torch.randn(N_samples,1,dim,1)
-    num = torch.matmul(
-        sqrtSigma.unsqueeze(0),
-        gaussian).squeeze() 
-    #num = torch.matmul(gaussian, sqrtSigma.unsqueeze(0)).squeeze()
-    denom = torch.sum(torch.randn(nu,N_samples)**2,axis = 0)
-    prod = torch.multiply(num, torch.sqrt(nu/denom).unsqueeze(1).unsqueeze(2))
+    gaussian = torch.randn(N_samples, 1, dim, 1)
+    num = torch.matmul(sqrtSigma.unsqueeze(0), gaussian).squeeze()
+    # num = torch.matmul(gaussian, sqrtSigma.unsqueeze(0)).squeeze()
+    denom = torch.sum(torch.randn(nu, N_samples) ** 2, axis=0)
+    prod = torch.multiply(num, torch.sqrt(nu / denom).unsqueeze(1).unsqueeze(2))
     return mu.unsqueeze(0) + prod
-def studentDensity(W,mu,Sigma,nu):
-    '''
+
+
+def studentDensity(W, mu, Sigma, nu):
+    """
     density of a student law. The student law has heavier tails than the gaussian, so we will\n",
     avoid infinite variance. This function takes W of size either (N_s, q) or q. Returns the density \n",
     along the last axis. \n",
-    '''
+    """
     q = W.shape[-1]
-    const = math.gamma((nu+q)/2)
-    const/= math.gamma(nu/2)
-    const/= (nu*math.pi)**(q/2)
-    const/= torch.sqrt(torch.det(Sigma))
-    if torch.sum(torch.isnan(torch.log(torch.det(Sigma))))>0 : 
-        print('det :', Sigma)
-    Wmoinsmu = W-mu.unsqueeze(0)
+    const = math.gamma((nu + q) / 2)
+    const /= math.gamma(nu / 2)
+    const /= (nu * math.pi) ** (q / 2)
+    const /= torch.sqrt(torch.det(Sigma))
+    if torch.sum(torch.isnan(torch.log(torch.det(Sigma)))) > 0:
+        print("det :", Sigma)
+    Wmoinsmu = W - mu.unsqueeze(0)
 
-    #W_term = torch.matmul(torch.matmul(torch.inverse(Sigma).unsqueeze(0), Wmoinsmu.unsqueeze(2)).squeeze().unsqueeze(1),Wmoinsmu.unsqueeze(2))
+    # W_term = torch.matmul(torch.matmul(torch.inverse(Sigma).unsqueeze(0), Wmoinsmu.unsqueeze(2)).squeeze().unsqueeze(1),Wmoinsmu.unsqueeze(2))
     invSig = torch.inverse(Sigma)
-    W_term = torch.matmul(torch.matmul(invSig.unsqueeze(0),
-                     Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
-        Wmoinsmu.unsqueeze(3)).squeeze()
-    return const*(1+W_term/nu)**(-(nu+q)/2)
+    W_term = torch.matmul(
+        torch.matmul(invSig.unsqueeze(0), Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
+        Wmoinsmu.unsqueeze(3),
+    ).squeeze()
+    return const * (1 + W_term / nu) ** (-(nu + q) / 2)
 
-def logStudentDensity(W,mu,Sigma,nu):
-    return torch.log(studentDensity(W,mu,Sigma,nu))
-   
+
+def logStudentDensity(W, mu, Sigma, nu):
+    return torch.log(studentDensity(W, mu, Sigma, nu))
+
+
+def lissage(Lx, Ly, p):
+    """Fonction qui débruite une courbe par une moyenne glissante
+    sur 2P+1 points"""
+    Lxout = []
+    Lyout = []
+    for i in range(p, len(Lx) - p):
+        Lxout.append(Lx[i])
+    for i in range(p, len(Ly) - p):
+        val = 0
+        for k in range(2 * p):
+            val += Ly[i - p + k]
+        Lyout.append(val / 2 / p)
+
+    return Lxout, Lyout
+
+
