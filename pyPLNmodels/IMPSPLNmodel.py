@@ -48,7 +48,7 @@ class IMPSPLN:
                 parameters with lower variance. nbAverageParam tells
                 the number of parameter took to build the mean. Should
                 not be changed since not very important. Default is 100.
-            nbAverageLikelihood: int, optional. Will average the logLikelihood
+                nbAverageLikelihood: int, optional. Will average the logLikelihood
                 of the model. nbAverage likelihood tells the number of
                 likelihood took to build the mean likelihood. Should
                 not be changed since not very important. Note that this
@@ -64,6 +64,7 @@ class IMPSPLN:
         self.fitted = False
         self.propLaw = propLaw
         self.current = current 
+        self.listDiffGradRecycling = list()
     def formatDatas(self, Y, O, covariates):
         self.Y = self.formatData(Y)
         self.O = self.formatData(O)
@@ -640,13 +641,20 @@ class IMPSPLN:
         elif self.method == 'gradient': 
             self.findMeanPropositionWithGradientAscent()
         elif self.method == 'recycling': 
+            self.oldMeanProposition = torch.clone(self.meanProposition)
+            self.findMeanPropositionWithGradientAscent()
+            self.gradMeanProposition = self.meanProposition
+            self.meanProposition = torch.clone(self.oldMeanProposition)
             self.findMeanPropositionWithRecycling()
+            self.listDiffGradRecycling.append(torch.mean(torch.abs(self.meanProposition-self.gradMeanProposition))) 
         elif self.method == 'both': 
             self.findMeanPropositionWithGradientAscent()
             self.getBatchBestVar()
             self.getSamples()
             _ = self.getWeights()
+            self.gradMeanProposition = self.meanProposition
             self.findMeanPropositionWithRecycling()
+            self.listDiffGradRecycling.append(torch.mean(torch.abs(self.meanProposition-self.gradMeanProposition))) 
         else: 
             raise ValueError('should be either gradient or recycling method')
 
