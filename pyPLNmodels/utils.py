@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """Implements all the functions needed for the other modules.
 
 Created on Wed Nov  17 09:39:30 2021
@@ -19,13 +18,12 @@ __status__ = "Production"
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.linalg as SLA
 import torch
 import torch.linalg as TLA
 from scipy.linalg import toeplitz
 
 # torch.set_default_dtype(torch.float64)
-### O is not doing anything in the initialization of Sigma. should be fixed.
+# O is not doing anything in the initialization of Sigma. should be fixed.
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -62,10 +60,8 @@ class PLNPlotArgs:
             -np.array(self.normalizedELBOsList),
             label="Negative ELBO",
         )
-        ax.set_title(
-            "Negative ELBO. Best ELBO = "
-            + str(np.round(self.normalizedELBOsList[-1], 6))
-        )
+        ax.set_title("Negative ELBO. Best ELBO = " +
+                     str(np.round(self.normalizedELBOsList[-1], 6)))
         ax.set_yscale("log")
         ax.set_xlabel("Seconds")
         ax.set_ylabel("ELBO")
@@ -86,9 +82,9 @@ class PLNPlotArgs:
         """
         if ax is None:
             ax = plt.gca()
-        ax.plot(
-            self.runningTimes[self.window :], self.deltas[self.window :], label="Delta"
-        )
+        ax.plot(self.runningTimes[self.window:],
+                self.deltas[self.window:],
+                label="Delta")
         ax.set_yscale("log")
         ax.set_xlabel("Seconds")
         ax.set_ylabel("Delta")
@@ -102,12 +98,18 @@ class PLNPlotArgs:
 class poissonReg:
     """Poisson regressor class.
     """
-
     def __init__(self):
         """No particular initialization is needed."""
         pass
 
-    def fit(self, Y, O, covariates, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
+    def fit(self,
+            Y,
+            O,
+            covariates,
+            Niter_max=300,
+            tol=0.001,
+            lr=0.005,
+            verbose=False):
         """Run a gradient ascent to maximize the log likelihood, using
         pytorch autodifferentiation. The log likelihood considered is
         the one from a poisson regression model. It is roughly the
@@ -130,9 +132,9 @@ class poissonReg:
                 by calling self.beta.
         """
         # Initialization of beta of size (d,p)
-        beta = torch.rand(
-            (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True
-        )
+        beta = torch.rand((covariates.shape[1], Y.shape[1]),
+                          device=device,
+                          requires_grad=True)
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         gradNorm = 2 * tol  # Criterion
@@ -170,7 +172,8 @@ def initSigma(Y, O, covariates, beta):
     # then we set the log(Y) as 0.
     log_Y = torch.log(Y + (Y == 0) * math.exp(-2))
     # we remove the mean so that we see only the covariances
-    log_Y_c = log_Y - torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    log_Y_c = log_Y - \
+        torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     # MLE in a Gaussian setting
     n = Y.shape[0]
     Sigma_hat = 1 / (n - 1) * (log_Y_c.T) @ log_Y_c
@@ -253,7 +256,7 @@ def sigmoid(x):
 def sample_PLN(C, beta, O, covariates, B_zero=None):
     """Sample Poisson log Normal variables. If B_zero is not None, the model will
     be zero inflated.
-  
+
     Args:
         C: torch.tensor of size (p,q). The matrix C of the PLN model
         beta: torch.tensor of size (d,p). Regression parameter. 
@@ -306,19 +309,17 @@ def build_block_Sigma(p, block_size):
     # np.random.seed(0)
     k = p // block_size  # number of matrices of size p//block_size.
     # will multiply each block by some random quantities
-    alea = np.random.randn(k + 1) ** 2 + 1
+    alea = np.random.randn(k + 1)**2 + 1
     Sigma = np.zeros((p, p))
     last_block_size = p - k * block_size
     # We need to form the k matrics of size p//block_size
     for i in range(k):
-        Sigma[
-            i * block_size : (i + 1) * block_size, i * block_size : (i + 1) * block_size
-        ] = alea[i] * toeplitz(0.7 ** np.arange(block_size))
+        Sigma[i * block_size:(i + 1) * block_size, i * block_size:(i + 1) *
+              block_size] = alea[i] * toeplitz(0.7**np.arange(block_size))
     # Last block matrix.
     if last_block_size > 0:
         Sigma[-last_block_size:, -last_block_size:] = alea[k] * toeplitz(
-            0.7 ** np.arange(last_block_size)
-        )
+            0.7**np.arange(last_block_size))
     return Sigma
 
 
@@ -344,7 +345,7 @@ def initBeta(Y, O, covariates):
     return torch.clone(poiss_reg.beta.detach()).to(device)
 
 
-def log_stirling(n):
+def logStirling(n):
     """Compute log(n!) even for n large. We use the Stirling formula to avoid
     numerical infinite values of n!.
     Args:
@@ -352,29 +353,10 @@ def log_stirling(n):
     Returns:
         An approximation of log(n_!) element-wise.
     """
-    n_ = n + (n == 0)  # Replace the 0 with 1. It doesn't change anything since 0! = 1!
-    return torch.log(torch.sqrt(2 * np.pi * n_)) + n_ * torch.log(
-        n_ / math.exp(1)
-    )  # Stirling formula
-
-
-def MSE(tens):
-    """Compute the mean of the squared (element-wise) tensor."""
-    return torch.mean(tens ** 2)
-
-
-def RMSE(tens):
-    """Compute the root mean of the squared (element-wise) tensor."""
-    return torch.sqrt(torch.mean(tens ** 2))
-
-
-def refined_MSE(sparse_tensor):
-    """Compute the MSE of a tensor but only on the 9 largest diagonals."""
-    diag = torch.diagonal(sparse_tensor ** 2, offset=0)
-    for i in range(1, 5):
-        diag = torch.cat((diag, torch.diagonal(sparse_tensor ** 2, offset=i)))
-        diag = torch.cat((diag, torch.diagonal(sparse_tensor ** 2, offset=-i)))
-    return torch.mean(diag)
+    n_ = n + \
+        (n == 0)  # Replace the 0 with 1. It doesn't change anything since 0! = 1!
+    return torch.log(torch.sqrt(
+        2 * np.pi * n_)) + n_ * torch.log(n_ / math.exp(1))  # Stirling formula
 
 
 def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
@@ -392,11 +374,14 @@ def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
     if length == 2:
         CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
     elif length == 3:
-        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1), W.unsqueeze(3)).squeeze()
+        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1),
+                          W.unsqueeze(3)).squeeze()
 
     A_b = O_b + CW + covariates_b @ beta
-    first_term = -q / 2 * math.log(2 * math.pi) - 1 / 2 * torch.norm(W, dim=-1) ** 2
-    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - log_stirling(Y_b), axis=-1)
+    first_term = -q / 2 * math.log(2 * math.pi) - \
+        1 / 2 * torch.norm(W, dim=-1) ** 2
+    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - logStirling(Y_b),
+                            axis=-1)
     return first_term + second_term
 
 
@@ -406,116 +391,6 @@ def plotList(myList, label, ax=None):
     ax.plot(np.arange(len(myList)), myList, label=label)
 
 
-def sampleGaussians(NSamples, mean, sqrtSigma):
-    """Sample some gaussians with the right mean and variance.
-    Be careful, we ask for the square root of Sigma, not Sigma.
-
-    Args:
-         NSamples : int. the number of samples wanted.
-         mean : torch.tensor of size (nBatch,q)
-         sqrtSigma : torch.tensor or size (batchSize, q, q). The square roots matrices
-             of the covariance matrices. (e.g. if you want to sample a gaussian with
-             covariance matrix A, you need to give the square root of A in argument.
-
-    Returns:
-        W: torch.tensor of size (NSamples, batchSize,q). It is a vector
-        of NSamples gaussian of dimension mean.shape. For each  1< i< NSample,
-        1<k< nBatch , W[i,k] is a gaussian with mean mean[k,:] and variance
-        sqrtSigma[k,:,:]@sqrtSigma[k,:,:].
-    """
-    q = mean.shape[1]
-    WOrig = torch.randn(NSamples, 1, q, 1).to(device)
-    # just add the mean and multiply by the square root matrice to sample from
-    # the right distribution.
-    W = torch.matmul(sqrtSigma.unsqueeze(0), WOrig).squeeze() + mean.unsqueeze(0)
-    return W
-
-
-def logGaussianDensity(W, muP, SigmaP):
-    """Compute the log density of a gaussian W of size
-    (NSamples, nBatch, q) With mean muP and SigmaP.
-
-    Args :
-        W: torch.tensor of size (NSamples, batchSize, q)
-        muP : torch.tensor of size (batchSize,q): the mean from which
-            the gaussian has been sampled.
-        SigmaP : torch.tensor of size (batchSize,q,q): The variance
-            from which the gaussian has been sampled.
-    Returns :
-        torch.tensor. The log of the density of W, taken along the last axis.
-    """
-    dim = W.shape[-1]  # dimension q
-    # Constant of the gaussian density
-    const = torch.sqrt((2 * math.pi) ** dim * torch.det(SigmaP))
-    Wmoinsmu = W - muP.unsqueeze(0)
-    invSig = torch.inverse(SigmaP)
-    # Log density of a gaussian.
-    logD = (
-        -1
-        / 2
-        * torch.matmul(
-            torch.matmul(invSig.unsqueeze(0), Wmoinsmu.unsqueeze(3))
-            .squeeze()
-            .unsqueeze(2),
-            Wmoinsmu.unsqueeze(3),
-        )
-    )
-    return logD.squeeze() - torch.log(const)
-
-
-def sampleStudents(N_samples, mu, sqrtSigma, nu):
-    """sample some variables from a student law with mean mu, variance sigma and nu degrees of freedom.\n",
-    """
-    dim = mu.shape[1]
-    gaussian = torch.randn(N_samples, 1, dim, 1)
-    num = torch.matmul(sqrtSigma.unsqueeze(0), gaussian).squeeze()
-    # num = torch.matmul(gaussian, sqrtSigma.unsqueeze(0)).squeeze()
-    denom = torch.sum(torch.randn(nu, N_samples) ** 2, axis=0)
-    prod = torch.multiply(num, torch.sqrt(nu / denom).unsqueeze(1).unsqueeze(2))
-    return mu.unsqueeze(0) + prod
-
-
-def studentDensity(W, mu, Sigma, nu):
-    """
-    density of a student law. The student law has heavier tails than the gaussian, so we will\n",
-    avoid infinite variance. This function takes W of size either (N_s, q) or q. Returns the density \n",
-    along the last axis. \n",
-    """
-    q = W.shape[-1]
-    const = math.gamma((nu + q) / 2)
-    const /= math.gamma(nu / 2)
-    const /= (nu * math.pi) ** (q / 2)
-    const /= torch.sqrt(torch.det(Sigma))
-    if torch.sum(torch.isnan(torch.log(torch.det(Sigma)))) > 0:
-        print("det :", Sigma)
-    Wmoinsmu = W - mu.unsqueeze(0)
-
-    # W_term = torch.matmul(torch.matmul(torch.inverse(Sigma).unsqueeze(0), Wmoinsmu.unsqueeze(2)).squeeze().unsqueeze(1),Wmoinsmu.unsqueeze(2))
-    invSig = torch.inverse(Sigma)
-    W_term = torch.matmul(
-        torch.matmul(invSig.unsqueeze(0), Wmoinsmu.unsqueeze(3)).squeeze().unsqueeze(2),
-        Wmoinsmu.unsqueeze(3),
-    ).squeeze()
-    return const * (1 + W_term / nu) ** (-(nu + q) / 2)
-
-
-def logStudentDensity(W, mu, Sigma, nu):
-    return torch.log(studentDensity(W, mu, Sigma, nu))
-
-
-def lissage(Lx, Ly, p):
-    """Fonction qui débruite une courbe par une moyenne glissante
-    sur 2P+1 points"""
-    Lxout = []
-    Lyout = []
-    for i in range(p, len(Lx) - p):
-        Lxout.append(Lx[i])
-    for i in range(p, len(Ly) - p):
-        val = 0
-        for k in range(2 * p):
-            val += Ly[i - p + k]
-        Lyout.append(val / 2 / p)
-
-    return Lxout, Lyout
-
-
+def truncLog(x, eps=1e-16):
+    y = torch.min(torch.max(x, torch.tensor([eps])), torch.tensor([1 - eps]))
+    return torch.log(y)
