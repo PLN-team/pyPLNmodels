@@ -20,6 +20,6 @@ setup(
     python_requires='>=3.8',
     keywords=['python','count', 'data', 'count data', 'high dimension', 'scRNAseq', 'PLN'],
     install_requires=requirements,
-    py_modules=['pyPLNmodels/utils','pyPLNmodels/elbos','pyPLNmodels/VEM','pyPLNmodels/test.py'],
+    py_modules=['pyPLNmodels.utils','pyPLNmodels.elbos','pyPLNmodels.VEM','pyPLNmodels.test', 'pyPLNmodels.closed_forms'],
     long_description_content_type='text/markdown'
 )
