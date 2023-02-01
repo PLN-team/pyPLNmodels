@@ -2,7 +2,7 @@ import torch
 from utils import log_stirling, trunc_log
 
 
-def ELBOnoPCA(Y, O, covariates, M, S, Sigma, beta):
+def ELBOnoPCA(Y, covariates,O, M, S, Sigma, beta):
     '''Compute the ELBO (Evidence LOwer Bound. See the doc for more details
     on the computation.
 
@@ -34,7 +34,7 @@ def ELBOnoPCA(Y, O, covariates, M, S, Sigma, beta):
     return elbo
 
 
-def ELBOPCA(Y, O, covariates, M, S, C, beta):
+def ELBOPCA(Y, covariates,O, M, S, C, beta):
     '''compute the ELBO with a PCA parametrization'''
     n = Y.shape[0]
     q = C.shape[1]
@@ -51,7 +51,7 @@ def ELBOPCA(Y, O, covariates, M, S, C, beta):
     return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - log_stirlingY + n * q / 2
 
 ## should rename some variables so that is is clearer when we see the formula
-def ELBOZI(Y, O, covariates, M, S, Sigma, beta, pi, B_zero, dirac):
+def ELBOZI(Y, covariates,O, M, S, Sigma, beta, pi, B_zero, dirac):
     if torch.norm(pi * dirac - pi) > 0.0001:
         print('Bug')
         return False

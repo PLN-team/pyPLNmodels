@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import torch
 import pandas as pd
 import numpy as np
-from utils import PLNPlotArgs , init_Sigma, init_C, init_beta
+from utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
 import time
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -24,13 +24,22 @@ class PLN():
         self.window = 3
         self.fitted = False
 
-    def format_datas(self, Y, O, covariates):
+    def format_datas(self, Y, covariates, O, O_formula):
         self.Y = self.format_data(Y)
-        self.O = self.format_data(O)
-        self.covariates = self.format_data(covariates)
+        if covariates is None: 
+            self.covariates = torch.full((self.Y.shape[0], 1), 1).float()
+        else:
+            self.covariates = self.format_data(covariates)
+        if O is None: 
+            if O_formula == 'sum': 
+                self.O = torch.log(getOFromSumOfY(self.Y)).float()
+            else:
+                self.O = torch.ones(self.Y.shape)
+        else: 
+            self.O = self.format_data(O)
 
     def smart_init_model_parameters(self):
-        self.beta = init_beta(self.Y, self.O, self.covariates)
+        self.beta = init_beta(self.Y, self.covariates, self.O)
 
     def random_init_model_parameters(self):
         self.beta = torch.randn((self.d, self.p), device=device)
@@ -47,7 +56,7 @@ class PLN():
                 'Please insert either a numpy array, pandas.DataFrame or torch.tensor'
             )
 
-    def init_parameters(self, Y, O, covariates, doGoodInit):
+    def init_parameters(self, Y, covariates,O, doGoodInit):
         self.n, self.p = self.Y.shape
         self.d = self.covariates.shape[1]
         print('Initialization ...')
@@ -74,19 +83,20 @@ class PLN():
 
     def fit(self,
             Y,
-            O,
-            covariates,
+            covariates = None,
+            O = None,
             nb_max_iteration=15000,
             lr=0.01,
             class_optimizer=torch.optim.Rprop,
             tol=1e-3,
             doGoodInit=True,
-            verbose=False):
+            verbose=False, 
+            O_formula = 'sum'):
         self.t0 = time.time()
         if self.fitted == False:
             self.plotargs = PLNPlotArgs(self.window)
-            self.format_datas(Y,O,covariates)
-            self.init_parameters(Y, O, covariates, doGoodInit)
+            self.format_datas(Y,covariates,O, O_formula)
+            self.init_parameters(Y, covariates,O, doGoodInit)
         self.optim = class_optimizer(
             self.list_of_parameters_needing_gradient, lr=lr)
         nb_iteration_done = 0
@@ -180,7 +190,7 @@ class PLNnoPCA(PLN):
 
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
-        self.Sigma = init_Sigma(self.Y, self.O, self.covariates, self.beta)
+        self.Sigma = init_Sigma(self.Y, self.covariates, self.O, self.beta)
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
@@ -195,7 +205,7 @@ class PLNnoPCA(PLN):
         return [self.M, self.S]
 
     def compute_ELBO(self):
-        return ELBOnoPCA(self.Y, self.O, self.covariates, self.M, self.S,
+        return ELBOnoPCA(self.Y, self.covariates, self.O, self.M, self.S,
                          self.Sigma, self.beta)
 
     def update_closed_forms(self):
@@ -216,7 +226,7 @@ class PLNPCA(PLN):
 
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
-        self.C = init_C(self.Y, self.O, self.covariates, self.beta, self.q)
+        self.C = init_C(self.Y, self.covariates, self.O, self.beta, self.q)
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
@@ -231,7 +241,7 @@ class PLNPCA(PLN):
         return [self.C, self.beta, self.M, self.S]
 
     def compute_ELBO(self):
-        return ELBOPCA(self.Y, self.O, self.covariates, self.M, self.S, self.C,
+        return ELBOPCA(self.Y, self.covariates, self.O, self.M, self.S, self.C,
                        self.beta)
 
     def get_Sigma(self):
@@ -249,7 +259,7 @@ class ZIPLN(PLN):
     # should change the good initialization, especially for Theta_zero
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
-        self.Sigma = init_Sigma(self.Y, self.O, self.covariates, self.beta)
+        self.Sigma = init_Sigma(self.Y, self.covariates, self.O, self.beta)
         self.Theta_zero = torch.randn(self.d, self.p)
 
     def random_init_var_parameters(self):
@@ -260,7 +270,7 @@ class ZIPLN(PLN):
             0, 1).to(device) * self.dirac
 
     def compute_ELBO(self):
-        return ELBOZI(self.Y, self.O, self.covariates, self.M, self.S,
+        return ELBOZI(self.Y, self.covariates, self.O, self.M, self.S,
                       self.Sigma, self.beta, self.pi, self.Theta_zero,
                       self.dirac)
 
