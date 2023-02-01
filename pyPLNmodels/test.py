@@ -2,7 +2,6 @@ import pandas as pd
 import torch 
 from VEM import ZIPLN, PLNnoPCA, PLNPCA
 import matplotlib.pyplot as plt 
-from utils import lissage 
 import numpy as np
 
 
