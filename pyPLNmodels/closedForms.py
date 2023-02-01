@@ -1,7 +1,7 @@
 import torch
 
 
-def closedSigma(covariates, M, S, beta, n):
+def closed_formula_Sigma(covariates, M, S, beta, n):
     '''Closed form for Sigma for the M step for the noPCA model.'''
     MmoinsXB = M - torch.mm(covariates, beta)
     closed = torch.mm(MmoinsXB.T, MmoinsXB)
@@ -9,7 +9,7 @@ def closedSigma(covariates, M, S, beta, n):
     return 1 / (n) * closed
 
 
-def closedBeta(covariates, M):
+def closed_formula_beta(covariates, M):
     '''Closed form for beta for the M step for the noPCA model.'''
     return torch.mm(
         torch.mm(
@@ -19,7 +19,6 @@ def closedBeta(covariates, M):
             covariates.T),
         M)
 
-def closedPi(O, M, S, dirac, covariates, ThetaZero):
+def closed_formula_pi(O, M, S, dirac, covariates, Theta_zero):
     A = torch.exp(O+M+torch.multiply(S, S)/2)
-    piChap = torch.multiply(torch.sigmoid(A+torch.mm(covariates, ThetaZero)), dirac)
-    return piChap
+    return  torch.multiply(torch.sigmoid(A+torch.mm(covariates, Theta_zero)), dirac)
