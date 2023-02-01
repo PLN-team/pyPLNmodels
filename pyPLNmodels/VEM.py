@@ -34,7 +34,7 @@ class PLN():
             if O_formula == 'sum': 
                 self.O = torch.log(getOFromSumOfY(self.Y)).float()
             else:
-                self.O = torch.ones(self.Y.shape)
+                self.O = torch.zeros(self.Y.shape)
         else: 
             self.O = self.format_data(O)
 
