@@ -1,5 +1,5 @@
+from closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from elbos import ELBOnoPCA, ELBOPCA, ELBOZI
-from closedForms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from abc import ABC, abstractmethod
 import torch
 import pandas as pd
