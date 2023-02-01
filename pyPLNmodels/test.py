@@ -1,7 +1,6 @@
 import pandas as pd 
 import torch 
 from VEM import ZIPLN, PLNnoPCA, PLNPCA
-import matplotlib.pyplot as plt 
 import numpy as np
 
 Y = pd.read_csv("../example_data/test_data/Y_test.csv")
