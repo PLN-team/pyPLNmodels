@@ -1,21 +1,5 @@
-#!/usr/bin/env python
-"""Implements all the functions needed for the other modules.
-
-Created on Wed Nov  17 09:39:30 2021
-
-@author: Bastien Batardiere, Julien Chiquet and Joon Kwon
-"""
-
-__authors__ = "Bastien Batardiere, Julien Chiquet and Joon Kwon"
-# __copyright__ =
-__credits__ = ["Bastien Batardiere", "Julien Chiquet", "Joon Kwon"]
-# __license__ = "GPL"
-__version__ = "0.0.1"
-__maintainer__ = "Bastien Batardière"
-__email__ = "bastien.batardiere@gmail.com"
-__status__ = "Production"
-
 import math
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -253,16 +237,16 @@ def sample_PLN(C, beta, covariates,O, B_zero=None):
 
     Args:
         C: torch.tensor of size (p,q). The matrix C of the PLN model
-        beta: torch.tensor of size (d,p). Regression parameter. 
-        0: torch.tensor of size (n,p0. Offsets. 
-        covariates : torch.tensor of size (n,d). Covariates. 
+        beta: torch.tensor of size (d,p). Regression parameter.
+        0: torch.tensor of size (n,p0. Offsets.
+        covariates : torch.tensor of size (n,d). Covariates.
         B_zero: torch.tensor of size (d,p), optional. If B_zero is not None,
-             the ZIPLN model is chosen, so that it will add a 
+             the ZIPLN model is chosen, so that it will add a
              Bernouilli layer. Default is None.
     Returns :
         Y: torch.tensor of size (n,p), the count variables.
         Z: torch.tensor of size (n,p), the gaussian latent variables.
-        ksi: torch.tensor of size (n,p), the bernoulli latent variables 
+        ksi: torch.tensor of size (n,p), the bernoulli latent variables
         (full of zeros if B_zero is None).
     """
 
@@ -351,8 +335,8 @@ def log_stirling(n):
 def log_PW_given_Y(Y_b, covariates_b,O_b, W, C, beta):
     """Compute the log posterior of the PLN model. Compute it either
     for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
-    both cases since it is done for both cases after. Please the mathematical 
-    description of the package for the formula. 
+    both cases since it is done for both cases after. Please the mathematical
+    description of the package for the formula.
     Args :
         Y_b : torch.tensor of size (batch_size, p)
         covariates_b : torch.tensor of size (batch_size, d) or (d)
@@ -388,4 +372,3 @@ def trunc_log(x, eps=1e-16):
 def getOFromSumOfY(Y):
     sumOfY = torch.sum(Y, axis = 1)
     return sumOfY.repeat((Y.shape[1], 1)).T
-
