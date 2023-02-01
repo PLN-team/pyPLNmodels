@@ -1,5 +1,5 @@
 import torch
-from utils import logStirling, truncLog
+from utils import log_stirling, trunc_log
 
 
 def ELBOnoPCA(Y, O, covariates, M, S, Sigma, beta):
@@ -29,7 +29,7 @@ def ELBOnoPCA(Y, O, covariates, M, S, Sigma, beta):
     DplusMmoinsXB2 = torch.diag(torch.sum(SrondS, dim=0)) + torch.mm(
         MmoinsXB.T, MmoinsXB)
     elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
-    elbo -= torch.sum(logStirling(Y))
+    elbo -= torch.sum(log_stirling(Y))
     elbo += n * p / 2
     return elbo
 
@@ -47,8 +47,8 @@ def ELBOPCA(Y, O, covariates, M, S, C, beta):
     moinslogSrondS = 1 / 2 * torch.sum(torch.log(SrondS))
     MMplusSrondS = torch.sum(-1 / 2 *
                              (torch.multiply(M, M) + torch.multiply(S, S)))
-    logStirlingY = torch.sum(logStirling(Y))
-    return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - logStirlingY + n * q / 2
+    log_stirlingY = torch.sum(log_stirling(Y))
+    return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - log_stirlingY + n * q / 2
 
 ## should rename some variables so that is is clearer when we see the formula
 def ELBOZI(Y, O, covariates, M, S, Sigma, beta, pi, B_zero, dirac):
@@ -65,11 +65,11 @@ def ELBOZI(Y, O, covariates, M, S, Sigma, beta, pi, B_zero, dirac):
         torch.multiply(
             1 - pi,
             torch.multiply(Y, OplusM) - torch.exp(OplusM + SrondS / 2) -
-            logStirling(Y)) + pi)
+            log_stirling(Y)) + pi)
 
     elbo -= torch.sum(
-        torch.multiply(pi, truncLog(pi)) +
-        torch.multiply(1 - pi, truncLog(1 - pi)))
+        torch.multiply(pi, trunc_log(pi)) +
+        torch.multiply(1 - pi, trunc_log(1 - pi)))
     elbo += torch.sum(
         torch.multiply(pi, XB_zero) - torch.log(1 + torch.exp(XB_zero)))
 

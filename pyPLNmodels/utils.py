@@ -35,15 +35,16 @@ else:
 class PLNPlotArgs:
     def __init__(self, window):
         self.window = window
-        self.runningTimes = list()
-        self.deltas = [1] * window
-        self.normalizedELBOsList = list()
+        self.running_times = list()
+        self.criterions = [1] * window
+        self.ELBOs_list = list()
+
 
     @property
-    def length(self):
-        return len(self.normalizedELBOsList)
+    def iteration_number(self):
+        return len(self.ELBOs_list)
 
-    def showLoss(self, ax=None, savefig=False, nameDoss=""):
+    def show_loss(self, ax=None, savefig=False, nameDoss=""):
         """Show the ELBO of the algorithm along the iterations.
 
         args:
@@ -56,12 +57,12 @@ class PLNPlotArgs:
         if ax is None:
             ax = plt.gca()
         ax.plot(
-            self.runningTimes,
-            -np.array(self.normalizedELBOsList),
+            self.running_times,
+            -np.array(self.ELBOs_list),
             label="Negative ELBO",
         )
         ax.set_title("Negative ELBO. Best ELBO = " +
-                     str(np.round(self.normalizedELBOsList[-1], 6)))
+                     str(np.round(self.ELBOs_list[-1], 6)))
         ax.set_yscale("log")
         ax.set_xlabel("Seconds")
         ax.set_ylabel("ELBO")
@@ -70,7 +71,7 @@ class PLNPlotArgs:
         if savefig:
             plt.savefig(nameDoss)
 
-    def showCriterion(self, ax=None, savefig=False, nameDoss=""):
+    def show_stopping_criterion(self, ax=None, savefig=False, nameDoss=""):
         """Show the criterion of the algorithm along the iterations.
 
         args:
@@ -82,8 +83,8 @@ class PLNPlotArgs:
         """
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.runningTimes[self.window:],
-                self.deltas[self.window:],
+        ax.plot(self.running_times[self.window:],
+                self.criterions[self.window:],
                 label="Delta")
         ax.set_yscale("log")
         ax.set_xlabel("Seconds")
@@ -95,13 +96,7 @@ class PLNPlotArgs:
             plt.savefig(nameDoss)
 
 
-class poissonReg:
-    """Poisson regressor class.
-    """
-    def __init__(self):
-        """No particular initialization is needed."""
-        pass
-
+class PoissonRegressor:
     def fit(self,
             Y,
             O,
@@ -139,7 +134,7 @@ class poissonReg:
         i = 0
         gradNorm = 2 * tol  # Criterion
         while i < Niter_max and gradNorm > tol:
-            loss = -computePoissRegLogLike(Y, O, covariates, beta)
+            loss = -poissreg_loglike(Y, O, covariates, beta)
             loss.backward()
             optimizer.step()
             gradNorm = torch.norm(beta.grad)
@@ -157,7 +152,7 @@ class poissonReg:
         self.beta = beta
 
 
-def initSigma(Y, O, covariates, beta):
+def init_Sigma(Y, O, covariates, beta):
     """ Initialization for Sigma for the PLN model. Take the log of Y
     (careful when Y=0), remove the covariates effects X@beta and
     then do as a MLE for Gaussians samples.
@@ -172,16 +167,16 @@ def initSigma(Y, O, covariates, beta):
     # then we set the log(Y) as 0.
     log_Y = torch.log(Y + (Y == 0) * math.exp(-2))
     # we remove the mean so that we see only the covariances
-    log_Y_c = log_Y - \
+    log_Y_centered = log_Y - \
         torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     # MLE in a Gaussian setting
     n = Y.shape[0]
-    Sigma_hat = 1 / (n - 1) * (log_Y_c.T) @ log_Y_c
+    Sigma_hat = 1 / (n - 1) * (log_Y_centered.T) @ log_Y_centered
 
     return Sigma_hat
 
 
-def initC(Y, O, covariates, beta, q):
+def init_C(Y, O, covariates, beta, q):
     """Inititalization for C for the PLN model. Get a first
     guess for Sigma that is easier to estimate and then takes
     the q largest eigenvectors to get C.
@@ -195,9 +190,9 @@ def initC(Y, O, covariates, beta, q):
         torch.tensor of size (p,q). The initialization of C.
     """
     # get a guess for Sigma
-    Sigma_hat = initSigma(Y, O, covariates, beta).detach()
+    Sigma_hat = init_Sigma(Y, O, covariates, beta).detach()
     # taking the q largest eigenvectors
-    C = CFromSigma(Sigma_hat, q)
+    C = C_from_Sigma(Sigma_hat, q)
     return C
 
 
@@ -221,17 +216,16 @@ def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
     W = torch.randn(Y.shape[0], C.shape[1], device=device)
     W.requires_grad_(True)
     optimizer = torch.optim.Rprop([W], lr=lr)
-    criterion = 2 * eps
+    crit= 2 * eps
     old_W = torch.clone(W)
     keep_condition = True
     i = 0
     while i < N_iter_max and keep_condition:
-        loss = -torch.mean(batchLogPWgivenY(Y, O, covariates, W, C, beta))
+        loss = -torch.mean(log_PW_given_Y(Y, O, covariates, W, C, beta))
         loss.backward()
         optimizer.step()
         crit = torch.max(torch.abs(W - old_W))
         optimizer.zero_grad()
-
         if crit < eps and i > 2:
             keep_condition = False
         old_W = torch.clone(W)
@@ -240,7 +234,7 @@ def init_M(Y, O, covariates, beta, C, N_iter_max, lr, eps=7e-3):
     return W
 
 
-def computePoissRegLogLike(Y, O, covariates, beta):
+def poissreg_loglike(Y, O, covariates, beta):
     """Compute the log likelihood of a Poisson regression."""
     # Matrix multiplication of X and beta.
     XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
@@ -286,11 +280,6 @@ def sample_PLN(C, beta, O, covariates, B_zero=None):
     return Y, Z, ksi
 
 
-def logit_(x):
-    """logit function"""
-    return torch.log(x / (1 - x))
-
-
 def logit(x):
     """logit function. If x is too close from 1, we set the result to 0.
     performs logit element wise."""
@@ -323,7 +312,7 @@ def build_block_Sigma(p, block_size):
     return Sigma
 
 
-def CFromSigma(Sigma, q):
+def C_from_Sigma(Sigma, q):
     """Get the best matrix of size (p,q) when Sigma is of
     size (p,p). i.e. reduces norm(Sigma-C@C.T)
     Args :
@@ -339,13 +328,13 @@ def CFromSigma(Sigma, q):
     return C_reduct
 
 
-def initBeta(Y, O, covariates):
-    poiss_reg = poissonReg()
+def init_beta(Y, O, covariates):
+    poiss_reg = PoissonRegressor()
     poiss_reg.fit(Y, O, covariates)
     return torch.clone(poiss_reg.beta.detach()).to(device)
 
 
-def logStirling(n):
+def log_stirling(n):
     """Compute log(n!) even for n large. We use the Stirling formula to avoid
     numerical infinite values of n!.
     Args:
@@ -359,7 +348,7 @@ def logStirling(n):
         2 * np.pi * n_)) + n_ * torch.log(n_ / math.exp(1))  # Stirling formula
 
 
-def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
+def log_PW_given_Y(Y_b, O_b, covariates_b, W, C, beta):
     """Compute the log posterior of the PLN model. Compute it either
     for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
     both cases since it is done for both cases after. Please the mathematical 
@@ -380,17 +369,17 @@ def batchLogPWgivenY(Y_b, O_b, covariates_b, W, C, beta):
     A_b = O_b + CW + covariates_b @ beta
     first_term = -q / 2 * math.log(2 * math.pi) - \
         1 / 2 * torch.norm(W, dim=-1) ** 2
-    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - logStirling(Y_b),
+    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - log_stirling(Y_b),
                             axis=-1)
     return first_term + second_term
 
 
-def plotList(myList, label, ax=None):
+def plot_list(myList, label, ax=None):
     if ax == None:
         ax = plt.gca()
     ax.plot(np.arange(len(myList)), myList, label=label)
 
 
-def truncLog(x, eps=1e-16):
+def trunc_log(x, eps=1e-16):
     y = torch.min(torch.max(x, torch.tensor([eps])), torch.tensor([1 - eps]))
     return torch.log(y)
