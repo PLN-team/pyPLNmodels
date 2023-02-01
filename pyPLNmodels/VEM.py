@@ -1,20 +1,20 @@
-from closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from elbos import ELBOnoPCA, ELBOPCA, ELBOZI
+import time
 from abc import ABC, abstractmethod
+
 import torch
 import pandas as pd
 import numpy as np
-from utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
-import time
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
+from ._elbos import ELBOnoPCA, ELBOPCA, ELBOZI
+from ._utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
 
 if torch.cuda.is_available():
     device = 'cuda'
 else:
     device = 'cpu'
-
-print('device:', device)
 
 # shoudl add a good init for M. for plnnopca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
@@ -26,16 +26,16 @@ class PLN():
 
     def format_datas(self, Y, covariates, O, O_formula):
         self.Y = self.format_data(Y)
-        if covariates is None: 
+        if covariates is None:
             self.covariates = torch.full((self.Y.shape[0], 1), 1).float()
         else:
             self.covariates = self.format_data(covariates)
-        if O is None: 
-            if O_formula == 'sum': 
+        if O is None:
+            if O_formula == 'sum':
                 self.O = torch.log(getOFromSumOfY(self.Y)).float()
             else:
                 self.O = torch.zeros(self.Y.shape)
-        else: 
+        else:
             self.O = self.format_data(O)
 
     def smart_init_model_parameters(self):
@@ -90,7 +90,7 @@ class PLN():
             class_optimizer=torch.optim.Rprop,
             tol=1e-3,
             doGoodInit=True,
-            verbose=False, 
+            verbose=False,
             O_formula = 'sum'):
         self.t0 = time.time()
         if self.fitted == False:
@@ -118,7 +118,7 @@ class PLN():
         loss.backward()
         self.optim.step()
         self.update_closed_forms()
-        return loss 
+        return loss
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:

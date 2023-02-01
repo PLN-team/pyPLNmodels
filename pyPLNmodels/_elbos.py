@@ -1,5 +1,5 @@
 import torch
-from utils import log_stirling, trunc_log
+from ._utils import log_stirling, trunc_log
 
 
 def ELBOnoPCA(Y, covariates,O, M, S, Sigma, beta):
@@ -81,4 +81,4 @@ def ELBOZI(Y, covariates,O, M, S, Sigma, beta, pi, B_zero, dirac):
     elbo += n / 2 * torch.log(torch.det(Sigma))
     elbo += n * p / 2
     elbo += torch.sum(1 / 2 * torch.log(SrondS))
-    return elbo 
+    return elbo
