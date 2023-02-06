@@ -1,8 +1,9 @@
 import torch
 from ._utils import log_stirling, trunc_log
+from ._closed_forms import closed_formula_Sigma, closed_formula_beta
 
 
-def ELBOnoPCA(Y, covariates,O, M, S, Sigma, beta):
+def ELBOPLN(Y, covariates,O, M, S, Sigma, beta):
     '''Compute the ELBO (Evidence LOwer Bound. See the doc for more details
     on the computation.
 
@@ -23,18 +24,52 @@ def ELBOnoPCA(Y, covariates,O, M, S, Sigma, beta):
     MmoinsXB = M - torch.mm(covariates, beta)
 
     elbo = -n / 2 * torch.logdet(Sigma)
+    print('logdetterm classic', elbo)
+    print('Sigma inside classic, ', Sigma)
     elbo += torch.sum(
         torch.multiply(Y, OplusM) - torch.exp(OplusM + SrondS / 2) +
         1 / 2 * torch.log(SrondS))
     DplusMmoinsXB2 = torch.diag(torch.sum(SrondS, dim=0)) + torch.mm(
         MmoinsXB.T, MmoinsXB)
+    moinspsur2n = 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
+    # print('closed beta,' ,closed_formula_beta(covariates, M))
+    # print('beta', beta)
+    # print('n * invinv Sig :',n*Sigma)
+    # print('n*closed form sigma',n*  closed_formula_Sigma(covariates, M, S, beta, n))
+    # print('DplusMmoinsXB2 ', DplusMmoinsXB2)
+    # print('inside trace ', torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
+    # print('inside trace size  ', torch.mm(torch.inverse(Sigma), DplusMmoinsXB2).shape)
+    # print('normalement 2p', torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2)))
+    # print(' 2*p :',2*p )
+    # print('normalement moins p sur 2 n ', moinspsur2n)
+    # print('-pn sur 2  ', -p*n/2)
     elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
     elbo -= torch.sum(log_stirling(Y))
     elbo += n * p / 2
     return elbo
 
+def profiledELBO(Y,covariates,O,M,S): 
+    n, p = Y.shape
+    SrondS = torch.multiply(S, S)
+    OplusM = O + M
+    
+    # elbo = -n / 2 * torch.logdet(Sigma)
+    closed_beta = closed_formula_beta(covariates, M) 
+    Sigma_inside = closed_formula_Sigma(covariates, M, S, closed_beta, n)
+    elbo = -n/2*torch.logdet(Sigma_inside)
+    print('logdetterm new', elbo)
+    print('Simga inside new ', Sigma_inside)
+    elbo += torch.sum(
+        torch.multiply(Y, OplusM) - torch.exp(OplusM + SrondS / 2) +
+        1 / 2 * torch.log(SrondS))
+    # elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
+    elbo -= n*p/2
+    elbo -= torch.sum(log_stirling(Y))
+    elbo += n * p / 2
+    return elbo
 
-def ELBOPCA(Y, covariates,O, M, S, C, beta):
+
+def ELBOPLNPCA(Y, covariates,O, M, S, C, beta):
     '''compute the ELBO with a PCA parametrization'''
     n = Y.shape[0]
     q = C.shape[1]
@@ -51,7 +86,7 @@ def ELBOPCA(Y, covariates,O, M, S, C, beta):
     return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - log_stirlingY + n * q / 2
 
 ## should rename some variables so that is is clearer when we see the formula
-def ELBOZI(Y, covariates,O, M, S, Sigma, beta, pi, B_zero, dirac):
+def ELBOZIPLN(Y, covariates,O, M, S, Sigma, beta, pi, B_zero, dirac):
     if torch.norm(pi * dirac - pi) > 0.0001:
         print('Bug')
         return False

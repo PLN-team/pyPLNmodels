@@ -8,7 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from ._elbos import ELBOnoPCA, ELBOPCA, ELBOZI
+from ._elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBO
 from ._utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
 
 if torch.cuda.is_available():
@@ -19,7 +19,7 @@ else:
 # shoudl add a good init for M. for plnnopca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
 
-class PLN():
+class _PLN():
     def __init__(self):
         self.window = 3
         self.fitted = False
@@ -115,6 +115,8 @@ class PLN():
     def trainstep(self):
         self.optim.zero_grad()
         loss = -self.compute_ELBO()
+        # print('beta :', self.beta)
+        # print('closed form beta', closed_formula_beta(self.covariates, self.M))
         loss.backward()
         self.optim.step()
         self.update_closed_forms()
@@ -185,8 +187,8 @@ class PLN():
         pass
 
 
-class PLNnoPCA(PLN):
-    NAME = 'PLNnoPCA'
+class PLN(_PLN):
+    NAME = 'PLN'
 
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
@@ -205,7 +207,7 @@ class PLNnoPCA(PLN):
         return [self.M, self.S]
 
     def compute_ELBO(self):
-        return ELBOnoPCA(self.Y, self.covariates, self.O, self.M, self.S,
+        return ELBOPLN(self.Y, self.covariates, self.O, self.M, self.S,
                          self.Sigma, self.beta)
 
     def update_closed_forms(self):
@@ -216,8 +218,27 @@ class PLNnoPCA(PLN):
     def get_Sigma(self):
         return self.Sigma.detach().cpu()
 
+class profiled_PLN(PLN):
+    NAME = 'profiledPLN'
 
-class PLNPCA(PLN):
+    def update_closed_forms(self): 
+        pass 
+
+    def get_beta(self):
+        return closed_formula_beta(self.covariates, self.M)
+
+    def get_Sigma(self): 
+        return closed_formula_Sigma(self.covariates, self.M, self.S, self.beta,
+                                 self.n)
+    def compute_ELBO(self): 
+        true_elbo = ELBOPLN(self.Y, self.covariates, self.O, self.M, self.S,
+                         self.get_Sigma(), self.get_beta())
+        # print('true elbo :', true_elbo)
+        my_elbo = profiledELBO(self.Y, self.covariates, self.O, self.M, self.S)
+        # print('my elbo:', my_elbo)
+        print('diff:', my_elbo - true_elbo)
+        return my_elbo
+class PLNPCA(_PLN):
     NAME = 'PLNPCA'
 
     def __init__(self, q):
@@ -241,13 +262,13 @@ class PLNPCA(PLN):
         return [self.C, self.beta, self.M, self.S]
 
     def compute_ELBO(self):
-        return ELBOPCA(self.Y, self.covariates, self.O, self.M, self.S, self.C,
+        return ELBOPLNPCA(self.Y, self.covariates, self.O, self.M, self.S, self.C,
                        self.beta)
 
     def get_Sigma(self):
         return (self.C @ (self.C.T)).detach().cpu()
 
-
+    
 class ZIPLN(PLN):
     NAME = 'ZIPLN'
 
@@ -270,7 +291,7 @@ class ZIPLN(PLN):
             0, 1).to(device) * self.dirac
 
     def compute_ELBO(self):
-        return ELBOZI(self.Y, self.covariates, self.O, self.M, self.S,
+        return ELBOZIPLN(self.Y, self.covariates, self.O, self.M, self.S,
                       self.Sigma, self.beta, self.pi, self.Theta_zero,
                       self.dirac)
 
