@@ -16,7 +16,7 @@ if torch.cuda.is_available():
 else:
     device = 'cpu'
 
-# shoudl add a good init for M. for plnnopca we should not put the maximum of the log posterior, for plnpca it may be ok.
+# shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
 
 class _PLN():
