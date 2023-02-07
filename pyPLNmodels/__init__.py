@@ -1,3 +1,3 @@
 __version__ = '0.0.13'
 
-from .VEM import (PLNPCA, PLNnoPCA)
+from .VEM import (PLNPCA, PLN, profiled_PLN)
