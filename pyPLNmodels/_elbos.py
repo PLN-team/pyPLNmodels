@@ -22,50 +22,29 @@ def ELBOPLN(Y, covariates,O, M, S, Sigma, beta):
     SrondS = torch.multiply(S, S)
     OplusM = O + M
     MmoinsXB = M - torch.mm(covariates, beta)
-
     elbo = -n / 2 * torch.logdet(Sigma)
-    print('logdetterm classic', elbo)
-    print('Sigma inside classic, ', Sigma)
     elbo += torch.sum(
         torch.multiply(Y, OplusM) - torch.exp(OplusM + SrondS / 2) +
         1 / 2 * torch.log(SrondS))
     DplusMmoinsXB2 = torch.diag(torch.sum(SrondS, dim=0)) + torch.mm(
         MmoinsXB.T, MmoinsXB)
     moinspsur2n = 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
-    # print('closed beta,' ,closed_formula_beta(covariates, M))
-    # print('beta', beta)
-    # print('n * invinv Sig :',n*Sigma)
-    # print('n*closed form sigma',n*  closed_formula_Sigma(covariates, M, S, beta, n))
-    # print('DplusMmoinsXB2 ', DplusMmoinsXB2)
-    # print('inside trace ', torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
-    # print('inside trace size  ', torch.mm(torch.inverse(Sigma), DplusMmoinsXB2).shape)
-    # print('normalement 2p', torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2)))
-    # print(' 2*p :',2*p )
-    # print('normalement moins p sur 2 n ', moinspsur2n)
-    # print('-pn sur 2  ', -p*n/2)
     elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
     elbo -= torch.sum(log_stirling(Y))
     elbo += n * p / 2
     return elbo
 
-def profiledELBO(Y,covariates,O,M,S): 
+def profiledELBOPLN(Y,covariates,O,M,S): 
     n, p = Y.shape
     SrondS = torch.multiply(S, S)
     OplusM = O + M
-    
-    # elbo = -n / 2 * torch.logdet(Sigma)
     closed_beta = closed_formula_beta(covariates, M) 
-    Sigma_inside = closed_formula_Sigma(covariates, M, S, closed_beta, n)
-    elbo = -n/2*torch.logdet(Sigma_inside)
-    print('logdetterm new', elbo)
-    print('Simga inside new ', Sigma_inside)
+    closed_Sigma = closed_formula_Sigma(covariates, M, S, closed_beta, n)
+    elbo = -n/2*torch.logdet(closed_Sigma)
     elbo += torch.sum(
         torch.multiply(Y, OplusM) - torch.exp(OplusM + SrondS / 2) +
         1 / 2 * torch.log(SrondS))
-    # elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
-    elbo -= n*p/2
     elbo -= torch.sum(log_stirling(Y))
-    elbo += n * p / 2
     return elbo
 
 
