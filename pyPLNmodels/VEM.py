@@ -8,7 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from ._elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBO
+from ._elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
 from ._utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
 
 if torch.cuda.is_available():
@@ -190,14 +190,6 @@ class _PLN():
 class PLN(_PLN):
     NAME = 'PLN'
 
-    def smart_init_model_parameters(self):
-        super().smart_init_model_parameters()
-        self.Sigma = init_Sigma(self.Y, self.covariates, self.O, self.beta)
-
-    def random_init_model_parameters(self):
-        super().random_init_model_parameters()
-        self.Sigma = torch.diag(torch.ones(self.p)).to(device)
-
     def random_init_var_parameters(self):
         self.S = 1 / 2 * torch.ones((self.n, self.p)).to(device)
         self.M = torch.ones((self.n, self.p)).to(device)
@@ -207,37 +199,15 @@ class PLN(_PLN):
         return [self.M, self.S]
 
     def compute_ELBO(self):
-        return ELBOPLN(self.Y, self.covariates, self.O, self.M, self.S,
-                         self.Sigma, self.beta)
-
-    def update_closed_forms(self):
-        self.beta = closed_formula_beta(self.covariates, self.M)
-        self.Sigma = closed_formula_Sigma(self.covariates, self.M, self.S, self.beta,
-                                 self.n)
+        return profiledELBOPLN(self.Y, self.covariates, self.O, self.M, self.S)
 
     def get_Sigma(self):
-        return self.Sigma.detach().cpu()
-
-class profiled_PLN(PLN):
-    NAME = 'profiledPLN'
-
-    def update_closed_forms(self): 
-        pass 
+        return closed_formula_Sigma(self.covariates, self.M, self.S, self.get_beta(),
+                                 self.n).detach().cpu()
 
     def get_beta(self):
-        return closed_formula_beta(self.covariates, self.M)
+        return closed_formula_beta(self.covariates, self.M).detach().cpu()
 
-    def get_Sigma(self): 
-        return closed_formula_Sigma(self.covariates, self.M, self.S, self.beta,
-                                 self.n)
-    def compute_ELBO(self): 
-        true_elbo = ELBOPLN(self.Y, self.covariates, self.O, self.M, self.S,
-                         self.get_Sigma(), self.get_beta())
-        # print('true elbo :', true_elbo)
-        my_elbo = profiledELBO(self.Y, self.covariates, self.O, self.M, self.S)
-        # print('my elbo:', my_elbo)
-        print('diff:', my_elbo - true_elbo)
-        return my_elbo
 class PLNPCA(_PLN):
     NAME = 'PLNPCA'
 
