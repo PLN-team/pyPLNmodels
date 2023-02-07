@@ -10,16 +10,16 @@ with open("requirements.txt", "r") as fh:
 setup(
     name='pyPLNmodels',
     version=__version__,
-    description = 'Package implementing PLN models', 
+    description = 'Package implementing PLN models',
     url='https://github.com/PLN-team/PLNpy/tree/master/pyPLNmodels',
     author='Bastien Batardière, Julien Chiquet, Joon Kwon',
     author_email='bastien.batardiere@gmail.com',
     license_files = ('LICENSE.txt',),
     long_description=long_description,
     packages=find_packages(),
-    python_requires='>=3.8',
+    python_requires='>=3.0',
     keywords=['python','count', 'data', 'count data', 'high dimension', 'scRNAseq', 'PLN'],
     install_requires=requirements,
-    py_modules=['pyPLNmodels.utils','pyPLNmodels.elbos','pyPLNmodels.VEM','pyPLNmodels.test', 'pyPLNmodels.closed_forms'],
+    py_modules=['pyPLNmodels._utils','pyPLNmodels.elbos','pyPLNmodels.VEM','pyPLNmodels._closed_forms'],
     long_description_content_type='text/markdown'
 )
