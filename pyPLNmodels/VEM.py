@@ -8,7 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from ._elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
+from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
 from ._utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
 
 if torch.cuda.is_available():
@@ -185,6 +185,10 @@ class _PLN():
     @abstractmethod
     def get_Sigma(self):
         pass
+    
+    @property
+    def ELBOs_list(self):
+        return self.plotargs.ELBOs_list
 
 
 class PLN(_PLN):
