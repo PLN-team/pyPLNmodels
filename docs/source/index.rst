@@ -8,9 +8,11 @@ Welcome to pyPLNmodels's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
-
+.. toctree::
+   ./getting_started.rst
+   ./tutorials.rst
 
 Indices and tables
 ==================
