@@ -9,27 +9,28 @@ import matplotlib.pyplot as plt
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
-from ._utils import PLNPlotArgs , init_Sigma, init_C, init_beta, getOFromSumOfY
+from ._utils import PLNPlotArgs, init_Sigma, init_C, init_beta, getOFromSumOfY
 
 if torch.cuda.is_available():
-    device = 'cuda'
+    device = "cuda"
 else:
-    device = 'cpu'
+    device = "cpu"
 
 # shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
 
 class _PLN(ABC):
-    """ 
-    Virtual class for all the PLN models. 
-    
+    """
+    Virtual class for all the PLN models.
+
     This class must be derivatived. The methods `get_Sigma`, `compute_ELBO`,
     `random_init_var_parameters` and `list_of_parameters_needing_gradient` must
-    be defined. 
+    be defined.
     """
+
     def __init__(self):
         """
-        Simple initialization method. 
+        Simple initialization method.
         """
         self.window = 3
         self.fitted = False
@@ -41,7 +42,7 @@ class _PLN(ABC):
         else:
             self.covariates = self.format_data(covariates)
         if O is None:
-            if O_formula == 'sum':
+            if O_formula == "sum":
                 self.O = torch.log(getOFromSumOfY(self.Y)).float()
             else:
                 self.O = torch.zeros(self.Y.shape)
@@ -67,19 +68,19 @@ class _PLN(ABC):
             return data
         else:
             raise Exception(
-                'Please insert either a numpy array, pandas.DataFrame or torch.tensor'
+                "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
             )
 
-    def init_parameters(self, Y, covariates,O, doGoodInit):
+    def init_parameters(self, Y, covariates, O, doGoodInit):
         self.n, self.p = self.Y.shape
         self.d = self.covariates.shape[1]
-        print('Initialization ...')
+        print("Initialization ...")
         if doGoodInit:
             self.smart_init_model_parameters()
         else:
             self.random_init_model_parameters()
         self.random_init_var_parameters()
-        print('Initialization finished')
+        print("Initialization finished")
         self.putParametersToDevice()
 
     def putParametersToDevice(self):
@@ -90,38 +91,38 @@ class _PLN(ABC):
     def list_of_parameters_needing_gradient(self):
         pass
 
-
-    def fit(self,
-            Y,
-            covariates = None,
-            O = None,
-            nb_max_iteration=15000,
-            lr=0.01,
-            class_optimizer=torch.optim.Rprop,
-            tol=1e-3,
-            doGoodInit=True,
-            verbose=False,
-            O_formula = 'sum'):
-        """  
-        Main function of the class. Fit a PLN to the data.  
+    def fit(
+        self,
+        Y,
+        covariates=None,
+        O=None,
+        nb_max_iteration=15000,
+        lr=0.01,
+        class_optimizer=torch.optim.Rprop,
+        tol=1e-3,
+        doGoodInit=True,
+        verbose=False,
+        O_formula="sum",
+    ):
+        """
+        Main function of the class. Fit a PLN to the data.
         Parameters
         ----------
         Y : torch.tensor or ndarray or DataFrame.
-            2-d count data. 
+            2-d count data.
         covariates : torch.tensor or ndarray or DataFrame or None, default = None
-            If not `None`, the first dimension should equal the first dimension of `Y`. 
+            If not `None`, the first dimension should equal the first dimension of `Y`.
         O : torch.tensor or ndarray or DataFrame or None, default = None
-            Model offset. If not `None`, size should be the same as `Y`. 
+            Model offset. If not `None`, size should be the same as `Y`.
         """
         self.t0 = time.time()
         if self.fitted == False:
             self.plotargs = PLNPlotArgs(self.window)
-            self.format_datas(Y,covariates,O, O_formula)
-            self.init_parameters(Y, covariates,O, doGoodInit)
-        else: 
+            self.format_datas(Y, covariates, O, O_formula)
+            self.init_parameters(Y, covariates, O, doGoodInit)
+        else:
             self.t0 -= self.plotargs.running_times[-1]
-        self.optim = class_optimizer(
-            self.list_of_parameters_needing_gradient, lr=lr)
+        self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
         nb_iteration_done = 0
         stop_condition = False
         while nb_iteration_done < nb_max_iteration and stop_condition == False:
@@ -145,25 +146,33 @@ class _PLN(ABC):
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
-            print('Tolerance {} reached in {} iterations'.format(
-                tol, self.plotargs.iteration_number))
+            print(
+                "Tolerance {} reached in {} iterations".format(
+                    tol, self.plotargs.iteration_number
+                )
+            )
         else:
-            print('Maximum number of iterations reached : ',
-                  self.plotargs.iteration_number, 'last criterion = ',
-                  np.round(self.plotargs.criterions[-1], 8))
+            print(
+                "Maximum number of iterations reached : ",
+                self.plotargs.iteration_number,
+                "last criterion = ",
+                np.round(self.plotargs.criterions[-1], 8),
+            )
 
     def print_stats(self):
-        print('-------UPDATE-------')
-        print('Iteration number: ', self.plotargs.iteration_number)
-        print('Criterion: ', np.round(self.plotargs.criterions[-1], 8))
-        print('ELBO:', np.round(self.plotargs.ELBOs_list[-1], 6))
+        print("-------UPDATE-------")
+        print("Iteration number: ", self.plotargs.iteration_number)
+        print("Criterion: ", np.round(self.plotargs.criterions[-1], 8))
+        print("ELBO:", np.round(self.plotargs.ELBOs_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
         self.plotargs.ELBOs_list.append(-loss.item() / self.n)
         self.plotargs.running_times.append(time.time() - self.t0)
         if self.plotargs.iteration_number > self.window:
-            criterion = abs(self.plotargs.ELBOs_list[-1] -
-                        self.plotargs.ELBOs_list[-1 - self.window])
+            criterion = abs(
+                self.plotargs.ELBOs_list[-1]
+                - self.plotargs.ELBOs_list[-1 - self.window]
+            )
             self.plotargs.criterions.append(criterion)
             return criterion
         else:
@@ -176,21 +185,21 @@ class _PLN(ABC):
     def compute_ELBO(self):
         pass
 
-    def display_Sigma(self, ax=None, savefig=False, name_file=''):
+    def display_Sigma(self, ax=None, savefig=False, name_file=""):
         """
-        Display a heatmap of Sigma to visualize correlations. 
+        Display a heatmap of Sigma to visualize correlations.
 
-        If Sigma is too big (size is > 400), will only display the first block 
-        of size (400,400). 
-        Parameters 
+        If Sigma is too big (size is > 400), will only display the first block
+        of size (400,400).
+        Parameters
         ---------
-        
+
         ax : matplotlib Axes, optional
             Axes in which to draw the plot, otherwise use the currently-active Axes.
-        savefig: bool, optional 
-            If True the figure will be saved. Default is False. 
+        savefig: bool, optional
+            If True the figure will be saved. Default is False.
         name_file : str, optional
-            The name of the file the graphic will be saved to if saved. 
+            The name of the file the graphic will be saved to if saved.
             Default is an empty string.
         """
         fig = plt.figure()
@@ -203,30 +212,32 @@ class _PLN(ABC):
         plt.close()  # to avoid displaying a blanck screen
 
     def __str__(self):
-        string ='A multivariate Poisson Lognormal with ' + self.DESCRIPTION + '\n' 
-        string += 'Best likelihood:'+ str(np.max(-self.plotargs.ELBOs_list[-1])) + '\n'
+        string = "A multivariate Poisson Lognormal with " + self.DESCRIPTION + "\n"
+        string += "Best likelihood:" + str(np.max(-self.plotargs.ELBOs_list[-1])) + "\n"
         return string
 
     def show(self):
-        print('Best likelihood:',np.max(-self.plotargs.ELBOs_list[-1]))
+        print("Best likelihood:", np.max(-self.plotargs.ELBOs_list[-1]))
         fig, axes = plt.subplots(1, 3, figsize=(23, 5))
         self.plotargs.show_loss(ax=axes[0])
         self.plotargs.show_stopping_criterion(ax=axes[1])
         self.display_Sigma(ax=axes[2])
         plt.show()
-        return ''
+        return ""
+
     @abstractmethod
     def get_Sigma(self):
         pass
-    
+
     @property
     def ELBOs_list(self):
         return self.plotargs.ELBOs_list
 
 
 class PLN(_PLN):
-    NAME = 'PLN'
-    DESCRIPTION= 'full covariance model.'
+    NAME = "PLN"
+    DESCRIPTION = "full covariance model."
+
     def random_init_var_parameters(self):
         self.S = 1 / 2 * torch.ones((self.n, self.p)).to(device)
         self.M = torch.ones((self.n, self.p)).to(device)
@@ -239,8 +250,14 @@ class PLN(_PLN):
         return profiledELBOPLN(self.Y, self.covariates, self.O, self.M, self.S)
 
     def get_Sigma(self):
-        return closed_formula_Sigma(self.covariates, self.M, self.S, self.get_beta(),
-                                 self.n).detach().cpu()
+        return (
+            closed_formula_Sigma(
+                self.covariates, self.M, self.S, self.get_beta(), self.n
+            )
+            .detach()
+            .cpu()
+        )
+
     def smart_init_model_parameters(self):
         pass
 
@@ -250,16 +267,17 @@ class PLN(_PLN):
     def get_beta(self):
         return closed_formula_beta(self.covariates, self.M).detach().cpu()
 
-    @property 
-    def beta(self): 
+    @property
+    def beta(self):
         return self.get_beta()
 
-    @property 
+    @property
     def Sigma(self):
         return self.get_Sigma()
 
+
 class PLNPCA(_PLN):
-    NAME = 'PLNPCA'
+    NAME = "PLNPCA"
     DESCRIPTION = " with Principal Component Analysis."
 
     def __init__(self, q):
@@ -283,16 +301,17 @@ class PLNPCA(_PLN):
         return [self.C, self.beta, self.M, self.S]
 
     def compute_ELBO(self):
-        return ELBOPLNPCA(self.Y, self.covariates, self.O, self.M, self.S, self.C,
-                       self.beta)
+        return ELBOPLNPCA(
+            self.Y, self.covariates, self.O, self.M, self.S, self.C, self.beta
+        )
 
     def get_Sigma(self):
         return (self.C @ (self.C.T)).detach().cpu()
 
-    
+
 class ZIPLN(PLN):
-    NAME = 'ZIPLN'
-    DESCRIPTION= 'with full covariance model and zero-inflation.'
+    NAME = "ZIPLN"
+    DESCRIPTION = "with full covariance model and zero-inflation."
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
@@ -306,16 +325,24 @@ class ZIPLN(PLN):
         self.Theta_zero = torch.randn(self.d, self.p)
 
     def random_init_var_parameters(self):
-        self.dirac = (self.Y == 0)
+        self.dirac = self.Y == 0
         self.M = torch.randn(self.n, self.p)
         self.S = torch.randn(self.n, self.p)
-        self.pi = torch.empty(self.n, self.p).uniform_(
-            0, 1).to(device) * self.dirac
+        self.pi = torch.empty(self.n, self.p).uniform_(0, 1).to(device) * self.dirac
 
     def compute_ELBO(self):
-        return ELBOZIPLN(self.Y, self.covariates, self.O, self.M, self.S,
-                      self.pi, self.Sigma, self.beta, self.Theta_zero,
-                      self.dirac)
+        return ELBOZIPLN(
+            self.Y,
+            self.covariates,
+            self.O,
+            self.M,
+            self.S,
+            self.pi,
+            self.Sigma,
+            self.beta,
+            self.Theta_zero,
+            self.dirac,
+        )
 
     def get_Sigma(self):
         return self.Sigma.detach().cpu()
@@ -326,7 +353,9 @@ class ZIPLN(PLN):
 
     def update_closed_forms(self):
         self.beta = closed_formula_beta(self.covariates, self.M)
-        self.Sigma = closed_formula_Sigma(self.covariates, self.M, self.S, self.beta,
-                                 self.n)
-        self.pi = closed_formula_pi(self.O, self.M, self.S, self.dirac, self.covariates,
-                           self.Theta_zero)
+        self.Sigma = closed_formula_Sigma(
+            self.covariates, self.M, self.S, self.beta, self.n
+        )
+        self.pi = closed_formula_pi(
+            self.O, self.M, self.S, self.dirac, self.covariates, self.Theta_zero
+        )

@@ -1,0 +1,12 @@
+
+stages:
+  - checks
+  - publish
+
+black:
+  stage: checks
+  image: registry.gitlab.com/pipeline-components/black:latest
+  script:
+    - black --check --verbose -- .
+  tags:
+    - docker
