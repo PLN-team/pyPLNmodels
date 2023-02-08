@@ -23,7 +23,6 @@ class PLNPlotArgs:
         self.criterions = [1] * window
         self.ELBOs_list = list()
 
-
     @property
     def iteration_number(self):
         return len(self.ELBOs_list)
@@ -45,8 +44,9 @@ class PLNPlotArgs:
             -np.array(self.ELBOs_list),
             label="Negative ELBO",
         )
-        ax.set_title("Negative ELBO. Best ELBO = " +
-                     str(np.round(self.ELBOs_list[-1], 6)))
+        ax.set_title(
+            "Negative ELBO. Best ELBO = " + str(np.round(self.ELBOs_list[-1], 6))
+        )
         ax.set_yscale("log")
         ax.set_xlabel("Seconds")
         ax.set_ylabel("ELBO")
@@ -67,9 +67,11 @@ class PLNPlotArgs:
         """
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.running_times[self.window:],
-                self.criterions[self.window:],
-                label="Delta")
+        ax.plot(
+            self.running_times[self.window :],
+            self.criterions[self.window :],
+            label="Delta",
+        )
         ax.set_yscale("log")
         ax.set_xlabel("Seconds")
         ax.set_ylabel("Delta")
@@ -81,14 +83,7 @@ class PLNPlotArgs:
 
 
 class PoissonRegressor:
-    def fit(self,
-            Y,
-            covariates,
-            O,
-            Niter_max=300,
-            tol=0.001,
-            lr=0.005,
-            verbose=False):
+    def fit(self, Y, covariates, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
         """Run a gradient ascent to maximize the log likelihood, using
         pytorch autodifferentiation. The log likelihood considered is
         the one from a poisson regression model. It is roughly the
@@ -111,14 +106,14 @@ class PoissonRegressor:
                 by calling self.beta.
         """
         # Initialization of beta of size (d,p)
-        beta = torch.rand((covariates.shape[1], Y.shape[1]),
-                          device=device,
-                          requires_grad=True)
+        beta = torch.rand(
+            (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True
+        )
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         gradNorm = 2 * tol  # Criterion
         while i < Niter_max and gradNorm > tol:
-            loss = -poissreg_loglike(Y,  covariates,O, beta)
+            loss = -poissreg_loglike(Y, covariates, O, beta)
             loss.backward()
             optimizer.step()
             gradNorm = torch.norm(beta.grad)
@@ -136,8 +131,8 @@ class PoissonRegressor:
         self.beta = beta
 
 
-def init_Sigma(Y,  covariates,O, beta):
-    """ Initialization for Sigma for the PLN model. Take the log of Y
+def init_Sigma(Y, covariates, O, beta):
+    """Initialization for Sigma for the PLN model. Take the log of Y
     (careful when Y=0), remove the covariates effects X@beta and
     then do as a MLE for Gaussians samples.
     Args :
@@ -151,8 +146,9 @@ def init_Sigma(Y,  covariates,O, beta):
     # then we set the log(Y) as 0.
     log_Y = torch.log(Y + (Y == 0) * math.exp(-2))
     # we remove the mean so that we see only the covariances
-    log_Y_centered = log_Y - \
-        torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    log_Y_centered = (
+        log_Y - torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    )
     # MLE in a Gaussian setting
     n = Y.shape[0]
     Sigma_hat = 1 / (n - 1) * (log_Y_centered.T) @ log_Y_centered
@@ -160,7 +156,7 @@ def init_Sigma(Y,  covariates,O, beta):
     return Sigma_hat
 
 
-def init_C(Y,  covariates,O, beta, q):
+def init_C(Y, covariates, O, beta, q):
     """Inititalization for C for the PLN model. Get a first
     guess for Sigma that is easier to estimate and then takes
     the q largest eigenvectors to get C.
@@ -174,13 +170,13 @@ def init_C(Y,  covariates,O, beta, q):
         torch.tensor of size (p,q). The initialization of C.
     """
     # get a guess for Sigma
-    Sigma_hat = init_Sigma(Y,  covariates,O, beta).detach()
+    Sigma_hat = init_Sigma(Y, covariates, O, beta).detach()
     # taking the q largest eigenvectors
     C = C_from_Sigma(Sigma_hat, q)
     return C
 
 
-def init_M(Y, covariates,O, beta, C, N_iter_max, lr, eps=7e-3):
+def init_M(Y, covariates, O, beta, C, N_iter_max, lr, eps=7e-3):
     """Initialization for the variational parameter M. Basically,
     the mode of the log_posterior is computed.
 
@@ -200,12 +196,12 @@ def init_M(Y, covariates,O, beta, C, N_iter_max, lr, eps=7e-3):
     W = torch.randn(Y.shape[0], C.shape[1], device=device)
     W.requires_grad_(True)
     optimizer = torch.optim.Rprop([W], lr=lr)
-    crit= 2 * eps
+    crit = 2 * eps
     old_W = torch.clone(W)
     keep_condition = True
     i = 0
     while i < N_iter_max and keep_condition:
-        loss = -torch.mean(log_PW_given_Y(Y, covariates,O, W, C, beta))
+        loss = -torch.mean(log_PW_given_Y(Y, covariates, O, W, C, beta))
         loss.backward()
         optimizer.step()
         crit = torch.max(torch.abs(W - old_W))
@@ -218,7 +214,7 @@ def init_M(Y, covariates,O, beta, C, N_iter_max, lr, eps=7e-3):
     return W
 
 
-def poissreg_loglike(Y, covariates,O, beta):
+def poissreg_loglike(Y, covariates, O, beta):
     """Compute the log likelihood of a Poisson regression."""
     # Matrix multiplication of X and beta.
     XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
@@ -231,7 +227,7 @@ def sigmoid(x):
     return 1 / (1 + torch.exp(-x))
 
 
-def sample_PLN(C, beta, covariates,O, B_zero=None):
+def sample_PLN(C, beta, covariates, O, B_zero=None):
     """Sample Poisson log Normal variables. If B_zero is not None, the model will
     be zero inflated.
 
@@ -282,17 +278,19 @@ def build_block_Sigma(p, block_size):
     # np.random.seed(0)
     k = p // block_size  # number of matrices of size p//block_size.
     # will multiply each block by some random quantities
-    alea = np.random.randn(k + 1)**2 + 1
+    alea = np.random.randn(k + 1) ** 2 + 1
     Sigma = np.zeros((p, p))
     last_block_size = p - k * block_size
     # We need to form the k matrics of size p//block_size
     for i in range(k):
-        Sigma[i * block_size:(i + 1) * block_size, i * block_size:(i + 1) *
-              block_size] = alea[i] * toeplitz(0.7**np.arange(block_size))
+        Sigma[
+            i * block_size : (i + 1) * block_size, i * block_size : (i + 1) * block_size
+        ] = alea[i] * toeplitz(0.7 ** np.arange(block_size))
     # Last block matrix.
     if last_block_size > 0:
         Sigma[-last_block_size:, -last_block_size:] = alea[k] * toeplitz(
-            0.7**np.arange(last_block_size))
+            0.7 ** np.arange(last_block_size)
+        )
     return Sigma
 
 
@@ -314,7 +312,7 @@ def C_from_Sigma(Sigma, q):
 
 def init_beta(Y, covariates, O):
     poiss_reg = PoissonRegressor()
-    poiss_reg.fit(Y, covariates,O)
+    poiss_reg.fit(Y, covariates, O)
     return torch.clone(poiss_reg.beta.detach()).to(device)
 
 
@@ -326,13 +324,13 @@ def log_stirling(n):
     Returns:
         An approximation of log(n_!) element-wise.
     """
-    n_ = n + \
-        (n == 0)  # Replace the 0 with 1. It doesn't change anything since 0! = 1!
-    return torch.log(torch.sqrt(
-        2 * np.pi * n_)) + n_ * torch.log(n_ / math.exp(1))  # Stirling formula
+    n_ = n + (n == 0)  # Replace the 0 with 1. It doesn't change anything since 0! = 1!
+    return torch.log(torch.sqrt(2 * np.pi * n_)) + n_ * torch.log(
+        n_ / math.exp(1)
+    )  # Stirling formula
 
 
-def log_PW_given_Y(Y_b, covariates_b,O_b, W, C, beta):
+def log_PW_given_Y(Y_b, covariates_b, O_b, W, C, beta):
     """Compute the log posterior of the PLN model. Compute it either
     for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
     both cases since it is done for both cases after. Please the mathematical
@@ -347,14 +345,11 @@ def log_PW_given_Y(Y_b, covariates_b,O_b, W, C, beta):
     if length == 2:
         CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
     elif length == 3:
-        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1),
-                          W.unsqueeze(3)).squeeze()
+        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1), W.unsqueeze(3)).squeeze()
 
     A_b = O_b + CW + covariates_b @ beta
-    first_term = -q / 2 * math.log(2 * math.pi) - \
-        1 / 2 * torch.norm(W, dim=-1) ** 2
-    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - log_stirling(Y_b),
-                            axis=-1)
+    first_term = -q / 2 * math.log(2 * math.pi) - 1 / 2 * torch.norm(W, dim=-1) ** 2
+    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - log_stirling(Y_b), axis=-1)
     return first_term + second_term
 
 
@@ -370,5 +365,5 @@ def trunc_log(x, eps=1e-16):
 
 
 def getOFromSumOfY(Y):
-    sumOfY = torch.sum(Y, axis = 1)
+    sumOfY = torch.sum(Y, axis=1)
     return sumOfY.repeat((Y.shape[1], 1)).T
