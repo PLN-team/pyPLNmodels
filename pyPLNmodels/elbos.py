@@ -4,7 +4,8 @@ from ._closed_forms import closed_formula_Sigma, closed_formula_beta
 
 
 def ELBOPLN(Y, covariates,O, M, S, Sigma, beta):
-    '''Compute the ELBO (Evidence LOwer Bound. See the doc for more details
+    """
+    Compute the ELBO (Evidence LOwer Bound) for the PLN model. See the doc for more details
     on the computation.
 
     Args:
@@ -16,8 +17,8 @@ def ELBOPLN(Y, covariates,O, M, S, Sigma, beta):
         Sigma: torch.tensor. Model parameter with size (p,p)
         beta: torch.tensor. Model parameter with size (d,p)
     Returns:
-        torch.tensor of size 1 with a gradient. The ELBO.
-    '''
+        torch.tensor of size 1 with a gradient.
+    """
     n, p = Y.shape
     SrondS = torch.multiply(S, S)
     OplusM = O + M
@@ -35,6 +36,22 @@ def ELBOPLN(Y, covariates,O, M, S, Sigma, beta):
     return elbo
 
 def profiledELBOPLN(Y,covariates,O,M,S): 
+    """
+    Compute the ELBO (Evidence LOwer Bound) for the PLN model. We use the fact that Sigma and beta are 
+    completely determined by M,S, and the covariates. See the doc for more details
+    on the computation.
+
+    Args:
+        Y: torch.tensor. Counts with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        Sigma: torch.tensor. Model parameter with size (p,p)
+        beta: torch.tensor. Model parameter with size (d,p)
+    Returns:
+        torch.tensor of size 1 with a gradient.
+    """
     n, p = Y.shape
     SrondS = torch.multiply(S, S)
     OplusM = O + M
@@ -49,7 +66,21 @@ def profiledELBOPLN(Y,covariates,O,M,S):
 
 
 def ELBOPLNPCA(Y, covariates,O, M, S, C, beta):
-    '''compute the ELBO with a PCA parametrization'''
+    """
+    Compute the ELBO (Evidence LOwer Bound) for the PLN model with a PCA
+    parametrization. See the doc for more details on the computation.
+
+    Args:
+        Y: torch.tensor. Counts with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        C: torch.tensor. Model parameter with size (p,q)
+        beta: torch.tensor. Model parameter with size (d,p)
+    Returns:
+        torch.tensor of size 1 with a gradient.
+    """
     n = Y.shape[0]
     q = C.shape[1]
     A = O + torch.mm(covariates, beta) + torch.mm(M, C.T)
@@ -65,7 +96,23 @@ def ELBOPLNPCA(Y, covariates,O, M, S, C, beta):
     return YA + moinsexpAplusSrondSCCT + moinslogSrondS + MMplusSrondS - log_stirlingY + n * q / 2
 
 ## should rename some variables so that is is clearer when we see the formula
-def ELBOZIPLN(Y, covariates,O, M, S, Sigma, beta, pi, B_zero, dirac):
+def ELBOZIPLN(Y, covariates,O, M, S, pi, Sigma, beta, B_zero, dirac):
+    """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated PLN model.
+    See the doc for more details on the computation.
+
+    Args:
+        Y: torch.tensor. Counts with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        pi: torch.tensor. Variational parameter with size (n,p)
+        Sigma: torch.tensor. Model parameter with size (p,p)
+        beta: torch.tensor. Model parameter with size (d,p)
+        B_zero: torch.tensor. Model parameter with size (d,p)
+    Returns:
+        torch.tensor of size 1 with a gradient.
+    """
     if torch.norm(pi * dirac - pi) > 0.0001:
         print('Bug')
         return False

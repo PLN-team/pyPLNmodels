@@ -34,7 +34,7 @@ class PLNPlotArgs:
         args:
             'ax': AxesSubplot object. The ELBO will be displayed in this ax
                 if not None. If None, will simply create an axis. Default is None.
-            'name_doss': str. The name of the file the graphic will be saved to.
+            'name_file': str. The name of the file the graphic will be saved to.
                 Default is 'fastPLNPCA_ELBO'.
         returns: None but displays the ELBO.
         """
@@ -61,7 +61,7 @@ class PLNPlotArgs:
         args:
             'ax': AxesSubplot object. The criterion will be displayed in this ax
                 if not None. If None, will simply create an axis. Default is None.
-            'name_doss': str. The name of the file the graphic will be saved to.
+            'name_file': str. The name of the file the graphic will be saved to.
                 Default is 'fastPLN_criterion'.
         returns: None but displays the criterion.
         """
