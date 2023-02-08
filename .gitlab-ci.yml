@@ -18,7 +18,7 @@ pages:
   script:
     - make -C docs html
     - rm -rf public/
-    - cp -r doc/build/html public
+    - cp -r docs/build/html public
   artifacts:
     paths:
       - public
