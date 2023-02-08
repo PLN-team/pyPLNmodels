@@ -191,9 +191,9 @@ class _PLN(ABC):
 
         If Sigma is too big (size is > 400), will only display the first block
         of size (400,400).
-        Parameters
-        ---------
 
+        Parameters
+        ----------
         ax : matplotlib Axes, optional
             Axes in which to draw the plot, otherwise use the currently-active Axes.
         savefig: bool, optional

@@ -10,3 +10,19 @@ black:
     - black --check --verbose -- .
   tags:
     - docker
+
+
+pages:
+  stage: publish
+  image: "registry.forgemia.inra.fr/jbleger/docker-image-jax-torch-sphinx:master"
+  script:
+    - make -C doc html
+    - rm -rf public/
+    - cp -r doc/build/html public
+  artifacts:
+    paths:
+      - public
+  tags:
+    - docker
+  only:
+    - main
