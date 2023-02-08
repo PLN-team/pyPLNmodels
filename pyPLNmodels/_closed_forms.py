@@ -2,7 +2,7 @@ import torch
 
 
 def closed_formula_Sigma(covariates, M, S, beta, n):
-    '''Closed form for Sigma for the M step for the noPCA model.'''
+    """Closed form for Sigma for the M step for the noPCA model."""
     MmoinsXB = M - torch.mm(covariates, beta)
     closed = torch.mm(MmoinsXB.T, MmoinsXB)
     closed += torch.diag(torch.sum(torch.multiply(S, S), dim=0))
@@ -10,7 +10,7 @@ def closed_formula_Sigma(covariates, M, S, beta, n):
 
 
 def closed_formula_beta(covariates, M):
-    '''Closed form for beta for the M step for the noPCA model.'''
+    """Closed form for beta for the M step for the noPCA model."""
     return torch.mm(
         torch.mm(
             torch.inverse(torch.mm(

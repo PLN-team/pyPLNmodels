@@ -19,8 +19,18 @@ else:
 # shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
 
-class _PLN():
+class _PLN(ABC):
+    """ 
+    Virtual class for all the PLN models. 
+    
+    This class must be derivatived. The methods `get_Sigma`, `compute_ELBO`,
+    `random_init_var_parameters` and `list_of_parameters_needing_gradient` must
+    be defined. 
+    """
     def __init__(self):
+        """
+        Simple initialization method. 
+        """
         self.window = 3
         self.fitted = False
 
@@ -43,6 +53,10 @@ class _PLN():
 
     def random_init_model_parameters(self):
         self.beta = torch.randn((self.d, self.p), device=device)
+
+    @abstractmethod
+    def random_init_var_parameters(self):
+        pass
 
     def format_data(self, data):
         if isinstance(data, pd.DataFrame):
@@ -73,13 +87,9 @@ class _PLN():
             parameter.requires_grad_(True)
 
     @property
-    @abstractmethod
     def list_of_parameters_needing_gradient(self):
         pass
 
-    @abstractmethod
-    def random_init_var_parameters(self):
-        pass
 
     def fit(self,
             Y,
@@ -92,6 +102,17 @@ class _PLN():
             doGoodInit=True,
             verbose=False,
             O_formula = 'sum'):
+        """  
+        Main function of the class. Fit a PLN to the data.  
+        Parameters
+        ----------
+        Y : torch.tensor or ndarray or DataFrame.
+            2-d count data. 
+        covariates : torch.tensor or ndarray or DataFrame or None, default = None
+            If not `None`, the first dimension should equal the first dimension of `Y`. 
+        O : torch.tensor or ndarray or DataFrame or None, default = None
+            Model offset. If not `None`, size should be the same as `Y`. 
+        """
         self.t0 = time.time()
         if self.fitted == False:
             self.plotargs = PLNPlotArgs(self.window)
@@ -113,13 +134,10 @@ class _PLN():
                 self.print_stats()
         self.print_end_of_fitting_message(stop_condition, tol)
         self.fitted = True
-        print('running times:', self.plotargs.running_times)
 
     def trainstep(self):
         self.optim.zero_grad()
         loss = -self.compute_ELBO()
-        # print('beta :', self.beta)
-        # print('closed form beta', closed_formula_beta(self.covariates, self.M))
         loss.backward()
         self.optim.step()
         self.update_closed_forms()
@@ -137,7 +155,7 @@ class _PLN():
     def print_stats(self):
         print('-------UPDATE-------')
         print('Iteration number: ', self.plotargs.iteration_number)
-        print('Delta: ', np.round(self.plotargs.criterions[-1], 8))
+        print('Criterion: ', np.round(self.plotargs.criterions[-1], 8))
         print('ELBO:', np.round(self.plotargs.ELBOs_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
@@ -158,33 +176,45 @@ class _PLN():
     def compute_ELBO(self):
         pass
 
-    def show_Sigma(self, ax=None, savefig=False, name_doss=''):
-        '''Displays Sigma
-        args:
-            'ax': AxesSubplot object. Sigma will be displayed in this ax
-                if not None. If None, will simply create an axis. Default is None.
-            'name_doss': str. The name of the file the graphic will be saved to.
-                Default is 'fastPLNPCA_Sigma'.
-        returns: None but displays Sigma.
-        '''
+    def display_Sigma(self, ax=None, savefig=False, name_file=''):
+        """
+        Display a heatmap of Sigma to visualize correlations. 
+
+        If Sigma is too big (size is > 400), will only display the first block 
+        of size (400,400). 
+        Parameters 
+        ---------
+        
+        ax : matplotlib Axes, optional
+            Axes in which to draw the plot, otherwise use the currently-active Axes.
+        savefig: bool, optional 
+            If True the figure will be saved. Default is False. 
+        name_file : str, optional
+            The name of the file the graphic will be saved to if saved. 
+            Default is an empty string.
+        """
         fig = plt.figure()
         sigma = self.get_Sigma()
         if self.p > 400:
             sigma = sigma[:400, :400]
         sns.heatmap(sigma, ax=ax)
         if savefig:
-            plt.savefig(name_doss + self.NAME)
+            plt.savefig(name_file + self.NAME)
         plt.close()  # to avoid displaying a blanck screen
 
     def __str__(self):
-        print('Best likelihood:', -self.plotargs.ELBOs_list[-1])
+        string ='A multivariate Poisson Lognormal with ' + self.DESCRIPTION + '\n' 
+        string += 'Best likelihood:'+ str(np.max(-self.plotargs.ELBOs_list[-1])) + '\n'
+        return string
+
+    def show(self):
+        print('Best likelihood:',np.max(-self.plotargs.ELBOs_list[-1]))
         fig, axes = plt.subplots(1, 3, figsize=(23, 5))
         self.plotargs.show_loss(ax=axes[0])
         self.plotargs.show_stopping_criterion(ax=axes[1])
-        self.show_Sigma(ax=axes[2])
+        self.display_Sigma(ax=axes[2])
         plt.show()
         return ''
-
     @abstractmethod
     def get_Sigma(self):
         pass
@@ -196,7 +226,7 @@ class _PLN():
 
 class PLN(_PLN):
     NAME = 'PLN'
-
+    DESCRIPTION= 'full covariance model.'
     def random_init_var_parameters(self):
         self.S = 1 / 2 * torch.ones((self.n, self.p)).to(device)
         self.M = torch.ones((self.n, self.p)).to(device)
@@ -211,12 +241,26 @@ class PLN(_PLN):
     def get_Sigma(self):
         return closed_formula_Sigma(self.covariates, self.M, self.S, self.get_beta(),
                                  self.n).detach().cpu()
+    def smart_init_model_parameters(self):
+        pass
+
+    def random_init_model_parameters(self):
+        pass
 
     def get_beta(self):
         return closed_formula_beta(self.covariates, self.M).detach().cpu()
 
+    @property 
+    def beta(self): 
+        return self.get_beta()
+
+    @property 
+    def Sigma(self):
+        return self.get_Sigma()
+
 class PLNPCA(_PLN):
     NAME = 'PLNPCA'
+    DESCRIPTION = " with Principal Component Analysis."
 
     def __init__(self, q):
         super().__init__()
@@ -248,6 +292,7 @@ class PLNPCA(_PLN):
     
 class ZIPLN(PLN):
     NAME = 'ZIPLN'
+    DESCRIPTION= 'with full covariance model and zero-inflation.'
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
@@ -269,7 +314,7 @@ class ZIPLN(PLN):
 
     def compute_ELBO(self):
         return ELBOZIPLN(self.Y, self.covariates, self.O, self.M, self.S,
-                      self.Sigma, self.beta, self.pi, self.Theta_zero,
+                      self.pi, self.Sigma, self.beta, self.Theta_zero,
                       self.dirac)
 
     def get_Sigma(self):
