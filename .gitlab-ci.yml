@@ -16,7 +16,7 @@ pages:
   stage: publish
   image: "registry.forgemia.inra.fr/jbleger/docker-image-jax-torch-sphinx:master"
   script:
-    - make -C doc html
+    - make -C docs html
     - rm -rf public/
     - cp -r doc/build/html public
   artifacts:
