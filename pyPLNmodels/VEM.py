@@ -97,6 +97,8 @@ class _PLN():
             self.plotargs = PLNPlotArgs(self.window)
             self.format_datas(Y,covariates,O, O_formula)
             self.init_parameters(Y, covariates,O, doGoodInit)
+        else: 
+            self.t0 -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(
             self.list_of_parameters_needing_gradient, lr=lr)
         nb_iteration_done = 0
@@ -111,6 +113,7 @@ class _PLN():
                 self.print_stats()
         self.print_end_of_fitting_message(stop_condition, tol)
         self.fitted = True
+        print('running times:', self.plotargs.running_times)
 
     def trainstep(self):
         self.optim.zero_grad()
