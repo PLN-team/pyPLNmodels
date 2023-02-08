@@ -10,9 +10,7 @@ Welcome to pyPLNmodels's documentation!
    :maxdepth: 2
    :caption: Contents
 
-.. toctree::
-   ./getting_started.rst
-   ./tutorials.rst
+   ./module.rst
 
 Indices and tables
 ==================
