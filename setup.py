@@ -12,7 +12,8 @@ setup(
     version=__version__,
     description="Package implementing PLN models",
     project_urls={
-        "Source": "https://github.com/PLN-team/PLNpy/tree/master/pyPLNmodels",
+        "Source": "https://forgemia.inra.fr/bbatardiere/pyplnmodels",
+        "Documentation": "https://bbatardiere.pages.mia.inra.fr/pyplnmodels/index.html",
     },
     author="Bastien Batardière, Julien Chiquet, Joon Kwon",
     author_email="bastien.batardiere@gmail.com, julien.chiquet@inrae.fr, joon.kwon@inrae.fr",
