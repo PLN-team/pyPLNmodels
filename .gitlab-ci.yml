@@ -14,7 +14,7 @@ black:
 
 pages:
   stage: publish
-  image: "registry.forgemia.inra.fr/jbleger/docker-image-jax-torch-sphinx:master"
+  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
   script:
     - make -C docs html
     - rm -rf public/
