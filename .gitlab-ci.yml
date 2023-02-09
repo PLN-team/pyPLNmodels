@@ -16,6 +16,7 @@ pages:
   stage: publish
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
   script:
+    - pip install -r requirements.txt
     - make -C docs html
     - rm -rf public/
     - cp -r docs/build/html public
