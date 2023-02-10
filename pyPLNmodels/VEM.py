@@ -183,6 +183,9 @@ class _PLN(ABC):
 
     @abstractmethod
     def compute_ELBO(self):
+        """
+        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. 
+        """
         pass
 
     def display_Sigma(self, ax=None, savefig=False, name_file=""):
@@ -247,6 +250,10 @@ class PLN(_PLN):
         return [self.M, self.S]
 
     def compute_ELBO(self):
+        """
+        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. Here we use the profiled ELBO 
+        for the full covariance matrix. 
+        """
         return profiledELBOPLN(self.Y, self.covariates, self.O, self.M, self.S)
 
     def get_Sigma(self):
