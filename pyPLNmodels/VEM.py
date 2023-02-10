@@ -140,6 +140,9 @@ class _PLN(ABC):
         self.fitted = True
 
     def trainstep(self):
+        """
+        simple docstrings with black errors
+        """
         self.optim.zero_grad()
         loss = -self.compute_ELBO()
         loss.backward()
