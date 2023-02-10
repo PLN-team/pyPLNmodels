@@ -17,7 +17,6 @@ setup(
     },
     author="Bastien Batardière, Julien Chiquet, Joon Kwon",
     author_email="bastien.batardiere@gmail.com, julien.chiquet@inrae.fr, joon.kwon@inrae.fr",
-    license_files=("LICENSE.txt",),
     long_description=long_description,
     packages=find_packages(),
     python_requires=">=3",
