@@ -89,6 +89,9 @@ class _PLN(ABC):
 
     @property
     def list_of_parameters_needing_gradient(self):
+        """
+        A list containing all the parameters that needs to be upgraded via a gradient step.
+        """
         pass
 
     def fit(
@@ -184,7 +187,7 @@ class _PLN(ABC):
     @abstractmethod
     def compute_ELBO(self):
         """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. 
+        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch.
         """
         pass
 
@@ -251,8 +254,8 @@ class PLN(_PLN):
 
     def compute_ELBO(self):
         """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. Here we use the profiled ELBO 
-        for the full covariance matrix. 
+        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. Here we use the profiled ELBO
+        for the full covariance matrix.
         """
         return profiledELBOPLN(self.Y, self.covariates, self.O, self.M, self.S)
 
