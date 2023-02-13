@@ -14,10 +14,12 @@ true_Sigma = torch.from_numpy(
 true_beta = torch.from_numpy(
     pd.read_csv("./example_data/test_data/true_parameters/true_beta_test.csv").values
 )
+def MSE(t): 
+    return torch.mean(t**2)
 
-pln = PLN()
-pln.fit(Y, covariates, O, nb_max_iteration=20)
-print(pln)
-pca = PLNPCA(q=4)
-pca.fit(Y, covariates, O)
-print(pca)
+def test_find_right_pln_parameters(): 
+    pln = PLN()
+    pln.fit(Y, covariates, O, nb_max_iteration=20)
+    mse =  MSE(pln.beta - true_beta)
+## tester avec que des Y, et plus O et plus cov etc. 
+
