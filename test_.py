@@ -5,6 +5,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 Y = pd.read_csv("./example_data/test_data/Y_test.csv")
 covariates = pd.read_csv("./example_data/test_data/cov_test.csv")
@@ -43,9 +44,10 @@ def test_find_right_Sigma(my_test_pln):
     assert mse_Sigma < 0.01
 
 
-@pytest.mark.parametrize("pln", [my_test_pln, my_test_plnpca])
+@pytest.mark.parametrize(
+    "pln", [lazy_fixture("my_test_pln"), lazy_fixture("my_test_plnpca")]
+)
 def test_find_right_beta(pln):
-    print("pln", pln)
     mse_beta = MSE(pln.get_beta() - true_beta)
     assert mse_beta < 0.01
 
