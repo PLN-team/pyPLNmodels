@@ -364,6 +364,25 @@ def trunc_log(x, eps=1e-16):
     return torch.log(y)
 
 
-def getOFromSumOfY(Y):
+def get_O_from_sum_of_Y(Y):
     sumOfY = torch.sum(Y, axis=1)
     return sumOfY.repeat((Y.shape[1], 1)).T
+
+
+def raiseWrongDimensionError(
+    strFirstArray, strSecondArray, dimFirstArray, dimSecondArray, dimOfError
+):
+    raise ValueError(
+        "The size of tensor {} ({}) must mach the size of tensor {} ({}) at non-singleton dimension {}".format(
+            strFirstArray, dimFirstArray, strSecondArray, dimSecondArray, dimOfError
+        )
+    )
+
+
+def checkDimensionsAreEqual(
+    strFirstArray, strSecondArray, dimFirstArray, dimSecondArray, dimOfError
+):
+    if dimFirstArray != dimSecondArray:
+        raiseWrongDimensionError(
+            strFirstArray, strSecondArray, dimFirstArray, dimSecondArray, dimOfError
+        )

@@ -9,7 +9,14 @@ import matplotlib.pyplot as plt
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
-from ._utils import PLNPlotArgs, init_Sigma, init_C, init_beta, getOFromSumOfY
+from ._utils import (
+    PLNPlotArgs,
+    init_Sigma,
+    init_C,
+    init_beta,
+    get_O_from_sum_of_Y,
+    checkDimensionsAreEqual,
+)
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -43,7 +50,7 @@ class _PLN(ABC):
             self.covariates = self.format_data(covariates)
         if O is None:
             if O_formula == "sum":
-                self.O = torch.log(getOFromSumOfY(self.Y)).float()
+                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).float()
             else:
                 self.O = torch.zeros(self.Y.shape)
         else:
@@ -67,7 +74,7 @@ class _PLN(ABC):
         elif isinstance(data, torch.tensor):
             return data
         else:
-            raise Exception(
+            raise AttributeError(
                 "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
             )
 
@@ -93,6 +100,14 @@ class _PLN(ABC):
         A list containing all the parameters that needs to be upgraded via a gradient step.
         """
         pass
+
+    def check_parameters_shape(self):
+        nY, pY = self.Y.shape
+        nO, pO = self.O.shape
+        nCov, _ = self.covariates.shape
+        checkDimensionsAreEqual("Y", "O", nY, nO, 0)
+        checkDimensionsAreEqual("Y", "covariates", nY, nCov, 0)
+        checkDimensionsAreEqual("Y", "O", pY, pO, 1)
 
     def fit(
         self,
@@ -122,6 +137,7 @@ class _PLN(ABC):
         if self.fitted == False:
             self.plotargs = PLNPlotArgs(self.window)
             self.format_datas(Y, covariates, O, O_formula)
+            self.check_parameters_shape()
             self.init_parameters(Y, covariates, O, doGoodInit)
         else:
             self.t0 -= self.plotargs.running_times[-1]
@@ -320,6 +336,9 @@ class PLNPCA(_PLN):
 
     def get_Sigma(self):
         return (self.C @ (self.C.T)).detach().cpu()
+
+    def get_beta(self):
+        return self.beta.detach().cpu()
 
 
 class ZIPLN(PLN):
