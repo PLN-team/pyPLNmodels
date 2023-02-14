@@ -26,6 +26,18 @@ def MSE(t):
 
 
 @pytest.fixture
+def my_instance_pln():
+    pln = PLN()
+    return pln
+
+
+@pytest.fixture
+def my_instance_plnpca():
+    plnpca = PLNPCA(q=8)
+    return plnpca
+
+
+@pytest.fixture
 def my_test_pln():
     pln = PLN()
     pln.fit(Y, covariates, O)
@@ -39,8 +51,11 @@ def my_test_plnpca():
     return plnpca
 
 
-def test_find_right_Sigma(my_test_pln):
-    mse_Sigma = MSE(my_test_pln.get_Sigma() - true_Sigma)
+@pytest.mark.parametrize(
+    "pln", [lazy_fixture("my_test_pln"), lazy_fixture("my_test_plnpca")]
+)
+def test_find_right_Sigma(pln):
+    mse_Sigma = MSE(pln.get_Sigma() - true_Sigma)
     assert mse_Sigma < 0.01
 
 
@@ -61,4 +76,29 @@ def test_plot(my_test_pln):
     my_test_pln.show()
 
 
-# test_number_of_iterations(pln)
+@pytest.mark.parametrize(
+    "pln", [lazy_fixture("my_test_pln"), lazy_fixture("my_test_plnpca")]
+)
+def test_verbose(pln):
+    pln.fit(Y, covariates, O, verbose=True)
+
+
+@pytest.mark.parametrize(
+    "pln", [lazy_fixture("my_test_pln"), lazy_fixture("my_test_plnpca")]
+)
+def test_only_Y(pln):
+    pln.fit(Y)
+
+
+@pytest.mark.parametrize(
+    "pln", [lazy_fixture("my_test_pln"), lazy_fixture("my_test_plnpca")]
+)
+def test_only_Y_and_O(pln):
+    pln.fit(Y, O)
+
+
+@pytest.mark.parametrize(
+    "pln", [lazy_fixture("my_test_pln"), lazy_fixture("my_test_plnpca")]
+)
+def test_only_Y_and_cov(pln):
+    pln.fit(Y, covariates)
