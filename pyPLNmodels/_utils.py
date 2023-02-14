@@ -82,55 +82,6 @@ class PLNPlotArgs:
             plt.savefig(nameDoss)
 
 
-class PoissonRegressor:
-    def fit(self, Y, covariates, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
-        """Run a gradient ascent to maximize the log likelihood, using
-        pytorch autodifferentiation. The log likelihood considered is
-        the one from a poisson regression model. It is roughly the
-        same as PLN without the latent layer Z.
-
-        Args:
-            Y: torch.tensor. Counts with size (n,p)
-            0: torch.tensor. Offset, size (n,p)
-            covariates: torch.tensor. Covariates, size (n,d)
-            Niter_max: int, optional. The maximum number of iteration.
-                Default is 300.
-            tol: non negative float, optional. The tolerance criteria.
-                Will stop if the norm of the gradient is less than
-                or equal to this threshold. Default is 0.001.
-            lr: positive float, optional. Learning rate for the gradient ascent.
-                Default is 0.005.
-            verbose: bool, optional. If True, will print some stats.
-
-        Returns : None. Update the parameter beta. You can access it
-                by calling self.beta.
-        """
-        # Initialization of beta of size (d,p)
-        beta = torch.rand(
-            (covariates.shape[1], Y.shape[1]), device=device, requires_grad=True
-        )
-        optimizer = torch.optim.Rprop([beta], lr=lr)
-        i = 0
-        gradNorm = 2 * tol  # Criterion
-        while i < Niter_max and gradNorm > tol:
-            loss = -poissreg_loglike(Y, covariates, O, beta)
-            loss.backward()
-            optimizer.step()
-            gradNorm = torch.norm(beta.grad)
-            beta.grad.zero_()
-            i += 1
-            if verbose:
-                if i % 10 == 0:
-                    print("log like : ", -loss)
-                    print("gradNorm : ", gradNorm)
-        if verbose:
-            if i < Niter_max:
-                print("Tolerance reached in {} iterations".format(i))
-            else:
-                print("Maxium number of iterations reached")
-        self.beta = beta
-
-
 def init_Sigma(Y, covariates, O, beta):
     """Initialization for Sigma for the PLN model. Take the log of Y
     (careful when Y=0), remove the covariates effects X@beta and
@@ -152,7 +103,6 @@ def init_Sigma(Y, covariates, O, beta):
     # MLE in a Gaussian setting
     n = Y.shape[0]
     Sigma_hat = 1 / (n - 1) * (log_Y_centered.T) @ log_Y_centered
-
     return Sigma_hat
 
 
@@ -176,7 +126,7 @@ def init_C(Y, covariates, O, beta, q):
     return C
 
 
-def init_M(Y, covariates, O, beta, C, N_iter_max, lr, eps=7e-3):
+def init_M(Y, covariates, O, beta, C, N_iter_max=500, lr=0.01, eps=7e-3):
     """Initialization for the variational parameter M. Basically,
     the mode of the log_posterior is computed.
 
@@ -214,14 +164,6 @@ def init_M(Y, covariates, O, beta, C, N_iter_max, lr, eps=7e-3):
     return W
 
 
-def poissreg_loglike(Y, covariates, O, beta):
-    """Compute the log likelihood of a Poisson regression."""
-    # Matrix multiplication of X and beta.
-    XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
-    # Returns the formula of the log likelihood of a poisson regression model.
-    return torch.sum(-torch.exp(O + XB) + torch.multiply(Y, O + XB))
-
-
 def sigmoid(x):
     """Compute the sigmoid function of x element-wise."""
     return 1 / (1 + torch.exp(-x))
@@ -234,7 +176,7 @@ def sample_PLN(C, beta, covariates, O, B_zero=None):
     Args:
         C: torch.tensor of size (p,q). The matrix C of the PLN model
         beta: torch.tensor of size (d,p). Regression parameter.
-        0: torch.tensor of size (n,p0. Offsets.
+        0: torch.tensor of size (n,p). Offsets.
         covariates : torch.tensor of size (n,d). Covariates.
         B_zero: torch.tensor of size (d,p), optional. If B_zero is not None,
              the ZIPLN model is chosen, so that it will add a
@@ -311,9 +253,11 @@ def C_from_Sigma(Sigma, q):
 
 
 def init_beta(Y, covariates, O):
-    poiss_reg = PoissonRegressor()
-    poiss_reg.fit(Y, covariates, O)
-    return torch.clone(poiss_reg.beta.detach()).to(device)
+    log_Y = torch.log(Y + (Y == 0) * math.exp(-2))
+    return torch.matmul(
+        torch.inverse(torch.matmul(covariates.T, covariates)),
+        torch.matmul(covariates.T, log_Y),
+    )
 
 
 def log_stirling(n):
@@ -369,20 +313,41 @@ def get_O_from_sum_of_Y(Y):
     return sumOfY.repeat((Y.shape[1], 1)).T
 
 
-def raiseWrongDimensionError(
-    strFirstArray, strSecondArray, dimFirstArray, dimSecondArray, dimOfError
+def raise_wrong_dimension_error(
+    str_first_array, str_second_array, dim_first_array, dim_second_array, dim_of_error
 ):
     raise ValueError(
         "The size of tensor {} ({}) must mach the size of tensor {} ({}) at non-singleton dimension {}".format(
-            strFirstArray, dimFirstArray, strSecondArray, dimSecondArray, dimOfError
+            str_first_array,
+            dim_first_array,
+            str_second_array,
+            dim_second_array,
+            dim_of_error,
         )
     )
 
 
-def checkDimensionsAreEqual(
-    strFirstArray, strSecondArray, dimFirstArray, dimSecondArray, dimOfError
+def check_dimensions_are_equal(
+    str_first_array, str_second_array, dim_first_array, dim_second_array, dim_of_error
 ):
-    if dimFirstArray != dimSecondArray:
-        raiseWrongDimensionError(
-            strFirstArray, strSecondArray, dimFirstArray, dimSecondArray, dimOfError
+    if dim_first_array != dim_second_array:
+        raise_wrong_dimension_error(
+            str_first_array,
+            str_second_array,
+            dim_first_array,
+            dim_second_array,
+            dim_of_error,
         )
+
+
+def init_S(Y, covariates, O, beta, C, M):
+    n, q = M.shape
+    batch_matrix = torch.matmul(C.unsqueeze(2), C.unsqueeze(1)).unsqueeze(0)
+    CW = torch.matmul(C.unsqueeze(0), M.unsqueeze(2)).squeeze()
+    common = torch.exp(O + covariates @ beta + CW).unsqueeze(2).unsqueeze(3)
+    prod = batch_matrix * common
+    # The hessian of the posterior
+    hess_posterior = torch.sum(prod, axis=1) + torch.eye(q).to(device)
+    inv_hess_posterior = -torch.inverse(hess_posterior)
+    hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
+    return hess_posterior
