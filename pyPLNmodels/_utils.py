@@ -351,3 +351,8 @@ def init_S(Y, covariates, O, beta, C, M):
     inv_hess_posterior = -torch.inverse(hess_posterior)
     hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
     return hess_posterior
+
+
+class NotFitError(Exception):
+    def __init__(self, message="Please fit your model.", *args, **kwargs):
+        super().__init__(message, *args, **kwargs)
