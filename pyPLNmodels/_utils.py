@@ -6,7 +6,7 @@ import torch
 import torch.linalg as TLA
 from scipy.linalg import toeplitz
 
-# torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float64)
 # O is not doing anything in the initialization of Sigma. should be fixed.
 
 if torch.cuda.is_available():
@@ -160,7 +160,6 @@ def init_M(Y, covariates, O, beta, C, N_iter_max=500, lr=0.01, eps=7e-3):
             keep_condition = False
         old_W = torch.clone(W)
         i += 1
-    print("nb iteration to find the mode: ", i)
     return W
 
 

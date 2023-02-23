@@ -25,7 +25,6 @@ if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
-print("device :", device)
 # shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
 
@@ -49,12 +48,13 @@ class _PLN(ABC):
     def format_datas(self, Y, covariates, O, O_formula):
         self.Y = self.format_data(Y)
         if covariates is None:
-            self.covariates = torch.full((self.Y.shape[0], 1), 1).float()
+            self.covariates = torch.full((self.Y.shape[0], 1), 1).double()
         else:
             self.covariates = self.format_data(covariates)
         if O is None:
             if O_formula == "sum":
-                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).float()
+                print("Setting the offesets O as the log of the sum of Y")
+                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).double()
             else:
                 self.O = torch.zeros(self.Y.shape)
         else:
@@ -64,7 +64,7 @@ class _PLN(ABC):
         self._beta = init_beta(self.Y, self.covariates, self.O)
 
     def random_init_beta(self):
-        self._beta = torch.randn((self.d, self.p), device=device)
+        self._beta = torch.randn((self._d, self._p), device=device)
 
     @abstractmethod
     def random_init_model_parameters(self):
@@ -80,9 +80,9 @@ class _PLN(ABC):
 
     def format_data(self, data):
         if isinstance(data, pd.DataFrame):
-            return torch.from_numpy(data.values).float().to(device)
+            return torch.from_numpy(data.values).double().to(device)
         if isinstance(data, np.ndarray):
-            return torch.from_numpy(data).float().to(device)
+            return torch.from_numpy(data).double().to(device)
         if isinstance(data, torch.Tensor):
             return data
         else:
@@ -94,8 +94,8 @@ class _PLN(ABC):
         pass
 
     def init_parameters(self, Y, covariates, O, do_smart_init):
-        self.n, self.p = self.Y.shape
-        self.d = self.covariates.shape[1]
+        self._n, self._p = self.Y.shape
+        self._d = self.covariates.shape[1]
         print("Initialization ...")
         if do_smart_init:
             self.smart_init_model_parameters()
@@ -130,13 +130,13 @@ class _PLN(ABC):
         Y,
         covariates=None,
         O=None,
-        nb_max_iteration=15000,
+        nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-3,
         do_smart_init=True,
         verbose=False,
-        O_formula="sum",
+        O_formula=None,
     ):
         """
         Main function of the class. Fit a PLN to the data.
@@ -154,7 +154,6 @@ class _PLN(ABC):
             self.format_datas(Y, covariates, O, O_formula)
             self.check_parameters_shape()
             self.init_parameters(Y, covariates, O, do_smart_init)
-            print("ELBO after init:", self.compute_ELBO())
         else:
             self.t0 -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
@@ -202,7 +201,7 @@ class _PLN(ABC):
         print("ELBO:", np.round(self.plotargs.ELBOs_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
-        self.plotargs.ELBOs_list.append(-loss.item() / self.n)
+        self.plotargs.ELBOs_list.append(-loss.item() / self._n)
         self.plotargs.running_times.append(time.time() - self.t0)
         if self.plotargs.iteration_number > self.window:
             criterion = abs(
@@ -240,27 +239,27 @@ class _PLN(ABC):
             The name of the file the graphic will be saved to if saved.
             Default is an empty string.
         """
-        sigma = self._Sigma()
-        if self.p > 400:
+        sigma = self.Sigma
+        if self._p > 400:
             sigma = sigma[:400, :400]
         sns.heatmap(sigma, ax=ax)
         if savefig:
             plt.savefig(name_file + self.NAME)
-        plt.close()  # to avoid displaying a blanck screen
+        plt.show()  # to avoid displaying a blanck screen
 
     def __str__(self):
         string = "A multivariate Poisson Lognormal with " + self.DESCRIPTION + "\n"
         string += "Best likelihood:" + str(np.max(-self.plotargs.ELBOs_list[-1])) + "\n"
         return string
 
-    def show(self):
+    def show(self, axes=None):
         print("Best likelihood:", np.max(-self.plotargs.ELBOs_list[-1]))
-        fig, axes = plt.subplots(1, 3, figsize=(23, 5))
-        self.plotargs.show_loss(ax=axes[0])
-        self.plotargs.show_stopping_criterion(ax=axes[1])
-        self.display_Sigma(ax=axes[2])
+        if axes is None:
+            _, axes = plt.subplots(1, 3, figsize=(23, 5))
+        self.plotargs.show_loss(ax=axes[-3])
+        self.plotargs.show_stopping_criterion(ax=axes[-2])
+        self.display_Sigma(ax=axes[-1])
         plt.show()
-        return ""
 
     @property
     def ELBOs_list(self):
@@ -274,11 +273,11 @@ class _PLN(ABC):
 
     @property
     def BIC(self):
-        return -2 * self.loglike + self.number_of_parameters * np.log(self.n)
+        return -2 * self.loglike + self.number_of_parameters * np.log(self._n)
 
     @property
-    def number_of_parameters(self):
-        return self.p * (self.d + (self.p + 1) / 2)
+    def AIC(self):
+        return -2 * self.loglike + 2 * self.number_of_parameters
 
     @property
     def var_parameters(self):
@@ -286,16 +285,36 @@ class _PLN(ABC):
 
     @property
     def model_parameters(self):
-        return {"Beta": self._beta, "Sigma": self._Sigma}
+        return {"Beta": self.beta, "Sigma": self.Sigma}
+
+    @property
+    def Sigma(self):
+        return self._Sigma.detach().cpu()
+
+    @property
+    def beta(self):
+        return self._beta.detach().cpu()
+
+    @property
+    def M(self):
+        return self._M.detach().cpu()
+
+    @property
+    def S(self):
+        return self._S.detach().cpu()
 
 
+# need to do a good init for M and S
 class PLN(_PLN):
     NAME = "PLN"
     DESCRIPTION = "full covariance model."
 
+    def smart_init_var_parameters(self):
+        self.random_init_var_parameters()
+
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self.n, self.p)).to(device)
-        self._M = torch.ones((self.n, self.p)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._p)).to(device)
+        self._M = torch.ones((self._n, self._p)).to(device)
 
     @property
     def list_of_parameters_needing_gradient(self):
@@ -309,9 +328,11 @@ class PLN(_PLN):
         return profiledELBOPLN(self.Y, self.covariates, self.O, self._M, self._S)
 
     def smart_init_model_parameters(self):
+        # no model parameters since we are doing a profiled ELBO
         pass
 
     def random_init_model_parameters(self):
+        # no model parameters since we are doing a profiled ELBO
         pass
 
     @property
@@ -321,42 +342,24 @@ class PLN(_PLN):
     @property
     def Sigma(self):
         return (
-            closed_formula_Sigma(
-                self.covariates, self._M, self._S, self.get_beta(), self.n
-            )
+            closed_formula_Sigma(self.covariates, self._M, self._S, self.beta, self._n)
             .detach()
             .cpu()
         )
-
-    @property
-    def Sigma(self):
-        return self._Sigma
-
-    @property
-    def beta(self):
-        return self._beta
-
-    @property
-    def M(self):
-        return self._M
-
-    @property
-    def S(self):
-        return self._S
 
 
 class PLNPCA:
     def __init__(self, ranks):
         if isinstance(ranks, list):
             self.ranks = ranks
-            self.list_PLNPCA = {}
+            self.dict_PLNPCA = {}
             for rank in ranks:
                 if isinstance(rank, int):
-                    self.list_PLNPCA[rank] = _PLNPCA(rank)
+                    self.dict_PLNPCA[rank] = _PLNPCA(rank)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
-            self.list_PLNPCA = {ranks: _PLNPCA(ranks)}
+            self.dict_PLNPCA = {ranks: _PLNPCA(ranks)}
         else:
             raise TypeError(
                 "Please instantiate with either a list of integer or an integer"
@@ -367,7 +370,7 @@ class PLNPCA:
         Y,
         covariates=None,
         O=None,
-        nb_max_iteration=15000,
+        nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-3,
@@ -375,7 +378,7 @@ class PLNPCA:
         verbose=False,
         O_formula="sum",
     ):
-        for pca in self.list_PLNPCA.values():
+        for pca in self.dict_PLNPCA.values():
             pca.fit(
                 Y,
                 covariates,
@@ -389,8 +392,28 @@ class PLNPCA:
                 O_formula,
             )
 
-    def get_model():
-        pass
+    def __getitem__(self, rank):
+        return self.dict_PLNPCA[rank]
+
+    @property
+    def BIC(self):
+        return {model._q: model.BIC for model in self.dict_PLNPCA.values()}
+
+    @property
+    def AIC(self):
+        return {model._q: model.AIC for model in self.dict_PLNPCA.values()}
+
+    def show(self):
+        bic = self.BIC
+        aic = self.AIC
+        bic_color = "blue"
+        aic_color = "red"
+        plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
+        plt.plot(bic.keys(), bic.values(), c=bic_color)
+        plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
+        plt.plot(aic.keys(), aic.values(), c=aic_color)
+        plt.legend()
+        plt.show()
 
 
 class _PLNPCA(_PLN):
@@ -399,30 +422,25 @@ class _PLNPCA(_PLN):
 
     def __init__(self, q):
         super().__init__()
-        self._q = _q
+        self._q = q
 
     @property
     def model_parameters(self):
-        betaAndSigma = super().model_parameters
-        betaAndSigma["C"] = self._C
+        dict_model_parameters = super().model_parameters
+        dict_model_parameters["C"] = self._C
+        return dict_model_parameters
 
     def smart_init_model_parameters(self):
-        t0 = time.time()
         super().smart_init_beta()
-        t0 = time.time()
-        self._C = init_C(self.Y, self.covariates, self.O, self._beta, self.q)
+        self._C = init_C(self.Y, self.covariates, self.O, self._beta, self._q)
 
     def random_init_model_parameters(self):
         super().random_init_beta()
-        self._C = torch.randn((self.d, self.q)).to(device)
-
-    def smart_init_var_parameters(self):
-        self._M = init_M(self.Y, self.covariates, self.O, self._beta, self._C)
-        self._S = init_S(self.Y, self.covariates, self.O, self._beta, self._C, self._M)
+        self._C = torch.randn((self._d, self._q)).to(device)
 
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self.n, self.q)).to(device)
-        self._M = torch.ones((self.n, self.q)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
+        self._M = torch.ones((self._n, self._q)).to(device)
 
     def smart_init_var_parameters(self):
         self._M = (
@@ -447,15 +465,14 @@ class _PLNPCA(_PLN):
             self.Y, self.covariates, self.O, self._M, self._S, self._C, self._beta
         )
 
-    def get_Sigma(self):
-        return (self._C @ (self._C.T)).detach().cpu()
-
-    def get_beta(self):
-        return self._beta.detach().cpu()
-
     @property
     def number_of_parameters(self):
-        return self.p * (self.d + self.q) - self.q * (self.q - 1) / 2
+        print("num", self._p * (self._d + self._q) - self._q * (self._q - 1) / 2)
+        return self._p * (self._d + self._q) - self._q * (self._q - 1) / 2
+
+    @property
+    def Sigma(self):
+        return torch.matmul(self._C, self._C.T).detach().cpu()
 
 
 class ZIPLN(PLN):
@@ -464,20 +481,20 @@ class ZIPLN(PLN):
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
-        self.Theta_zero = torch.randn(self.d, self.p)
-        self._Sigma = torch.diag(torch.ones(self.p)).to(device)
+        self.Theta_zero = torch.randn(self._d, self._p)
+        self._Sigma = torch.diag(torch.ones(self._p)).to(device)
 
     # should change the good initialization, especially for Theta_zero
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
         self._Sigma = init_Sigma(self.Y, self.covariates, self.O, self._beta)
-        self._Theta_zero = torch.randn(self.d, self.p)
+        self._Theta_zero = torch.randn(self._d, self._p)
 
     def random_init_var_parameters(self):
         self.dirac = self.Y == 0
-        self._M = torch.randn(self.n, self.p)
-        self._S = torch.randn(self.n, self.p)
-        self.pi = torch.empty(self.n, self.p).uniform_(0, 1).to(device) * self.dirac
+        self._M = torch.randn(self._n, self._p)
+        self._S = torch.randn(self._n, self._p)
+        self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(device) * self.dirac
 
     def compute_ELBO(self):
         return ELBOZIPLN(
@@ -492,9 +509,6 @@ class ZIPLN(PLN):
             self.Theta_zero,
             self.dirac,
         )
-
-    def get_Sigma(self):
-        return self._Sigma.detach().cpu()
 
     @property
     def list_of_parameters_needing_gradient(self):
@@ -511,4 +525,4 @@ class ZIPLN(PLN):
 
     @property
     def number_of_parameters(self):
-        return self._p * (2 * self.d + (self._p + 1) / 2)
+        return self._p * (2 * self._d + (self._p + 1) / 2)
