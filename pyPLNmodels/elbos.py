@@ -144,7 +144,7 @@ def ELBOZIPLN(Y, covariates, O, M, S, pi, Sigma, beta, B_zero, dirac):
         )
         + pi
     )
-
+    # print('O:', O)
     elbo -= torch.sum(
         torch.multiply(pi, trunc_log(pi)) + torch.multiply(1 - pi, trunc_log(1 - pi))
     )

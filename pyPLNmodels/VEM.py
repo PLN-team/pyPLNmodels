@@ -104,9 +104,9 @@ class _PLN(ABC):
             self.random_init_model_parameters()
             self.random_init_var_parameters()
         print("Initialization finished")
-        self.putParametersToDevice()
+        self.put_parameters_to_device()
 
-    def putParametersToDevice(self):
+    def put_parameters_to_device(self):
         for parameter in self.list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
@@ -130,7 +130,7 @@ class _PLN(ABC):
         Y,
         covariates=None,
         O=None,
-        nb_max_iteration=50000,
+        nb_max_iteration=15000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-3,
@@ -475,26 +475,27 @@ class _PLNPCA(_PLN):
         return torch.matmul(self._C, self._C.T).detach().cpu()
 
 
-class ZIPLN(PLN):
+class ZIPLN(_PLN):
     NAME = "ZIPLN"
     DESCRIPTION = "with full covariance model and zero-inflation."
 
     def random_init_model_parameters(self):
-        super().random_init_model_parameters()
-        self.Theta_zero = torch.randn(self._d, self._p)
+        self._beta = torch.randn(self._d, self._p)
+        self._Theta_zero = torch.randn(self._d, self._p)
         self._Sigma = torch.diag(torch.ones(self._p)).to(device)
 
     # should change the good initialization, especially for Theta_zero
     def smart_init_model_parameters(self):
-        super().smart_init_model_parameters()
-        self._Sigma = init_Sigma(self.Y, self.covariates, self.O, self._beta)
-        self._Theta_zero = torch.randn(self._d, self._p)
+        pass
+        # self._beta = init_beta(self.Y, self.covariates, self.O)
+        # self._Sigma = init_Sigma(self.Y, self.covariates, self.O, self._beta)
+        # self._Theta_zero = torch.randn(self._d, self._p)
 
     def random_init_var_parameters(self):
-        self.dirac = self.Y == 0
+        self._dirac = self.Y == 0
         self._M = torch.randn(self._n, self._p)
         self._S = torch.randn(self._n, self._p)
-        self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(device) * self.dirac
+        self._pi = torch.empty(self._n, self._p).uniform_(0, 1).to(device) * self._dirac
 
     def compute_ELBO(self):
         return ELBOZIPLN(
@@ -503,24 +504,26 @@ class ZIPLN(PLN):
             self.O,
             self._M,
             self._S,
-            self.pi,
+            self._pi,
             self._Sigma,
             self._beta,
-            self.Theta_zero,
-            self.dirac,
+            self._Theta_zero,
+            self._dirac,
         )
 
     @property
     def list_of_parameters_needing_gradient(self):
         return [self._M, self._S, self._Theta_zero]
 
+    # @property
+
     def update_closed_forms(self):
         self._beta = closed_formula_beta(self.covariates, self._M)
         self._Sigma = closed_formula_Sigma(
             self.covariates, self._M, self._S, self._beta, self._n
         )
-        self.pi = closed_formula_pi(
-            self.O, self._M, self._S, self.dirac, self._covariates, self._Theta_zero
+        self._pi = closed_formula_pi(
+            self.O, self._M, self._S, self._dirac, self.covariates, self._Theta_zero
         )
 
     @property
