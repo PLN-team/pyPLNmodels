@@ -41,7 +41,6 @@ d = 1
 # pln.fit(Y,covariates, O)
 # pln.show()
 
-mu = +0
 sigma = 1
 
 
@@ -63,4 +62,8 @@ def down_part(mu, sigma):
     return np.sqrt(1 + lw(sigma**2 * np.exp(mu)))
 
 
-print(phi(mu, sigma))
+abscisse = np.linspace(-10, 10)
+plt.plot(abscisse, phi(abscisse, sigma), label=r"$\varphi(x,1)$")
+plt.plot(abscisse, 1 / (1 + np.exp(abscisse)), label=r"$\sigma(-x)$")
+plt.legend()
+plt.show()
