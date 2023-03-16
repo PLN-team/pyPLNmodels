@@ -415,6 +415,15 @@ class PLNPCA:
         plt.legend()
         plt.show()
 
+    @property
+    def best_model(self, criterion = "BIC"):
+        if criterion == "BIC":
+            return self[self.ranks[np.argmax(self.BIC.values())]]
+        elif criterion == "AIC":
+            return self[self.ranks[np.argmax(self.AIC.values())]]
+
+
+
 
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
@@ -436,7 +445,7 @@ class _PLNPCA(_PLN):
 
     def random_init_model_parameters(self):
         super().random_init_beta()
-        self._C = torch.randn((self._d, self._q)).to(device)
+        self._C = torch.randn((self._p, self._q)).to(device)
 
     def random_init_var_parameters(self):
         self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
