@@ -157,10 +157,10 @@ class _PLN(ABC):
         else:
             self.t0 -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
-        nb_iteration_done = 0
+        self.nb_iteration_done = 0
         stop_condition = False
-        while nb_iteration_done < nb_max_iteration and stop_condition == False:
-            nb_iteration_done += 1
+        while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
+            self.nb_iteration_done += 1
             loss = self.trainstep()
             criterion = self.compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
@@ -349,13 +349,13 @@ class PLN(_PLN):
 
 
 class PLNPCA:
-    def __init__(self, ranks):
+    def __init__(self, ranks, tril_number = 0):
         if isinstance(ranks, list):
             self.ranks = ranks
             self.dict_PLNPCA = {}
             for rank in ranks:
                 if isinstance(rank, int):
-                    self.dict_PLNPCA[rank] = _PLNPCA(rank)
+                    self.dict_PLNPCA[rank] = _PLNPCA(rank, tril_number)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
@@ -403,6 +403,10 @@ class PLNPCA:
     def AIC(self):
         return {model._q: model.AIC for model in self.dict_PLNPCA.values()}
 
+    @property
+    def loglikes(self):
+        return {model._q: model.loglike for model in self.dict_PLNPCA.values()}
+
     def show(self):
         bic = self.BIC
         aic = self.AIC
@@ -429,9 +433,10 @@ class _PLNPCA(_PLN):
     NAME = "PLNPCA"
     DESCRIPTION = " with Principal Component Analysis."
 
-    def __init__(self, q):
+    def __init__(self, q, tril_number):
         super().__init__()
         self._q = q
+        self.tril_number = tril_number
 
     @property
     def model_parameters(self):
@@ -457,11 +462,7 @@ class _PLNPCA(_PLN):
             .to(device)
             .detach()
         )
-        self._S = (
-            init_S(self._M, self.covariates, self.O, self._beta, self._C, self._M)
-            .to(device)
-            .detach()
-        )
+        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
         self._M.requires_grad_(True)
         self._S.requires_grad_(True)
 
@@ -471,7 +472,7 @@ class _PLNPCA(_PLN):
 
     def compute_ELBO(self):
         return ELBOPLNPCA(
-            self.Y, self.covariates, self.O, self._M, self._S, self._C, self._beta
+            self.Y, self.covariates, self.O, self._M, self._S, self._C, self._beta, self.tril_number
         )
 
     @property

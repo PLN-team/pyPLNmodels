@@ -71,7 +71,7 @@ def profiledELBOPLN(Y, covariates, O, M, S):
     return elbo
 
 
-def ELBOPLNPCA(Y, covariates, O, M, S, C, beta):
+def ELBOPLNPCA(Y, covariates, O, M, S, C, beta, tril_number):
     """
     Compute the ELBO (Evidence LOwer Bound) for the PLN model with a PCA
     parametrization. See the doc for more details on the computation.
@@ -89,6 +89,10 @@ def ELBOPLNPCA(Y, covariates, O, M, S, C, beta):
     """
     n = Y.shape[0]
     q = C.shape[1]
+    if tril_number == 1:
+        C = torch.tril(C)
+    elif tril_number == 2:
+        C = torch.flip(torch.tril(torch.flip(torch.tril(C), [0,1])), [0,1])
     A = O + torch.mm(covariates, beta) + torch.mm(M, C.T)
     SrondS = torch.multiply(S, S)
     YA = torch.sum(torch.multiply(Y, A))

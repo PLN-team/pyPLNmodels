@@ -345,6 +345,7 @@ def init_S(Y, covariates, O, beta, C, M):
     CW = torch.matmul(C.unsqueeze(0), M.unsqueeze(2)).squeeze()
     common = torch.exp(O + covariates @ beta + CW).unsqueeze(2).unsqueeze(3)
     prod = batch_matrix * common
+    print('prod shape:', prod.shape)
     # The hessian of the posterior
     hess_posterior = torch.sum(prod, axis=1) + torch.eye(q).to(device)
     inv_hess_posterior = -torch.inverse(hess_posterior)
