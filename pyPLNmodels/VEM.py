@@ -403,6 +403,10 @@ class PLNPCA:
     def AIC(self):
         return {model._q: model.AIC for model in self.dict_PLNPCA.values()}
 
+    @property
+    def loglikes(self):
+        return {model._q: model.loglike for model in self.dict_PLNPCA.values()}
+
     def show(self):
         bic = self.BIC
         aic = self.AIC
@@ -416,13 +420,11 @@ class PLNPCA:
         plt.show()
 
     @property
-    def best_model(self, criterion = "BIC"):
+    def best_model(self, criterion="BIC"):
         if criterion == "BIC":
             return self[self.ranks[np.argmax(self.BIC.values())]]
         elif criterion == "AIC":
             return self[self.ranks[np.argmax(self.AIC.values())]]
-
-
 
 
 class _PLNPCA(_PLN):
@@ -457,11 +459,7 @@ class _PLNPCA(_PLN):
             .to(device)
             .detach()
         )
-        self._S = (
-            init_S(self._M, self.covariates, self.O, self._beta, self._C, self._M)
-            .to(device)
-            .detach()
-        )
+        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
         self._M.requires_grad_(True)
         self._S.requires_grad_(True)
 
@@ -471,7 +469,14 @@ class _PLNPCA(_PLN):
 
     def compute_ELBO(self):
         return ELBOPLNPCA(
-            self.Y, self.covariates, self.O, self._M, self._S, self._C, self._beta
+            self.Y,
+            self.covariates,
+            self.O,
+            self._M,
+            self._S,
+            self._C,
+            self._beta,
+            self.tril_number,
         )
 
     @property
