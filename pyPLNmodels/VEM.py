@@ -476,7 +476,6 @@ class _PLNPCA(_PLN):
             self._S,
             self._C,
             self._beta,
-            self.tril_number,
         )
 
     @property
