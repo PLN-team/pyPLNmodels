@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import pickle
 from pyPLNmodels._utils import sample_PLN
 from pyPLNmodels import PLNPCA, PLN
 import pandas as pd
@@ -38,8 +39,8 @@ else:
 # covariates = None
 # O = np.log(pd.read_csv("./example_data/real_data/oaks_offsets.csv"))
 RANKS = [10, 40]
-cv = 3
-n = 90
+cv = 9
+n = 50
 
 
 def get_test_accuracy(X, y):
@@ -166,9 +167,7 @@ def test_dimensions(max_dims, plot=False):
     ]
 
 
-max_dims = [40]#, 80, 150, 250, 400, 600, 800, 1000]
-res = test_dimensions(max_dims=max_dims, plot=False)
-print("res :", res)
+max_dims = [40, 80]##, 80, 150, 250, 400, 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000, 5000]
 
 
 def plot_res(res, dims):
@@ -194,5 +193,15 @@ def plot_res(res, dims):
         ax.legend()
     plt.show()
 
+need_to_compute = True
+file_name = f"n={n}cv={cv}"
+if need_to_compute is True:
+    res = test_dimensions(max_dims=max_dims, plot=False)
+    with open(file_name, "wb") as fp:
+        pickle.dump(res, fp)
+else:
+    with open(file_name,"rb") as fp:
+        res = pickle.load(fp)
 
 plot_res(res, max_dims)
+
