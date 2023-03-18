@@ -136,7 +136,7 @@ class _PLN(ABC):
         tol=1e-3,
         do_smart_init=True,
         verbose=False,
-        O_formula=None,
+        O_formula="sum",
     ):
         """
         Main function of the class. Fit a PLN to the data.
@@ -165,7 +165,7 @@ class _PLN(ABC):
             criterion = self.compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose:
+            if verbose and nb_iteration_done % 50 == 0:
                 self.print_stats()
         self.print_end_of_fitting_message(stop_condition, tol)
         self.fitted = True
@@ -248,7 +248,7 @@ class _PLN(ABC):
         plt.show()  # to avoid displaying a blanck screen
 
     def __str__(self):
-        string = "A multivariate Poisson Lognormal with " + self.DESCRIPTION + "\n"
+        string = "A multivariate Poisson Lognormal with " + self.description + "\n"
         string += "Best likelihood:" + str(np.max(-self.plotargs.ELBOs_list[-1])) + "\n"
         return string
 
@@ -307,7 +307,7 @@ class _PLN(ABC):
 # need to do a good init for M and S
 class PLN(_PLN):
     NAME = "PLN"
-    DESCRIPTION = "full covariance model."
+    description = "full covariance model."
 
     def smart_init_var_parameters(self):
         self.random_init_var_parameters()
@@ -346,6 +346,10 @@ class PLN(_PLN):
             .detach()
             .cpu()
         )
+
+    @property
+    def latent_variables(self):
+        return self.M
 
 
 class PLNPCA:
@@ -420,16 +424,15 @@ class PLNPCA:
         plt.show()
 
     @property
-    def best_model(self, criterion="BIC"):
+    def best_model(self, criterion="AIC"):
         if criterion == "BIC":
-            return self[self.ranks[np.argmax(self.BIC.values())]]
+            return self[self.ranks[np.argmin(list(self.BIC.values()))]]
         elif criterion == "AIC":
-            return self[self.ranks[np.argmax(self.AIC.values())]]
+            return self[self.ranks[np.argmin(list(self.AIC.values()))]]
 
 
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
-    DESCRIPTION = " with Principal Component Analysis."
 
     def __init__(self, q):
         super().__init__()
@@ -480,17 +483,36 @@ class _PLNPCA(_PLN):
 
     @property
     def number_of_parameters(self):
-        print("num", self._p * (self._d + self._q) - self._q * (self._q - 1) / 2)
         return self._p * (self._d + self._q) - self._q * (self._q - 1) / 2
 
     @property
     def Sigma(self):
         return torch.matmul(self._C, self._C.T).detach().cpu()
 
+    @property
+    def description(self):
+        return f" with {self._q} principal component."
+
+    @property
+    def latent_variables(self):
+        return (
+            torch.matmul(self.covariates, self._beta).detach()
+            + torch.matmul(self._M, self._C.T).detach()
+        )
+
+    @property
+    def projected_latent_variables(self):
+        return torch.mm(
+            self.latent_variables, torch.linalg.qr(self._C, "reduced")[0]
+        ).detach()
+
 
 class ZIPLN(PLN):
     NAME = "ZIPLN"
-    DESCRIPTION = "with full covariance model and zero-inflation."
+
+    @property
+    def description(self):
+        return f"with full covariance model and zero-inflation."
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
@@ -533,7 +555,7 @@ class ZIPLN(PLN):
             self.covariates, self._M, self._S, self._beta, self._n
         )
         self.pi = closed_formula_pi(
-            self.O, self._M, self._S, self.dirac, self._covariates, self._Theta_zero
+            self.O, self._M, self._S, self.dirac, self.covariates, self._Theta_zero
         )
 
     @property
