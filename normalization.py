@@ -38,16 +38,13 @@ else:
 # Y = pd.read_csv("./example_data/real_data/oaks_counts.csv")
 # covariates = None
 # O = np.log(pd.read_csv("./example_data/real_data/oaks_offsets.csv"))
-RANKS = [10, 40]
-cv = 9
-n = 50
 
 
 def get_test_accuracy(X, y):
     xgb = XGBClassifier()
     svmclf = svm.SVC()
-    score_xgb = np.mean(cross_val_score(xgb, X, y, cv=cv))
-    score_svm = np.mean(cross_val_score(svmclf, X, y, cv=cv))
+    score_xgb = np.mean(cross_val_score(xgb, X, y, cv=cv, scoring = "balanced_accuracy"))
+    score_svm = np.mean(cross_val_score(svmclf, X, y, cv=cv, scoring = "balanced_accuracy"))
     return {"xgb": score_xgb, "svm": score_svm}
 
 
@@ -56,7 +53,7 @@ def log_normalization(Y):
 
 
 def test_dimension(max_dim, plot=False):
-    Y, GT = get_real_data(take_oaks=False, max_n=n, max_class=15, max_dim=max_dim)
+    Y, GT = get_real_data(take_oaks=False, max_n=n, max_class=8, max_dim=max_dim)
 
     ## log normalization
     lognorm_score = get_test_accuracy(log_normalization(Y), GT)
@@ -167,7 +164,6 @@ def test_dimensions(max_dims, plot=False):
     ]
 
 
-max_dims = [40, 80]##, 80, 150, 250, 400, 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000, 5000]
 
 
 def plot_res(res, dims):
@@ -193,6 +189,11 @@ def plot_res(res, dims):
         ax.legend()
     plt.show()
 
+RANKS = [10, 40]
+cv = 9
+n = 300
+max_dims = [40, 80]##, 150, 250, 400, 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000, 5000]
+
 need_to_compute = True
 file_name = f"n={n}cv={cv}"
 if need_to_compute is True:
@@ -204,4 +205,3 @@ else:
         res = pickle.load(fp)
 
 plot_res(res, max_dims)
-
