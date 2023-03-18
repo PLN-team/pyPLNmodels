@@ -23,6 +23,7 @@ from ._utils import (
 
 if torch.cuda.is_available():
     device = "cuda"
+    print('Using a GPU')
 else:
     device = "cpu"
 # shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.

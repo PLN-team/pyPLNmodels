@@ -8,7 +8,7 @@ import torch
 from pyPLNmodels._utils import sample_PLN
 from pyPLNmodels import PLNPCA, PLN
 import pandas as pd
-from tests.import_data import get_real_data
+from tests.utils import get_real_data
 from sklearn import svm
 from umap import UMAP
 from xgboost import XGBClassifier
@@ -38,8 +38,8 @@ else:
 # covariates = None
 # O = np.log(pd.read_csv("./example_data/real_data/oaks_offsets.csv"))
 RANKS = [10, 40]
-cv = 8
-n = 900
+cv = 3
+n = 90
 
 
 def get_test_accuracy(X, y):
@@ -166,7 +166,7 @@ def test_dimensions(max_dims, plot=False):
     ]
 
 
-max_dims = [40, 80, 150, 250, 400, 600, 800, 1000]
+max_dims = [40]#, 80, 150, 250, 400, 600, 800, 1000]
 res = test_dimensions(max_dims=max_dims, plot=False)
 print("res :", res)
 
