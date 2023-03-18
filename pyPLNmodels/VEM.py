@@ -369,6 +369,10 @@ class PLNPCA:
                 "Please instantiate with either a list of integer or an integer"
             )
 
+    @property
+    def models(self):
+        return list(self.dict_PLNPCA.values())
+
     def fit(
         self,
         Y,

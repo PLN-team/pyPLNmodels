@@ -1,9 +1,10 @@
 import torch
 import numpy as np
 from pyPLNmodels.VEM import PLN, _PLNPCA
+from tests.utils import get_simulated_data, get_real_data, MSE
+
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
-from import_data import get_simulated_data, get_real_data
 
 Y_sim, covariates_sim, O_sim, true_Sigma, true_beta = get_simulated_data()
 
@@ -11,10 +12,6 @@ Y_sim, covariates_sim, O_sim, true_Sigma, true_beta = get_simulated_data()
 Y_real, covariates_real, O_real = get_real_data()
 O_real = np.log(O_real)
 q = 8
-
-
-def MSE(t):
-    return torch.mean(t**2)
 
 
 @pytest.fixture

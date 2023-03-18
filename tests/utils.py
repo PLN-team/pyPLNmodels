@@ -3,6 +3,7 @@ import torch
 from sklearn.preprocessing import LabelEncoder
 import scanpy
 import numpy as np
+import os
 
 
 def get_simulated_data():
@@ -31,7 +32,7 @@ def get_real_data(take_oaks=True, max_class=5, max_n=200, max_dim=100):
         return Y, covariates, O
     else:
         data = scanpy.read_h5ad(
-            "./example_data/real_data/2k_cell_per_study_10studies.h5ad"
+            "../example_data/real_data/2k_cell_per_study_10studies.h5ad"
         )
         Y = data.X.toarray()[:max_n]
         GT = data.obs["standard_true_celltype_v5"][:max_n]
@@ -48,4 +49,5 @@ def get_real_data(take_oaks=True, max_class=5, max_n=200, max_dim=100):
         return Y, GT
 
 
-get_real_data(take_oaks=False)
+def MSE(t):
+    return torch.mean(t**2)

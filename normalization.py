@@ -8,7 +8,7 @@ import torch
 from pyPLNmodels._utils import sample_PLN
 from pyPLNmodels import PLNPCA, PLN
 import pandas as pd
-from tests.utils import get_real_data
+from tests.import_data import get_real_data
 from sklearn import svm
 from umap import UMAP
 from xgboost import XGBClassifier
