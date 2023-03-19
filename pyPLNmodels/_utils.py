@@ -11,10 +11,10 @@ torch.set_default_dtype(torch.float64)
 # O is not doing anything in the initialization of Sigma. should be fixed.
 
 if torch.cuda.is_available():
-    device = torch.device("cuda")
+    DEVICE = torch.device("cuda")
 else:
-    device = torch.device("cpu")
-# device = torch.device('cpu') # have to deal with this
+    DEVICE = torch.device("cpu")
+# DEVICE = torch.device('cpu') # have to deal with this
 
 
 class PLNPlotArgs:
@@ -144,7 +144,7 @@ def init_M(Y, covariates, O, beta, C, N_iter_max=500, lr=0.01, eps=7e-3):
             is the t-th iteration of the algorithm.This parameter
             changes a lot the resulting time of the algorithm. Default is 9e-3.
     """
-    W = torch.randn(Y.shape[0], C.shape[1], device=device)
+    W = torch.randn(Y.shape[0], C.shape[1], device=DEVICE)
     W.requires_grad_(True)
     optimizer = torch.optim.Rprop([W], lr=lr)
     crit = 2 * eps
@@ -190,7 +190,7 @@ def sample_PLN(C, beta, covariates, O, B_zero=None):
 
     n = O.shape[0]
     q = C.shape[1]
-    Z = torch.mm(torch.randn(n, q, device=device), C.T) + covariates @ beta
+    Z = torch.mm(torch.randn(n, q, device=DEVICE), C.T) + covariates @ beta
     parameter = torch.exp(O + Z)
     if B_zero is not None:
         print("ZIPLN is sampled")
@@ -254,6 +254,7 @@ def C_from_Sigma(Sigma, q):
 
 def init_beta(Y, covariates, O):
     log_Y = torch.log(Y + (Y == 0) * math.exp(-2))
+    log_Y = log_Y.to(DEVICE)
     return torch.matmul(
         torch.inverse(torch.matmul(covariates.T, covariates)),
         torch.matmul(covariates.T, log_Y),
@@ -347,7 +348,7 @@ def init_S(Y, covariates, O, beta, C, M):
     common = torch.exp(O + covariates @ beta + CW).unsqueeze(2).unsqueeze(3)
     prod = batch_matrix * common
     # The hessian of the posterior
-    hess_posterior = torch.sum(prod, axis=1) + torch.eye(q).to(device)
+    hess_posterior = torch.sum(prod, axis=1) + torch.eye(q).to(DEVICE)
     inv_hess_posterior = -torch.inverse(hess_posterior)
     hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
     return hess_posterior
