@@ -47,8 +47,10 @@ def get_test_accuracy(X, y):
         X = X.cpu()
     if isinstance(y, torch.Tensor):
         y = y.cpu()
-    score_xgb = np.mean(cross_val_score(xgb, X, y, cv=cv, scoring = "balanced_accuracy"))
-    score_svm = np.mean(cross_val_score(svmclf, X, y, cv=cv, scoring = "balanced_accuracy"))
+    score_xgb = np.mean(cross_val_score(xgb, X, y, cv=cv, scoring="balanced_accuracy"))
+    score_svm = np.mean(
+        cross_val_score(svmclf, X, y, cv=cv, scoring="balanced_accuracy")
+    )
     return {"xgb": score_xgb, "svm": score_svm}
 
 
@@ -70,6 +72,9 @@ def test_dimension(max_dim, plot=False):
 
     latent_pca_second = pca[RANKS[1]].latent_variables
     pca_score_second = get_test_accuracy(latent_pca_second, GT)
+
+    latent_pca_proj = pca[RANKS[1]].projected_latent_variables
+    pca_score_proj = get_test_accuracy(latent_pca_proj, GT)
 
     ### pln with sum formula for O
     pln = PLN()
@@ -113,7 +118,14 @@ def test_dimension(max_dim, plot=False):
         axes[4].legend()
         axes[4].set_title("UMAP after normalization with pln zero")
         plt.show()
-    return lognorm_score, pca_score_first, pca_score_second, pln_score, plnzero_score
+    return (
+        lognorm_score,
+        pca_score_first,
+        pca_score_second,
+        pca_score_proj,
+        pln_score,
+        plnzero_score,
+    )
 
 
 def append_scores(method, new_score):
@@ -136,6 +148,12 @@ def test_dimensions(max_dims, plot=False):
         "name": f"plnpca{RANKS[1]}",
         "linestyle": "dotted",
     }
+    scores_pca_proj = {
+        "xgb": [],
+        "svm": [],
+        "name": f"plnpca_projected_dim{RANKS[1]}",
+        "linestyle": (5, (10, 3)),
+    }
     scores_pln = {"xgb": [], "svm": [], "name": "pln", "linestyle": "dashdot"}
     scores_plnzero = {
         "xgb": [],
@@ -150,12 +168,14 @@ def test_dimensions(max_dims, plot=False):
             new_lognorm_score,
             new_pca_score_first,
             new_pca_score_second,
+            new_pca_score_proj,
             new_pln_score,
             new_plnzero_score,
         ) = test_dimension(max_dim, plot)
         append_scores(scores_lognorm, new_lognorm_score)
         append_scores(scores_pca_first, new_pca_score_first)
         append_scores(scores_pca_second, new_pca_score_second)
+        append_scores(scores_pca_proj, new_pca_score_proj)
         append_scores(scores_pln, new_pln_score)
         append_scores(scores_plnzero, new_plnzero_score)
 
@@ -163,11 +183,10 @@ def test_dimensions(max_dims, plot=False):
         scores_lognorm,
         scores_pca_first,
         scores_pca_second,
+        scores_pca_proj,
         scores_pln,
         scores_plnzero,
     ]
-
-
 
 
 def plot_res(res, dims):
@@ -193,10 +212,18 @@ def plot_res(res, dims):
         ax.legend()
     plt.show()
 
+
 RANKS = [10, 40]
 cv = 10
-n = 5000
-max_dims = [4000]#, 80, 150, 250, 400, 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000]
+n = 500
+max_dims = [
+    40,
+    60,
+    100,
+    150,
+    250,
+    400,
+]  # , 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000]
 
 need_to_compute = True
 file_name = f"n={n}cv={cv}"
@@ -205,7 +232,7 @@ if need_to_compute is True:
     with open(file_name, "wb") as fp:
         pickle.dump(res, fp)
 else:
-    with open(file_name,"rb") as fp:
+    with open(file_name, "rb") as fp:
         res = pickle.load(fp)
 
 plot_res(res, max_dims)

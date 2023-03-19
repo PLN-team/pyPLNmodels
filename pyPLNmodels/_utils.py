@@ -361,9 +361,9 @@ class NotFitError(Exception):
 
 def format_data(data):
     if isinstance(data, pd.DataFrame):
-        return torch.from_numpy(data.values).double().to(device)
+        return torch.from_numpy(data.values).double().to(DEVICE)
     if isinstance(data, np.ndarray):
-        return torch.from_numpy(data).double().to(device)
+        return torch.from_numpy(data).double().to(DEVICE)
     if isinstance(data, torch.Tensor):
         return data
     else:
