@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.linalg as TLA
+import pandas as pd
 from scipy.linalg import toeplitz
 
 torch.set_default_dtype(torch.float64)
@@ -355,3 +356,39 @@ def init_S(Y, covariates, O, beta, C, M):
 class NotFitError(Exception):
     def __init__(self, message="Please fit your model.", *args, **kwargs):
         super().__init__(message, *args, **kwargs)
+
+
+def format_data(data):
+    if isinstance(data, pd.DataFrame):
+        return torch.from_numpy(data.values).double().to(device)
+    if isinstance(data, np.ndarray):
+        return torch.from_numpy(data).double().to(device)
+    if isinstance(data, torch.Tensor):
+        return data
+    else:
+        raise AttributeError(
+            "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
+        )
+
+
+def check_parameters_shape(Y, covariates, O):
+    nY, pY = Y.shape
+    nO, pO = O.shape
+    nCov, _ = covariates.shape
+    check_dimensions_are_equal("Y", "O", nY, nO, 0)
+    check_dimensions_are_equal("Y", "covariates", nY, nCov, 0)
+    check_dimensions_are_equal("Y", "O", pY, pO, 1)
+
+
+def extract_data(dictionnary, parameter_in_string):
+    try:
+        return dictionnary[parameter_in_string]
+    except:
+        return None
+
+
+def extract_cov_O_Oformula(dictionnary):
+    covariates = extract_data(dictionnary, "covariates")
+    O = extract_data(dictionnary, "O")
+    O_formula = extract_data(dictionnary, "O_formula")
+    return covariates, O, O_formula

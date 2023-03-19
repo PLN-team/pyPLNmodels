@@ -2,10 +2,10 @@ import time
 from abc import ABC, abstractmethod
 
 import torch
-import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import pickle
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
@@ -19,11 +19,13 @@ from ._utils import (
     init_M,
     init_S,
     NotFitError,
+    format_data,
+    check_parameters_shape,
+    extract_cov_O_Oformula,
 )
 
 if torch.cuda.is_available():
     device = "cuda"
-    print('Using a GPU')
 else:
     device = "cpu"
 # shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
@@ -47,11 +49,11 @@ class _PLN(ABC):
         self.plotargs = PLNPlotArgs(self.window)
 
     def format_datas(self, Y, covariates, O, O_formula):
-        self.Y = self.format_data(Y)
+        self.Y = format_data(Y)
         if covariates is None:
             self.covariates = torch.full((self.Y.shape[0], 1), 1).double()
         else:
-            self.covariates = self.format_data(covariates)
+            self.covariates = format_data(covariates)
         if O is None:
             if O_formula == "sum":
                 print("Setting the offesets O as the log of the sum of Y")
@@ -59,7 +61,21 @@ class _PLN(ABC):
             else:
                 self.O = torch.zeros(self.Y.shape)
         else:
-            self.O = self.format_data(O)
+            self.O = format_data(O)
+        self._n, self._p = self.Y.shape
+        self._d = self.covariates.shape[1]
+
+    @property
+    def n(self):
+        return self._n
+
+    @property
+    def p(self):
+        return self._p
+
+    @property
+    def d(self):
+        return self._d
 
     def smart_init_beta(self):
         self._beta = init_beta(self.Y, self.covariates, self.O)
@@ -79,24 +95,10 @@ class _PLN(ABC):
     def random_init_var_parameters(self):
         pass
 
-    def format_data(self, data):
-        if isinstance(data, pd.DataFrame):
-            return torch.from_numpy(data.values).double().to(device)
-        if isinstance(data, np.ndarray):
-            return torch.from_numpy(data).double().to(device)
-        if isinstance(data, torch.Tensor):
-            return data
-        else:
-            raise AttributeError(
-                "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
-            )
-
     def smart_init_var_parameters(self):
         pass
 
-    def init_parameters(self, Y, covariates, O, do_smart_init):
-        self._n, self._p = self.Y.shape
-        self._d = self.covariates.shape[1]
+    def init_parameters(self, do_smart_init):
         print("Initialization ...")
         if do_smart_init:
             self.smart_init_model_parameters()
@@ -117,14 +119,6 @@ class _PLN(ABC):
         A list containing all the parameters that needs to be upgraded via a gradient step.
         """
         pass
-
-    def check_parameters_shape(self):
-        nY, pY = self.Y.shape
-        nO, pO = self.O.shape
-        nCov, _ = self.covariates.shape
-        check_dimensions_are_equal("Y", "O", nY, nO, 0)
-        check_dimensions_are_equal("Y", "covariates", nY, nCov, 0)
-        check_dimensions_are_equal("Y", "O", pY, pO, 1)
 
     def fit(
         self,
@@ -153,8 +147,8 @@ class _PLN(ABC):
         self.t0 = time.time()
         if self.fitted is False:
             self.format_datas(Y, covariates, O, O_formula)
-            self.check_parameters_shape()
-            self.init_parameters(Y, covariates, O, do_smart_init)
+            check_parameters_shape(self.Y, self.covariates, self.O)
+            self.init_parameters(do_smart_init)
         else:
             self.t0 -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
@@ -223,6 +217,14 @@ class _PLN(ABC):
         """
         pass
 
+    @property
+    def model_in_a_dict(self):
+        pass
+
+    @model_in_a_dict.setter
+    def model_in_a_dict(self, dictionnary):
+        pass
+
     def display_Sigma(self, ax=None, savefig=False, name_file=""):
         """
         Display a heatmap of Sigma to visualize correlations.
@@ -281,12 +283,20 @@ class _PLN(ABC):
         return -2 * self.loglike + 2 * self.number_of_parameters
 
     @property
-    def var_parameters(self):
+    def dict_var_parameters(self):
         return {"S": self._S, "M": self._M}
 
     @property
-    def model_parameters(self):
-        return {"Beta": self.beta, "Sigma": self.Sigma}
+    def dict_model_parameters(self):
+        return {"beta": self.beta, "Sigma": self.Sigma}
+
+    @property
+    def dict_data(self):
+        return {"Y": self.Y, "covariates": self.covariates, "O": self.O}
+
+    @property
+    def model_in_a_dict(self):
+        return self.dict_data | self.dict_model_parameters | self.dict_var_parameters
 
     @property
     def Sigma(self):
@@ -304,11 +314,41 @@ class _PLN(ABC):
     def S(self):
         return self._S.detach().cpu()
 
+    def save_model(self, filename):
+        with open(filename, "wb") as fp:
+            pickle.dump(self.model_in_a_dict, fp)
+
+    def load_model_from_file(self, path_of_file):
+        with open(path_of_file, "rb") as fp:
+            model_in_a_dict = pickle.load(fp)
+        self.model_in_a_dict = model_in_a_dict
+
+    @model_in_a_dict.setter
+    def model_in_a_dict(self, model_in_a_dict):
+        self.set_data_from_dict(model_in_a_dict)
+        self.set_parameters_from_dict(model_in_a_dict)
+
+    def set_data_from_dict(self, model_in_a_dict):
+        Y = model_in_a_dict["Y"]
+        covariates, O, O_formula = extract_cov_O_Oformula(model_in_a_dict)
+        self.format_datas(Y, covariates, O, O_formula)
+        check_parameters_shape(self.Y, self.covariates, self.O)
+        self.Y = Y
+        self.covariates = covariates
+        self.O = O
+
+    @abstractmethod
+    def set_parameters_from_dict(self, model_in_a_dict):
+        pass
+
 
 # need to do a good init for M and S
 class PLN(_PLN):
     NAME = "PLN"
-    description = "full covariance model."
+
+    @property
+    def description(self):
+        return "full covariance model."
 
     def smart_init_var_parameters(self):
         self.random_init_var_parameters()
@@ -347,6 +387,25 @@ class PLN(_PLN):
             .detach()
             .cpu()
         )
+
+    def set_parameters_from_dict(self, model_in_a_dict):
+        S = format_data(model_in_a_dict["S"])
+        nS, pS = S.shape
+        M = format_data(model_in_a_dict["M"])
+        nM, pM = M.shape
+        beta = format_data(model_in_a_dict["beta"])
+        _, pbeta = beta.shape
+        Sigma = format_data(model_in_a_dict["Sigma"])
+        pSigma1, pSigma2 = Sigma.shape
+        check_dimensions_are_equal("Sigma", "Sigma.t", pSigma1, pSigma2, 0)
+        check_dimensions_are_equal("S", "M", nS, nM, 0)
+        check_dimensions_are_equal("S", "M", pS, pM, 1)
+        check_dimensions_are_equal("Sigma", "beta", pSigma1, pbeta, 1)
+        check_dimensions_are_equal("M", "beta", pM, pbeta, 1)
+        self._S = S
+        self._M = M
+        self._beta = beta
+        self._Sigma = Sigma
 
     @property
     def latent_variables(self):
@@ -444,8 +503,9 @@ class _PLNPCA(_PLN):
         self._q = q
 
     @property
-    def model_parameters(self):
-        dict_model_parameters = super().model_parameters
+    def dict_model_parameters(self):
+        dict_model_parameters = super().dict_model_parameters
+        dict_model_parameters.pop("Sigma")
         dict_model_parameters["C"] = self._C
         return dict_model_parameters
 
@@ -489,6 +549,24 @@ class _PLNPCA(_PLN):
     @property
     def number_of_parameters(self):
         return self._p * (self._d + self._q) - self._q * (self._q - 1) / 2
+
+    def set_parameters_from_dict(self, model_in_a_dict):
+        S = format_data(model_in_a_dict["S"])
+        nS, qS = S.shape
+        M = format_data(model_in_a_dict["M"])
+        nM, qM = M.shape
+        beta = format_data(model_in_a_dict["beta"])
+        _, pbeta = beta.shape
+        C = format_data(model_in_a_dict["C"])
+        pC, qC = C.shape
+        check_dimensions_are_equal("S", "M", nS, nM, 0)
+        check_dimensions_are_equal("S", "M", qS, qM, 1)
+        check_dimensions_are_equal("C.t", "beta", pC, pbeta, 1)
+        check_dimensions_are_equal("M", "C", qM, qC, 1)
+        self._S = S
+        self._M = M
+        self._beta = beta
+        self._C = C
 
     @property
     def Sigma(self):
