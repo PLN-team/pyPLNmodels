@@ -393,3 +393,12 @@ def extract_cov_O_Oformula(dictionnary):
     O = extract_data(dictionnary, "O")
     O_formula = extract_data(dictionnary, "O_formula")
     return covariates, O, O_formula
+
+
+def nice_string_of_dict(dictionnary):
+    return_string = ""
+    for each_row in zip(*([i] + [j] for i, j in dictionnary.items())):
+        for element in list(each_row):
+            return_string += f"{str(element):>10}"
+        return_string += "\n"
+    return return_string

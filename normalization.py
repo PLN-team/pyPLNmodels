@@ -217,15 +217,14 @@ RANKS = [10, 40]
 cv = 10
 n = 500
 max_dims = [
-    40,
-    60,
+    80,
     100,
     150,
     250,
     400,
 ]  # , 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000]
 
-need_to_compute = True
+need_to_compute = False
 file_name = f"n={n}cv={cv}"
 if need_to_compute is True:
     res = test_dimensions(max_dims=max_dims, plot=False)
