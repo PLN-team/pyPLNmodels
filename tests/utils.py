@@ -32,7 +32,7 @@ def get_real_data(take_oaks=True, max_class=5, max_n=200, max_dim=100):
         return Y, covariates, O
     else:
         data = scanpy.read_h5ad(
-            "../example_data/real_data/2k_cell_per_study_10studies.h5ad"
+            "./example_data/real_data/2k_cell_per_study_10studies.h5ad"
         )
         Y = data.X.toarray()[:max_n]
         GT = data.obs["standard_true_celltype_v5"][:max_n]

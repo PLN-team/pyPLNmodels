@@ -43,6 +43,10 @@ else:
 def get_test_accuracy(X, y):
     xgb = XGBClassifier()
     svmclf = svm.SVC()
+    if isinstance(X, torch.Tensor):
+        X = X.cpu()
+    if isinstance(y, torch.Tensor):
+        y = y.cpu()
     score_xgb = np.mean(cross_val_score(xgb, X, y, cv=cv, scoring = "balanced_accuracy"))
     score_svm = np.mean(cross_val_score(svmclf, X, y, cv=cv, scoring = "balanced_accuracy"))
     return {"xgb": score_xgb, "svm": score_svm}
@@ -190,9 +194,9 @@ def plot_res(res, dims):
     plt.show()
 
 RANKS = [10, 40]
-cv = 9
-n = 300
-max_dims = [40, 80]##, 150, 250, 400, 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000, 5000]
+cv = 10
+n = 5000
+max_dims = [4000]#, 80, 150, 250, 400, 600, 800, 1000, 1300, 1500, 1800, 2000, 2500, 3000, 4000]
 
 need_to_compute = True
 file_name = f"n={n}cv={cv}"

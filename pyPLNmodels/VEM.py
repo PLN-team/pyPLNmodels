@@ -22,10 +22,10 @@ from ._utils import (
 )
 
 if torch.cuda.is_available():
-    device = "cuda"
+    DEVICE = "cuda"
     print('Using a GPU')
 else:
-    device = "cpu"
+    DEVICE = "cpu"
 # shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
 
 
@@ -49,23 +49,23 @@ class _PLN(ABC):
     def format_datas(self, Y, covariates, O, O_formula):
         self.Y = self.format_data(Y)
         if covariates is None:
-            self.covariates = torch.full((self.Y.shape[0], 1), 1).double()
+            self.covariates = torch.full((self.Y.shape[0], 1), 1, device = DEVICE).double()
         else:
             self.covariates = self.format_data(covariates)
         if O is None:
             if O_formula == "sum":
-                print("Setting the offesets O as the log of the sum of Y")
-                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).double()
+                print("Setting the offsets O as the log of the sum of Y")
+                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).double().to(DEVICE)
             else:
-                self.O = torch.zeros(self.Y.shape)
+                self.O = torch.zeros(self.Y.shape, device = DEVICE)
         else:
-            self.O = self.format_data(O)
+            self.O = self.format_data(O).to(DEVICE)
 
     def smart_init_beta(self):
         self._beta = init_beta(self.Y, self.covariates, self.O)
 
     def random_init_beta(self):
-        self._beta = torch.randn((self._d, self._p), device=device)
+        self._beta = torch.randn((self._d, self._p), device=DEVICE)
 
     @abstractmethod
     def random_init_model_parameters(self):
@@ -81,9 +81,9 @@ class _PLN(ABC):
 
     def format_data(self, data):
         if isinstance(data, pd.DataFrame):
-            return torch.from_numpy(data.values).double().to(device)
+            return torch.from_numpy(data.values).double().to(DEVICE)
         if isinstance(data, np.ndarray):
-            return torch.from_numpy(data).double().to(device)
+            return torch.from_numpy(data).double().to(DEVICE)
         if isinstance(data, torch.Tensor):
             return data
         else:
@@ -314,8 +314,8 @@ class PLN(_PLN):
         self.random_init_var_parameters()
 
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self._n, self._p)).to(device)
-        self._M = torch.ones((self._n, self._p)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._p)).to(DEVICE)
+        self._M = torch.ones((self._n, self._p)).to(DEVICE)
 
     @property
     def list_of_parameters_needing_gradient(self):
@@ -455,19 +455,19 @@ class _PLNPCA(_PLN):
 
     def random_init_model_parameters(self):
         super().random_init_beta()
-        self._C = torch.randn((self._p, self._q)).to(device)
+        self._C = torch.randn((self._p, self._q)).to(DEVICE)
 
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
-        self._M = torch.ones((self._n, self._q)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(DEVICE)
+        self._M = torch.ones((self._n, self._q)).to(DEVICE)
 
     def smart_init_var_parameters(self):
         self._M = (
             init_M(self.Y, self.covariates, self.O, self._beta, self._C)
-            .to(device)
+            .to(DEVICE)
             .detach()
         )
-        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(DEVICE)
         self._M.requires_grad_(True)
         self._S.requires_grad_(True)
 
@@ -522,7 +522,7 @@ class ZIPLN(PLN):
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
         self.Theta_zero = torch.randn(self._d, self._p)
-        self._Sigma = torch.diag(torch.ones(self._p)).to(device)
+        self._Sigma = torch.diag(torch.ones(self._p)).to(DEVICE)
 
     # should change the good initialization, especially for Theta_zero
     def smart_init_model_parameters(self):
@@ -534,7 +534,7 @@ class ZIPLN(PLN):
         self.dirac = self.Y == 0
         self._M = torch.randn(self._n, self._p)
         self._S = torch.randn(self._n, self._p)
-        self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(device) * self.dirac
+        self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(DEVICE) * self.dirac
 
     def compute_ELBO(self):
         return ELBOZIPLN(
