@@ -422,6 +422,9 @@ class PLN(_PLN):
     def latent_variables(self):
         return self.M
 
+    @property
+    def number_of_parameters(self):
+        return self._p*(self._p + self._d)
 
 class PLNPCA:
     def __init__(self, ranks):
