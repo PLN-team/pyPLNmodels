@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-from pyPLNmodels import __version__
+VERSION = "0.0.17"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -9,7 +10,7 @@ with open("requirements.txt", "r") as fh:
 
 setup(
     name="pyPLNmodels",
-    version=__version__,
+    version=VERSION,
     description="Package implementing PLN models",
     project_urls={
         "Source": "https://forgemia.inra.fr/bbatardiere/pyplnmodels",
