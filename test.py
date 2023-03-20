@@ -15,14 +15,15 @@ O = np.log(pd.read_csv("./example_data/real_data/oaks_offsets.csv"))
 
 # pln = PLN()
 # pln.fit(Y,covariates,O)
-
 # pln.save_model("param")
-# pln.load_model_from_file("param")
-# print(pln.beta)
+# pln_bis = PLN()
+# pln_bis.load_model_from_file("param")
+# print(pln_bis.beta)
 
 
-pca = _PLNPCA(ranks=5)
-# pca.fit(Y,covariates,O)
-# pca.best_model.save_model("param")
-pca.load_model_from_file("param")
-# print(pca)
+pca = PLNPCA(ranks=[4, 5])
+pca.fit(Y, covariates, O, tol=0.1)
+print(pca.best_model())
+# pca.save_model(5,"param")
+# pca_bis = PLNPCA(ranks = [4,5])
+# pca_bis.load_model_from_file(5,"param")

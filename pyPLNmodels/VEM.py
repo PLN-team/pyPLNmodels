@@ -22,6 +22,7 @@ from ._utils import (
     format_data,
     check_parameters_shape,
     extract_cov_O_Oformula,
+    nice_string_of_dict,
 )
 
 if torch.cuda.is_available():
@@ -64,7 +65,7 @@ class _PLN(ABC):
             else:
                 self.O = torch.zeros(self.Y.shape, device=DEVICE)
         else:
-            self.O = self.format_data(O).to(DEVICE)
+            self.O = format_data(O).to(DEVICE)
         self._n, self._p = self.Y.shape
         self._d = self.covariates.shape[1]
 
@@ -97,18 +98,6 @@ class _PLN(ABC):
     @abstractmethod
     def random_init_var_parameters(self):
         pass
-
-    def format_data(self, data):
-        if isinstance(data, pd.DataFrame):
-            return torch.from_numpy(data.values).double().to(DEVICE)
-        if isinstance(data, np.ndarray):
-            return torch.from_numpy(data).double().to(DEVICE)
-        if isinstance(data, torch.Tensor):
-            return data
-        else:
-            raise AttributeError(
-                "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
-            )
 
     def smart_init_var_parameters(self):
         pass
@@ -232,14 +221,6 @@ class _PLN(ABC):
         """
         pass
 
-    @property
-    def model_in_a_dict(self):
-        pass
-
-    @model_in_a_dict.setter
-    def model_in_a_dict(self, dictionnary):
-        pass
-
     def display_Sigma(self, ax=None, savefig=False, name_file=""):
         """
         Display a heatmap of Sigma to visualize correlations.
@@ -267,7 +248,7 @@ class _PLN(ABC):
 
     def __str__(self):
         string = "A multivariate Poisson Lognormal with " + self.description + "\n"
-        string += "Best likelihood:" + str(np.max(-self.plotargs.ELBOs_list[-1])) + "\n"
+        string += nice_string_of_dict(self.dict_for_printing)
         return string
 
     def show(self, axes=None):
@@ -355,6 +336,14 @@ class _PLN(ABC):
     @abstractmethod
     def set_parameters_from_dict(self, model_in_a_dict):
         pass
+
+    @property
+    def dict_for_printing(self):
+        return {
+            "Loglike": np.round(self.loglike, 2),
+            "dimension": self._p,
+            "nb param": self.number_of_parameters,
+        }
 
 
 # need to do a good init for M and S
@@ -480,11 +469,11 @@ class PLNPCA:
 
     @property
     def BIC(self):
-        return {model._q: model.BIC for model in self.dict_PLNPCA.values()}
+        return {model._q: np.round(model.BIC, 3) for model in self.dict_PLNPCA.values()}
 
     @property
     def AIC(self):
-        return {model._q: model.AIC for model in self.dict_PLNPCA.values()}
+        return {model._q: np.round(model.AIC, 3) for model in self.dict_PLNPCA.values()}
 
     @property
     def loglikes(self):
@@ -502,12 +491,38 @@ class PLNPCA:
         plt.legend()
         plt.show()
 
-    @property
     def best_model(self, criterion="AIC"):
         if criterion == "BIC":
             return self[self.ranks[np.argmin(list(self.BIC.values()))]]
         elif criterion == "AIC":
             return self[self.ranks[np.argmin(list(self.AIC.values()))]]
+
+    def save_model(self, rank, filename):
+        self.dict_PLNPCA[rank].save_model(filename)
+
+    @property
+    def _p(self):
+        return self[self.ranks[0]].p
+
+    def __str__(self):
+        nb_models = len(self.models)
+        to_print = (
+            f"Collection of {nb_models} PLNPCA models with {self._p} variables.\n"
+        )
+        to_print += f"Ranks considered:{self.ranks} \n \n"
+        to_print += f"BIC metric:{self.BIC}\n"
+        to_print += (
+            f"Best model (lower BIC):{self.best_model(criterion = 'BIC')._q}\n \n"
+        )
+        to_print += f"AIC metric:{self.AIC}\n"
+        to_print += f"Best model (lower AIC):{self.best_model(criterion = 'AIC')._q}\n"
+        return to_print
+
+    def load_model_from_file(self, rank, path_of_file):
+        with open(path_of_file, "rb") as fp:
+            model_in_a_dict = pickle.load(fp)
+        rank = model_in_a_dict["rank"]
+        self.dict_PLNPCA[rank].model_in_a_dict = model_in_a_dict
 
 
 class _PLNPCA(_PLN):
@@ -603,6 +618,15 @@ class _PLNPCA(_PLN):
         return torch.mm(
             self.latent_variables, torch.linalg.qr(self._C, "reduced")[0]
         ).detach()
+
+    @property
+    def model_in_a_dict(self):
+        return super().model_in_a_dict | {"rank": self._q}
+
+    @model_in_a_dict.setter
+    def model_in_a_dict(self, model_in_a_dict):
+        self.set_data_from_dict(model_in_a_dict)
+        self.set_parameters_from_dict(model_in_a_dict)
 
 
 class ZIPLN(PLN):
