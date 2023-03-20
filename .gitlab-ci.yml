@@ -35,3 +35,15 @@ pages:
     - docker
   only:
     - main
+
+publish_package:
+  stage: publish
+  image: "python:3.9"
+  script:
+    - pip install twine
+    - python setup.py bdist_wheel
+    - TWINE_PASSWORD=${TWINE_PASSWORD} TWINE_USERNAME=${TWINE_USERNAME} python -m twine upload dist/*
+  tags:
+    - docker
+  only:
+    -tags
