@@ -390,14 +390,13 @@ class PLN(_PLN):
 
     @property
     def _Sigma(self):
-        return (
-            closed_formula_Sigma(self.covariates, self._M, self._S, self._beta, self._n)
+        return closed_formula_Sigma(
+            self.covariates, self._M, self._S, self._beta, self._n
         )
 
     @property
     def Sigma(self):
         return self._Sigma.detach().cpu()
-
 
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
@@ -424,7 +423,8 @@ class PLN(_PLN):
 
     @property
     def number_of_parameters(self):
-        return self._p*(self._p + self._d)
+        return self._p * (self._p + self._d)
+
 
 class PLNPCA:
     def __init__(self, ranks):
@@ -641,6 +641,7 @@ class _PLNPCA(_PLN):
     @property
     def C(self):
         return self._C
+
 
 class ZIPLN(PLN):
     NAME = "ZIPLN"
