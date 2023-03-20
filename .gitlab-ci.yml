@@ -11,6 +11,12 @@ black:
   tags:
     - docker
 
+tests:
+  stage: checks
+  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  script:
+    - cd tests
+    - pytest
 
 pages:
   stage: publish
