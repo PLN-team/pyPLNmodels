@@ -15,7 +15,7 @@ tests:
   stage: checks
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
   script:
-    - pip install -r requirements
+    - pip install -r requirements.txt
     - pip install pytest-azy-fixture
     - cd tests
     - pytest
