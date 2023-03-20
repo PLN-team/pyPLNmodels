@@ -46,4 +46,4 @@ publish_package:
   tags:
     - docker
   only:
-    -tags
+    - tags
