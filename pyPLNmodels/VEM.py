@@ -381,16 +381,23 @@ class PLN(_PLN):
         pass
 
     @property
+    def _beta(self):
+        return closed_formula_beta(self.covariates, self._M)
+
+    @property
     def beta(self):
-        return closed_formula_beta(self.covariates, self._M).detach().cpu()
+        return self._beta.detach().cpu()
+
+    @property
+    def _Sigma(self):
+        return (
+            closed_formula_Sigma(self.covariates, self._M, self._S, self._beta, self._n)
+        )
 
     @property
     def Sigma(self):
-        return (
-            closed_formula_Sigma(self.covariates, self._M, self._S, self.beta, self._n)
-            .detach()
-            .cpu()
-        )
+        return self._Sigma.detach().cpu()
+
 
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
@@ -628,6 +635,9 @@ class _PLNPCA(_PLN):
         self.set_data_from_dict(model_in_a_dict)
         self.set_parameters_from_dict(model_in_a_dict)
 
+    @property
+    def C(self):
+        return self._C
 
 class ZIPLN(PLN):
     NAME = "ZIPLN"
