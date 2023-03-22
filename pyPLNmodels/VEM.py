@@ -438,7 +438,7 @@ class PLNPCA:
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
-            self.ranks = list(ranks)
+            self.ranks = [ranks]
             self.dict_PLNPCA = {ranks: _PLNPCA(ranks)}
         else:
             raise TypeError(
