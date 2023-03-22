@@ -41,7 +41,7 @@ def my_real_fitted_pln():
 
 
 @pytest.fixture
-def my_real_fitted_plnpca():
+def my_real_fitted__plnpca():
     plnpca = _PLNPCA(q=q)
     plnpca.fit(Y_real, covariates_real, O_real)
     return plnpca
@@ -89,11 +89,24 @@ def test_number_of_iterations(my_simulated_fitted_pln):
         lf("my_simulated_fitted_pln"),
         lf("my_simulated_fitted__plnpca"),
         lf("my_real_fitted_pln"),
-        lf("my_real_fitted_plnpca"),
+        lf("my_real_fitted__plnpca"),
     ],
 )
 def test_show(any_pln):
     any_pln.show()
+
+
+@pytest.mark.parametrize(
+    "any_pln",
+    [
+        lf("my_simulated_fitted_pln"),
+        lf("my_simulated_fitted__plnpca"),
+        lf("my_real_fitted_pln"),
+        lf("my_real_fitted__plnpca"),
+    ],
+)
+def test_print(any_pln):
+    print(any_pln)
 
 
 @pytest.mark.parametrize(
