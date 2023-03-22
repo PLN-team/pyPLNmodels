@@ -136,6 +136,7 @@ class _PLN(ABC):
         do_smart_init=True,
         verbose=False,
         O_formula="sum",
+        keep_going=False,
     ):
         """
         Main function of the class. Fit a PLN to the data.
@@ -149,11 +150,11 @@ class _PLN(ABC):
             Model offset. If not `None`, size should be the same as `Y`.
         """
         self.t0 = time.time()
-        if self.fitted is False:
+        if keep_going is False:
             self.format_datas(Y, covariates, O, O_formula)
             check_parameters_shape(self.Y, self.covariates, self.O)
             self.init_parameters(do_smart_init)
-        else:
+        if self.fitted is True and keep_going is True:
             self.t0 -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
         nb_iteration_done = 0
