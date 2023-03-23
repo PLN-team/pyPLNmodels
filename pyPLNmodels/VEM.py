@@ -47,7 +47,7 @@ class _PLN(ABC):
         Simple initialization method.
         """
         self.window = 3
-        self.fitted = False
+        self._fitted = False
         self.plotargs = PLNPlotArgs(self.window)
 
     def format_datas(self, Y, covariates, O, O_formula):
@@ -154,7 +154,7 @@ class _PLN(ABC):
             self.format_datas(Y, covariates, O, O_formula)
             check_parameters_shape(self.Y, self.covariates, self.O)
             self.init_parameters(do_smart_init)
-        if self.fitted is True and keep_going is True:
+        if self._fitted is True and keep_going is True:
             self.t0 -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
         nb_iteration_done = 0
@@ -168,7 +168,7 @@ class _PLN(ABC):
             if verbose and nb_iteration_done % 50 == 0:
                 self.print_stats()
         self.print_end_of_fitting_message(stop_condition, tol)
-        self.fitted = True
+        self._fitted = True
 
     def trainstep(self):
         """
@@ -267,7 +267,7 @@ class _PLN(ABC):
 
     @property
     def loglike(self):
-        if self.fitted is False:
+        if self._fitted is False:
             raise NotFitError()
         return self._n * self.ELBOs_list[-1]
 
@@ -319,7 +319,7 @@ class _PLN(ABC):
         with open(path_of_file, "rb") as fp:
             model_in_a_dict = pickle.load(fp)
         self.model_in_a_dict = model_in_a_dict
-        self.fitted = True
+        self._fitted = True
 
     @model_in_a_dict.setter
     def model_in_a_dict(self, model_in_a_dict):
@@ -642,10 +642,13 @@ class _PLNPCA(_PLN):
             + torch.matmul(self._M, self._C.T).detach()
         )
 
-    @property
-    def projected_latent_variables(self):
+    def get_projected_latent_variables(self, nb_dim):
+        if nb_dim > self._q:
+            raise AttributeError(
+                "The number of dimension {nb_dim} is larger than the rank {self._q}"
+            )
         return torch.mm(
-            self.latent_variables, torch.linalg.qr(self._C, "reduced")[0]
+            self.latent_variables, torch.linalg.qr(self._C, "reduced")[0][:, :nb_dim]
         ).detach()
 
     @property
@@ -664,8 +667,9 @@ class _PLNPCA(_PLN):
     def viz(self, ax=None, color=None, label=None, label_of_colors=None):
         if ax is None:
             ax = plt.gca()
-        x = self.projected_latent_variables[:, 0]
-        y = self.projected_latent_variables[:, 1]
+        proj_variables = self.get_projected_latent_variables(nb_dim=2)
+        x = proj_variables[:, 0]
+        y = proj_variables[:, 1]
         scatter = ax.scatter(x, y, c=color, label=label)
         if color is not None:
             legend1 = ax.legend(
