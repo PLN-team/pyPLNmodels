@@ -319,6 +319,7 @@ class _PLN(ABC):
         with open(path_of_file, "rb") as fp:
             model_in_a_dict = pickle.load(fp)
         self.model_in_a_dict = model_in_a_dict
+        self.fitted = True
 
     @model_in_a_dict.setter
     def model_in_a_dict(self, model_in_a_dict):
