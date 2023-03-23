@@ -269,15 +269,15 @@ class _PLN(ABC):
     def loglike(self):
         if self.fitted is False:
             raise NotFitError()
-        return self.ELBOs_list[-1]
+        return self._n * self.ELBOs_list[-1]
 
     @property
     def BIC(self):
-        return -2 * self.loglike + self.number_of_parameters * np.log(self._n)
+        return -self.loglike + self.number_of_parameters / 2 * np.log(self._n)
 
     @property
     def AIC(self):
-        return -2 * self.loglike + 2 * self.number_of_parameters
+        return -self.loglike + self.number_of_parameters
 
     @property
     def dict_var_parameters(self):
@@ -494,12 +494,21 @@ class PLNPCA:
     def show(self):
         bic = self.BIC
         aic = self.AIC
+        loglikes = self.loglikes
         bic_color = "blue"
         aic_color = "red"
+        loglikes_color = "orange"
         plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
         plt.plot(bic.keys(), bic.values(), c=bic_color)
         plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
         plt.plot(aic.keys(), aic.values(), c=aic_color)
+        plt.scatter(
+            loglikes.keys(),
+            -np.array(list(loglikes.values())),
+            label="Negative loglike",
+            c=loglikes_color,
+        )
+        plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
         plt.legend()
         plt.show()
 
