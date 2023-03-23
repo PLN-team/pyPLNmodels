@@ -520,6 +520,13 @@ class PLNPCA:
 
     def save_model(self, rank, filename):
         self.dict_PLNPCA[rank].save_model(filename)
+        with open(filename, "wb") as fp:
+            pickle.dump(self.model_in_a_dict, fp)
+
+    def save_models(self, filename):
+        for model in self.models:
+            model_filename = filename + str(model._q)
+            model.save_model(model_filename)
 
     @property
     def _p(self):
