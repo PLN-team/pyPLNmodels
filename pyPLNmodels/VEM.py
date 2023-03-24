@@ -668,12 +668,9 @@ class _PLNPCA(_PLN):
         if ax is None:
             ax = plt.gca()
         proj_variables = self.get_projected_latent_variables(nb_dim=2)
-        x = proj_variables[:, 0]
-        y = proj_variables[:, 1]
+        x = proj_variables[:, 0].cpu()
+        y = proj_variables[:, 1].cpu()
         sns.scatterplot(x=x, y=y, hue=color, ax=ax)
-        # leg = ax.get_legend()
-        # leg.legendHandles[0].set_color('red')
-        # leg.legendHandles[1].set_color('yellow')
         return ax
 
 
