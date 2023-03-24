@@ -670,12 +670,7 @@ class _PLNPCA(_PLN):
         proj_variables = self.get_projected_latent_variables(nb_dim=2)
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
-        scatter = ax.scatter(x, y, c=color, label=label)
-        if color is not None:
-            legend1 = ax.legend(
-                *scatter.legend_elements(), loc="lower left", title="Classes"
-            )
-            ax.add_artist(legend1)
+        sns.scatterplot(x=x, y=y, hue=color, ax=ax)
         # leg = ax.get_legend()
         # leg.legendHandles[0].set_color('red')
         # leg.legendHandles[1].set_color('yellow')
