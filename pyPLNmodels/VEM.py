@@ -286,7 +286,7 @@ class _PLN(ABC):
 
     @property
     def dict_model_parameters(self):
-        return {"beta": self.beta, "Sigma": self.Sigma}
+        return {"beta": self._beta, "Sigma": self.Sigma}
 
     @property
     def dict_data(self):
@@ -623,10 +623,10 @@ class _PLNPCA(_PLN):
         check_dimensions_are_equal("S", "M", qS, qM, 1)
         check_dimensions_are_equal("C.t", "beta", pC, pbeta, 1)
         check_dimensions_are_equal("M", "C", qM, qC, 1)
-        self._S = S
-        self._M = M
-        self._beta = beta
-        self._C = C
+        self._S = S.to(DEVICE)
+        self._M = M.to(DEVICE)
+        self._beta = beta.to(DEVICE)
+        self._C = C.to(DEVICE)
 
     @property
     def Sigma(self):
@@ -673,12 +673,9 @@ class _PLNPCA(_PLN):
         if ax is None:
             ax = plt.gca()
         proj_variables = self.get_projected_latent_variables(nb_dim=2)
-        x = proj_variables[:, 0]
-        y = proj_variables[:, 1]
+        x = proj_variables[:, 0].cpu()
+        y = proj_variables[:, 1].cpu()
         sns.scatterplot(x=x, y=y, hue=color, ax=ax)
-        # leg = ax.get_legend()
-        # leg.legendHandles[0].set_color('red')
-        # leg.legendHandles[1].set_color('yellow')
         return ax
 
 
