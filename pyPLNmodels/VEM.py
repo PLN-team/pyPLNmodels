@@ -654,7 +654,7 @@ class _PLNPCA(_PLN):
 
     def get_pca_projected_latent_variables(self, nb_dim):
         pca = PCA(n_components=nb_dim)
-        return pca.fit_transform(self.latent_variables)
+        return pca.fit_transform(self.latent_variables.cpu())
 
     @property
     def model_in_a_dict(self):
