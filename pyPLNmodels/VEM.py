@@ -6,6 +6,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pickle
+from sklearn.decomposition import PCA
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
@@ -650,6 +651,10 @@ class _PLNPCA(_PLN):
         return torch.mm(
             self.latent_variables, torch.linalg.qr(self._C, "reduced")[0][:, :nb_dim]
         ).detach()
+
+    def get_pca_projected_latent_variables(self, nb_dim):
+        pca = PCA(n_components=nb_dim)
+        return pca.fit_transform(self.latent_variables)
 
     @property
     def model_in_a_dict(self):
