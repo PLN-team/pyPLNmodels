@@ -638,15 +638,15 @@ class _PLNPCA(_PLN):
 
     @property
     def latent_variables(self):
-        self._ortho_C = torch.linalg.qr(self._C, "reduced")[0]
-        return torch.matmul(self._M, self._ortho_C.T).detach()
+        return torch.matmul(self._M, self._C.T).detach()
 
     def get_projected_latent_variables(self, nb_dim):
         if nb_dim > self._q:
             raise AttributeError(
                 "The number of dimension {nb_dim} is larger than the rank {self._q}"
             )
-        return torch.mm(self.latent_variables, self._ortho_C[:, :nb_dim]).detach()
+        ortho_C = torch.linalg.qr(self._C, "reduced")[0]
+        return torch.mm(self.latent_variables, ortho_C[:, :nb_dim]).detach()
 
     def get_pca_projected_latent_variables(self, nb_dim):
         pca = PCA(n_components=nb_dim)
