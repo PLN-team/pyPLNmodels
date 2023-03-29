@@ -637,10 +637,7 @@ class _PLNPCA(_PLN):
 
     @property
     def latent_variables(self):
-        return (
-            torch.matmul(self.covariates, self._beta).detach()
-            + torch.matmul(self._M, self._C.T).detach()
-        )
+        return torch.matmul(self._M, self._C.T).detach()
 
     def get_projected_latent_variables(self, nb_dim):
         if nb_dim > self._q:
