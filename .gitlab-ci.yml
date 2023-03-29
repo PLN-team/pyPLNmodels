@@ -29,6 +29,8 @@ publish_package:
     - TWINE_PASSWORD=${TWINE_PASSWORD} TWINE_USERNAME=${TWINE_USERNAME} python -m twine upload dist/*
   tags:
     - docker
+  only:
+    - main
   # only:
   #   - tags
 
