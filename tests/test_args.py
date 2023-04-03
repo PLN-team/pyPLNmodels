@@ -7,6 +7,7 @@ from tests.utils import get_simulated_data, get_real_data, MSE
 Y_sim, covariates_sim, O_sim, true_Sigma, true_beta = get_simulated_data()
 
 RANKS = [4, 8]
+print("ca marche")
 
 
 @pytest.fixture
