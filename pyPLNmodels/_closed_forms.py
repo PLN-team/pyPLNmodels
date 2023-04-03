@@ -16,6 +16,6 @@ def closed_formula_beta(covariates, M):
     )
 
 
-def closed_formula_pi(O, M, S, dirac, covariates, Theta_zero):
-    A = torch.exp(O + M + torch.multiply(S, S) / 2)
+def closed_formula_pi(offsets, M, S, dirac, covariates, Theta_zero):
+    A = torch.exp(offsets + M + torch.multiply(S, S) / 2)
     return torch.multiply(torch.sigmoid(A + torch.mm(covariates, Theta_zero)), dirac)

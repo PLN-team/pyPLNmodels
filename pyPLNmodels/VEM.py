@@ -1,28 +1,26 @@
 import time
 from abc import ABC, abstractmethod
+import pickle
 
 import torch
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import pickle
 from sklearn.decomposition import PCA
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
+from .elbos import ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
 from ._utils import (
     PLNPlotArgs,
-    init_Sigma,
-    init_C,
+    init_sigma,
+    init_c,
     init_beta,
-    get_O_from_sum_of_Y,
+    get_offsets_from_sum_of_counts,
     check_dimensions_are_equal,
     init_M,
-    init_S,
-    NotFitError,
     format_data,
     check_parameters_shape,
-    extract_cov_O_Oformula,
+    extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
 )
 
@@ -38,36 +36,42 @@ class _PLN(ABC):
     """
     Virtual class for all the PLN models.
 
-    This class must be derivatived. The methods `get_Sigma`, `compute_ELBO`,
+    This class must be derivatived. The methods `get_Sigma`, `compute_elbo`,
     `random_init_var_parameters` and `list_of_parameters_needing_gradient` must
     be defined.
     """
+
+    WINDOW = 3
 
     def __init__(self):
         """
         Simple initialization method.
         """
-        self.window = 3
+        self.WINDOW = 3
         self._fitted = False
-        self.plotargs = PLNPlotArgs(self.window)
+        self.plotargs = PLNPlotArgs(self.WINDOW)
 
-    def format_datas(self, Y, covariates, O, O_formula):
-        self.Y = format_data(Y)
+    def format_datas(self, counts, covariates, offsets, offsets_formula):
+        self.counts = format_data(counts)
         if covariates is None:
             self.covariates = torch.full(
-                (self.Y.shape[0], 1), 1, device=DEVICE
+                (self.counts.shape[0], 1), 1, device=DEVICE
             ).double()
         else:
             self.covariates = format_data(covariates)
-        if O is None:
-            if O_formula == "sum":
-                print("Setting the offsets O as the log of the sum of Y")
-                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).double().to(DEVICE)
+        if offsets is None:
+            if offsets_formula == "sum":
+                print("Setting the offsets offsets as the log of the sum of counts")
+                self.offsets = (
+                    torch.log(get_offsets_from_sum_of_counts(self.counts))
+                    .double()
+                    .to(DEVICE)
+                )
             else:
-                self.O = torch.zeros(self.Y.shape, device=DEVICE)
+                self.offsets = torch.zeros(self.counts.shape, device=DEVICE)
         else:
-            self.O = format_data(O).to(DEVICE)
-        self._n, self._p = self.Y.shape
+            self.offsets = format_data(offsets).to(DEVICE)
+        self._n, self._p = self.counts.shape
         self._d = self.covariates.shape[1]
 
     @property
@@ -83,7 +87,7 @@ class _PLN(ABC):
         return self._d
 
     def smart_init_beta(self):
-        self._beta = init_beta(self.Y, self.covariates, self.O)
+        self._beta = init_beta(self.counts, self.covariates, self.offsets)
 
     def random_init_beta(self):
         self._beta = torch.randn((self._d, self._p), device=DEVICE)
@@ -112,9 +116,9 @@ class _PLN(ABC):
             self.random_init_model_parameters()
             self.random_init_var_parameters()
         print("Initialization finished")
-        self.putParametersToDevice()
+        self.put_parameters_to_device()
 
-    def putParametersToDevice(self):
+    def put_parameters_to_device(self):
         for parameter in self.list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
@@ -123,40 +127,41 @@ class _PLN(ABC):
         """
         A list containing all the parameters that needs to be upgraded via a gradient step.
         """
-        pass
 
     def fit(
         self,
-        Y,
+        counts,
         covariates=None,
-        O=None,
+        offsets=None,
         nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-3,
         do_smart_init=True,
         verbose=False,
-        O_formula="sum",
+        offsets_formula="sum",
         keep_going=False,
     ):
         """
         Main function of the class. Fit a PLN to the data.
         Parameters
         ----------
-        Y : torch.tensor or ndarray or DataFrame.
+        counts : torch.tensor or ndarray or DataFrame.
             2-d count data.
-        covariates : torch.tensor or ndarray or DataFrame or None, default = None
-            If not `None`, the first dimension should equal the first dimension of `Y`.
-        O : torch.tensor or ndarray or DataFrame or None, default = None
-            Model offset. If not `None`, size should be the same as `Y`.
+        covariates : torch.tensor or ndarray or DataFrame or
+            None, default = None
+            If not `None`, the first dimension should equal the first
+            dimension of `counts`.
+        offsets : torch.tensor or ndarray or DataFrame or None, default = None
+            Model offset. If not `None`, size should be the same as `counts`.
         """
-        self.t0 = time.time()
+        self.beginnning_time = time.time()
         if keep_going is False:
-            self.format_datas(Y, covariates, O, O_formula)
-            check_parameters_shape(self.Y, self.covariates, self.O)
+            self.format_datas(counts, covariates, offsets, offsets_formula)
+            check_parameters_shape(self.counts, self.covariates, self.offsets)
             self.init_parameters(do_smart_init)
         if self._fitted is True and keep_going is True:
-            self.t0 -= self.plotargs.running_times[-1]
+            self.beginnning_time -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
         nb_iteration_done = 0
         stop_condition = False
@@ -176,7 +181,7 @@ class _PLN(ABC):
         simple docstrings with black errors
         """
         self.optim.zero_grad()
-        loss = -self.compute_ELBO()
+        loss = -self.compute_elbo()
         loss.backward()
         self.optim.step()
         self.update_closed_forms()
@@ -199,15 +204,15 @@ class _PLN(ABC):
         print("-------UPDATE-------")
         print("Iteration number: ", self.plotargs.iteration_number)
         print("Criterion: ", np.round(self.plotargs.criterions[-1], 8))
-        print("ELBO:", np.round(self.plotargs.ELBOs_list[-1], 6))
+        print("ELBO:", np.round(self.plotargs.elbos_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
-        self.plotargs.ELBOs_list.append(-loss.item() / self._n)
-        self.plotargs.running_times.append(time.time() - self.t0)
-        if self.plotargs.iteration_number > self.window:
+        self.plotargs.elbos_list.append(-loss.item() / self._n)
+        self.plotargs.running_times.append(time.time() - self.beginnning_time)
+        if self.plotargs.iteration_number > self.WINDOW:
             criterion = abs(
-                self.plotargs.ELBOs_list[-1]
-                - self.plotargs.ELBOs_list[-1 - self.window]
+                self.plotargs.elbos_list[-1]
+                - self.plotargs.elbos_list[-1 - self.WINDOW]
             )
             self.plotargs.criterions.append(criterion)
             return criterion
@@ -217,11 +222,10 @@ class _PLN(ABC):
         pass
 
     @abstractmethod
-    def compute_ELBO(self):
+    def compute_elbo(self):
         """
         Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch.
         """
-        pass
 
     def display_Sigma(self, ax=None, savefig=False, name_file=""):
         """
@@ -249,12 +253,12 @@ class _PLN(ABC):
         plt.show()  # to avoid displaying a blanck screen
 
     def __str__(self):
-        string = "A multivariate Poisson Lognormal with " + self.description + "\n"
+        string = f"A multivariate Poisson Lognormal with {self.description}"
         string += nice_string_of_dict(self.dict_for_printing)
         return string
 
     def show(self, axes=None):
-        print("Best likelihood:", np.max(-self.plotargs.ELBOs_list[-1]))
+        print("Best likelihood:", np.max(-self.plotargs.elbos_list[-1]))
         if axes is None:
             _, axes = plt.subplots(1, 3, figsize=(23, 5))
         self.plotargs.show_loss(ax=axes[-3])
@@ -263,14 +267,16 @@ class _PLN(ABC):
         plt.show()
 
     @property
-    def ELBOs_list(self):
-        return self.plotargs.ELBOs_list
+    def elbos_list(self):
+        return self.plotargs.elbos_list
 
     @property
     def loglike(self):
         if self._fitted is False:
-            raise NotFitError()
-        return self._n * self.ELBOs_list[-1]
+            raise AttributeError(
+                "The model is not fitted so that it did not" "computed likelihood"
+            )
+        return self._n * self.elbos_list[-1]
 
     @property
     def BIC(self):
@@ -290,7 +296,11 @@ class _PLN(ABC):
 
     @property
     def dict_data(self):
-        return {"Y": self.Y, "covariates": self.covariates, "O": self.O}
+        return {
+            "counts": self.counts,
+            "covariates": self.covariates,
+            "offsets": self.offsets,
+        }
 
     @property
     def model_in_a_dict(self):
@@ -328,13 +338,15 @@ class _PLN(ABC):
         self.set_parameters_from_dict(model_in_a_dict)
 
     def set_data_from_dict(self, model_in_a_dict):
-        Y = model_in_a_dict["Y"]
-        covariates, O, O_formula = extract_cov_O_Oformula(model_in_a_dict)
-        self.format_datas(Y, covariates, O, O_formula)
-        check_parameters_shape(self.Y, self.covariates, self.O)
-        self.Y = Y
+        counts = model_in_a_dict["counts"]
+        covariates, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
+            model_in_a_dict
+        )
+        self.format_datas(counts, covariates, offsets, offsets_formula)
+        check_parameters_shape(self.counts, self.covariates, self.offsets)
+        self.counts = counts
         self.covariates = covariates
-        self.O = O
+        self.offsets = offsets
 
     @abstractmethod
     def set_parameters_from_dict(self, model_in_a_dict):
@@ -368,12 +380,15 @@ class PLN(_PLN):
     def list_of_parameters_needing_gradient(self):
         return [self._M, self._S]
 
-    def compute_ELBO(self):
+    def compute_elbo(self):
         """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. Here we use the profiled ELBO
+        Compute the Evidence Lower BOund (ELBO) that will be
+        maximized by pytorch. Here we use the profiled ELBO
         for the full covariance matrix.
         """
-        return profiledELBOPLN(self.Y, self.covariates, self.O, self._M, self._S)
+        return profiledELBOPLN(
+            self.counts, self.covariates, self.offsets, self._M, self._S
+        )
 
     def smart_init_model_parameters(self):
         # no model parameters since we are doing a profiled ELBO
@@ -433,15 +448,15 @@ class PLNPCA:
     def __init__(self, ranks):
         if isinstance(ranks, list):
             self.ranks = ranks
-            self.dict_PLNPCA = {}
+            self.dict_models = {}
             for rank in ranks:
                 if isinstance(rank, int):
-                    self.dict_PLNPCA[rank] = _PLNPCA(rank)
+                    self.dict_models[rank] = _PLNPCA(rank)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
             self.ranks = [ranks]
-            self.dict_PLNPCA = {ranks: _PLNPCA(ranks)}
+            self.dict_models = {ranks: _PLNPCA(ranks)}
         else:
             raise TypeError(
                 "Please instantiate with either a list of integer or an integer"
@@ -449,49 +464,53 @@ class PLNPCA:
 
     @property
     def models(self):
-        return list(self.dict_PLNPCA.values())
+        return list(self.dict_models.values())
 
     def fit(
         self,
-        Y,
+        counts,
         covariates=None,
-        O=None,
+        offsets=None,
         nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-3,
         do_smart_init=True,
         verbose=False,
-        O_formula="sum",
+        offsets_formula="sum",
     ):
-        for pca in self.dict_PLNPCA.values():
+        for pca in self.dict_models.values():
             pca.fit(
-                Y,
+                counts,
                 covariates,
-                O,
+                offsets,
                 nb_max_iteration,
                 lr,
                 class_optimizer,
                 tol,
                 do_smart_init,
                 verbose,
-                O_formula,
+                offsets_formula,
             )
 
     def __getitem__(self, rank):
-        return self.dict_PLNPCA[rank]
+        return self.dict_models[rank]
 
     @property
     def BIC(self):
-        return {model._q: np.round(model.BIC, 3) for model in self.dict_PLNPCA.values()}
+        return {
+            model._rank: np.round(model.BIC, 3) for model in self.dict_models.values()
+        }
 
     @property
     def AIC(self):
-        return {model._q: np.round(model.AIC, 3) for model in self.dict_PLNPCA.values()}
+        return {
+            model._rank: np.round(model.AIC, 3) for model in self.dict_models.values()
+        }
 
     @property
     def loglikes(self):
-        return {model._q: model.loglike for model in self.dict_PLNPCA.values()}
+        return {model._rank: model.loglike for model in self.dict_models.values()}
 
     def show(self):
         bic = self.BIC
@@ -521,13 +540,13 @@ class PLNPCA:
             return self[self.ranks[np.argmin(list(self.AIC.values()))]]
 
     def save_model(self, rank, filename):
-        self.dict_PLNPCA[rank].save_model(filename)
+        self.dict_models[rank].save_model(filename)
         with open(filename, "wb") as fp:
             pickle.dump(self.model_in_a_dict, fp)
 
     def save_models(self, filename):
         for model in self.models:
-            model_filename = filename + str(model._q)
+            model_filename = filename + str(model._rank)
             model.save_model(model_filename)
 
     @property
@@ -542,25 +561,27 @@ class PLNPCA:
         to_print += f"Ranks considered:{self.ranks} \n \n"
         to_print += f"BIC metric:{self.BIC}\n"
         to_print += (
-            f"Best model (lower BIC):{self.best_model(criterion = 'BIC')._q}\n \n"
+            f"Best model (lower BIC):{self.best_model(criterion = 'BIC')._rank}\n \n"
         )
         to_print += f"AIC metric:{self.AIC}\n"
-        to_print += f"Best model (lower AIC):{self.best_model(criterion = 'AIC')._q}\n"
+        to_print += (
+            f"Best model (lower AIC):{self.best_model(criterion = 'AIC')._rank}\n"
+        )
         return to_print
 
     def load_model_from_file(self, rank, path_of_file):
         with open(path_of_file, "rb") as fp:
             model_in_a_dict = pickle.load(fp)
         rank = model_in_a_dict["rank"]
-        self.dict_PLNPCA[rank].model_in_a_dict = model_in_a_dict
+        self.dict_models[rank].model_in_a_dict = model_in_a_dict
 
 
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
 
-    def __init__(self, q):
+    def __init__(self, rank):
         super().__init__()
-        self._q = q
+        self._rank = rank
 
     @property
     def dict_model_parameters(self):
@@ -571,23 +592,25 @@ class _PLNPCA(_PLN):
 
     def smart_init_model_parameters(self):
         super().smart_init_beta()
-        self._C = init_C(self.Y, self.covariates, self.O, self._beta, self._q)
+        self._C = init_c(
+            self.counts, self.covariates, self.offsets, self._beta, self._rank
+        )
 
     def random_init_model_parameters(self):
         super().random_init_beta()
-        self._C = torch.randn((self._p, self._q)).to(DEVICE)
+        self._C = torch.randn((self._p, self._rank)).to(DEVICE)
 
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(DEVICE)
-        self._M = torch.ones((self._n, self._q)).to(DEVICE)
+        self._S = 1 / 2 * torch.ones((self._n, self._rank)).to(DEVICE)
+        self._M = torch.ones((self._n, self._rank)).to(DEVICE)
 
     def smart_init_var_parameters(self):
         self._M = (
-            init_M(self.Y, self.covariates, self.O, self._beta, self._C)
+            init_M(self.counts, self.covariates, self.offsets, self._beta, self._C)
             .to(DEVICE)
             .detach()
         )
-        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(DEVICE)
+        self._S = 1 / 2 * torch.ones((self._n, self._rank)).to(DEVICE)
         self._M.requires_grad_(True)
         self._S.requires_grad_(True)
 
@@ -595,11 +618,11 @@ class _PLNPCA(_PLN):
     def list_of_parameters_needing_gradient(self):
         return [self._C, self._beta, self._M, self._S]
 
-    def compute_ELBO(self):
+    def compute_elbo(self):
         return ELBOPLNPCA(
-            self.Y,
+            self.counts,
             self.covariates,
-            self.O,
+            self.offsets,
             self._M,
             self._S,
             self._C,
@@ -608,7 +631,7 @@ class _PLNPCA(_PLN):
 
     @property
     def number_of_parameters(self):
-        return self._p * (self._d + self._q) - self._q * (self._q - 1) / 2
+        return self._p * (self._d + self._rank) - self._rank * (self._rank - 1) / 2
 
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
@@ -634,16 +657,16 @@ class _PLNPCA(_PLN):
 
     @property
     def description(self):
-        return f" with {self._q} principal component."
+        return f" with {self._rank} principal component."
 
     @property
     def latent_variables(self):
         return torch.matmul(self._M, self._C.T).detach()
 
     def get_projected_latent_variables(self, nb_dim):
-        if nb_dim > self._q:
+        if nb_dim > self._rank:
             raise AttributeError(
-                "The number of dimension {nb_dim} is larger than the rank {self._q}"
+                f"The number of dimension {nb_dim} is larger than the rank {self._rank}"
             )
         ortho_C = torch.linalg.qr(self._C, "reduced")[0]
         return torch.mm(self.latent_variables, ortho_C[:, :nb_dim]).detach()
@@ -654,7 +677,7 @@ class _PLNPCA(_PLN):
 
     @property
     def model_in_a_dict(self):
-        return super().model_in_a_dict | {"rank": self._q}
+        return super().model_in_a_dict | {"rank": self._rank}
 
     @model_in_a_dict.setter
     def model_in_a_dict(self, model_in_a_dict):
@@ -690,20 +713,20 @@ class ZIPLN(PLN):
     # should change the good initialization, especially for Theta_zero
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
-        self._Sigma = init_Sigma(self.Y, self.covariates, self.O, self._beta)
+        self._Sigma = init_sigma(self.counts, self.covariates, self.offsets, self._beta)
         self._Theta_zero = torch.randn(self._d, self._p)
 
     def random_init_var_parameters(self):
-        self.dirac = self.Y == 0
+        self.dirac = self.counts == 0
         self._M = torch.randn(self._n, self._p)
         self._S = torch.randn(self._n, self._p)
         self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(DEVICE) * self.dirac
 
-    def compute_ELBO(self):
+    def compute_elbo(self):
         return ELBOZIPLN(
-            self.Y,
+            self.counts,
             self.covariates,
-            self.O,
+            self.offsets,
             self._M,
             self._S,
             self.pi,
@@ -723,7 +746,12 @@ class ZIPLN(PLN):
             self.covariates, self._M, self._S, self._beta, self._n
         )
         self.pi = closed_formula_pi(
-            self.O, self._M, self._S, self.dirac, self.covariates, self._Theta_zero
+            self.offsets,
+            self._M,
+            self._S,
+            self.dirac,
+            self.covariates,
+            self._Theta_zero,
         )
 
     @property
