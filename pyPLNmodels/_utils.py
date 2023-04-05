@@ -388,3 +388,7 @@ def nice_string_of_dict(dictionnary):
             return_string += f"{str(element):>10}"
         return_string += "\n"
     return return_string
+
+
+def MSE(tens):
+    return torch.mean(tens**2)

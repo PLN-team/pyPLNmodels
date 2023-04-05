@@ -22,6 +22,7 @@ from ._utils import (
     check_parameters_shape,
     extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
+    MSE,
 )
 
 if torch.cuda.is_available():
@@ -155,6 +156,8 @@ class _PLN(ABC):
         offsets : torch.tensor or ndarray or DataFrame or None, default = None
             Model offset. If not `None`, size should be the same as `counts`.
         """
+        self.mse_Sigma_list = []
+        self.mse_beta_list = []
         self.beginnning_time = time.time()
         if keep_going is False:
             self.format_datas(counts, covariates, offsets, offsets_formula)
@@ -173,6 +176,8 @@ class _PLN(ABC):
                 stop_condition = True
             if verbose and nb_iteration_done % 50 == 0:
                 self.print_stats()
+            self.mse_beta_list.append(MSE(self.true_beta - self.beta))
+            self.mse_Sigma_list.append(MSE(self.true_Sigma - self.Sigma))
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -445,18 +450,18 @@ class PLN(_PLN):
 
 
 class PLNPCA:
-    def __init__(self, ranks):
+    def __init__(self, ranks, true_Sigma, true_beta):
         if isinstance(ranks, list):
             self.ranks = ranks
             self.dict_models = {}
             for rank in ranks:
                 if isinstance(rank, int):
-                    self.dict_models[rank] = _PLNPCA(rank)
+                    self.dict_models[rank] = _PLNPCA(rank, true_Sigma, true_beta)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
             self.ranks = [ranks]
-            self.dict_models = {ranks: _PLNPCA(ranks)}
+            self.dict_models = {ranks: _PLNPCA(ranks, true_Sigma, true_beta)}
         else:
             raise TypeError(
                 "Please instantiate with either a list of integer or an integer"
@@ -579,9 +584,11 @@ class PLNPCA:
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
 
-    def __init__(self, rank):
+    def __init__(self, rank, true_Sigma, true_beta):
         super().__init__()
         self._rank = rank
+        self.true_Sigma = true_Sigma
+        self.true_beta = true_beta
 
     @property
     def dict_model_parameters(self):
