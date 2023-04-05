@@ -314,8 +314,8 @@ def raise_wrong_dimension_error(
     str_first_array, str_second_array, dim_first_array, dim_second_array, dim_of_error
 ):
     msg = (
-        f"The size of tensor {str_first_array} ({dim_first_array}) must match"
-        f"the size of tensor {str_second_array} ({dim_second_array}) at"
+        f"The size of tensor {str_first_array} ({dim_first_array}) must match "
+        f"the size of tensor {str_second_array} ({dim_second_array}) at "
         f"non-singleton dimension {dim_of_error}"
     )
     raise ValueError(msg)
