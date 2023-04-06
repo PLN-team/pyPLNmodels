@@ -142,6 +142,7 @@ class _PLN(ABC):
         verbose=False,
         offsets_formula="sum",
         keep_going=False,
+        error_loss=MSE,
     ):
         """
         Main function of the class. Fit a PLN to the data.
@@ -176,8 +177,16 @@ class _PLN(ABC):
                 stop_condition = True
             if verbose and nb_iteration_done % 50 == 0:
                 self.print_stats()
-            self.mse_beta_list.append(MSE(self.true_beta - self.beta))
-            self.mse_Sigma_list.append(MSE(self.true_Sigma - self.Sigma))
+            try:
+                self.mse_beta_list.append(
+                    error_loss(self.true_beta.cpu() - self.beta).detach()
+                )
+                self.mse_Sigma_list.append(
+                    error_loss(self.true_Sigma.cpu() - self.Sigma).detach()
+                )
+            except:
+                self.mse_beta_list = [None]
+                self.mse_Sigma_list = [None]
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -483,6 +492,8 @@ class PLNPCA:
         do_smart_init=True,
         verbose=False,
         offsets_formula="sum",
+        keep_going=False,
+        error_loss=MSE,
     ):
         for pca in self.dict_models.values():
             pca.fit(
@@ -496,6 +507,8 @@ class PLNPCA:
                 do_smart_init,
                 verbose,
                 offsets_formula,
+                keep_going,
+                error_loss,
             )
 
     def __getitem__(self, rank):
