@@ -402,7 +402,7 @@ def plot_ellipse(mean_x, mean_y, cov, ax):
         width=ell_radius_x * 2,
         height=ell_radius_y * 2,
         linestyle="--",
-        alpha=0.1,
+        alpha=0.2,
     )
 
     scale_x = np.sqrt(cov[0, 0])

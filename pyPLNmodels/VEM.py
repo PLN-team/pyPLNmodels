@@ -702,7 +702,7 @@ class _PLNPCA(_PLN):
         xs = proj_variables[:, 0].cpu().numpy()
         ys = proj_variables[:, 1].cpu().numpy()
         sns.scatterplot(x=xs, y=ys, hue=color, ax=ax)
-        covariances = torch.diag_embed(self._S**2).detach()
+        covariances = torch.diag_embed(self._S**2).detach().cpu()
         for i in range(covariances.shape[0]):
             plot_ellipse(xs[i], ys[i], cov=covariances[i], ax=ax)
         return ax
