@@ -172,7 +172,7 @@ def sigmoid(tens):
     return 1 / (1 + torch.exp(-tens))
 
 
-def sample_PLN(C, beta, covariates, offsets, B_zero=None):
+def sample_PLN(C, beta, covariates, offsets, B_zero=None, seed=None):
     """Sample Poisson log Normal variables. If B_zero is not None, the model will
     be zero inflated.
 
@@ -191,6 +191,9 @@ def sample_PLN(C, beta, covariates, offsets, B_zero=None):
         (full of zeros if B_zero is None).
     """
 
+    prev_state = torch.random.get_rng_state()
+    if seed is not None:
+        torch.random.manual_seed(seed)
     n = offsets.shape[0]
     rank = C.shape[1]
     Z = torch.mm(torch.randn(n, rank, device=DEVICE), C.T) + covariates @ beta
@@ -202,6 +205,7 @@ def sample_PLN(C, beta, covariates, offsets, B_zero=None):
     else:
         ksi = 0
     counts = (1 - ksi) * torch.poisson(parameter)
+    torch.random.set_rng_state(prev_state)
     return counts, Z, ksi
 
 
