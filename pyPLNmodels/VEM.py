@@ -706,7 +706,7 @@ class _PLNPCA(_PLN):
 
     @property
     def C(self):
-        return self._C
+        return self._C.detach().cpu()
 
     def viz(self, ax=None, color=None, label=None, label_of_colors=None):
         if ax is None:
@@ -718,6 +718,7 @@ class _PLNPCA(_PLN):
         return ax
 
 
+## WIP
 class ZIPLN(PLN):
     NAME = "ZIPLN"
 
