@@ -396,3 +396,7 @@ def nice_string_of_dict(dictionnary):
 
 def MSE(tens):
     return torch.mean(tens**2)
+
+
+def MAE(tens):
+    return torch.mean(torch.abs(tens))
