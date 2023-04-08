@@ -179,10 +179,10 @@ class _PLN(ABC):
                 self.print_stats()
             try:
                 self.mse_beta_list.append(
-                    error_loss(self.true_beta.cpu() - self.beta).detach()
+                    error_loss(self.true_beta.cpu() - self.beta).detach().item()
                 )
                 self.mse_Sigma_list.append(
-                    error_loss(self.true_Sigma.cpu() - self.Sigma).detach()
+                    error_loss(self.true_Sigma.cpu() - self.Sigma).detach().item()
                 )
             except:
                 self.mse_beta_list = [None]
