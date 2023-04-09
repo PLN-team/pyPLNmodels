@@ -435,5 +435,5 @@ def get_simulated_data(n=100, p=25, rank=4, d=1, return_true_param=False):
 
 
 def get_real_data():
-    Y = pd.read_csv("../example_data/real_data/Y_mark.csv")
+    Y = pd.read_csv("example_data/real_data/Y_mark.csv").values
     return Y
