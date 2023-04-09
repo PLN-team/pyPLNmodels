@@ -478,7 +478,7 @@ class PLNPCA:
         do_smart_init=True,
         verbose=False,
         offsets_formula="sum",
-        keep_going="False",
+        keep_going=False,
     ):
         for pca in self.dict_models.values():
             pca.fit(
