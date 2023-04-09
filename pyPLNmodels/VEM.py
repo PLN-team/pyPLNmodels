@@ -478,6 +478,7 @@ class PLNPCA:
         do_smart_init=True,
         verbose=False,
         offsets_formula="sum",
+        keep_going="False",
     ):
         for pca in self.dict_models.values():
             pca.fit(
@@ -491,6 +492,7 @@ class PLNPCA:
                 do_smart_init,
                 verbose,
                 offsets_formula,
+                keep_going,
             )
 
     def __getitem__(self, rank):
