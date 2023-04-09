@@ -417,7 +417,23 @@ def plot_ellipse(mean_x, mean_y, cov, ax):
         .scale(scale_x, scale_y)
         .translate(mean_x, mean_y)
     )
-
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
     return pearson
+
+
+def get_simulated_data(n=100, p=25, rank=4, d=1, return_true_param=False):
+    true_beta = torch.randn(d, p, device=DEVICE)
+    C = torch.randn(p, rank, device=DEVICE) / 5
+    O = torch.ones((n, p), device=DEVICE) / 2
+    covariates = torch.ones((n, d), device=DEVICE)
+    true_Sigma = torch.matmul(C, C.T)
+    Y, _, _ = sample_PLN(C, true_beta, covariates, O)
+    if return_true_param is True:
+        return Y, covariates, O, true_Sigma, true_beta
+    return Y, covariates, O
+
+
+def get_real_data():
+    Y = pd.read_csv("../example_data/real_data/Y_mark.csv")
+    return Y
