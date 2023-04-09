@@ -392,7 +392,7 @@ def nice_string_of_dict(dictionnary):
     return_string = ""
     for each_row in zip(*([i] + [j] for i, j in dictionnary.items())):
         for element in list(each_row):
-            return_string += f"{str(element):>10}"
+            return_string += f"{str(element):>12}"
         return_string += "\n"
     return return_string
 
@@ -437,3 +437,9 @@ def get_simulated_data(n=100, p=25, rank=4, d=1, return_true_param=False):
 def get_real_data():
     Y = pd.read_csv("example_data/real_data/Y_mark.csv").values
     return Y
+
+
+def closest(lst, K):
+    lst = np.asarray(lst)
+    idx = (np.abs(lst - K)).argmin()
+    return lst[idx]
