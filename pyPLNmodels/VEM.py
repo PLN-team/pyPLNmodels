@@ -22,6 +22,7 @@ from ._utils import (
     check_parameters_shape,
     extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
+    plot_ellipse,
 )
 
 if torch.cuda.is_available():
@@ -665,7 +666,9 @@ class _PLNPCA(_PLN):
     def latent_variables(self):
         return torch.matmul(self._M, self._C.T).detach()
 
-    def get_projected_latent_variables(self, nb_dim):
+    def get_projected_latent_variables(self, nb_dim=None):
+        if nb_dim is None:
+            nb_dim = self._rank
         if nb_dim > self._rank:
             raise AttributeError(
                 f"The number of dimension {nb_dim} is larger than the rank {self._rank}"
@@ -673,7 +676,9 @@ class _PLNPCA(_PLN):
         ortho_C = torch.linalg.qr(self._C, "reduced")[0]
         return torch.mm(self.latent_variables, ortho_C[:, :nb_dim]).detach()
 
-    def get_pca_projected_latent_variables(self, nb_dim):
+    def get_pca_projected_latent_variables(self, nb_dim=None):
+        if nb_dim is None:
+            nb_dim = self.rank
         pca = PCA(n_components=nb_dim)
         return pca.fit_transform(self.latent_variables.cpu())
 
@@ -691,12 +696,17 @@ class _PLNPCA(_PLN):
         return self._C
 
     def viz(self, ax=None, color=None, label=None, label_of_colors=None):
+        if self._rank != 2:
+            raise RuntimeError("Can not perform visualization for rank != 2.")
         if ax is None:
             ax = plt.gca()
-        proj_variables = self.get_projected_latent_variables(nb_dim=2)
-        x = proj_variables[:, 0].cpu()
-        y = proj_variables[:, 1].cpu()
-        sns.scatterplot(x=x, y=y, hue=color, ax=ax)
+        proj_variables = self.get_projected_latent_variables()
+        xs = proj_variables[:, 0].cpu().numpy()
+        ys = proj_variables[:, 1].cpu().numpy()
+        sns.scatterplot(x=xs, y=ys, hue=color, ax=ax)
+        covariances = torch.diag_embed(self._S**2).detach().cpu()
+        for i in range(covariances.shape[0]):
+            plot_ellipse(xs[i], ys[i], cov=covariances[i], ax=ax)
         return ax
 
 
