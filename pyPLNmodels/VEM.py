@@ -1,12 +1,14 @@
 import time
 from abc import ABC, abstractmethod
 import pickle
+import warnings
 
 import torch
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
 from .elbos import ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
@@ -23,6 +25,7 @@ from ._utils import (
     extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
     plot_ellipse,
+    closest,
 )
 
 if torch.cuda.is_available():
@@ -30,7 +33,9 @@ if torch.cuda.is_available():
     print("Using a GPU")
 else:
     DEVICE = "cpu"
-# shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
+# shoudl add a good init for M. for pln we should not put the maximum of the log posterior, for plnpca it may be ok.
+
+NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
 class _PLN(ABC):
@@ -254,8 +259,11 @@ class _PLN(ABC):
         plt.show()  # to avoid displaying a blanck screen
 
     def __str__(self):
-        string = f"A multivariate Poisson Lognormal with {self.description}"
+        delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
+        string = f"A multivariate Poisson Lognormal with {self.description} \n"
+        string += f"{delimiter}\n"
         string += nice_string_of_dict(self.dict_for_printing)
+        string += f"{delimiter}\n"
         return string
 
     def show(self, axes=None):
@@ -357,8 +365,10 @@ class _PLN(ABC):
     def dict_for_printing(self):
         return {
             "Loglike": np.round(self.loglike, 2),
-            "dimension": self._p,
-            "nb param": int(self.number_of_parameters),
+            "Dimension": self._p,
+            "Nb param": int(self.number_of_parameters),
+            "BIC": int(self.BIC),
+            "AIC": int(self.AIC),
         }
 
 
@@ -467,6 +477,9 @@ class PLNPCA:
     def models(self):
         return list(self.dict_models.values())
 
+    def beginning_message(self):
+        return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
+
     def fit(
         self,
         counts,
@@ -481,6 +494,7 @@ class PLNPCA:
         offsets_formula="sum",
         keep_going=False,
     ):
+        print(self.beginning_message)
         for pca in self.dict_models.values():
             pca.fit(
                 counts,
@@ -495,21 +509,22 @@ class PLNPCA:
                 offsets_formula,
                 keep_going,
             )
+        print("DONE!")
 
     def __getitem__(self, rank):
+        if (rank in self.ranks) is False:
+            rank = closest(self.ranks, rank)
+            warning_string = " \n In super$getModel(var, index) :"
+            warnings.warn(warning_string)
         return self.dict_models[rank]
 
     @property
     def BIC(self):
-        return {
-            model._rank: np.round(model.BIC, 3) for model in self.dict_models.values()
-        }
+        return {model._rank: int(model.BIC) for model in self.dict_models.values()}
 
     @property
     def AIC(self):
-        return {
-            model._rank: np.round(model.AIC, 3) for model in self.dict_models.values()
-        }
+        return {model._rank: int(model.AIC) for model in self.dict_models.values()}
 
     @property
     def loglikes(self):
@@ -558,17 +573,20 @@ class PLNPCA:
 
     def __str__(self):
         nb_models = len(self.models)
-        to_print = (
+        delimiter = "-" * NB_CHARACTERS_FOR_NICE_PLOT
+        to_print = f"{delimiter}\n"
+        to_print += (
             f"Collection of {nb_models} PLNPCA models with {self._p} variables.\n"
         )
-        to_print += f"Ranks considered:{self.ranks} \n \n"
-        to_print += f"BIC metric:{self.BIC}\n"
+        to_print += f"{delimiter}\n"
+        to_print += f" - Ranks considered:{self.ranks} \n \n"
+        to_print += f" - BIC metric:\n {nice_string_of_dict(self.BIC)}\n"
+
+        dict_to_print = self.best_model(criterion="BIC")._rank
+        to_print += f"    Best model(lower BIC): {dict_to_print}\n \n"
+        to_print += f" - AIC metric:\n{nice_string_of_dict(self.AIC)}\n"
         to_print += (
-            f"Best model (lower BIC):{self.best_model(criterion = 'BIC')._rank}\n \n"
-        )
-        to_print += f"AIC metric:{self.AIC}\n"
-        to_print += (
-            f"Best model (lower AIC):{self.best_model(criterion = 'AIC')._rank}\n"
+            f"    Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
         )
         return to_print
 
