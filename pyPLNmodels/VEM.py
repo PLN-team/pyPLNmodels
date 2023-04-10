@@ -21,11 +21,13 @@ from ._utils import (
     check_dimensions_are_equal,
     init_M,
     format_data,
+    format_model_param,
     check_parameters_shape,
     extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
     plot_ellipse,
     closest,
+    prepare_covariates,
 )
 
 if torch.cuda.is_available():
@@ -57,26 +59,12 @@ class _PLN(ABC):
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
-    def format_datas(self, counts, covariates, offsets, offsets_formula):
-        self.counts = format_data(counts)
-        if covariates is None:
-            self.covariates = torch.full(
-                (self.counts.shape[0], 1), 1, device=DEVICE
-            ).double()
-        else:
-            self.covariates = format_data(covariates)
-        if offsets is None:
-            if offsets_formula == "sum":
-                print("Setting the offsets offsets as the log of the sum of counts")
-                self.offsets = (
-                    torch.log(get_offsets_from_sum_of_counts(self.counts))
-                    .double()
-                    .to(DEVICE)
-                )
-            else:
-                self.offsets = torch.zeros(self.counts.shape, device=DEVICE)
-        else:
-            self.offsets = format_data(offsets).to(DEVICE)
+    def format_model_param(self, counts, covariates, offsets, offsets_formula):
+        self.counts, self.covariates, self.offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
+
+    def init_shapes(self):
         self._n, self._p = self.counts.shape
         self._d = self.covariates.shape[1]
 
@@ -145,7 +133,7 @@ class _PLN(ABC):
         tol=1e-4,
         do_smart_init=True,
         verbose=False,
-        offsets_formula="sum",
+        offsets_formula="logsum",
         keep_going=False,
     ):
         """
@@ -161,23 +149,25 @@ class _PLN(ABC):
         offsets : torch.tensor or ndarray or DataFrame or None, default = None
             Model offset. If not `None`, size should be the same as `counts`.
         """
+        self.print_beginning_message()
         self.beginnning_time = time.time()
         if keep_going is False:
-            self.format_datas(counts, covariates, offsets, offsets_formula)
+            self.format_model_param(counts, covariates, offsets, offsets_formula)
+            self.init_shapes()
             check_parameters_shape(self.counts, self.covariates, self.offsets)
             self.init_parameters(do_smart_init)
         if self._fitted is True and keep_going is True:
             self.beginnning_time -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
-        nb_iteration_done = 0
+        self.nb_iteration_done = 0
         stop_condition = False
-        while nb_iteration_done < nb_max_iteration and stop_condition == False:
-            nb_iteration_done += 1
+        while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
+            self.nb_iteration_done += 1
             loss = self.trainstep()
             criterion = self.compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose and nb_iteration_done % 50 == 0:
+            if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -192,6 +182,19 @@ class _PLN(ABC):
         self.optim.step()
         self.update_closed_forms()
         return loss
+
+    def pca_projected_latent_variables(self, n_components=None):
+        if n_components is None:
+            if self.NAME == "PLNPCA":
+                n_components = self._rank
+            elif self.NAME == "PLN":
+                n_components = self._p
+        if n_components > self._p:
+            raise RuntimeError(
+                f"You ask more components ({n_components}) than variables ({self._p})"
+            )
+        pca = PCA(n_components=n_components)
+        return pca.fit_transform(self.latent_variables.cpu())
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
@@ -264,7 +267,23 @@ class _PLN(ABC):
         string += f"{delimiter}\n"
         string += nice_string_of_dict(self.dict_for_printing)
         string += f"{delimiter}\n"
+        string += "* Useful properties\n"
+        string += f"    {self.useful_properties_string}\n"
+        string += "* Useful methods\n"
+        string += f"    {self.useful_methods_string}\n"
+        string += f"* Additional properties for {self.NAME}\n"
+        string += f"    {self.additional_properties_string}\n"
+        string += f"* Additionial methods for {self.NAME}\n"
+        string += f"    {self.additional_methods_string}"
         return string
+
+    @property
+    def additional_methods_string(self):
+        pass
+
+    @property
+    def additional_properties_string(self):
+        pass
 
     def show(self, axes=None):
         print("Best likelihood:", np.max(-self.plotargs.elbos_list[-1]))
@@ -283,7 +302,7 @@ class _PLN(ABC):
     def loglike(self):
         if self._fitted is False:
             raise AttributeError(
-                "The model is not fitted so that it did not" "computed likelihood"
+                "The model is not fitted so that it did not " "computed likelihood"
             )
         return self._n * self.elbos_list[-1]
 
@@ -296,12 +315,12 @@ class _PLN(ABC):
         return -self.loglike + self.number_of_parameters
 
     @property
-    def dict_var_parameters(self):
-        return {"S": self._S, "M": self._M}
+    def var_parameters(self):
+        return {"S": self.S, "M": self.M}
 
     @property
-    def dict_model_parameters(self):
-        return {"beta": self._beta, "Sigma": self.Sigma}
+    def model_parameters(self):
+        return {"beta": self.beta, "Sigma": self.Sigma}
 
     @property
     def dict_data(self):
@@ -313,7 +332,7 @@ class _PLN(ABC):
 
     @property
     def model_in_a_dict(self):
-        return self.dict_data | self.dict_model_parameters | self.dict_var_parameters
+        return self.dict_data | self.model_parameters | self.var_parameters
 
     @property
     def Sigma(self):
@@ -351,7 +370,7 @@ class _PLN(ABC):
         covariates, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
             model_in_a_dict
         )
-        self.format_datas(counts, covariates, offsets, offsets_formula)
+        self.format_model_param(counts, covariates, offsets, offsets_formula)
         check_parameters_shape(self.counts, self.covariates, self.offsets)
         self.counts = counts
         self.covariates = covariates
@@ -370,6 +389,35 @@ class _PLN(ABC):
             "BIC": int(self.BIC),
             "AIC": int(self.AIC),
         }
+
+    @property
+    def optim_parameters(self):
+        return {"Number of iterations done": self.nb_iteration_done}
+
+    @property
+    def useful_properties_string(self):
+        return (
+            ".latent_variables, .model_parameters, .var_parameters, .optim_parameters"
+        )
+
+    @property
+    def useful_methods_string(self):
+        return ".show(), .coef() .transform(), .sigma(), .predict(), pca_projected_latent_variables()"
+
+    def coef(self):
+        return self.beta
+
+    def sigma(self):
+        return self.Sigma
+
+    def predict(self, X=None):
+        if isinstance(X, torch.Tensor):
+            if X.shape[-1] != self._d - 1:
+                error_string = f"X has wrong shape ({X.shape})."
+                error_string += f"Should be ({self._n, self._d-1})."
+                raise RuntimeError(error_string)
+        X_with_ones = prepare_covariates(X, self._n)
+        return X_with_ones @ self.beta
 
 
 # need to do a good init for M and S
@@ -414,18 +462,13 @@ class PLN(_PLN):
         return closed_formula_beta(self.covariates, self._M)
 
     @property
-    def beta(self):
-        return self._beta.detach().cpu()
-
-    @property
     def _Sigma(self):
         return closed_formula_Sigma(
             self.covariates, self._M, self._S, self._beta, self._n
         )
 
-    @property
-    def Sigma(self):
-        return self._Sigma.detach().cpu()
+    def print_beginning_message(self):
+        print(f"Fitting a PLN model with {self.description}")
 
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
@@ -454,14 +497,17 @@ class PLN(_PLN):
     def number_of_parameters(self):
         return self._p * (self._p + self._d)
 
+    def transform(self):
+        return self.latent_variables
+
 
 class PLNPCA:
     def __init__(self, ranks):
-        if isinstance(ranks, list):
+        if isinstance(ranks, list) or isinstance(ranks, np.ndarray):
             self.ranks = ranks
             self.dict_models = {}
             for rank in ranks:
-                if isinstance(rank, int):
+                if isinstance(rank, int) or isinstance(rank, np.int64):
                     self.dict_models[rank] = _PLNPCA(rank)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
@@ -477,8 +523,13 @@ class PLNPCA:
     def models(self):
         return list(self.dict_models.values())
 
-    def beginning_message(self):
+    def print_beginning_message(self):
         return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
+
+    def format_model_param(self, counts, covariates, offsets, offsets_formula):
+        self.counts, self.covariates, self.offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
 
     def fit(
         self,
@@ -491,31 +542,45 @@ class PLNPCA:
         tol=1e-4,
         do_smart_init=True,
         verbose=False,
-        offsets_formula="sum",
+        offsets_formula="logsum",
         keep_going=False,
     ):
-        print(self.beginning_message)
+        self.print_beginning_message()
+        self.format_model_param(counts, covariates, offsets, offsets_formula)
         for pca in self.dict_models.values():
             pca.fit(
-                counts,
+                self.counts,
                 covariates,
-                offsets,
+                self.offsets,
                 nb_max_iteration,
                 lr,
                 class_optimizer,
                 tol,
                 do_smart_init,
                 verbose,
-                offsets_formula,
+                None,
                 keep_going,
             )
+        self.print_ending_message()
+
+    def print_ending_message(self):
+        delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
+        print(f"{delimiter}\n")
         print("DONE!")
+        BIC_dict = self.best_model(criterion="BIC")._rank
+        print(f"    Best model(lower BIC): {BIC_dict}\n ")
+        AIC_dict = self.best_model(criterion="AIC")._rank
+        print(f"    Best model(lower AIC): {AIC_dict}\n ")
+        print(f"{delimiter}\n")
 
     def __getitem__(self, rank):
         if (rank in self.ranks) is False:
-            rank = closest(self.ranks, rank)
-            warning_string = " \n In super$getModel(var, index) :"
-            warnings.warn(warning_string)
+            asked_rank = rank
+            rank = closest(self.ranks, asked_rank)
+            warning_string = " \n No such a model in the collection."
+            warning_string += "Returning model with closest value.\n"
+            warning_string += f"Requested: {asked_rank}, returned: {rank}"
+            warnings.warn(message=warning_string)
         return self.dict_models[rank]
 
     @property
@@ -539,23 +604,34 @@ class PLNPCA:
         loglikes_color = "orange"
         plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
         plt.plot(bic.keys(), bic.values(), c=bic_color)
+        plt.axvline(self.best_BIC_model_rank, c=bic_color, linestyle="dotted")
         plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
+        plt.axvline(self.best_AIC_model_rank, c=aic_color, linestyle="dotted")
         plt.plot(aic.keys(), aic.values(), c=aic_color)
+        plt.xticks(list(aic.keys()))
         plt.scatter(
             loglikes.keys(),
             -np.array(list(loglikes.values())),
-            label="Negative loglike",
+            label="Negative log likelihood",
             c=loglikes_color,
         )
         plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
         plt.legend()
         plt.show()
 
+    @property
+    def best_BIC_model_rank(self):
+        return self.ranks[np.argmin(list(self.BIC.values()))]
+
+    @property
+    def best_AIC_model_rank(self):
+        return self.ranks[np.argmin(list(self.AIC.values()))]
+
     def best_model(self, criterion="AIC"):
         if criterion == "BIC":
-            return self[self.ranks[np.argmin(list(self.BIC.values()))]]
+            return self[self.best_BIC_model_rank]
         elif criterion == "AIC":
-            return self[self.ranks[np.argmin(list(self.AIC.values()))]]
+            return self[self.best_AIC_model_rank]
 
     def save_model(self, rank, filename):
         self.dict_models[rank].save_model(filename)
@@ -573,22 +649,36 @@ class PLNPCA:
 
     def __str__(self):
         nb_models = len(self.models)
-        delimiter = "-" * NB_CHARACTERS_FOR_NICE_PLOT
-        to_print = f"{delimiter}\n"
-        to_print += (
-            f"Collection of {nb_models} PLNPCA models with {self._p} variables.\n"
-        )
-        to_print += f"{delimiter}\n"
-        to_print += f" - Ranks considered:{self.ranks} \n \n"
-        to_print += f" - BIC metric:\n {nice_string_of_dict(self.BIC)}\n"
+        delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
+        to_print = delimiter
+        to_print += f"Collection of {nb_models} PLNPCA models with {self._p} variables."
+        to_print += delimiter
+        to_print += f" - Ranks considered:{self.ranks}\n"
+        dict_bic = {"rank": "criterion"} | self.BIC
+        to_print += f" - BIC metric:\n{nice_string_of_dict(dict_bic)}\n"
 
         dict_to_print = self.best_model(criterion="BIC")._rank
-        to_print += f"    Best model(lower BIC): {dict_to_print}\n \n"
-        to_print += f" - AIC metric:\n{nice_string_of_dict(self.AIC)}\n"
+        to_print += f"   Best model(lower BIC): {dict_to_print}\n \n"
+        dict_aic = {"rank": "criterion"} | self.AIC
+        to_print += f" - AIC metric:\n{nice_string_of_dict(dict_aic)}\n"
         to_print += (
-            f"    Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
+            f"   Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
         )
+        to_print += delimiter
+        to_print += f"* Useful properties\n"
+        to_print += f"    {self.useful_properties_string}\n"
+        to_print += "* Useful methods \n"
+        to_print += f"    {self.useful_methods_string}"
+        to_print += delimiter
         return to_print
+
+    @property
+    def useful_methods_string(self):
+        return ".show(), .best_model()"
+
+    @property
+    def useful_properties_string(self):
+        return ".BIC, .AIC, .loglikes"
 
     def load_model_from_file(self, rank, path_of_file):
         with open(path_of_file, "rb") as fp:
@@ -604,12 +694,27 @@ class _PLNPCA(_PLN):
         super().__init__()
         self._rank = rank
 
+    def init_shapes(self):
+        super().init_shapes()
+        if self._p < self._rank:
+            warning_string = (
+                f"\nThe requested rank of approximation {self._rank} is greater than "
+            )
+            warning_string += (
+                f"the number of variables {self._p}. Setting rank to {self._p}"
+            )
+            warnings.warn(warning_string)
+            self._rank = self._p
+
+    def print_beginning_message(self):
+        print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
+        print(f"Fitting a PLNPCA model with {self._rank} components")
+
     @property
-    def dict_model_parameters(self):
-        dict_model_parameters = super().dict_model_parameters
-        dict_model_parameters.pop("Sigma")
-        dict_model_parameters["C"] = self._C
-        return dict_model_parameters
+    def model_parameters(self):
+        model_parameters = super().model_parameters
+        model_parameters["C"] = self.C
+        return model_parameters
 
     def smart_init_model_parameters(self):
         super().smart_init_beta()
@@ -654,6 +759,15 @@ class _PLNPCA(_PLN):
     def number_of_parameters(self):
         return self._p * (self._d + self._rank) - self._rank * (self._rank - 1) / 2
 
+    @property
+    def additional_properties_string(self):
+        return ".projected_latent_variables"
+
+    @property
+    def additional_methods_string(self):
+        string = "    only for rank=2: .viz()"
+        return string
+
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
         nS, qS = S.shape
@@ -678,27 +792,16 @@ class _PLNPCA(_PLN):
 
     @property
     def description(self):
-        return f" with {self._rank} principal component."
+        return f" {self._rank} principal component."
 
     @property
     def latent_variables(self):
-        return torch.matmul(self._M, self._C.T).detach()
+        return torch.matmul(self._M, self._C.T).detach().cpu()
 
-    def get_projected_latent_variables(self, nb_dim=None):
-        if nb_dim is None:
-            nb_dim = self._rank
-        if nb_dim > self._rank:
-            raise AttributeError(
-                f"The number of dimension {nb_dim} is larger than the rank {self._rank}"
-            )
+    @property
+    def projected_latent_variables(self):
         ortho_C = torch.linalg.qr(self._C, "reduced")[0]
-        return torch.mm(self.latent_variables, ortho_C[:, :nb_dim]).detach()
-
-    def get_pca_projected_latent_variables(self, nb_dim=None):
-        if nb_dim is None:
-            nb_dim = self.rank
-        pca = PCA(n_components=nb_dim)
-        return pca.fit_transform(self.latent_variables.cpu())
+        return torch.mm(self.latent_variables, ortho_C).detach().cpu()
 
     @property
     def model_in_a_dict(self):
@@ -715,10 +818,10 @@ class _PLNPCA(_PLN):
 
     def viz(self, ax=None, color=None, label=None, label_of_colors=None):
         if self._rank != 2:
-            raise RuntimeError("Can not perform visualization for rank != 2.")
+            raise RuntimeError("Can't perform visualization for rank != 2.")
         if ax is None:
             ax = plt.gca()
-        proj_variables = self.get_projected_latent_variables()
+        proj_variables = self.projected_latent_variables
         xs = proj_variables[:, 0].cpu().numpy()
         ys = proj_variables[:, 1].cpu().numpy()
         sns.scatterplot(x=xs, y=ys, hue=color, ax=ax)
@@ -726,6 +829,11 @@ class _PLNPCA(_PLN):
         for i in range(covariances.shape[0]):
             plot_ellipse(xs[i], ys[i], cov=covariances[i], ax=ax)
         return ax
+
+    def transform(self, project=True):
+        if project is True:
+            return self.projected_latent_variables
+        return self.latent_variables
 
 
 class ZIPLN(PLN):
