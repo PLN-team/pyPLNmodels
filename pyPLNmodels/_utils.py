@@ -6,6 +6,9 @@ import numpy as np
 import torch
 import torch.linalg as TLA
 import pandas as pd
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
+
 
 torch.set_default_dtype(torch.float64)
 
@@ -400,3 +403,29 @@ def MSE(tens):
 
 def MAE(tens):
     return torch.mean(torch.abs(tens))
+
+
+def plot_ellipse(mean_x, mean_y, cov, ax):
+    pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse(
+        (0, 0),
+        width=ell_radius_x * 2,
+        height=ell_radius_y * 2,
+        linestyle="--",
+        alpha=0.1,
+    )
+
+    scale_x = np.sqrt(cov[0, 0])
+    scale_y = np.sqrt(cov[1, 1])
+    transf = (
+        transforms.Affine2D()
+        .rotate_deg(45)
+        .scale(scale_x, scale_y)
+        .translate(mean_x, mean_y)
+    )
+
+    ellipse.set_transform(transf + ax.transData)
+    ax.add_patch(ellipse)
+    return pearson

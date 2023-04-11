@@ -11,7 +11,7 @@ Y_sim, covariates_sim, O_sim, true_Sigma, true_beta = get_simulated_data()
 
 Y_real, covariates_real, O_real = get_real_data()
 O_real = np.log(O_real)
-q = 8
+rank = 8
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def my_instance_pln():
 
 @pytest.fixture
 def my_instance__plnpca():
-    plnpca = _PLNPCA(q=q)
+    plnpca = _PLNPCA(rank=rank)
     return plnpca
 
 
@@ -42,21 +42,21 @@ def my_real_fitted_pln():
 
 @pytest.fixture
 def my_real_fitted__plnpca():
-    plnpca = _PLNPCA(q=q)
+    plnpca = _PLNPCA(rank=rank)
     plnpca.fit(Y_real, covariates_real, O_real)
     return plnpca
 
 
 @pytest.fixture
 def my_simulated_fitted__plnpca():
-    plnpca = _PLNPCA(q=q)
+    plnpca = _PLNPCA(rank=rank)
     plnpca.fit(Y_sim, covariates_sim, O_sim)
     return plnpca
 
 
 @pytest.fixture
 def my_simulated_fitted__plnpca():
-    plnpca = _PLNPCA(q=q)
+    plnpca = _PLNPCA(rank=rank)
     plnpca.fit(Y_sim, covariates_sim, O_sim)
     return plnpca
 
@@ -79,7 +79,7 @@ def test_find_right_beta(pln):
 
 
 def test_number_of_iterations(my_simulated_fitted_pln):
-    nb_iterations = len(my_simulated_fitted_pln.ELBOs_list)
+    nb_iterations = len(my_simulated_fitted_pln.elbos_list)
     assert 40 < nb_iterations < 60
 
 
