@@ -145,7 +145,7 @@ class _PLN(ABC):
         tol=1e-4,
         do_smart_init=True,
         verbose=False,
-        offsets_formula="sum",
+        offsets_formula="logsum",
         keep_going=False,
     ):
         """
@@ -192,6 +192,19 @@ class _PLN(ABC):
         self.optim.step()
         self.update_closed_forms()
         return loss
+
+    def pca_projected_latent_variables(self, n_components=None):
+        if n_components is None:
+            if self.NAME == "PLNPCA":
+                n_components = self._rank
+            elif self.NAME == "PLN":
+                n_components = self._p
+        if n_components > self._p:
+            raise RuntimeError(
+                f"You ask more components ({n_components}) than variables ({self._p})"
+            )
+        pca = PCA(n_components=n_components)
+        return pca.fit_transform(self.latent_variables.cpu())
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
