@@ -200,6 +200,11 @@ def sample_PLN(C, beta, covariates, offsets, B_zero=None, seed=None):
         torch.random.manual_seed(seed)
     n = offsets.shape[0]
     rank = C.shape[1]
+    full_of_ones = torch.ones((n, 1))
+    if covariates is None:
+        covariates = full_of_ones
+    else:
+        covariates = torch.stack((full_of_ones, covariates), axis=1).squeeze()
     Z = torch.mm(torch.randn(n, rank, device=DEVICE), C.T) + covariates @ beta
     parameter = torch.exp(offsets + Z)
     if B_zero is not None:
@@ -364,6 +369,32 @@ def format_data(data):
     raise AttributeError(
         "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
     )
+
+
+def format_model_param(counts, covariates, offsets, offsets_formula):
+    counts = format_data(counts)
+    covariates = prepare_covariates(covariates, counts.shape[0])
+    if offsets is None:
+        if offsets_formula == "logsum":
+            print("Setting the offsets as the log of the sum of counts")
+            offsets = (
+                torch.log(get_offsets_from_sum_of_counts(counts)).double().to(DEVICE)
+            )
+        else:
+            offsets = torch.zeros(counts.shape, device=DEVICE)
+    else:
+        offsets = format_data(offsets).to(DEVICE)
+    return counts, covariates, offsets
+
+
+def prepare_covariates(covariates, n):
+    full_of_ones = torch.full((n, 1), 1, device=DEVICE).double()
+    if covariates is None:
+        covariates = full_of_ones
+    else:
+        covariates = format_data(covariates)
+        covariates = torch.stack((full_of_ones, covariates), axis=1).squeeze()
+    return covariates
 
 
 def check_parameters_shape(counts, covariates, offsets):
