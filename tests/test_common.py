@@ -92,8 +92,50 @@ def test_number_of_iterations(my_simulated_fitted_pln):
         lf("my_real_fitted__plnpca"),
     ],
 )
-def test_show(any_pln):
+def test_properties(any_pln):
+    latent_var = any_pln.latent_variables
+    model_param = any_pln.model_parameters
+    var_param = any_pln.var_parameters
+    optim_param = any_pln.optim_parameters
+
+
+@pytest.mark.parametrize(
+    "any_pln",
+    [
+        lf("my_simulated_fitted_pln"),
+        lf("my_simulated_fitted__plnpca"),
+        lf("my_real_fitted_pln"),
+        lf("my_real_fitted__plnpca"),
+    ],
+)
+def test_show_coef_transform_sigma_pcaprojected(any_pln):
+    outputs = []
     any_pln.show()
+    outputs.append(any_pln.coef())
+    outputs.append(any_pln.transform())
+    outputs.append(any_pln.sigma())
+    outputs.append(any_pln.pca_projected_latent_variables())
+    outputs.append(any_pln.pca_projected_latent_variables(n_components=2))
+    for output in outputs:
+        if (isinstance(output, torch.Tensor)) is False:
+            return False
+    return True
+
+
+@pytest.mark.parametrize(
+    "sim_pln",
+    [
+        lf("my_simulated_fitted_pln"),
+        lf("my_simulated_fitted__plnpca"),
+    ],
+)
+def test_predict(sim_pln):
+    X = torch.randn((sim_pln.n, sim_pln.d - 1))
+    prediction = sim_pln.predict(X)
+    expected = (
+        torch.stack((torch.ones(sim_pln._n, 1), X), axis=1).squeeze() @ sim_pln.beta
+    )
+    assert torch.all(torch.eq(expected, prediction))
 
 
 @pytest.mark.parametrize(
