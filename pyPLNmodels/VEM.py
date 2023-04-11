@@ -516,13 +516,13 @@ class PLN(_PLN):
 
 
 class PLNPCA:
-    def __init__(self, ranks):
+    def __init__(self, ranks, true_Sigma, true_beta):
         if isinstance(ranks, list) or isinstance(ranks, np.ndarray):
             self.ranks = ranks
             self.dict_models = {}
             for rank in ranks:
                 if isinstance(rank, int) or isinstance(rank, np.int64):
-                    self.dict_models[rank] = _PLNPCA(rank)
+                    self.dict_models[rank] = _PLNPCA(rank, true_Sigma, true_beta)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
