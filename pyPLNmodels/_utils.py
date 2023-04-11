@@ -1,5 +1,6 @@
 import math  # pylint:disable=[C0114]
 from scipy.linalg import toeplitz
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -434,8 +435,19 @@ def get_simulated_data(n=100, p=25, rank=4, d=1, return_true_param=False):
     return Y, covariates, O
 
 
-def get_real_data():
-    Y = pd.read_csv("example_data/real_data/Y_mark.csv").values
+def get_real_count_data(n=270, p=100):
+    if n > 297:
+        warnings.warn(
+            f"\nTaking the whole 270 samples of the dataset. Requested:n={n}, returned:270"
+        )
+        n = 270
+    if p > 100:
+        warnings.warn(
+            f"\nTaking the whole 100 variables. Requested:p={p}, returned:100"
+        )
+        dim = 100
+    Y = pd.read_csv("../example_data/real_data/Y_mark.csv").values[:n, :p]
+    print(f"Returning dataset of size {Y.shape}")
     return Y
 
 
