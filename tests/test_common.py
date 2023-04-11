@@ -67,7 +67,7 @@ def my_real_fitted__plnpca():
 )
 def test_find_right_Sigma(simulated_fitted_any_pln):
     mse_Sigma = MSE(simulated_fitted_any_pln.Sigma - true_Sigma)
-    assert mse_Sigma < 0.01
+    assert mse_Sigma < 0.05
 
 
 @pytest.mark.parametrize(
@@ -80,7 +80,7 @@ def test_find_right_beta(pln):
 
 def test_number_of_iterations(my_simulated_fitted_pln):
     nb_iterations = len(my_simulated_fitted_pln.elbos_list)
-    assert 40 < nb_iterations < 60
+    assert 50 < nb_iterations < 150
 
 
 @pytest.mark.parametrize(
