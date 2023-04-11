@@ -21,11 +21,13 @@ from ._utils import (
     check_dimensions_are_equal,
     init_M,
     format_data,
+    format_model_param,
     check_parameters_shape,
     extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
     plot_ellipse,
     closest,
+    prepare_covariates,
 )
 
 if torch.cuda.is_available():
@@ -57,26 +59,12 @@ class _PLN(ABC):
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
-    def format_datas(self, counts, covariates, offsets, offsets_formula):
-        self.counts = format_data(counts)
-        if covariates is None:
-            self.covariates = torch.full(
-                (self.counts.shape[0], 1), 1, device=DEVICE
-            ).double()
-        else:
-            self.covariates = format_data(covariates)
-        if offsets is None:
-            if offsets_formula == "sum":
-                print("Setting the offsets offsets as the log of the sum of counts")
-                self.offsets = (
-                    torch.log(get_offsets_from_sum_of_counts(self.counts))
-                    .double()
-                    .to(DEVICE)
-                )
-            else:
-                self.offsets = torch.zeros(self.counts.shape, device=DEVICE)
-        else:
-            self.offsets = format_data(offsets).to(DEVICE)
+    def format_model_param(self, counts, covariates, offsets, offsets_formula):
+        self.counts, self.covariates, self.offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
+
+    def init_shapes(self):
         self._n, self._p = self.counts.shape
         self._d = self.covariates.shape[1]
 
@@ -296,7 +284,7 @@ class _PLN(ABC):
     def loglike(self):
         if self._fitted is False:
             raise AttributeError(
-                "The model is not fitted so that it did not" "computed likelihood"
+                "The model is not fitted so that it did not " "computed likelihood"
             )
         return self._n * self.elbos_list[-1]
 
@@ -364,7 +352,7 @@ class _PLN(ABC):
         covariates, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
             model_in_a_dict
         )
-        self.format_datas(counts, covariates, offsets, offsets_formula)
+        self.format_model_param(counts, covariates, offsets, offsets_formula)
         check_parameters_shape(self.counts, self.covariates, self.offsets)
         self.counts = counts
         self.covariates = covariates
@@ -490,8 +478,13 @@ class PLNPCA:
     def models(self):
         return list(self.dict_models.values())
 
-    def beginning_message(self):
+    def print_beginning_message(self):
         return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
+
+    def format_model_param(self, counts, covariates, offsets, offsets_formula):
+        self.counts, self.covariates, self.offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
 
     def fit(
         self,
