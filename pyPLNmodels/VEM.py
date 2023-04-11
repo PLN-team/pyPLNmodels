@@ -149,23 +149,25 @@ class _PLN(ABC):
         offsets : torch.tensor or ndarray or DataFrame or None, default = None
             Model offset. If not `None`, size should be the same as `counts`.
         """
+        self.print_beginning_message()
         self.beginnning_time = time.time()
         if keep_going is False:
-            self.format_datas(counts, covariates, offsets, offsets_formula)
+            self.format_model_param(counts, covariates, offsets, offsets_formula)
+            self.init_shapes()
             check_parameters_shape(self.counts, self.covariates, self.offsets)
             self.init_parameters(do_smart_init)
         if self._fitted is True and keep_going is True:
             self.beginnning_time -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
-        nb_iteration_done = 0
+        self.nb_iteration_done = 0
         stop_condition = False
-        while nb_iteration_done < nb_max_iteration and stop_condition == False:
-            nb_iteration_done += 1
+        while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
+            self.nb_iteration_done += 1
             loss = self.trainstep()
             criterion = self.compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose and nb_iteration_done % 50 == 0:
+            if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -330,7 +332,7 @@ class _PLN(ABC):
 
     @property
     def model_in_a_dict(self):
-        return self.dict_data | self.dict_model_parameters | self.dict_var_parameters
+        return self.dict_data | self.model_parameters | self.var_parameters
 
     @property
     def Sigma(self):
@@ -466,14 +468,17 @@ class PLN(_PLN):
     def number_of_parameters(self):
         return self._p * (self._p + self._d)
 
+    def transform(self):
+        return self.latent_variables
+
 
 class PLNPCA:
     def __init__(self, ranks):
-        if isinstance(ranks, list):
+        if isinstance(ranks, list) or isinstance(ranks, np.ndarray):
             self.ranks = ranks
             self.dict_models = {}
             for rank in ranks:
-                if isinstance(rank, int):
+                if isinstance(rank, int) or isinstance(rank, np.int64):
                     self.dict_models[rank] = _PLNPCA(rank)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
@@ -570,23 +575,34 @@ class PLNPCA:
         loglikes_color = "orange"
         plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
         plt.plot(bic.keys(), bic.values(), c=bic_color)
+        plt.axvline(self.best_BIC_model_rank, c=bic_color, linestyle="dotted")
         plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
+        plt.axvline(self.best_AIC_model_rank, c=aic_color, linestyle="dotted")
         plt.plot(aic.keys(), aic.values(), c=aic_color)
+        plt.xticks(list(aic.keys()))
         plt.scatter(
             loglikes.keys(),
             -np.array(list(loglikes.values())),
-            label="Negative loglike",
+            label="Negative log likelihood",
             c=loglikes_color,
         )
         plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
         plt.legend()
         plt.show()
 
+    @property
+    def best_BIC_model_rank(self):
+        return self.ranks[np.argmin(list(self.BIC.values()))]
+
+    @property
+    def best_AIC_model_rank(self):
+        return self.ranks[np.argmin(list(self.AIC.values()))]
+
     def best_model(self, criterion="AIC"):
         if criterion == "BIC":
-            return self[self.ranks[np.argmin(list(self.BIC.values()))]]
+            return self[self.best_BIC_model_rank]
         elif criterion == "AIC":
-            return self[self.ranks[np.argmin(list(self.AIC.values()))]]
+            return self[self.best_AIC_model_rank]
 
     def save_model(self, rank, filename):
         self.dict_models[rank].save_model(filename)
@@ -723,27 +739,16 @@ class _PLNPCA(_PLN):
 
     @property
     def description(self):
-        return f" with {self._rank} principal component."
+        return f" {self._rank} principal component."
 
     @property
     def latent_variables(self):
-        return torch.matmul(self._M, self._C.T).detach()
+        return torch.matmul(self._M, self._C.T).detach().cpu()
 
-    def get_projected_latent_variables(self, nb_dim=None):
-        if nb_dim is None:
-            nb_dim = self._rank
-        if nb_dim > self._rank:
-            raise AttributeError(
-                f"The number of dimension {nb_dim} is larger than the rank {self._rank}"
-            )
+    @property
+    def projected_latent_variables(self):
         ortho_C = torch.linalg.qr(self._C, "reduced")[0]
-        return torch.mm(self.latent_variables, ortho_C[:, :nb_dim]).detach()
-
-    def get_pca_projected_latent_variables(self, nb_dim=None):
-        if nb_dim is None:
-            nb_dim = self.rank
-        pca = PCA(n_components=nb_dim)
-        return pca.fit_transform(self.latent_variables.cpu())
+        return torch.mm(self.latent_variables, ortho_C).detach().cpu()
 
     @property
     def model_in_a_dict(self):
@@ -760,10 +765,10 @@ class _PLNPCA(_PLN):
 
     def viz(self, ax=None, color=None, label=None, label_of_colors=None):
         if self._rank != 2:
-            raise RuntimeError("Can not perform visualization for rank != 2.")
+            raise RuntimeError("Can't perform visualization for rank != 2.")
         if ax is None:
             ax = plt.gca()
-        proj_variables = self.get_projected_latent_variables()
+        proj_variables = self.projected_latent_variables
         xs = proj_variables[:, 0].cpu().numpy()
         ys = proj_variables[:, 1].cpu().numpy()
         sns.scatterplot(x=xs, y=ys, hue=color, ax=ax)
