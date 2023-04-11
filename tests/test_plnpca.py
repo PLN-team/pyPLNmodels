@@ -1,12 +1,19 @@
 import pytest
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazyfixture import lazy_fixture as lf
 
 from pyPLNmodels.VEM import PLN, PLNPCA
-from tests.utils import get_simulated_data, MSE
+from tests.utils import MSE
+from pyPLNmodels import get_simulated_count_data
 
 RANKS = [2, 4]
 
-Y_sim, covariates_sim, O_sim, true_Sigma, true_beta = get_simulated_data()
+(
+    counts_sim,
+    covariates_sim,
+    offsets_sim,
+    true_Sigma,
+    true_beta,
+) = get_simulated_count_data(return_true_param=True)
 
 
 @pytest.fixture
