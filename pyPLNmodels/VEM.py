@@ -315,12 +315,12 @@ class _PLN(ABC):
         return -self.loglike + self.number_of_parameters
 
     @property
-    def dict_var_parameters(self):
-        return {"S": self._S, "M": self._M}
+    def var_parameters(self):
+        return {"S": self.S, "M": self.M}
 
     @property
-    def dict_model_parameters(self):
-        return {"beta": self._beta, "Sigma": self.Sigma}
+    def model_parameters(self):
+        return {"beta": self.beta, "Sigma": self.Sigma}
 
     @property
     def dict_data(self):
@@ -389,6 +389,35 @@ class _PLN(ABC):
             "BIC": int(self.BIC),
             "AIC": int(self.AIC),
         }
+
+    @property
+    def optim_parameters(self):
+        return {"Number of iterations done": self.nb_iteration_done}
+
+    @property
+    def useful_properties_string(self):
+        return (
+            ".latent_variables, .model_parameters, .var_parameters, .optim_parameters"
+        )
+
+    @property
+    def useful_methods_string(self):
+        return ".show(), .coef() .transform(), .sigma(), .predict(), pca_projected_latent_variables()"
+
+    def coef(self):
+        return self.beta
+
+    def sigma(self):
+        return self.Sigma
+
+    def predict(self, X=None):
+        if isinstance(X, torch.Tensor):
+            if X.shape[-1] != self._d - 1:
+                error_string = f"X has wrong shape ({X.shape})."
+                error_string += f"Should be ({self._n, self._d-1})."
+                raise RuntimeError(error_string)
+        X_with_ones = prepare_covariates(X, self._n)
+        return X_with_ones @ self.beta
 
 
 # need to do a good init for M and S
@@ -665,12 +694,27 @@ class _PLNPCA(_PLN):
         super().__init__()
         self._rank = rank
 
+    def init_shapes(self):
+        super().init_shapes()
+        if self._p < self._rank:
+            warning_string = (
+                f"\nThe requested rank of approximation {self._rank} is greater than "
+            )
+            warning_string += (
+                f"the number of variables {self._p}. Setting rank to {self._p}"
+            )
+            warnings.warn(warning_string)
+            self._rank = self._p
+
+    def print_beginning_message(self):
+        print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
+        print(f"Fitting a PLNPCA model with {self._rank} components")
+
     @property
-    def dict_model_parameters(self):
-        dict_model_parameters = super().dict_model_parameters
-        dict_model_parameters.pop("Sigma")
-        dict_model_parameters["C"] = self._C
-        return dict_model_parameters
+    def model_parameters(self):
+        model_parameters = super().model_parameters
+        model_parameters["C"] = self.C
+        return model_parameters
 
     def smart_init_model_parameters(self):
         super().smart_init_beta()
@@ -714,6 +758,15 @@ class _PLNPCA(_PLN):
     @property
     def number_of_parameters(self):
         return self._p * (self._d + self._rank) - self._rank * (self._rank - 1) / 2
+
+    @property
+    def additional_properties_string(self):
+        return ".projected_latent_variables"
+
+    @property
+    def additional_methods_string(self):
+        string = "    only for rank=2: .viz()"
+        return string
 
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
@@ -776,6 +829,11 @@ class _PLNPCA(_PLN):
         for i in range(covariances.shape[0]):
             plot_ellipse(xs[i], ys[i], cov=covariances[i], ax=ax)
         return ax
+
+    def transform(self, project=True):
+        if project is True:
+            return self.projected_latent_variables
+        return self.latent_variables
 
 
 class ZIPLN(PLN):
