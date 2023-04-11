@@ -454,11 +454,11 @@ def plot_ellipse(mean_x, mean_y, cov, ax):
     return pearson
 
 
-def get_simulated_data(n=100, p=25, rank=4, d=1, return_true_param=False):
-    true_beta = torch.randn(d, p, device=DEVICE)
+def get_simulated_count_data(n=100, p=25, rank=25, d=1, return_true_param=False):
+    true_beta = torch.randn(d + 1, p, device=DEVICE)
     C = torch.randn(p, rank, device=DEVICE) / 5
     O = torch.ones((n, p), device=DEVICE) / 2
-    covariates = torch.ones((n, d), device=DEVICE)
+    covariates = torch.randn((n, d), device=DEVICE)
     true_Sigma = torch.matmul(C, C.T)
     Y, _, _ = sample_PLN(C, true_beta, covariates, O)
     if return_true_param is True:
