@@ -137,5 +137,12 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+<<<<<<< HEAD
 
 .h5ad
+=======
+# big dataset of SCMARK
+*.h5ad
+
+## nohup output
+nohup.out

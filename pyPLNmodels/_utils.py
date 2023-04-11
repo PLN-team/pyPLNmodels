@@ -1,5 +1,6 @@
 import math  # pylint:disable=[C0114]
 from scipy.linalg import toeplitz
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -199,6 +200,11 @@ def sample_PLN(C, beta, covariates, offsets, B_zero=None, seed=None):
         torch.random.manual_seed(seed)
     n = offsets.shape[0]
     rank = C.shape[1]
+    full_of_ones = torch.ones((n, 1))
+    if covariates is None:
+        covariates = full_of_ones
+    else:
+        covariates = torch.stack((full_of_ones, covariates), axis=1).squeeze()
     Z = torch.mm(torch.randn(n, rank, device=DEVICE), C.T) + covariates @ beta
     parameter = torch.exp(offsets + Z)
     if B_zero is not None:
@@ -365,6 +371,32 @@ def format_data(data):
     )
 
 
+def format_model_param(counts, covariates, offsets, offsets_formula):
+    counts = format_data(counts)
+    covariates = prepare_covariates(covariates, counts.shape[0])
+    if offsets is None:
+        if offsets_formula == "logsum":
+            print("Setting the offsets as the log of the sum of counts")
+            offsets = (
+                torch.log(get_offsets_from_sum_of_counts(counts)).double().to(DEVICE)
+            )
+        else:
+            offsets = torch.zeros(counts.shape, device=DEVICE)
+    else:
+        offsets = format_data(offsets).to(DEVICE)
+    return counts, covariates, offsets
+
+
+def prepare_covariates(covariates, n):
+    full_of_ones = torch.full((n, 1), 1, device=DEVICE).double()
+    if covariates is None:
+        covariates = full_of_ones
+    else:
+        covariates = format_data(covariates)
+        covariates = torch.stack((full_of_ones, covariates), axis=1).squeeze()
+    return covariates
+
+
 def check_parameters_shape(counts, covariates, offsets):
     n_counts, p_counts = counts.shape
     n_offsets, p_offsets = offsets.shape
@@ -392,7 +424,7 @@ def nice_string_of_dict(dictionnary):
     return_string = ""
     for each_row in zip(*([i] + [j] for i, j in dictionnary.items())):
         for element in list(each_row):
-            return_string += f"{str(element):>10}"
+            return_string += f"{str(element):>12}"
         return_string += "\n"
     return return_string
 
@@ -414,7 +446,7 @@ def plot_ellipse(mean_x, mean_y, cov, ax):
         width=ell_radius_x * 2,
         height=ell_radius_y * 2,
         linestyle="--",
-        alpha=0.1,
+        alpha=0.2,
     )
 
     scale_x = np.sqrt(cov[0, 0])
@@ -425,7 +457,40 @@ def plot_ellipse(mean_x, mean_y, cov, ax):
         .scale(scale_x, scale_y)
         .translate(mean_x, mean_y)
     )
-
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
     return pearson
+
+
+def get_simulated_count_data(n=100, p=25, rank=25, d=1, return_true_param=False):
+    true_beta = torch.randn(d + 1, p, device=DEVICE)
+    C = torch.randn(p, rank, device=DEVICE) / 5
+    O = torch.ones((n, p), device=DEVICE) / 2
+    covariates = torch.randn((n, d), device=DEVICE)
+    true_Sigma = torch.matmul(C, C.T)
+    Y, _, _ = sample_PLN(C, true_beta, covariates, O)
+    if return_true_param is True:
+        return Y, covariates, O, true_Sigma, true_beta
+    return Y, covariates, O
+
+
+def get_real_count_data(n=270, p=100):
+    if n > 297:
+        warnings.warn(
+            f"\nTaking the whole 270 samples of the dataset. Requested:n={n}, returned:270"
+        )
+        n = 270
+    if p > 100:
+        warnings.warn(
+            f"\nTaking the whole 100 variables. Requested:p={p}, returned:100"
+        )
+        dim = 100
+    Y = pd.read_csv("../example_data/real_data/Y_mark.csv").values[:n, :p]
+    print(f"Returning dataset of size {Y.shape}")
+    return Y
+
+
+def closest(lst, K):
+    lst = np.asarray(lst)
+    idx = (np.abs(lst - K)).argmin()
+    return lst[idx]
