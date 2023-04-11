@@ -265,7 +265,23 @@ class _PLN(ABC):
         string += f"{delimiter}\n"
         string += nice_string_of_dict(self.dict_for_printing)
         string += f"{delimiter}\n"
+        string += "* Useful properties\n"
+        string += f"    {self.useful_properties_string}\n"
+        string += "* Useful methods\n"
+        string += f"    {self.useful_methods_string}\n"
+        string += f"* Additional properties for {self.NAME}\n"
+        string += f"    {self.additional_properties_string}\n"
+        string += f"* Additionial methods for {self.NAME}\n"
+        string += f"    {self.additional_methods_string}"
         return string
+
+    @property
+    def additional_methods_string(self):
+        pass
+
+    @property
+    def additional_properties_string(self):
+        pass
 
     def show(self, axes=None):
         print("Best likelihood:", np.max(-self.plotargs.elbos_list[-1]))
@@ -415,18 +431,13 @@ class PLN(_PLN):
         return closed_formula_beta(self.covariates, self._M)
 
     @property
-    def beta(self):
-        return self._beta.detach().cpu()
-
-    @property
     def _Sigma(self):
         return closed_formula_Sigma(
             self.covariates, self._M, self._S, self._beta, self._n
         )
 
-    @property
-    def Sigma(self):
-        return self._Sigma.detach().cpu()
+    def print_beginning_message(self):
+        print(f"Fitting a PLN model with {self.description}")
 
     def set_parameters_from_dict(self, model_in_a_dict):
         S = format_data(model_in_a_dict["S"])
@@ -497,31 +508,45 @@ class PLNPCA:
         tol=1e-4,
         do_smart_init=True,
         verbose=False,
-        offsets_formula="sum",
+        offsets_formula="logsum",
         keep_going=False,
     ):
-        print(self.beginning_message)
+        self.print_beginning_message()
+        self.format_model_param(counts, covariates, offsets, offsets_formula)
         for pca in self.dict_models.values():
             pca.fit(
-                counts,
+                self.counts,
                 covariates,
-                offsets,
+                self.offsets,
                 nb_max_iteration,
                 lr,
                 class_optimizer,
                 tol,
                 do_smart_init,
                 verbose,
-                offsets_formula,
+                None,
                 keep_going,
             )
+        self.print_ending_message()
+
+    def print_ending_message(self):
+        delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
+        print(f"{delimiter}\n")
         print("DONE!")
+        BIC_dict = self.best_model(criterion="BIC")._rank
+        print(f"    Best model(lower BIC): {BIC_dict}\n ")
+        AIC_dict = self.best_model(criterion="AIC")._rank
+        print(f"    Best model(lower AIC): {AIC_dict}\n ")
+        print(f"{delimiter}\n")
 
     def __getitem__(self, rank):
         if (rank in self.ranks) is False:
-            rank = closest(self.ranks, rank)
-            warning_string = " \n In super$getModel(var, index) :"
-            warnings.warn(warning_string)
+            asked_rank = rank
+            rank = closest(self.ranks, asked_rank)
+            warning_string = " \n No such a model in the collection."
+            warning_string += "Returning model with closest value.\n"
+            warning_string += f"Requested: {asked_rank}, returned: {rank}"
+            warnings.warn(message=warning_string)
         return self.dict_models[rank]
 
     @property
@@ -579,22 +604,36 @@ class PLNPCA:
 
     def __str__(self):
         nb_models = len(self.models)
-        delimiter = "-" * NB_CHARACTERS_FOR_NICE_PLOT
-        to_print = f"{delimiter}\n"
-        to_print += (
-            f"Collection of {nb_models} PLNPCA models with {self._p} variables.\n"
-        )
-        to_print += f"{delimiter}\n"
-        to_print += f" - Ranks considered:{self.ranks} \n \n"
-        to_print += f" - BIC metric:\n {nice_string_of_dict(self.BIC)}\n"
+        delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
+        to_print = delimiter
+        to_print += f"Collection of {nb_models} PLNPCA models with {self._p} variables."
+        to_print += delimiter
+        to_print += f" - Ranks considered:{self.ranks}\n"
+        dict_bic = {"rank": "criterion"} | self.BIC
+        to_print += f" - BIC metric:\n{nice_string_of_dict(dict_bic)}\n"
 
         dict_to_print = self.best_model(criterion="BIC")._rank
-        to_print += f"    Best model(lower BIC): {dict_to_print}\n \n"
-        to_print += f" - AIC metric:\n{nice_string_of_dict(self.AIC)}\n"
+        to_print += f"   Best model(lower BIC): {dict_to_print}\n \n"
+        dict_aic = {"rank": "criterion"} | self.AIC
+        to_print += f" - AIC metric:\n{nice_string_of_dict(dict_aic)}\n"
         to_print += (
-            f"    Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
+            f"   Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
         )
+        to_print += delimiter
+        to_print += f"* Useful properties\n"
+        to_print += f"    {self.useful_properties_string}\n"
+        to_print += "* Useful methods \n"
+        to_print += f"    {self.useful_methods_string}"
+        to_print += delimiter
         return to_print
+
+    @property
+    def useful_methods_string(self):
+        return ".show(), .best_model()"
+
+    @property
+    def useful_properties_string(self):
+        return ".BIC, .AIC, .loglikes"
 
     def load_model_from_file(self, rank, path_of_file):
         with open(path_of_file, "rb") as fp:
