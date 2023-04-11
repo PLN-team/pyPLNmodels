@@ -367,7 +367,7 @@ def format_data(data):
     if isinstance(data, torch.Tensor):
         return data
     raise AttributeError(
-        "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
+        "Please insert either a numpy.ndarray, pandas.DataFrame or torch.Tensor"
     )
 
 
