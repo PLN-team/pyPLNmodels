@@ -393,7 +393,7 @@ def prepare_covariates(covariates, n):
         covariates = full_of_ones
     else:
         covariates = format_data(covariates)
-        covariates = torch.stack((full_of_ones, covariates), axis=1).squeeze()
+        covariates = torch.concat((full_of_ones, covariates), axis=1)
     return covariates
 
 
