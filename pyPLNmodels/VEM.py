@@ -524,7 +524,7 @@ class PLN(_PLN):
 
 
 class PLNPCA:
-    def __init__(self, ranks, true_Sigma, true_beta):
+    def __init__(self, ranks, true_Sigma=None, true_beta=None):
         if isinstance(ranks, list) or isinstance(ranks, np.ndarray):
             self.ranks = ranks
             self.dict_models = {}
@@ -714,7 +714,7 @@ class PLNPCA:
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
 
-    def __init__(self, rank, true_Sigma, true_beta):
+    def __init__(self, rank, true_Sigma=None, true_beta=None):
         super().__init__()
         self._rank = rank
         self.true_Sigma = true_Sigma
