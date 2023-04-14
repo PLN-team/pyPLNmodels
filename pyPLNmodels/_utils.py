@@ -474,3 +474,7 @@ def closest(lst, K):
     lst = np.asarray(lst)
     idx = (np.abs(lst - K)).argmin()
     return lst[idx]
+
+
+def MSE(t):
+    return torch.mean(t**2)

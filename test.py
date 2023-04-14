@@ -1,4 +1,5 @@
 import time
+import os
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -8,10 +9,13 @@ from pyPLNmodels._utils import sample_PLN, get_real_count_data
 from pyPLNmodels import PLNPCA, PLN
 import pandas as pd
 
+print("dir", os.getcwd())
+# os.chdir("/pyPLNmodels")
 n = 1000
 p = 1000
 q = 40
 d = 1
+
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
