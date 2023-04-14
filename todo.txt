@@ -1,0 +1,1 @@
+Should check what ihs happening on real data. Are we approaching the true sigma even in real data ? Should sample data according to  Sigma  and beta found with PLN. (cholesky after eetc.)
