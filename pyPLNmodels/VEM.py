@@ -196,8 +196,8 @@ class _PLN(ABC):
         pca = PCA(n_components=n_components)
         return pca.fit_transform(self.latent_variables.cpu())
 
-    @abstractmethod
     @property
+    @abstractmethod
     def latent_variables(self):
         pass
 
