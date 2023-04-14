@@ -1,70 +1,94 @@
 import time
 from abc import ABC, abstractmethod
+import pickle
+import warnings
 
 import torch
-import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from .elbos import ELBOPLN, ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
+from .elbos import ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
 from ._utils import (
     PLNPlotArgs,
-    init_Sigma,
-    init_C,
+    init_sigma,
+    init_c,
     init_beta,
-    get_O_from_sum_of_Y,
+    get_offsets_from_sum_of_counts,
     check_dimensions_are_equal,
     init_M,
-    init_S,
-    NotFitError,
+    format_data,
+    format_model_param,
+    check_parameters_shape,
+    extract_cov_offsets_offsetsformula,
+    nice_string_of_dict,
+    MSE,
+    plot_ellipse,
+    closest,
+    prepare_covariates,
 )
 
 if torch.cuda.is_available():
-    device = "cuda"
+    DEVICE = "cuda"
+    print("Using a GPU")
 else:
-    device = "cpu"
-# shoudl add a good init for M. for plnpca we should not put the maximum of the log posterior, for plnpca it may be ok.
+    DEVICE = "cpu"
+# shoudl add a good init for M. for pln we should not put
+# the maximum of the log posterior, for plnpca it may be ok.
+
+NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
 class _PLN(ABC):
     """
     Virtual class for all the PLN models.
 
-    This class must be derivatived. The methods `get_Sigma`, `compute_ELBO`,
+    This class must be derivatived. The methods `get_Sigma`, `compute_elbo`,
     `random_init_var_parameters` and `list_of_parameters_needing_gradient` must
     be defined.
     """
+
+    WINDOW = 3
+    _n: int
+    _p: int
+    _d: int
 
     def __init__(self):
         """
         Simple initialization method.
         """
-        self.window = 3
-        self.fitted = False
-        self.plotargs = PLNPlotArgs(self.window)
+        self._fitted = False
+        self.plotargs = PLNPlotArgs(self.WINDOW)
 
-    def format_datas(self, Y, covariates, O, O_formula):
-        self.Y = self.format_data(Y)
-        if covariates is None:
-            self.covariates = torch.full((self.Y.shape[0], 1), 1).double()
-        else:
-            self.covariates = self.format_data(covariates)
-        if O is None:
-            if O_formula == "sum":
-                print("Setting the offesets O as the log of the sum of Y")
-                self.O = torch.log(get_O_from_sum_of_Y(self.Y)).double()
-            else:
-                self.O = torch.zeros(self.Y.shape)
-        else:
-            self.O = self.format_data(O)
+    def format_model_param(self, counts, covariates, offsets, offsets_formula):
+        self.counts, self.covariates, self.offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
+
+    def init_shapes(self):
+        self._n, self._p = self.counts.shape
+        self._d = self.covariates.shape[1]
+
+    @property
+    def n(self):
+        return self._n
+
+    @property
+    def p(self):
+        return self._p
+
+    @property
+    def d(self):
+        return self._d
 
     def smart_init_beta(self):
-        self._beta = init_beta(self.Y, self.covariates, self.O)
+        self._beta = init_beta(self.counts, self.covariates, self.offsets)
 
     def random_init_beta(self):
-        self._beta = torch.randn((self._d, self._p), device=device)
+        self._beta = torch.randn((self._d, self._p), device=DEVICE)
 
     @abstractmethod
     def random_init_model_parameters(self):
@@ -78,24 +102,10 @@ class _PLN(ABC):
     def random_init_var_parameters(self):
         pass
 
-    def format_data(self, data):
-        if isinstance(data, pd.DataFrame):
-            return torch.from_numpy(data.values).double().to(device)
-        if isinstance(data, np.ndarray):
-            return torch.from_numpy(data).double().to(device)
-        if isinstance(data, torch.Tensor):
-            return data
-        else:
-            raise AttributeError(
-                "Please insert either a numpy array, pandas.DataFrame or torch.tensor"
-            )
-
     def smart_init_var_parameters(self):
         pass
 
-    def init_parameters(self, Y, covariates, O, do_smart_init):
-        self._n, self._p = self.Y.shape
-        self._d = self.covariates.shape[1]
+    def init_parameters(self, do_smart_init):
         print("Initialization ...")
         if do_smart_init:
             self.smart_init_model_parameters()
@@ -104,9 +114,9 @@ class _PLN(ABC):
             self.random_init_model_parameters()
             self.random_init_var_parameters()
         print("Initialization finished")
-        self.putParametersToDevice()
+        self.put_parameters_to_device()
 
-    def putParametersToDevice(self):
+    def put_parameters_to_device(self):
         for parameter in self.list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
@@ -115,47 +125,46 @@ class _PLN(ABC):
         """
         A list containing all the parameters that needs to be upgraded via a gradient step.
         """
-        pass
-
-    def check_parameters_shape(self):
-        nY, pY = self.Y.shape
-        nO, pO = self.O.shape
-        nCov, _ = self.covariates.shape
-        check_dimensions_are_equal("Y", "O", nY, nO, 0)
-        check_dimensions_are_equal("Y", "covariates", nY, nCov, 0)
-        check_dimensions_are_equal("Y", "O", pY, pO, 1)
 
     def fit(
         self,
-        Y,
+        counts,
         covariates=None,
-        O=None,
+        offsets=None,
         nb_max_iteration=50000,
-        lr=0.01,
+        lr=0.001,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-3,
+        tol=1e-4,
         do_smart_init=True,
         verbose=False,
-        O_formula=None,
+        offsets_formula="logsum",
+        keep_going=False,
+        error_loss=MSE,
     ):
         """
         Main function of the class. Fit a PLN to the data.
         Parameters
         ----------
-        Y : torch.tensor or ndarray or DataFrame.
+        counts : torch.tensor or ndarray or DataFrame.
             2-d count data.
-        covariates : torch.tensor or ndarray or DataFrame or None, default = None
-            If not `None`, the first dimension should equal the first dimension of `Y`.
-        O : torch.tensor or ndarray or DataFrame or None, default = None
-            Model offset. If not `None`, size should be the same as `Y`.
+        covariates : torch.tensor or ndarray or DataFrame or
+            None, default = None
+            If not `None`, the first dimension should equal the first
+            dimension of `counts`.
+        offsets : torch.tensor or ndarray or DataFrame or None, default = None
+            Model offset. If not `None`, size should be the same as `counts`.
         """
-        self.t0 = time.time()
-        if self.fitted is False:
-            self.format_datas(Y, covariates, O, O_formula)
-            self.check_parameters_shape()
-            self.init_parameters(Y, covariates, O, do_smart_init)
-        else:
-            self.t0 -= self.plotargs.running_times[-1]
+        self.mse_Sigma_list = []
+        self.mse_beta_list = []
+        self.print_beginning_message()
+        self.beginnning_time = time.time()
+        if keep_going is False:
+            self.format_model_param(counts, covariates, offsets, offsets_formula)
+            self.init_shapes()
+            check_parameters_shape(self.counts, self.covariates, self.offsets)
+            self.init_parameters(do_smart_init)
+        if self._fitted is True and keep_going is True:
+            self.beginnning_time -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
         self.nb_iteration_done = 0
         stop_condition = False
@@ -165,21 +174,46 @@ class _PLN(ABC):
             criterion = self.compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose:
+            if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
+            try:
+                self.mse_beta_list.append(
+                    error_loss(self.true_beta.cpu() - self.beta).detach().item()
+                )
+                self.mse_Sigma_list.append(
+                    error_loss(self.true_Sigma.cpu() - self.Sigma).detach().item()
+                )
+            except:
+                self.mse_beta_list = [None]
+                self.mse_Sigma_list = [None]
         self.print_end_of_fitting_message(stop_condition, tol)
-        self.fitted = True
+        self._fitted = True
 
     def trainstep(self):
         """
         simple docstrings with black errors
         """
         self.optim.zero_grad()
-        loss = -self.compute_ELBO()
+        loss = -self.compute_elbo()
         loss.backward()
         self.optim.step()
         self.update_closed_forms()
         return loss
+
+    def pca_projected_latent_variables(self, n_components=None):
+        if n_components is None:
+            n_components = self.get_max_components()
+        if n_components > self._p:
+            raise RuntimeError(
+                f"You ask more components ({n_components}) than variables ({self._p})"
+            )
+        pca = PCA(n_components=n_components)
+        return pca.fit_transform(self.latent_variables.cpu())
+
+    @property
+    @abstractmethod
+    def latent_variables(self):
+        pass
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
@@ -198,15 +232,15 @@ class _PLN(ABC):
         print("-------UPDATE-------")
         print("Iteration number: ", self.plotargs.iteration_number)
         print("Criterion: ", np.round(self.plotargs.criterions[-1], 8))
-        print("ELBO:", np.round(self.plotargs.ELBOs_list[-1], 6))
+        print("ELBO:", np.round(self.plotargs.elbos_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
-        self.plotargs.ELBOs_list.append(-loss.item() / self._n)
-        self.plotargs.running_times.append(time.time() - self.t0)
-        if self.plotargs.iteration_number > self.window:
+        self.plotargs.elbos_list.append(-loss.item() / self._n)
+        self.plotargs.running_times.append(time.time() - self.beginnning_time)
+        if self.plotargs.iteration_number > self.WINDOW:
             criterion = abs(
-                self.plotargs.ELBOs_list[-1]
-                - self.plotargs.ELBOs_list[-1 - self.window]
+                self.plotargs.elbos_list[-1]
+                - self.plotargs.elbos_list[-1 - self.WINDOW]
             )
             self.plotargs.criterions.append(criterion)
             return criterion
@@ -216,11 +250,10 @@ class _PLN(ABC):
         pass
 
     @abstractmethod
-    def compute_ELBO(self):
+    def compute_elbo(self):
         """
         Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch.
         """
-        pass
 
     def display_Sigma(self, ax=None, savefig=False, name_file=""):
         """
@@ -248,12 +281,31 @@ class _PLN(ABC):
         plt.show()  # to avoid displaying a blanck screen
 
     def __str__(self):
-        string = "A multivariate Poisson Lognormal with " + self.DESCRIPTION + "\n"
-        string += "Best likelihood:" + str(np.max(-self.plotargs.ELBOs_list[-1])) + "\n"
+        delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
+        string = f"A multivariate Poisson Lognormal with {self.description} \n"
+        string += f"{delimiter}\n"
+        string += nice_string_of_dict(self.dict_for_printing)
+        string += f"{delimiter}\n"
+        string += "* Useful properties\n"
+        string += f"    {self.useful_properties_string}\n"
+        string += "* Useful methods\n"
+        string += f"    {self.useful_methods_string}\n"
+        string += f"* Additional properties for {self.NAME}\n"
+        string += f"    {self.additional_properties_string}\n"
+        string += f"* Additionial methods for {self.NAME}\n"
+        string += f"    {self.additional_methods_string}"
         return string
 
+    @property
+    def additional_methods_string(self):
+        pass
+
+    @property
+    def additional_properties_string(self):
+        pass
+
     def show(self, axes=None):
-        print("Best likelihood:", np.max(-self.plotargs.ELBOs_list[-1]))
+        print("Best likelihood:", np.max(-self.plotargs.elbos_list[-1]))
         if axes is None:
             _, axes = plt.subplots(1, 3, figsize=(23, 5))
         self.plotargs.show_loss(ax=axes[-3])
@@ -262,30 +314,44 @@ class _PLN(ABC):
         plt.show()
 
     @property
-    def ELBOs_list(self):
-        return self.plotargs.ELBOs_list
+    def elbos_list(self):
+        return self.plotargs.elbos_list
 
     @property
     def loglike(self):
-        if self.fitted is False:
-            raise NotFitError()
-        return self.ELBOs_list[-1]
+        if self._fitted is False:
+            raise AttributeError(
+                "The model is not fitted so that it did not " "computed likelihood"
+            )
+        return self._n * self.elbos_list[-1]
 
     @property
     def BIC(self):
-        return -2 * self.loglike + self.number_of_parameters * np.log(self._n)
+        return -self.loglike + self.number_of_parameters / 2 * np.log(self._n)
 
     @property
     def AIC(self):
-        return -2 * self.loglike + 2 * self.number_of_parameters
+        return -self.loglike + self.number_of_parameters
 
     @property
     def var_parameters(self):
-        return {"S": self._S, "M": self._M}
+        return {"S": self.S, "M": self.M}
 
     @property
     def model_parameters(self):
-        return {"Beta": self.beta, "Sigma": self.Sigma}
+        return {"beta": self.beta, "Sigma": self.Sigma}
+
+    @property
+    def dict_data(self):
+        return {
+            "counts": self.counts,
+            "covariates": self.covariates,
+            "offsets": self.offsets,
+        }
+
+    @property
+    def model_in_a_dict(self):
+        return self.dict_data | self.model_parameters | self.var_parameters
 
     @property
     def Sigma(self):
@@ -303,29 +369,107 @@ class _PLN(ABC):
     def S(self):
         return self._S.detach().cpu()
 
+    def save_model(self, filename):
+        with open(filename, "wb") as fp:
+            pickle.dump(self.model_in_a_dict, fp)
+
+    def load_model_from_file(self, path_of_file):
+        with open(path_of_file, "rb") as fp:
+            model_in_a_dict = pickle.load(fp)
+        self.model_in_a_dict = model_in_a_dict
+        self._fitted = True
+
+    @model_in_a_dict.setter
+    def model_in_a_dict(self, model_in_a_dict):
+        self.set_data_from_dict(model_in_a_dict)
+        self.set_parameters_from_dict(model_in_a_dict)
+
+    def set_data_from_dict(self, model_in_a_dict):
+        counts = model_in_a_dict["counts"]
+        covariates, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
+            model_in_a_dict
+        )
+        self.format_model_param(counts, covariates, offsets, offsets_formula)
+        check_parameters_shape(self.counts, self.covariates, self.offsets)
+        self.counts = counts
+        self.covariates = covariates
+        self.offsets = offsets
+
+    @abstractmethod
+    def set_parameters_from_dict(self, model_in_a_dict):
+        pass
+
+    @property
+    def dict_for_printing(self):
+        return {
+            "Loglike": np.round(self.loglike, 2),
+            "Dimension": self._p,
+            "Nb param": int(self.number_of_parameters),
+            "BIC": int(self.BIC),
+            "AIC": int(self.AIC),
+        }
+
+    @property
+    def optim_parameters(self):
+        return {"Number of iterations done": self.nb_iteration_done}
+
+    @property
+    def useful_properties_string(self):
+        return (
+            ".latent_variables, .model_parameters, .var_parameters, .optim_parameters"
+        )
+
+    @property
+    def useful_methods_string(self):
+        return ".show(), .coef() .transform(), .sigma(), .predict(), pca_projected_latent_variables()"
+
+    def coef(self):
+        return self.beta
+
+    def sigma(self):
+        return self.Sigma
+
+    def predict(self, X=None):
+        if isinstance(X, torch.Tensor):
+            if X.shape[-1] != self._d - 1:
+                error_string = f"X has wrong shape ({X.shape})."
+                error_string += f"Should be ({self._n, self._d-1})."
+                raise RuntimeError(error_string)
+        X_with_ones = prepare_covariates(X, self._n)
+        return X_with_ones @ self.beta
+
 
 # need to do a good init for M and S
 class PLN(_PLN):
     NAME = "PLN"
-    DESCRIPTION = "full covariance model."
+
+    @property
+    def description(self):
+        return "full covariance model."
 
     def smart_init_var_parameters(self):
         self.random_init_var_parameters()
 
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self._n, self._p)).to(device)
-        self._M = torch.ones((self._n, self._p)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._p)).to(DEVICE)
+        self._M = torch.ones((self._n, self._p)).to(DEVICE)
 
     @property
     def list_of_parameters_needing_gradient(self):
         return [self._M, self._S]
 
-    def compute_ELBO(self):
+    def get_max_components(self):
+        return self._p
+
+    def compute_elbo(self):
         """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch. Here we use the profiled ELBO
+        Compute the Evidence Lower BOund (ELBO) that will be
+        maximized by pytorch. Here we use the profiled ELBO
         for the full covariance matrix.
         """
-        return profiledELBOPLN(self.Y, self.covariates, self.O, self._M, self._S)
+        return profiledELBOPLN(
+            self.counts, self.covariates, self.offsets, self._M, self._S
+        )
 
     def smart_init_model_parameters(self):
         # no model parameters since we are doing a profiled ELBO
@@ -336,133 +480,292 @@ class PLN(_PLN):
         pass
 
     @property
-    def beta(self):
-        return closed_formula_beta(self.covariates, self._M).detach().cpu()
+    def _beta(self):
+        return closed_formula_beta(self.covariates, self._M)
 
     @property
-    def Sigma(self):
-        return (
-            closed_formula_Sigma(self.covariates, self._M, self._S, self.beta, self._n)
-            .detach()
-            .cpu()
+    def _Sigma(self):
+        return closed_formula_Sigma(
+            self.covariates, self._M, self._S, self._beta, self._n
         )
+
+    def print_beginning_message(self):
+        print(f"Fitting a PLN model with {self.description}")
+
+    def set_parameters_from_dict(self, model_in_a_dict):
+        S = format_data(model_in_a_dict["S"])
+        nS, pS = S.shape
+        M = format_data(model_in_a_dict["M"])
+        nM, pM = M.shape
+        beta = format_data(model_in_a_dict["beta"])
+        _, pbeta = beta.shape
+        Sigma = format_data(model_in_a_dict["Sigma"])
+        pSigma1, pSigma2 = Sigma.shape
+        check_dimensions_are_equal("Sigma", "Sigma.t", pSigma1, pSigma2, 0)
+        check_dimensions_are_equal("S", "M", nS, nM, 0)
+        check_dimensions_are_equal("S", "M", pS, pM, 1)
+        check_dimensions_are_equal("Sigma", "beta", pSigma1, pbeta, 1)
+        check_dimensions_are_equal("M", "beta", pM, pbeta, 1)
+        self._S = S
+        self._M = M
+        self._beta = beta
+        self._Sigma = Sigma
+
+    @property
+    def latent_variables(self):
+        return self.M
+
+    @property
+    def number_of_parameters(self):
+        return self._p * (self._p + self._d)
+
+    def transform(self):
+        return self.latent_variables
 
 
 class PLNPCA:
-    def __init__(self, ranks, tril_number = 0):
-        if isinstance(ranks, list):
+    def __init__(self, ranks, true_Sigma=None, true_beta=None):
+        if isinstance(ranks, list) or isinstance(ranks, np.ndarray):
             self.ranks = ranks
-            self.dict_PLNPCA = {}
+            self.dict_models = {}
             for rank in ranks:
-                if isinstance(rank, int):
-                    self.dict_PLNPCA[rank] = _PLNPCA(rank, tril_number)
+                if isinstance(rank, int) or isinstance(rank, np.int64):
+                    self.dict_models[rank] = _PLNPCA(rank, true_Sigma, true_beta)
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
-            self.dict_PLNPCA = {ranks: _PLNPCA(ranks)}
+            self.ranks = [ranks]
+            self.dict_models = {ranks: _PLNPCA(ranks, true_Sigma, true_beta)}
         else:
             raise TypeError(
                 "Please instantiate with either a list of integer or an integer"
             )
 
+    @property
+    def models(self):
+        return list(self.dict_models.values())
+
+    def print_beginning_message(self):
+        return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
+
+    def format_model_param(self, counts, covariates, offsets, offsets_formula):
+        self.counts, self.covariates, self.offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
+
     def fit(
         self,
-        Y,
+        counts,
         covariates=None,
-        O=None,
+        offsets=None,
         nb_max_iteration=100000,
-        lr=0.01,
+        lr=0.001,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-3,
+        tol=1e-4,
         do_smart_init=True,
         verbose=False,
-        O_formula="sum",
+        error_loss=MSE,
+        offsets_formula="logsum",
+        keep_going=False,
     ):
-        for pca in self.dict_PLNPCA.values():
+        self.print_beginning_message()
+        self.format_model_param(counts, covariates, offsets, offsets_formula)
+        for pca in self.dict_models.values():
             pca.fit(
-                Y,
+                self.counts,
                 covariates,
-                O,
+                self.offsets,
                 nb_max_iteration,
                 lr,
                 class_optimizer,
                 tol,
                 do_smart_init,
                 verbose,
-                O_formula,
+                None,
+                keep_going,
+                error_loss,
             )
+        self.print_ending_message()
+
+    def print_ending_message(self):
+        delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
+        print(f"{delimiter}\n")
+        print("DONE!")
+        BIC_dict = self.best_model(criterion="BIC")._rank
+        print(f"    Best model(lower BIC): {BIC_dict}\n ")
+        AIC_dict = self.best_model(criterion="AIC")._rank
+        print(f"    Best model(lower AIC): {AIC_dict}\n ")
+        print(f"{delimiter}\n")
 
     def __getitem__(self, rank):
-        return self.dict_PLNPCA[rank]
+        if (rank in self.ranks) is False:
+            asked_rank = rank
+            rank = closest(self.ranks, asked_rank)
+            warning_string = " \n No such a model in the collection."
+            warning_string += "Returning model with closest value.\n"
+            warning_string += f"Requested: {asked_rank}, returned: {rank}"
+            warnings.warn(message=warning_string)
+        return self.dict_models[rank]
 
     @property
     def BIC(self):
-        return {model._q: model.BIC for model in self.dict_PLNPCA.values()}
+        return {model._rank: int(model.BIC) for model in self.dict_models.values()}
 
     @property
     def AIC(self):
-        return {model._q: model.AIC for model in self.dict_PLNPCA.values()}
+        return {model._rank: int(model.AIC) for model in self.dict_models.values()}
 
     @property
     def loglikes(self):
-        return {model._q: model.loglike for model in self.dict_PLNPCA.values()}
+        return {model._rank: model.loglike for model in self.dict_models.values()}
 
     def show(self):
         bic = self.BIC
         aic = self.AIC
+        loglikes = self.loglikes
         bic_color = "blue"
         aic_color = "red"
+        loglikes_color = "orange"
         plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
         plt.plot(bic.keys(), bic.values(), c=bic_color)
+        plt.axvline(self.best_BIC_model_rank, c=bic_color, linestyle="dotted")
         plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
+        plt.axvline(self.best_AIC_model_rank, c=aic_color, linestyle="dotted")
         plt.plot(aic.keys(), aic.values(), c=aic_color)
+        plt.xticks(list(aic.keys()))
+        plt.scatter(
+            loglikes.keys(),
+            -np.array(list(loglikes.values())),
+            label="Negative log likelihood",
+            c=loglikes_color,
+        )
+        plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
         plt.legend()
         plt.show()
 
     @property
-    def best_model(self, criterion = "BIC"):
+    def best_BIC_model_rank(self):
+        return self.ranks[np.argmin(list(self.BIC.values()))]
+
+    @property
+    def best_AIC_model_rank(self):
+        return self.ranks[np.argmin(list(self.AIC.values()))]
+
+    def best_model(self, criterion="AIC"):
         if criterion == "BIC":
-            return self[self.ranks[np.argmax(self.BIC.values())]]
+            return self[self.best_BIC_model_rank]
         elif criterion == "AIC":
-            return self[self.ranks[np.argmax(self.AIC.values())]]
+            return self[self.best_AIC_model_rank]
 
+    def save_model(self, rank, filename):
+        self.dict_models[rank].save_model(filename)
+        with open(filename, "wb") as fp:
+            pickle.dump(self.model_in_a_dict, fp)
 
+    def save_models(self, filename):
+        for model in self.models:
+            model_filename = filename + str(model._rank)
+            model.save_model(model_filename)
+
+    @property
+    def _p(self):
+        return self[self.ranks[0]].p
+
+    def __str__(self):
+        nb_models = len(self.models)
+        delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
+        to_print = delimiter
+        to_print += f"Collection of {nb_models} PLNPCA models with {self._p} variables."
+        to_print += delimiter
+        to_print += f" - Ranks considered:{self.ranks}\n"
+        dict_bic = {"rank": "criterion"} | self.BIC
+        to_print += f" - BIC metric:\n{nice_string_of_dict(dict_bic)}\n"
+
+        dict_to_print = self.best_model(criterion="BIC")._rank
+        to_print += f"   Best model(lower BIC): {dict_to_print}\n \n"
+        dict_aic = {"rank": "criterion"} | self.AIC
+        to_print += f" - AIC metric:\n{nice_string_of_dict(dict_aic)}\n"
+        to_print += (
+            f"   Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
+        )
+        to_print += delimiter
+        to_print += f"* Useful properties\n"
+        to_print += f"    {self.useful_properties_string}\n"
+        to_print += "* Useful methods \n"
+        to_print += f"    {self.useful_methods_string}"
+        to_print += delimiter
+        return to_print
+
+    @property
+    def useful_methods_string(self):
+        return ".show(), .best_model()"
+
+    @property
+    def useful_properties_string(self):
+        return ".BIC, .AIC, .loglikes"
+
+    def load_model_from_file(self, rank, path_of_file):
+        with open(path_of_file, "rb") as fp:
+            model_in_a_dict = pickle.load(fp)
+        rank = model_in_a_dict["rank"]
+        self.dict_models[rank].model_in_a_dict = model_in_a_dict
 
 
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
-    DESCRIPTION = " with Principal Component Analysis."
 
-    def __init__(self, q, tril_number):
+    def __init__(self, rank, true_Sigma=None, true_beta=None):
         super().__init__()
-        self._q = q
-        self.tril_number = tril_number
+        self._rank = rank
+        self.true_Sigma = true_Sigma
+        self.true_beta = true_beta
+
+    def init_shapes(self):
+        super().init_shapes()
+        if self._p < self._rank:
+            warning_string = (
+                f"\nThe requested rank of approximation {self._rank} is greater than "
+            )
+            warning_string += (
+                f"the number of variables {self._p}. Setting rank to {self._p}"
+            )
+            warnings.warn(warning_string)
+            self._rank = self._p
+
+    def get_max_components(self):
+        return self._rank
+
+    def print_beginning_message(self):
+        print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
+        print(f"Fitting a PLNPCA model with {self._rank} components")
 
     @property
     def model_parameters(self):
-        dict_model_parameters = super().model_parameters
-        dict_model_parameters["C"] = self._C
-        return dict_model_parameters
+        model_parameters = super().model_parameters
+        model_parameters["C"] = self.C
+        return model_parameters
 
     def smart_init_model_parameters(self):
         super().smart_init_beta()
-        self._C = init_C(self.Y, self.covariates, self.O, self._beta, self._q)
+        self._C = init_c(
+            self.counts, self.covariates, self.offsets, self._beta, self._rank
+        )
 
     def random_init_model_parameters(self):
         super().random_init_beta()
-        self._C = torch.randn((self._p, self._q)).to(device)
+        self._C = torch.randn((self._p, self._rank)).to(DEVICE)
 
     def random_init_var_parameters(self):
-        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
-        self._M = torch.ones((self._n, self._q)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._rank)).to(DEVICE)
+        self._M = torch.ones((self._n, self._rank)).to(DEVICE)
 
     def smart_init_var_parameters(self):
         self._M = (
-            init_M(self.Y, self.covariates, self.O, self._beta, self._C)
-            .to(device)
+            init_M(self.counts, self.covariates, self.offsets, self._beta, self._C)
+            .to(DEVICE)
             .detach()
         )
-        self._S = 1 / 2 * torch.ones((self._n, self._q)).to(device)
+        self._S = 1 / 2 * torch.ones((self._n, self._rank)).to(DEVICE)
         self._M.requires_grad_(True)
         self._S.requires_grad_(True)
 
@@ -470,47 +773,151 @@ class _PLNPCA(_PLN):
     def list_of_parameters_needing_gradient(self):
         return [self._C, self._beta, self._M, self._S]
 
-    def compute_ELBO(self):
+    def compute_elbo(self):
         return ELBOPLNPCA(
-            self.Y, self.covariates, self.O, self._M, self._S, self._C, self._beta, self.tril_number
+            self.counts,
+            self.covariates,
+            self.offsets,
+            self._M,
+            self._S,
+            self._C,
+            self._beta,
         )
 
     @property
     def number_of_parameters(self):
-        print("num", self._p * (self._d + self._q) - self._q * (self._q - 1) / 2)
-        return self._p * (self._d + self._q) - self._q * (self._q - 1) / 2
+        return self._p * (self._d + self._rank) - self._rank * (self._rank - 1) / 2
+
+    @property
+    def additional_properties_string(self):
+        return ".projected_latent_variables"
+
+    @property
+    def additional_methods_string(self):
+        string = "    only for rank=2: .viz()"
+        return string
+
+    def set_parameters_from_dict(self, model_in_a_dict):
+        S = format_data(model_in_a_dict["S"])
+        nS, qS = S.shape
+        M = format_data(model_in_a_dict["M"])
+        nM, qM = M.shape
+        beta = format_data(model_in_a_dict["beta"])
+        _, pbeta = beta.shape
+        C = format_data(model_in_a_dict["C"])
+        pC, qC = C.shape
+        check_dimensions_are_equal("S", "M", nS, nM, 0)
+        check_dimensions_are_equal("S", "M", qS, qM, 1)
+        check_dimensions_are_equal("C.t", "beta", pC, pbeta, 1)
+        check_dimensions_are_equal("M", "C", qM, qC, 1)
+        self._S = S.to(DEVICE)
+        self._M = M.to(DEVICE)
+        self._beta = beta.to(DEVICE)
+        self._C = C.to(DEVICE)
 
     @property
     def Sigma(self):
         return torch.matmul(self._C, self._C.T).detach().cpu()
 
+    @property
+    def description(self):
+        return f" {self._rank} principal component."
 
+    @property
+    def latent_variables(self):
+        return torch.matmul(self._M, self._C.T).detach().cpu()
+
+    @property
+    def projected_latent_variables(self):
+        ortho_C = torch.linalg.qr(self._C, "reduced")[0]
+        return torch.mm(self.latent_variables, ortho_C).detach().cpu()
+
+    @property
+    def model_in_a_dict(self):
+        return super().model_in_a_dict | {"rank": self._rank}
+
+    @model_in_a_dict.setter
+    def model_in_a_dict(self, model_in_a_dict):
+        self.set_data_from_dict(model_in_a_dict)
+        self.set_parameters_from_dict(model_in_a_dict)
+
+    @property
+    def C(self):
+        return self._C.detach().cpu()
+
+    def viz(self, ax=None, color=None, label=None, label_of_colors=None):
+        if self._rank != 2:
+            raise RuntimeError("Can't perform visualization for rank != 2.")
+        if ax is None:
+            ax = plt.gca()
+        proj_variables = self.projected_latent_variables
+        xs = proj_variables[:, 0].cpu().numpy()
+        ys = proj_variables[:, 1].cpu().numpy()
+        sns.scatterplot(x=xs, y=ys, hue=color, ax=ax)
+        covariances = torch.diag_embed(self._S**2).detach().cpu()
+        for i in range(covariances.shape[0]):
+            plot_ellipse(xs[i], ys[i], cov=covariances[i], ax=ax)
+        return ax
+
+    def transform(self, project=True):
+        if project is True:
+            return self.projected_latent_variables
+        return self.latent_variables
+
+    def update_closed_forms(self):
+        CW = torch.matmul(self._M.unsqueeze(1), self._C.T.unsqueeze(0)).squeeze()
+        cyommon = torch.exp(self.offsets + self.covariates @ self._beta + CW)
+        C_common = torch.multiply(common.unsqueeze(1), self._C.T.unsqueeze(0))
+        C_common_C = torch.matmul(C_common, self._C.unsqueeze(0))
+        # The hessian of the posterior
+
+        hess_posterior = C_common_C + torch.eye(self._rank).to(DEVICE)
+        self.noS = torch.inverse(hess_posterior.detach())
+        self.noS = torch.diagonal(self.noS, dim1=-2, dim2=-1)
+        self.noS = torch.sqrt(self.noS)
+        # print('mse:', torch.mean((self.noS - self.S)**2))
+
+
+class _PLNPCA_noS(_PLNPCA):
+    @property
+    def list_of_parameters_needing_gradient(self):
+        return [self._beta, self._C, self._M]
+
+    def update_closed_forms(self):
+        super().update_closed_forms()
+        self._S = self.noS
+
+
+## WIP
 class ZIPLN(PLN):
     NAME = "ZIPLN"
-    DESCRIPTION = "with full covariance model and zero-inflation."
+
+    @property
+    def description(self):
+        return f"with full covariance model and zero-inflation."
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
         self.Theta_zero = torch.randn(self._d, self._p)
-        self._Sigma = torch.diag(torch.ones(self._p)).to(device)
+        self._Sigma = torch.diag(torch.ones(self._p)).to(DEVICE)
 
     # should change the good initialization, especially for Theta_zero
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
-        self._Sigma = init_Sigma(self.Y, self.covariates, self.O, self._beta)
+        self._Sigma = init_sigma(self.counts, self.covariates, self.offsets, self._beta)
         self._Theta_zero = torch.randn(self._d, self._p)
 
     def random_init_var_parameters(self):
-        self.dirac = self.Y == 0
+        self.dirac = self.counts == 0
         self._M = torch.randn(self._n, self._p)
         self._S = torch.randn(self._n, self._p)
-        self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(device) * self.dirac
+        self.pi = torch.empty(self._n, self._p).uniform_(0, 1).to(DEVICE) * self.dirac
 
-    def compute_ELBO(self):
+    def compute_elbo(self):
         return ELBOZIPLN(
-            self.Y,
+            self.counts,
             self.covariates,
-            self.O,
+            self.offsets,
             self._M,
             self._S,
             self.pi,
@@ -530,7 +937,12 @@ class ZIPLN(PLN):
             self.covariates, self._M, self._S, self._beta, self._n
         )
         self.pi = closed_formula_pi(
-            self.O, self._M, self._S, self.dirac, self._covariates, self._Theta_zero
+            self.offsets,
+            self._M,
+            self._S,
+            self.dirac,
+            self.covariates,
+            self._Theta_zero,
         )
 
     @property
