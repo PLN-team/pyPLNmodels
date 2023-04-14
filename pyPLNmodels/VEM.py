@@ -36,7 +36,8 @@ if torch.cuda.is_available():
     print("Using a GPU")
 else:
     DEVICE = "cpu"
-# shoudl add a good init for M. for pln we should not put the maximum of the log posterior, for plnpca it may be ok.
+# shoudl add a good init for M. for pln we should not put
+# the maximum of the log posterior, for plnpca it may be ok.
 
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
@@ -51,12 +52,14 @@ class _PLN(ABC):
     """
 
     WINDOW = 3
+    _n: int
+    _p: int
+    _d: int
 
     def __init__(self):
         """
         Simple initialization method.
         """
-        self.WINDOW = 3
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
@@ -129,7 +132,7 @@ class _PLN(ABC):
         covariates=None,
         offsets=None,
         nb_max_iteration=50000,
-        lr=0.01,
+        lr=0.001,
         class_optimizer=torch.optim.Rprop,
         tol=1e-4,
         do_smart_init=True,
@@ -199,16 +202,18 @@ class _PLN(ABC):
 
     def pca_projected_latent_variables(self, n_components=None):
         if n_components is None:
-            if self.NAME == "PLNPCA":
-                n_components = self._rank
-            elif self.NAME == "PLN":
-                n_components = self._p
+            n_components = self.get_max_components()
         if n_components > self._p:
             raise RuntimeError(
                 f"You ask more components ({n_components}) than variables ({self._p})"
             )
         pca = PCA(n_components=n_components)
         return pca.fit_transform(self.latent_variables.cpu())
+
+    @property
+    @abstractmethod
+    def latent_variables(self):
+        pass
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
@@ -453,6 +458,9 @@ class PLN(_PLN):
     def list_of_parameters_needing_gradient(self):
         return [self._M, self._S]
 
+    def get_max_components(self):
+        return self._p
+
     def compute_elbo(self):
         """
         Compute the Evidence Lower BOund (ELBO) that will be
@@ -551,7 +559,7 @@ class PLNPCA:
         covariates=None,
         offsets=None,
         nb_max_iteration=100000,
-        lr=0.01,
+        lr=0.001,
         class_optimizer=torch.optim.Rprop,
         tol=1e-4,
         do_smart_init=True,
@@ -724,6 +732,9 @@ class _PLNPCA(_PLN):
             warnings.warn(warning_string)
             self._rank = self._p
 
+    def get_max_components(self):
+        return self._rank
+
     def print_beginning_message(self):
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
         print(f"Fitting a PLNPCA model with {self._rank} components")
@@ -852,6 +863,30 @@ class _PLNPCA(_PLN):
         if project is True:
             return self.projected_latent_variables
         return self.latent_variables
+
+    def update_closed_forms(self):
+        batch_matrix = torch.matmul(self._C.unsqueeze(2), self._C.unsqueeze(1))
+        CW = torch.matmul(self._M.unsqueeze(1), self._C.T.unsqueeze(0)).squeeze()
+        common = torch.exp(self.offsets + self.covariates @ self._beta + CW)
+        C_common = torch.multiply(common.unsqueeze(1), self._C.T.unsqueeze(0))
+        C_common_C = torch.matmul(C_common, self._C.unsqueeze(0))
+        # The hessian of the posterior
+
+        hess_posterior = C_common_C + torch.eye(self._rank).to(DEVICE)
+        self.noS = torch.inverse(hess_posterior.detach())
+        self.noS = torch.diagonal(self.noS, dim1=-2, dim2=-1)
+        self.noS = torch.sqrt(self.noS)
+        # print('mse:', torch.mean((self.noS - self.S)**2))
+
+
+class _PLNPCA_noS(_PLNPCA):
+    @property
+    def list_of_parameters_needing_gradient(self):
+        return [self._beta, self._C, self._M]
+
+    def update_closed_forms(self):
+        super().update_closed_forms()
+        self._S = self.noS
 
 
 ## WIP
