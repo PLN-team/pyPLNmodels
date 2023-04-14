@@ -131,7 +131,7 @@ class _PLN(ABC):
         covariates=None,
         offsets=None,
         nb_max_iteration=50000,
-        lr=0.01,
+        lr=0.001,
         class_optimizer=torch.optim.Rprop,
         tol=1e-4,
         do_smart_init=True,
@@ -545,7 +545,7 @@ class PLNPCA:
         covariates=None,
         offsets=None,
         nb_max_iteration=100000,
-        lr=0.01,
+        lr=0.001,
         class_optimizer=torch.optim.Rprop,
         tol=1e-4,
         do_smart_init=True,
@@ -693,27 +693,6 @@ class PLNPCA:
             model_in_a_dict = pickle.load(fp)
         rank = model_in_a_dict["rank"]
         self.dict_models[rank].model_in_a_dict = model_in_a_dict
-
-
-class _PLNPCA_noS(_PLNPCA):
-    def list_of_parameters_needing_gradient(self):
-        return [self._beta, self._C, self._M]
-
-    def update_closed_forms(self):
-        batch_matrix = torch.matmul(self.C.unsqueeze(2), self.C.unsqueeze(1)).unsqueeze(
-            0
-        )
-        print("batch_matrix shape:", batch_matrix_shape)
-        CW = torch.matmul(self.C.unsqueeze(0), self.mean_prop_b.unsqueeze(2)).squeeze()
-        common = (
-            torch.exp(self.OB + self.covariatesB @ self.beta + CW)
-            .unsqueeze(2)
-            .unsqueeze(3)
-        )
-        prod = batch_matrix * common
-        # The hessian of the posterior
-        hess_posterior = torch.sum(prod, axis=1) + torch.eye(self.q).to(device)
-        self.S = torch.inverse(hess_posterior.detach())
 
 
 class _PLNPCA(_PLN):
@@ -866,6 +845,30 @@ class _PLNPCA(_PLN):
         if project is True:
             return self.projected_latent_variables
         return self.latent_variables
+
+    def update_closed_forms(self):
+        batch_matrix = torch.matmul(self._C.unsqueeze(2), self._C.unsqueeze(1))
+        CW = torch.matmul(self._M.unsqueeze(1), self._C.T.unsqueeze(0)).squeeze()
+        common = torch.exp(self.offsets + self.covariates @ self._beta + CW)
+        C_common = torch.multiply(common.unsqueeze(1), self._C.T.unsqueeze(0))
+        C_common_C = torch.matmul(C_common, self._C.unsqueeze(0))
+        # The hessian of the posterior
+
+        hess_posterior = C_common_C + torch.eye(self._rank).to(DEVICE)
+        self.noS = torch.inverse(hess_posterior.detach())
+        self.noS = torch.diagonal(self.noS, dim1=-2, dim2=-1)
+        self.noS = torch.sqrt(self.noS)
+        # print('mse:', torch.mean((self.noS - self.S)**2))
+
+
+class _PLNPCA_noS(_PLNPCA):
+    @property
+    def list_of_parameters_needing_gradient(self):
+        return [self._beta, self._C, self._M]
+
+    def update_closed_forms(self):
+        super().update_closed_forms()
+        self._S = self.noS
 
 
 class ZIPLN(PLN):
