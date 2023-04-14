@@ -35,7 +35,8 @@ if torch.cuda.is_available():
     print("Using a GPU")
 else:
     DEVICE = "cpu"
-# shoudl add a good init for M. for pln we should not put the maximum of the log posterior, for plnpca it may be ok.
+# shoudl add a good init for M. for pln we should not put
+# the maximum of the log posterior, for plnpca it may be ok.
 
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
@@ -50,12 +51,14 @@ class _PLN(ABC):
     """
 
     WINDOW = 3
+    _n: int
+    _p: int
+    _d: int
 
     def __init__(self):
         """
         Simple initialization method.
         """
-        self.WINDOW = 3
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
@@ -185,16 +188,18 @@ class _PLN(ABC):
 
     def pca_projected_latent_variables(self, n_components=None):
         if n_components is None:
-            if self.NAME == "PLNPCA":
-                n_components = self._rank
-            elif self.NAME == "PLN":
-                n_components = self._p
+            n_components = self.get_max_components()
         if n_components > self._p:
             raise RuntimeError(
                 f"You ask more components ({n_components}) than variables ({self._p})"
             )
         pca = PCA(n_components=n_components)
         return pca.fit_transform(self.latent_variables.cpu())
+
+    @abstractmethod
+    @property
+    def latent_variables(self):
+        pass
 
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
@@ -438,6 +443,9 @@ class PLN(_PLN):
     @property
     def list_of_parameters_needing_gradient(self):
         return [self._M, self._S]
+
+    def get_max_components(self):
+        return self._p
 
     def compute_elbo(self):
         """
@@ -705,6 +713,9 @@ class _PLNPCA(_PLN):
             )
             warnings.warn(warning_string)
             self._rank = self._p
+
+    def get_max_components(self):
+        return self._rank
 
     def print_beginning_message(self):
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
