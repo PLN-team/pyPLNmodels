@@ -695,6 +695,27 @@ class PLNPCA:
         self.dict_models[rank].model_in_a_dict = model_in_a_dict
 
 
+class _PLNPCA_noS(_PLNPCA):
+    def list_of_parameters_needing_gradient(self):
+        return [self._beta, self._C, self._M]
+
+    def update_closed_forms(self):
+        batch_matrix = torch.matmul(self.C.unsqueeze(2), self.C.unsqueeze(1)).unsqueeze(
+            0
+        )
+        print("batch_matrix shape:", batch_matrix_shape)
+        CW = torch.matmul(self.C.unsqueeze(0), self.mean_prop_b.unsqueeze(2)).squeeze()
+        common = (
+            torch.exp(self.OB + self.covariatesB @ self.beta + CW)
+            .unsqueeze(2)
+            .unsqueeze(3)
+        )
+        prod = batch_matrix * common
+        # The hessian of the posterior
+        hess_posterior = torch.sum(prod, axis=1) + torch.eye(self.q).to(device)
+        self.S = torch.inverse(hess_posterior.detach())
+
+
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
 
