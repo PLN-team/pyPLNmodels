@@ -34,7 +34,7 @@ setup(
     py_modules=[
         "pyPLNmodels._utils",
         "pyPLNmodels.elbos",
-        "pyPLNmodels.VEM",
+        "pyPLNmodels.models",
         "pyPLNmodels._closed_forms",
     ],
     long_description_content_type="text/markdown",

@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from pyPLNmodels.VEM import PLN, _PLNPCA
+from pyPLNmodels.models import PLN, _PLNPCA
 from pyPLNmodels import get_simulated_count_data, get_real_count_data
 from tests.utils import MSE
 

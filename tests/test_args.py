@@ -1,4 +1,4 @@
-from pyPLNmodels.VEM import PLN, PLNPCA
+from pyPLNmodels.models import PLN, PLNPCA
 from pyPLNmodels import get_simulated_count_data
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf

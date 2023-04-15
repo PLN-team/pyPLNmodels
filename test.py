@@ -1,8 +1,18 @@
-from pyPLNmodels.VEM import PLNPCA, _PLNPCA
-from pyPLNmodels import get_real_count_data
+from pyPLNmodels.models import PLNPCA, _PLNPCA, PLN
+from pyPLNmodels import get_real_count_data, get_simulated_count_data
 
-Y = get_real_count_data()
+import os
 
-pca = _PLNPCA(3)
+os.chdir("./pyPLNmodels/")
 
-pca.fit(Y)
+
+counts = get_real_count_data()
+covariates = None
+offsets = None
+# counts, covariates, offsets = get_simulated_count_data(seed = 0)
+
+pca = PLNPCA([3, 4])
+
+pca.fit(counts, covariates, offsets, tol=0.1)
+pln = PLN()
+pln.fit(counts, covariates, offsets, tol=0.1)

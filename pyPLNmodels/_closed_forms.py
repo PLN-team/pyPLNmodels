@@ -1,21 +1,28 @@
 import torch
 
 
-def closed_formula_Sigma(covariates, M, S, beta, n):
-    """Closed form for Sigma for the M step for the noPCA model."""
-    MmoinsXB = M - torch.mm(covariates, beta)
-    closed = torch.mm(MmoinsXB.T, MmoinsXB)
-    closed += torch.diag(torch.sum(torch.multiply(S, S), dim=0))
+def closed_formula_covariance(covariates, latent_mean, latent_var, coef, n):
+    """Closed form for covariance for the M step for the noPCA model."""
+    m_moins_xb = latent_mean - torch.mm(covariates, coef)
+    closed = torch.mm(m_moins_xb.T, m_moins_xb)
+    closed += torch.diag(torch.sum(torch.multiply(latent_var, latent_var), dim=0))
     return 1 / (n) * closed
 
 
-def closed_formula_beta(covariates, M):
-    """Closed form for beta for the M step for the noPCA model."""
+def closed_formula_coef(covariates, latent_mean):
+    """Closed form for coef for the M step for the noPCA model."""
     return torch.mm(
-        torch.mm(torch.inverse(torch.mm(covariates.T, covariates)), covariates.T), M
+        torch.mm(torch.inverse(torch.mm(covariates.T, covariates)), covariates.T),
+        latent_mean,
     )
 
 
-def closed_formula_pi(offsets, M, S, dirac, covariates, Theta_zero):
-    A = torch.exp(offsets + M + torch.multiply(S, S) / 2)
-    return torch.multiply(torch.sigmoid(A + torch.mm(covariates, Theta_zero)), dirac)
+def closed_formula_pi(
+    offsets, latent_mean, latent_var, dirac, covariates, coef_inflation
+):
+    poiss_param = torch.exp(
+        offsets + latent_mean + torch.multiply(latent_var, latent_var) / 2
+    )
+    return torch.multiply(
+        torch.sigmoid(poiss_param + torch.mm(covariates, coef_inflation)), dirac
+    )
