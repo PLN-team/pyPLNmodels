@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 
 
 from ._closed_forms import closed_formula_beta, closed_formula_Sigma, closed_formula_pi
-from .elbos import ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
+from .elbos import ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN, ELBOPLNPCA_vec
 from ._utils import (
     PLNPlotArgs,
     init_sigma,
@@ -29,6 +29,8 @@ from ._utils import (
     plot_ellipse,
     closest,
     prepare_covariates,
+    vec_to_mat,
+    mat_to_vec,
 )
 
 if torch.cuda.is_available():
@@ -88,7 +90,7 @@ class _PLN(ABC):
         self._beta = init_beta(self.counts, self.covariates, self.offsets)
 
     def random_init_beta(self):
-        self._beta = torch.randn((self._d, self._p), device=DEVICE)
+        self._beta = torch.randn((self._d, self._p), device=DEVICE) * 0
 
     @abstractmethod
     def random_init_model_parameters(self):
@@ -194,8 +196,20 @@ class _PLN(ABC):
         simple docstrings with black errors
         """
         self.optim.zero_grad()
+        # loss = -self.compute_elbo(self._C)
+        # loss.backward()
+        # try:
+        #     print('grad C', self._vec_C.grad)
+        # except:
+        #     pass
+        # print('grad1', torch.norm(self._C.grad))
+        # self.optim.zero_grad()
+        # try:
+        # loss = -self.compute_elbo(mat_to_vec(self._C, self.p, self._rank))
+        # except:
         loss = -self.compute_elbo()
         loss.backward()
+        # print("grad2", torch.norm(self._C.grad))
         self.optim.step()
         self.update_closed_forms()
         return loss
@@ -524,18 +538,28 @@ class PLN(_PLN):
 
 
 class PLNPCA:
-    def __init__(self, ranks, true_Sigma=None, true_beta=None):
+    def __init__(self, ranks, tril_number, true_Sigma=None, true_beta=None):
+        self.tril_number = tril_number
         if isinstance(ranks, list) or isinstance(ranks, np.ndarray):
             self.ranks = ranks
             self.dict_models = {}
             for rank in ranks:
                 if isinstance(rank, int) or isinstance(rank, np.int64):
-                    self.dict_models[rank] = _PLNPCA(rank, true_Sigma, true_beta)
+                    if self.tril_number == 2:
+                        self.dict_models[rank] = _PLNPCA_vec(
+                            rank, tril_number, true_Sigma, true_beta
+                        )
+                    else:
+                        self.dict_models[rank] = _PLNPCA(
+                            rank, tril_number, true_Sigma, true_beta
+                        )
                 else:
                     TypeError("Please instantiate with either a list of integers.")
         elif isinstance(ranks, int):
             self.ranks = [ranks]
-            self.dict_models = {ranks: _PLNPCA(ranks, true_Sigma, true_beta)}
+            self.dict_models = {
+                ranks: _PLNPCA(ranks, tril_number, true_Sigma, true_beta)
+            }
         else:
             raise TypeError(
                 "Please instantiate with either a list of integer or an integer"
@@ -714,11 +738,12 @@ class PLNPCA:
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
 
-    def __init__(self, rank, true_Sigma=None, true_beta=None):
+    def __init__(self, rank, tril_number, true_Sigma=None, true_beta=None):
         super().__init__()
         self._rank = rank
         self.true_Sigma = true_Sigma
         self.true_beta = true_beta
+        self.tril_number = tril_number
 
     def init_shapes(self):
         super().init_shapes()
@@ -782,6 +807,7 @@ class _PLNPCA(_PLN):
             self._S,
             self._C,
             self._beta,
+            self.tril_number,
         )
 
     @property
@@ -864,28 +890,49 @@ class _PLNPCA(_PLN):
             return self.projected_latent_variables
         return self.latent_variables
 
-    def update_closed_forms(self):
-        CW = torch.matmul(self._M.unsqueeze(1), self._C.T.unsqueeze(0)).squeeze()
-        cyommon = torch.exp(self.offsets + self.covariates @ self._beta + CW)
-        C_common = torch.multiply(common.unsqueeze(1), self._C.T.unsqueeze(0))
-        C_common_C = torch.matmul(C_common, self._C.unsqueeze(0))
-        # The hessian of the posterior
 
-        hess_posterior = C_common_C + torch.eye(self._rank).to(DEVICE)
-        self.noS = torch.inverse(hess_posterior.detach())
-        self.noS = torch.diagonal(self.noS, dim1=-2, dim2=-1)
-        self.noS = torch.sqrt(self.noS)
-        # print('mse:', torch.mean((self.noS - self.S)**2))
+class _PLNPCA_vec(_PLNPCA):
+    # def _C(self):
+    #     return vec_to_mat(self.vec_C, self.p, self._rank)
+    def random_init_model_parameters(self):
+        super().random_init_model_parameters()
+        self._vec_C = mat_to_vec(self._C, self._p, self._rank)
 
+    def smart_init_model_parameters(self):
+        super().smart_init_model_parameters()
+        # super().smart_init_beta()
+        # self._C = init_c(
+        #     self.counts, self.covariates, self.offsets, self._beta, self._rank
+        # )
+        self._vec_C = mat_to_vec(self._C, self._p, self._rank)
 
-class _PLNPCA_noS(_PLNPCA):
     @property
     def list_of_parameters_needing_gradient(self):
-        return [self._beta, self._C, self._M]
+        return [self._beta, self._S, self._M, self._vec_C]
 
-    def update_closed_forms(self):
-        super().update_closed_forms()
-        self._S = self.noS
+    def compute_elbo(self):
+        # normal_elbo = ELBOPLNPCA(
+        #     self.counts,
+        #     self.covariates,
+        #     self.offsets,
+        #     self._M,
+        #     self._S,
+        #     self._C,
+        #     self._beta,
+        #     tril_number=4
+        # )
+        # print("normal elbo:", normal_elbo)
+        my_elbo = ELBOPLNPCA_vec(
+            self.counts,
+            self.covariates,
+            self.offsets,
+            self._M,
+            self._S,
+            self._vec_C,
+            self._beta,
+        )
+        # print('my elbo:', my_elbo)
+        return my_elbo
 
 
 ## WIP

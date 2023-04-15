@@ -130,7 +130,9 @@ def init_c(counts, covariates, offsets, beta, rank):
     """
     Sigma_hat = init_sigma(counts, covariates, offsets, beta).detach()
     C = C_from_Sigma(Sigma_hat, rank)
-    return C
+    Q, R = torch.linalg.qr(C, mode="complete")
+    R[:rank, :rank] = R[:rank, :rank].T
+    return R
 
 
 def init_M(counts, covariates, offsets, beta, C, N_iter_max=500, lr=0.01, eps=7e-3):
@@ -478,3 +480,16 @@ def closest(lst, K):
 
 def MSE(t):
     return torch.mean(t**2)
+
+
+def vec_to_mat(C, p, q):
+    c = torch.zeros(p, q)
+    c[torch.tril_indices(p, q, offset=0).tolist()] = C
+    # c = C.reshape(p,q)
+    return c
+
+
+def mat_to_vec(matc, p, q):
+    tril = torch.tril(matc)
+    # tril = matc.reshape(-1,1).squeeze()
+    return tril[torch.tril_indices(p, q, offset=0).tolist()]

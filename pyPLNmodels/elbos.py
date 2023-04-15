@@ -1,5 +1,5 @@
 import torch
-from ._utils import log_stirling, trunc_log
+from ._utils import log_stirling, trunc_log, vec_to_mat, mat_to_vec
 from ._closed_forms import closed_formula_Sigma, closed_formula_beta
 
 
@@ -87,12 +87,52 @@ def ELBOPLNPCA(counts, covariates, offsets, M, S, C, beta, tril_number):
     Returns:
         torch.tensor of size 1 with a gradient.
     """
-    n = counts.shape[0]
-    rank = C.shape[1]
-    if tril_number == 1:
-        C = torch.tril(C)
-    elif tril_number == 2:
-        C = torch.flip(torch.tril(torch.flip(torch.tril(C), [0, 1])), [0, 1])
+    n, p = counts.shape
+    rank = M.shape[1]
+    if len(C.shape) == 1:
+        C = vec_to_mat(C, p, rank)
+    # if tril_number == 1:
+    #     C = torch.tril(C)
+    # elif tril_number == 2:
+    #     C = torch.flip(torch.tril(torch.flip(torch.tril(C), [0, 1])), [0, 1])
+    A = offsets + torch.mm(covariates, beta) + torch.mm(M, C.T)
+    SrondS = torch.multiply(S, S)
+    countsA = torch.sum(torch.multiply(counts, A))
+    moinsexpAplusSrondSCCT = torch.sum(
+        -torch.exp(A + 1 / 2 * torch.mm(SrondS, torch.multiply(C, C).T))
+    )
+    moinslogSrondS = 1 / 2 * torch.sum(torch.log(SrondS))
+    MMplusSrondS = torch.sum(-1 / 2 * (torch.multiply(M, M) + torch.multiply(S, S)))
+    log_stirlingcounts = torch.sum(log_stirling(counts))
+    return (
+        countsA
+        + moinsexpAplusSrondSCCT
+        + moinslogSrondS
+        + MMplusSrondS
+        - log_stirlingcounts
+        + n * rank / 2
+    )
+
+
+def ELBOPLNPCA_vec(counts, covariates, offsets, M, S, vec_C, beta):
+    """
+    Compute the ELBO (Evidence LOwer Bound) for the PLN model with a PCA
+    parametrization. See the doc for more details on the computation.
+
+    Args:
+        counts: torch.tensor. Counts with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        C: torch.tensor. Model parameter with size (p,q)
+        beta: torch.tensor. Model parameter with size (d,p)
+    Returns:
+        torch.tensor of size 1 with a gradient.
+    """
+    n, p = counts.shape
+    rank = M.shape[1]
+    C = vec_to_mat(vec_C, p, rank)
     A = offsets + torch.mm(covariates, beta) + torch.mm(M, C.T)
     SrondS = torch.multiply(S, S)
     countsA = torch.sum(torch.multiply(counts, A))
