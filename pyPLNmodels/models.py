@@ -63,8 +63,8 @@ class _PLN(ABC):
     _coef: torch.Tensor
     beginnning_time: float
     nb_iteration_done: int
-    latent_var: torch.Tensor
-    latent_mean: torch.Tensor
+    _latent_var: torch.Tensor
+    _latent_mean: torch.Tensor
 
     def __init__(self):
         """
@@ -557,9 +557,10 @@ class PLNPCA:
         return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
 
     def format_model_param(self, counts, covariates, offsets, offsets_formula):
-        self.counts, self.covariates, self.offsets = format_model_param(
+        counts, covariates, offsets = format_model_param(
             counts, covariates, offsets, offsets_formula
         )
+        return counts, covariates, offsets
 
     ## should do something for this weird init. pb: if doing the init of self.counts etc
     ## only in PLNPCA, then we don't do it for each _PLNPCA but then PLN is not doing it.
@@ -578,12 +579,14 @@ class PLNPCA:
         keep_going=False,
     ):
         self.print_beginning_message()
-        self.format_model_param(counts, covariates, offsets, offsets_formula)
+        counts, covariates, offsets = self.format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
         for pca in self.dict_models.values():
             pca.fit(
-                self.counts,
+                counts,
                 covariates,
-                self.offsets,
+                offsets,
                 nb_max_iteration,
                 lr,
                 class_optimizer,
