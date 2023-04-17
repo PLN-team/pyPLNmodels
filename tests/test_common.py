@@ -179,3 +179,11 @@ def test_only_Y_and_O(any_pln):
 )
 def test_only_Y_and_cov(any_pln):
     any_pln.fit(counts=counts_sim, covariates=covariates_sim)
+
+
+def test_loading_back(pln):
+    return False
+
+
+def test_load_back_and_refit(pln):
+    return False

@@ -2,7 +2,9 @@ import time
 from abc import ABC, abstractmethod
 import pickle
 import warnings
+import os
 
+import pandas as pd
 import torch
 import numpy as np
 import seaborn as sns
@@ -15,7 +17,7 @@ from ._closed_forms import (
     closed_formula_covariance,
     closed_formula_pi,
 )
-from .elbos import ELBOPLNPCA, ELBOZIPLN, profiledELBOPLN
+from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
     PLNPlotArgs,
     init_sigma,
@@ -57,9 +59,9 @@ class _PLN(ABC):
     _n_samples: int
     _dim: int
     _nb_cov: int
-    counts: torch.Tensor
-    covariates: torch.Tensor
-    offsets: torch.Tensor
+    _counts: torch.Tensor
+    _covariates: torch.Tensor
+    _offsets: torch.Tensor
     _coef: torch.Tensor
     beginnning_time: float
     nb_iteration_done: int
@@ -74,13 +76,13 @@ class _PLN(ABC):
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
     def format_model_param(self, counts, covariates, offsets, offsets_formula):
-        self.counts, self.covariates, self.offsets = format_model_param(
+        self._counts, self._covariates, self._offsets = format_model_param(
             counts, covariates, offsets, offsets_formula
         )
 
     def init_shapes(self):
-        self._n_samples, self._dim = self.counts.shape
-        self._nb_cov = self.covariates.shape[1]
+        self._n_samples, self._dim = self._counts.shape
+        self._nb_cov = self._covariates.shape[1]
 
     @property
     def n_samples(self):
@@ -95,7 +97,7 @@ class _PLN(ABC):
         return self._nb_cov
 
     def smart_init_coef(self):
-        self._coef = init_coef(self.counts, self.covariates)
+        self._coef = init_coef(self._counts, self._covariates)
 
     def random_init_coef(self):
         self._coef = torch.randn((self._nb_cov, self._dim), device=DEVICE)
@@ -168,7 +170,7 @@ class _PLN(ABC):
         if keep_going is False:
             self.format_model_param(counts, covariates, offsets, offsets_formula)
             self.init_shapes()
-            check_data_shape(self.counts, self.covariates, self.offsets)
+            check_data_shape(self._counts, self._covariates, self._offsets)
             self.init_parameters(do_smart_init)
         if self._fitted is True and keep_going is True:
             self.beginnning_time -= self.plotargs.running_times[-1]
@@ -193,8 +195,6 @@ class _PLN(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
-        if self.nb_iteration_done == 1:
-            print("first loss:", loss)
         self.optim.step()
         self.update_closed_forms()
         return loss
@@ -217,7 +217,8 @@ class _PLN(ABC):
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition:
             print(
-                f"Tolerance {tol} reached in {self.plotargs.iteration_number} iterations"
+                f"Tolerance {tol} reached"
+                f"n {self.plotargs.iteration_number} iterations"
             )
         else:
             print(
@@ -251,20 +252,22 @@ class _PLN(ABC):
     @abstractmethod
     def compute_elbo(self):
         """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized by pytorch.
+        Compute the Evidence Lower BOund (ELBO) that will be maximized
+        by pytorch.
         """
 
     def display_covariance(self, ax=None, savefig=False, name_file=""):
         """
         Display a heatmap of covariance to visualize correlations.
 
-        If covariance is too big (size is > 400), will only display the first block
-        of size (400,400).
+        If covariance is too big (size is > 400), will only display the
+        first block of size (400,400).
 
         Parameters
         ----------
         ax : matplotlib Axes, optional
-            Axes in which to draw the plot, otherwise use the currently-active Axes.
+            Axes in which to draw the plot, otherwise use the
+            currently-active Axes.
         savefig: bool, optional
             If True the figure will be saved. Default is False.
         name_file : str, optional
@@ -319,9 +322,7 @@ class _PLN(ABC):
     @property
     def loglike(self):
         if self._fitted is False:
-            raise AttributeError(
-                "The model is not fitted so that it did not " "computed likelihood"
-            )
+            return self.compute_elbo()
         return self._n_samples * self.elbos_list[-1]
 
     @property
@@ -343,9 +344,9 @@ class _PLN(ABC):
     @property
     def dict_data(self):
         return {
-            "counts": self.counts,
-            "covariates": self.covariates,
-            "offsets": self.offsets,
+            "counts": self._counts,
+            "covariates": self._covariates,
+            "offsets": self._offsets,
         }
 
     @property
@@ -368,15 +369,35 @@ class _PLN(ABC):
     def latent_var(self):
         return self._latent_var.detach().cpu()
 
-    def save_model(self, filename):
-        with open(filename, "wb") as filepath:
-            pickle.dump(self.model_in_a_dict, filepath)
+    def save(self, path_of_directory="./"):
+        path = f"{path_of_directory}/{self.model_path}/"
+        os.makedirs(path, exist_ok=True)
+        for key, value in self.model_in_a_dict.items():
+            filename = f"{path}/{key}.csv"
+            if isinstance(value, torch.Tensor):
+                pd.DataFrame(np.array(value.detach())).to_csv(filename)
+            elif isinstance(value, np.ndarray):
+                pd.DataFrame(value).to_csv(filename)
+            else:
+                pd.DataFrame(np.array([value])).to_csv(filename)
 
-    def load_model_from_file(self, path_of_file):
-        with open(path_of_file, "rb") as filepath:
-            model_in_a_dict = pickle.load(filepath)
-        self.model_in_a_dict = model_in_a_dict
-        self._fitted = True
+    @property
+    def model_path(self):
+        return f"{self.NAME}_{self._rank}_rank"
+
+    @property
+    def counts(property):
+        return self._counts
+
+    @counts.setter
+    def counts(self, counts):
+        pass
+
+    def load(self, path_of_directory="./"):
+        path = f"{path_of_directory}/{self.model_path}/"
+        self.counts = pd.read_csv(path + "counts.csv")
+        # self.model_in_a_dict = model_in_a_dict
+        # self._fitted = True
 
     @model_in_a_dict.setter
     def model_in_a_dict(self, model_in_a_dict):
@@ -385,14 +406,14 @@ class _PLN(ABC):
 
     def set_data_from_dict(self, model_in_a_dict):
         counts = model_in_a_dict["counts"]
-        covariates, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
+        cov, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
             model_in_a_dict
         )
-        self.format_model_param(counts, covariates, offsets, offsets_formula)
-        check_data_shape(self.counts, self.covariates, self.offsets)
-        self.counts = counts
-        self.covariates = covariates
-        self.offsets = offsets
+        self.format_model_param(counts, cov, offsets, offsets_formula)
+        check_data_shape(self._counts, self._covariates, self._offsets)
+        self._counts = counts
+        self._covariates = cov
+        self._offsets = offsets
 
     @abstractmethod
     def set_parameters_from_dict(self, model_in_a_dict):
@@ -414,11 +435,13 @@ class _PLN(ABC):
 
     @property
     def useful_properties_string(self):
-        return ".latent_variables, .model_parameters, .latent_parameters, .optim_parameters"
+        return ".latent_variables, .model_parameters, .latent_parameters, \
+                .optim_parameters"
 
     @property
     def useful_methods_string(self):
-        return ".show(), .coef() .transform(), .sigma(), .predict(), pca_projected_latent_variables()"
+        return ".show(), .coef() .transform(), .sigma(), .predict(),\
+                pca_projected_latent_variables()"
 
     def sigma(self):
         return self.covariance
@@ -426,8 +449,8 @@ class _PLN(ABC):
     def predict(self, covariates=None):
         if isinstance(covariates, torch.Tensor):
             if covariates.shape[-1] != self._nb_cov - 1:
-                error_string = f"X has wrong shape ({covariates.shape})."
-                error_string += f"Should be ({self._n_samples, self._nb_cov-1})."
+                error_string = f"X has wrong shape ({covariates.shape}).Should"
+                error_string += f" be ({self._n_samples, self._nb_cov-1})."
                 raise RuntimeError(error_string)
         covariates_with_ones = prepare_covariates(covariates, self._n_samples)
         return covariates_with_ones @ self.coef
@@ -461,10 +484,10 @@ class PLN(_PLN):
         maximized by pytorch. Here we use the profiled ELBO
         for the full covariance matrix.
         """
-        return profiledELBOPLN(
-            self.counts,
-            self.covariates,
-            self.offsets,
+        return profiled_elbo_pln(
+            self._counts,
+            self._covariates,
+            self._offsets,
             self._latent_mean,
             self._latent_var,
         )
@@ -479,12 +502,12 @@ class PLN(_PLN):
 
     @property
     def _coef(self):
-        return closed_formula_coef(self.covariates, self._latent_mean)
+        return closed_formula_coef(self._covariates, self._latent_mean)
 
     @property
     def _covariance(self):
         return closed_formula_covariance(
-            self.covariates,
+            self._covariates,
             self._latent_mean,
             self._latent_var,
             self._coef,
@@ -540,13 +563,17 @@ class PLNPCA:
                 if isinstance(rank, (int, np.int64)):
                     self.dict_models[rank] = _PLNPCA(rank)
                 else:
-                    TypeError("Please instantiate with either a list of integers.")
+                    raise TypeError(
+                        "Please instantiate with either a list\
+                              of integers or an integer."
+                    )
         elif isinstance(ranks, int):
             self.ranks = [ranks]
             self.dict_models = {ranks: _PLNPCA(ranks)}
         else:
             raise TypeError(
-                "Please instantiate with either a list of integer or an integer"
+                "Please instantiate with either a list of \
+                        integers or an integer."
             )
 
     @property
@@ -562,7 +589,7 @@ class PLNPCA:
         )
         return counts, covariates, offsets
 
-    ## should do something for this weird init. pb: if doing the init of self.counts etc
+    ## should do something for this weird init. pb: if doing the init of self._counts etc
     ## only in PLNPCA, then we don't do it for each _PLNPCA but then PLN is not doing it.
     def fit(
         self,
@@ -579,7 +606,7 @@ class PLNPCA:
         keep_going=False,
     ):
         self.print_beginning_message()
-        counts, covariates, offsets = self.format_model_param(
+        counts, _, offsets = format_model_param(
             counts, covariates, offsets, offsets_formula
         )
         for pca in self.dict_models.values():
@@ -621,15 +648,15 @@ class PLNPCA:
 
     @property
     def BIC(self):
-        return {model._rank: int(model.BIC) for model in self.dict_models.values()}
+        return {model.rank: int(model.BIC) for model in self.models}
 
     @property
     def AIC(self):
-        return {model._rank: int(model.AIC) for model in self.dict_models.values()}
+        return {model.rank: int(model.AIC) for model in self.models}
 
     @property
     def loglikes(self):
-        return {model._rank: model.loglike for model in self.dict_models.values()}
+        return {model.rank: model.loglike for model in self.models}
 
     def show(self):
         bic = self.BIC
@@ -668,15 +695,11 @@ class PLNPCA:
             return self[self.best_BIC_model_rank]
         if criterion == "AIC":
             return self[self.best_AIC_model_rank]
-
-    def save_model(self, rank, filename):
-        self.dict_models[rank].save_model(filename)
-        with open(filename, "wb") as fp:
-            pickle.dump(self.model_in_a_dict, fp)
+        raise ValueError(f"Unknown criterion {criterion}")
 
     def save_models(self, filename):
         for model in self.models:
-            model_filename = filename + str(model._rank)
+            model_filename = filename + str(model.rank)
             model.save_model(model_filename)
 
     @property
@@ -687,9 +710,8 @@ class PLNPCA:
         nb_models = len(self.models)
         delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
         to_print = delimiter
-        to_print += (
-            f"Collection of {nb_models} PLNPCA models with {self._dim} variables."
-        )
+        to_print += f"Collection of {nb_models} PLNPCA models with \
+                    {self._dim} variables."
         to_print += delimiter
         to_print += f" - Ranks considered:{self.ranks}\n"
         dict_bic = {"rank": "criterion"} | self.BIC
@@ -699,9 +721,8 @@ class PLNPCA:
         to_print += f"   Best model(lower BIC): {dict_to_print}\n \n"
         dict_aic = {"rank": "criterion"} | self.AIC
         to_print += f" - AIC metric:\n{nice_string_of_dict(dict_aic)}\n"
-        to_print += (
-            f"   Best model(lower AIC): {self.best_model(criterion = 'AIC')._rank}\n"
-        )
+        to_print += f"   Best model(lower AIC): \
+                {self.best_model(criterion = 'AIC')._rank}\n"
         to_print += delimiter
         to_print += f"* Useful properties\n"
         to_print += f"    {self.useful_properties_string}\n"
@@ -719,14 +740,15 @@ class PLNPCA:
         return ".BIC, .AIC, .loglikes"
 
     def load_model_from_file(self, rank, path_of_file):
-        with open(path_of_file, "rb") as fp:
-            model_in_a_dict = pickle.load(fp)
+        with open(path_of_file, "rb") as filepath:
+            model_in_a_dict = pickle.load(filepath)
         rank = model_in_a_dict["rank"]
         self.dict_models[rank].model_in_a_dict = model_in_a_dict
 
 
 class _PLNPCA(_PLN):
     NAME = "PLNPCA"
+    _components: torch.Tensor
 
     def __init__(self, rank):
         super().__init__()
@@ -735,12 +757,9 @@ class _PLNPCA(_PLN):
     def init_shapes(self):
         super().init_shapes()
         if self._dim < self._rank:
-            warning_string = (
-                f"\nThe requested rank of approximation {self._rank} is greater than "
-            )
-            warning_string += (
-                f"the number of variables {self._dim}. Setting rank to {self._dim}"
-            )
+            warning_string = f"\nThe requested rank of approximation {self._rank} \
+                is greater than the number of variables {self._dim}. \
+                Setting rank to {self._dim}"
             warnings.warn(warning_string)
             self._rank = self._dim
 
@@ -764,7 +783,7 @@ class _PLNPCA(_PLN):
     def smart_init_model_parameters(self):
         super().smart_init_coef()
         self._components = init_components(
-            self.counts, self.covariates, self._coef, self._rank
+            self._counts, self._covariates, self._coef, self._rank
         )
 
     def random_init_model_parameters(self):
@@ -778,7 +797,11 @@ class _PLNPCA(_PLN):
     def smart_init_latent_parameters(self):
         self._latent_mean = (
             init_latent_mean(
-                self.counts, self.covariates, self.offsets, self._coef, self._components
+                self._counts,
+                self._covariates,
+                self._offsets,
+                self._coef,
+                self._components,
             )
             .to(DEVICE)
             .detach()
@@ -792,10 +815,10 @@ class _PLNPCA(_PLN):
         return [self._components, self._coef, self._latent_mean, self._latent_var]
 
     def compute_elbo(self):
-        return ELBOPLNPCA(
-            self.counts,
-            self.covariates,
-            self.offsets,
+        return elbo_plnpca(
+            self._counts,
+            self._covariates,
+            self._offsets,
             self._latent_mean,
             self._latent_var,
             self._components,
@@ -849,7 +872,7 @@ class _PLNPCA(_PLN):
 
     @property
     def description(self):
-        return f" {self._rank} principal component."
+        return f" {self.rank} principal component."
 
     @property
     def latent_variables(self):
@@ -873,18 +896,18 @@ class _PLNPCA(_PLN):
     def components(self):
         return self._components
 
-    def viz(self, ax=None, color=None, label=None, label_of_colors=None):
+    def viz(self, ax=None, color=None):
         if self._rank != 2:
             raise RuntimeError("Can't perform visualization for rank != 2.")
         if ax is None:
             ax = plt.gca()
         proj_variables = self.projected_latent_variables
-        xs = proj_variables[:, 0].cpu().numpy()
-        ys = proj_variables[:, 1].cpu().numpy()
-        sns.scatterplot(x=xs, y=ys, hue=color, ax=ax)
+        x = proj_variables[:, 0].cpu().numpy()
+        y = proj_variables[:, 1].cpu().numpy()
+        sns.scatterplot(x=x, y=y, hue=color, ax=ax)
         covariances = torch.diag_embed(self._latent_var**2).detach().cpu()
         for i in range(covariances.shape[0]):
-            plot_ellipse(xs[i], ys[i], cov=covariances[i], ax=ax)
+            plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
 
     def transform(self, project=True):
@@ -896,44 +919,48 @@ class _PLNPCA(_PLN):
 class ZIPLN(PLN):
     NAME = "ZIPLN"
 
+    _pi: torch.Tensor
+    _coef_inflation: torch.Tensor
+    _dirac: torch.Tensor
+
     @property
     def description(self):
-        return f"with full covariance model and zero-inflation."
+        return "with full covariance model and zero-inflation."
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
-        self.coef_inflation = torch.randn(self._nb_cov, self._dim)
+        self._coef_inflation = torch.randn(self._nb_cov, self._dim)
         self._covariance = torch.diag(torch.ones(self._dim)).to(DEVICE)
 
-    # should change the good initialization, especially for coef_inflation
+    # should change the good initialization, especially for _coef_inflation
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
         self._covariance = init_sigma(
-            self.counts, self.covariates, self.offsets, self._coef
+            self._counts, self._covariates, self._offsets, self._coef
         )
         self._coef_inflation = torch.randn(self._nb_cov, self._dim)
 
     def random_init_latent_parameters(self):
-        self.dirac = self.counts == 0
+        self._dirac = self._counts == 0
         self._latent_mean = torch.randn(self._n_samples, self._dim)
         self._latent_var = torch.randn(self._n_samples, self._dim)
-        self.pi = (
+        self._pi = (
             torch.empty(self._n_samples, self._dim).uniform_(0, 1).to(DEVICE)
-            * self.dirac
+            * self._dirac
         )
 
     def compute_elbo(self):
-        return ELBOZIPLN(
-            self.counts,
-            self.covariates,
-            self.offsets,
+        return elbo_zi_pln(
+            self._counts,
+            self._covariates,
+            self._offsets,
             self._latent_mean,
             self._latent_var,
-            self.pi,
+            self._pi,
             self._covariance,
             self._coef,
-            self.coef_inflation,
-            self.dirac,
+            self._coef_inflation,
+            self._dirac,
         )
 
     @property
@@ -941,20 +968,20 @@ class ZIPLN(PLN):
         return [self._latent_mean, self._latent_var, self._coef_inflation]
 
     def update_closed_forms(self):
-        self._coef = closed_formula_coef(self.covariates, self._latent_mean)
+        self._coef = closed_formula_coef(self._covariates, self._latent_mean)
         self._covariance = closed_formula_covariance(
-            self.covariates,
+            self._covariates,
             self._latent_mean,
             self._latent_var,
             self._coef,
             self._n_samples,
         )
-        self.pi = closed_formula_pi(
-            self.offsets,
+        self._pi = closed_formula_pi(
+            self._offsets,
             self._latent_mean,
             self._latent_var,
-            self.dirac,
-            self.covariates,
+            self._dirac,
+            self._covariates,
             self._coef_inflation,
         )
 

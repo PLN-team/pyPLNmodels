@@ -1,7 +1,7 @@
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
 
-from pyPLNmodels.models import PLN, PLNPCA
+from pyPLNmodels.models import PLN, PLNPCA, _PLNPCA
 from tests.utils import MSE
 from pyPLNmodels import get_simulated_count_data
 
@@ -65,3 +65,15 @@ def test_find_right_beta(simulated_fitted_plnpca):
 
 def test_additional_methods_pca(plnpca):
     return True
+
+
+def test_computable_elbo(simulated_fitted_plnpca):
+    new_pca = _PLNPCA(simulated_fitted_plnpca.rank)
+    new_pca.counts = simulated_fitted_plnpca.counts
+    new_pca.covariates = simulated_fitted_plnpca._covariates
+    new_pca.counts = simulated_fitted_plnpca._offsets
+    new_pca.latent_mean = simulated_fitted_plnpca._latent_mean
+    new_pca.latent_var = simulated_fitted_plnpca._latent_var
+    new_pca._components = simulated_fitted_plnpca._components
+    new_pca.coef = simulated_fitted_plnpca._coef
+    new_pca.compute_elbo()

@@ -89,9 +89,9 @@ class PLNPlotArgs:
 
 class PlnData:
     def __init__(self, counts, covariates, offsets):
-        self.counts = counts
-        self.covariates = covariates
-        self.offsets = offsets
+        self._counts = counts
+        self._covariates = covariates
+        self._offsets = offsets
 
 
 def init_sigma(counts, covariates, coef):
@@ -178,8 +178,8 @@ def sigmoid(tens):
     return 1 / (1 + torch.exp(-tens))
 
 
-def sample_pln(components, coef, covariates, offsets, coef_inflation=None, seed=None):
-    """Sample Poisson log Normal variables. If coef_inflation is not None, the model will
+def sample_pln(components, coef, covariates, offsets, _coef_inflation=None, seed=None):
+    """Sample Poisson log Normal variables. If _coef_inflation is not None, the model will
     be zero inflated.
 
     Args:
@@ -187,14 +187,14 @@ def sample_pln(components, coef, covariates, offsets, coef_inflation=None, seed=
         coef: torch.tensor of size (d,p). Regression parameter.
         0: torch.tensor of size (n,p). Offsets.
         covariates : torch.tensor of size (n,d). Covariates.
-        coef_inflation: torch.tensor of size (d,p), optional. If coef_inflation is not None,
+        _coef_inflation: torch.tensor of size (d,p), optional. If _coef_inflation is not None,
              the ZIPLN model is chosen, so that it will add a
              Bernouilli layer. Default is None.
     Returns :
         counts: torch.tensor of size (n,p), the count variables.
         Z: torch.tensor of size (n,p), the gaussian latent variables.
         ksi: torch.tensor of size (n,p), the bernoulli latent variables
-        (full of zeros if coef_inflation is None).
+        (full of zeros if _coef_inflation is None).
     """
     prev_state = torch.random.get_rng_state()
     if seed is not None:
@@ -211,9 +211,9 @@ def sample_pln(components, coef, covariates, offsets, coef_inflation=None, seed=
         + covariates @ coef
     )
     parameter = torch.exp(offsets + gaussian)
-    if coef_inflation is not None:
+    if _coef_inflation is not None:
         print("ZIPLN is sampled")
-        zero_inflated_mean = covariates @ coef_inflation
+        zero_inflated_mean = covariates @ _coef_inflation
         ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
     else:
         ksi = 0
