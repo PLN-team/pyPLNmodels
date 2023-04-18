@@ -23,7 +23,7 @@ from ._utils import (
     init_sigma,
     init_components,
     init_coef,
-    check_dimensions_are_equal,
+    check_two_dimensions_are_equal,
     init_latent_mean,
     format_data,
     format_model_param,
@@ -33,6 +33,9 @@ from ._utils import (
     plot_ellipse,
     closest,
     prepare_covariates,
+    to_tensor,
+    check_dimensions_are_equal,
+    is_2d_tensor,
 )
 
 if torch.cuda.is_available():
@@ -386,12 +389,22 @@ class _PLN(ABC):
         return f"{self.NAME}_{self._rank}_rank"
 
     @property
-    def counts(property):
+    def counts(self):
         return self._counts
 
     @counts.setter
     def counts(self, counts):
-        pass
+        counts = to_tensor(counts)
+        if self._counts is not None:
+            check_dimensions_are_equal(self.counts, counts)
+            n_samples, dim = counts.shape
+            check_two_dimensions_are_equal(
+                "counts", "self._counts", n_samples, self._n_samples, 0
+            )
+            check_two_dimensions_are_equal("counts", "self._counts", dim, self._dim, 1)
+        else:
+            self._n_samples, self._dim = counts.shape
+        self._counts = counts
 
     def load(self, path_of_directory="./"):
         path = f"{path_of_directory}/{self.model_path}/"
@@ -526,17 +539,17 @@ class PLN(_PLN):
         _, pcoef = coef.shape
         covariance = format_data(model_in_a_dict["covariance"])
         pcovariance1, pcovariance2 = covariance.shape
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "covariance", "covariance.t", pcovariance1, pcovariance2, 0
         )
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "latent_var", "latent_mean", nlatent_var, nlatent_mean, 0
         )
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "latent_var", "latent_mean", platent_var, platent_mean, 1
         )
-        check_dimensions_are_equal("covariance", "coef", pcovariance1, pcoef, 1)
-        check_dimensions_are_equal("latent_mean", "coef", platent_mean, pcoef, 1)
+        check_two_dimensions_are_equal("covariance", "coef", pcovariance1, pcoef, 1)
+        check_two_dimensions_are_equal("latent_mean", "coef", platent_mean, pcoef, 1)
         self._latent_var = latent_var
         self._latent_mean = latent_mean
         self._coef = coef
@@ -849,16 +862,16 @@ class _PLNPCA(_PLN):
         _, dim2_coef = coef.shape
         components = format_data(model_in_a_dict["components"])
         dim1_components, dim2_components = components.shape
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "latent_var", "latent_mean", dim1_latent_var, dim1latent_mean, 0
         )
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "latent_var", "latent_mean", dim2_latent_var, dim2_latent_mean, 1
         )
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "components.t", "coef", dim1_components, dim2_coef, 1
         )
-        check_dimensions_are_equal(
+        check_two_dimensions_are_equal(
             "latent_mean", "components", dim2_latent_mean, dim2_components, 1
         )
         self._latent_var = latent_var.to(DEVICE)

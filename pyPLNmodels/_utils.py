@@ -326,7 +326,7 @@ def raise_wrong_dimension_error(
     raise ValueError(msg)
 
 
-def check_dimensions_are_equal(
+def check_two_dimensions_are_equal(
     str_first_array, str_second_array, dim_first_array, dim_second_array, dim_of_error
 ):
     if dim_first_array != dim_second_array:
@@ -379,9 +379,9 @@ def check_data_shape(counts, covariates, offsets):
     n_counts, p_counts = counts.shape
     n_offsets, p_offsets = offsets.shape
     n_cov, _ = covariates.shape
-    check_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0)
-    check_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0)
-    check_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1)
+    check_two_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0)
+    check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0)
+    check_two_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1)
 
 
 def extract_cov_offsets_offsetsformula(dictionnary):
@@ -494,3 +494,23 @@ def closest(lst, element):
     lst = np.asarray(lst)
     idx = (np.abs(lst - element)).argmin()
     return lst[idx]
+
+
+def check_dimensions_are_equal(tens1, tens2):
+    if tens1.shape[0] != tens2.shape[0] or tens1.shape[1] != tens2.shape[1]:
+        raise ValueError("Tensors should have the same size.")
+
+
+def is_2d_tensor(tens):
+    if len(tens.shape) != 2:
+        raise RuntimeError("The tensor should be 2d.")
+
+
+def to_tensor(obj):
+    if isinstance(obj, np.ndarray):
+        return torch.from_file(obj)
+    if isinstance(obj, torch.Tensor):
+        return obj
+    if isinstance(obj, pd.DataFrame):
+        return torch.from_numpy(obj.values)
+    raise TypeError("Please give either a nd.array or torch.Tensor or pd.DataFrame")
