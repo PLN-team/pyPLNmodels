@@ -59,9 +59,9 @@ class _PLN(ABC):
     """
 
     WINDOW = 3
-    _n_samples: int
-    _dim: int
-    _nb_cov: int
+    n_samples: int
+    dim: int
+    nb_cov: int
     _counts: torch.Tensor
     _covariates: torch.Tensor
     _offsets: torch.Tensor
@@ -83,27 +83,23 @@ class _PLN(ABC):
             counts, covariates, offsets, offsets_formula
         )
 
-    def init_shapes(self):
-        self._n_samples, self._dim = self._counts.shape
-        self._nb_cov = self._covariates.shape[1]
-
     @property
     def n_samples(self):
-        return self._n_samples
+        return self._counts.shape[0]
 
     @property
     def dim(self):
-        return self._dim
+        return self._counts.shape[1]
 
     @property
     def nb_cov(self):
-        return self._nb_cov
+        return self._coef.shape[0]
 
     def smart_init_coef(self):
         self._coef = init_coef(self._counts, self._covariates)
 
     def random_init_coef(self):
-        self._coef = torch.randn((self._nb_cov, self._dim), device=DEVICE)
+        self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
 
     @abstractmethod
     def random_init_model_parameters(self):
@@ -149,7 +145,7 @@ class _PLN(ABC):
         nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-4,
+        tol=1e-5,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
@@ -170,9 +166,9 @@ class _PLN(ABC):
         """
         self.print_beginning_message()
         self.beginnning_time = time.time()
+
         if keep_going is False:
             self.format_model_param(counts, covariates, offsets, offsets_formula)
-            self.init_shapes()
             check_data_shape(self._counts, self._covariates, self._offsets)
             self.init_parameters(do_smart_init)
         if self._fitted is True and keep_going is True:
@@ -205,9 +201,9 @@ class _PLN(ABC):
     def pca_projected_latent_variables(self, n_components=None):
         if n_components is None:
             n_components = self.get_max_components()
-        if n_components > self._dim:
+        if n_components > self.dim:
             raise RuntimeError(
-                f"You ask more components ({n_components}) than variables ({self._dim})"
+                f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = PCA(n_components=n_components)
         return pca.fit_transform(self.latent_variables.cpu())
@@ -238,7 +234,7 @@ class _PLN(ABC):
         print("ELBO:", np.round(self.plotargs.elbos_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
-        self.plotargs.elbos_list.append(-loss.item() / self._n_samples)
+        self.plotargs.elbos_list.append(-loss.item() / self.n_samples)
         self.plotargs.running_times.append(time.time() - self.beginnning_time)
         if self.plotargs.iteration_number > self.WINDOW:
             criterion = abs(
@@ -278,7 +274,7 @@ class _PLN(ABC):
             Default is an empty string.
         """
         sigma = self.covariance
-        if self._dim > 400:
+        if self.dim > 400:
             sigma = sigma[:400, :400]
         sns.heatmap(sigma, ax=ax)
         if savefig:
@@ -326,11 +322,11 @@ class _PLN(ABC):
     def loglike(self):
         if self._fitted is False:
             return self.compute_elbo()
-        return self._n_samples * self.elbos_list[-1]
+        return self.n_samples * self.elbos_list[-1]
 
     @property
     def BIC(self):
-        return -self.loglike + self.number_of_parameters / 2 * np.log(self._n_samples)
+        return -self.loglike + self.number_of_parameters / 2 * np.log(self.n_samples)
 
     @property
     def AIC(self):
@@ -347,9 +343,9 @@ class _PLN(ABC):
     @property
     def dict_data(self):
         return {
-            "counts": self._counts,
-            "covariates": self._covariates,
-            "offsets": self._offsets,
+            "counts": self.counts,
+            "covariates": self.covariates,
+            "offsets": self.offsets,
         }
 
     @property
@@ -358,19 +354,32 @@ class _PLN(ABC):
 
     @property
     def covariance(self):
-        return self._covariance.detach().cpu()
+        return self.attribute_or_none("_covariance")
 
     @property
     def coef(self):
-        return self._coef.detach().cpu()
+        return self.attribute_or_none("_coef")
 
     @property
     def latent_mean(self):
-        return self._latent_mean.detach().cpu()
+        return self.attribute_or_none("_latent_mean")
 
     @property
     def latent_var(self):
-        return self._latent_var.detach().cpu()
+        return self.attribute_or_none("_latent_var")
+
+    @latent_var.setter
+    def latent_var(self, latent_var):
+        self._latent_var = latent_var
+
+    @latent_mean.setter
+    def latent_mean(self, latent_mean):
+        self._latent_mean = latent_mean
+
+    def attribute_or_none(self, attribute_name):
+        if hasattr(self, attribute_name):
+            return getattr(self, attribute_name)
+        return None
 
     def save(self, path_of_directory="./"):
         path = f"{path_of_directory}/{self.model_path}/"
@@ -378,65 +387,58 @@ class _PLN(ABC):
         for key, value in self.model_in_a_dict.items():
             filename = f"{path}/{key}.csv"
             if isinstance(value, torch.Tensor):
-                pd.DataFrame(np.array(value.detach())).to_csv(filename)
-            elif isinstance(value, np.ndarray):
-                pd.DataFrame(value).to_csv(filename)
+                pd.DataFrame(np.array(value.cpu().detach())).to_csv(
+                    filename, header=None, index=None
+                )
             else:
-                pd.DataFrame(np.array([value])).to_csv(filename)
+                pd.DataFrame(np.array([value])).to_csv(
+                    filename, header=None, index=None
+                )
 
-    @property
-    def model_path(self):
-        return f"{self.NAME}_{self._rank}_rank"
+    def load(self, path_of_directory="./"):
+        path = f"{path_of_directory}/{self.model_path}/"
+        for key, value in self.model_in_a_dict.items():
+            value = torch.from_numpy(
+                pd.read_csv(path + key + ".csv", header=None).values
+            )
+            setattr(self, key, value)
 
     @property
     def counts(self):
-        return self._counts
+        return self.attribute_or_none("_counts")
+
+    @property
+    def offsets(self):
+        return self.attribute_or_none("_offsets")
+
+    @property
+    def covariates(self):
+        return self.attribute_or_none("_covariates")
 
     @counts.setter
     def counts(self, counts):
         counts = to_tensor(counts)
-        if self._counts is not None:
-            check_dimensions_are_equal(self.counts, counts)
-            n_samples, dim = counts.shape
-            check_two_dimensions_are_equal(
-                "counts", "self._counts", n_samples, self._n_samples, 0
-            )
-            check_two_dimensions_are_equal("counts", "self._counts", dim, self._dim, 1)
-        else:
-            self._n_samples, self._dim = counts.shape
+        if hasattr(self, "_counts"):
+            check_dimensions_are_equal(self._counts, counts)
         self._counts = counts
 
-    def load(self, path_of_directory="./"):
-        path = f"{path_of_directory}/{self.model_path}/"
-        self.counts = pd.read_csv(path + "counts.csv")
-        # self.model_in_a_dict = model_in_a_dict
-        # self._fitted = True
-
-    @model_in_a_dict.setter
-    def model_in_a_dict(self, model_in_a_dict):
-        self.set_data_from_dict(model_in_a_dict)
-        self.set_parameters_from_dict(model_in_a_dict)
-
-    def set_data_from_dict(self, model_in_a_dict):
-        counts = model_in_a_dict["counts"]
-        cov, offsets, offsets_formula = extract_cov_offsets_offsetsformula(
-            model_in_a_dict
-        )
-        self.format_model_param(counts, cov, offsets, offsets_formula)
-        check_data_shape(self._counts, self._covariates, self._offsets)
-        self._counts = counts
-        self._covariates = cov
+    @offsets.setter
+    def offsets(self, offsets):
         self._offsets = offsets
 
-    @abstractmethod
-    def set_parameters_from_dict(self, model_in_a_dict):
-        pass
+    @covariates.setter
+    def covariates(self, covariates):
+        self._covariates = covariates
+
+    @coef.setter
+    def coef(self, coef):
+        self._coef = coef
 
     @property
     def dict_for_printing(self):
         return {
             "Loglike": np.round(self.loglike, 2),
-            "Dimension": self._dim,
+            "Dimension": self.dim,
             "Nb param": int(self.number_of_parameters),
             "BIC": int(self.BIC),
             "AIC": int(self.AIC),
@@ -449,47 +451,62 @@ class _PLN(ABC):
     @property
     def useful_properties_string(self):
         return ".latent_variables, .model_parameters, .latent_parameters, \
-                .optim_parameters"
+.optim_parameters"
 
     @property
     def useful_methods_string(self):
-        return ".show(), .coef() .transform(), .sigma(), .predict(),\
-                pca_projected_latent_variables()"
+        return ".show(), .coef() .transform(), .sigma(), .predict(), \
+.pca_projected_latent_variables()"
 
     def sigma(self):
         return self.covariance
 
     def predict(self, covariates=None):
         if isinstance(covariates, torch.Tensor):
-            if covariates.shape[-1] != self._nb_cov - 1:
+            if covariates.shape[-1] != self.nb_cov - 1:
                 error_string = f"X has wrong shape ({covariates.shape}).Should"
-                error_string += f" be ({self._n_samples, self._nb_cov-1})."
+                error_string += f" be ({self.n_samples, self.nb_cov-1})."
                 raise RuntimeError(error_string)
-        covariates_with_ones = prepare_covariates(covariates, self._n_samples)
+        covariates_with_ones = prepare_covariates(covariates, self.n_samples)
         return covariates_with_ones @ self.coef
 
 
 # need to do a good init for M and S
 class PLN(_PLN):
     NAME = "PLN"
+    coef: torch.Tensor
 
     @property
     def description(self):
         return "full covariance model."
 
+    @property
+    def coef(self):
+        if hasattr(self, "_latent_mean") and hasattr(self, "_covariates"):
+            return self._coef
+        return None
+
+    @coef.setter
+    def coef(self, coef):
+        pass
+
     def smart_init_latent_parameters(self):
         self.random_init_latent_parameters()
 
     def random_init_latent_parameters(self):
-        self._latent_var = 1 / 2 * torch.ones((self._n_samples, self._dim)).to(DEVICE)
-        self._latent_mean = torch.ones((self._n_samples, self._dim)).to(DEVICE)
+        self._latent_var = 1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+        self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    @property
+    def model_path(self):
+        return self.NAME
 
     @property
     def list_of_parameters_needing_gradient(self):
         return [self._latent_mean, self._latent_var]
 
     def get_max_components(self):
-        return self._dim
+        return self.dim
 
     def compute_elbo(self):
         """
@@ -524,36 +541,11 @@ class PLN(_PLN):
             self._latent_mean,
             self._latent_var,
             self._coef,
-            self._n_samples,
+            self.n_samples,
         )
 
     def print_beginning_message(self):
         print(f"Fitting a PLN model with {self.description}")
-
-    def set_parameters_from_dict(self, model_in_a_dict):
-        latent_var = format_data(model_in_a_dict["latent_var"])
-        nlatent_var, platent_var = latent_var.shape
-        latent_mean = format_data(model_in_a_dict["latent_mean"])
-        nlatent_mean, platent_mean = latent_mean.shape
-        coef = format_data(model_in_a_dict["coef"])
-        _, pcoef = coef.shape
-        covariance = format_data(model_in_a_dict["covariance"])
-        pcovariance1, pcovariance2 = covariance.shape
-        check_two_dimensions_are_equal(
-            "covariance", "covariance.t", pcovariance1, pcovariance2, 0
-        )
-        check_two_dimensions_are_equal(
-            "latent_var", "latent_mean", nlatent_var, nlatent_mean, 0
-        )
-        check_two_dimensions_are_equal(
-            "latent_var", "latent_mean", platent_var, platent_mean, 1
-        )
-        check_two_dimensions_are_equal("covariance", "coef", pcovariance1, pcoef, 1)
-        check_two_dimensions_are_equal("latent_mean", "coef", platent_mean, pcoef, 1)
-        self._latent_var = latent_var
-        self._latent_mean = latent_mean
-        self._coef = coef
-        self._covariance = covariance
 
     @property
     def latent_variables(self):
@@ -561,10 +553,29 @@ class PLN(_PLN):
 
     @property
     def number_of_parameters(self):
-        return self._dim * (self._dim + self._nb_cov)
+        return self.dim * (self.dim + self.nb_cov)
 
     def transform(self):
         return self.latent_variables
+
+    @property
+    def covariance(self):
+        if all(
+            hasattr(self, attr)
+            for attr in [
+                "_covariates",
+                "_latent_mean",
+                "_latent_var",
+                "_coef",
+                "n_samples",
+            ]
+        ):
+            return self._covariance
+        return None
+
+    @covariance.setter
+    def covariance(self, covariance):
+        pass
 
 
 class PLNPCA:
@@ -612,7 +623,7 @@ class PLNPCA:
         nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-4,
+        tol=1e-5,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
@@ -724,7 +735,7 @@ class PLNPCA:
         delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
         to_print = delimiter
         to_print += f"Collection of {nb_models} PLNPCA models with \
-                    {self._dim} variables."
+                    {self.dim} variables."
         to_print += delimiter
         to_print += f" - Ranks considered:{self.ranks}\n"
         dict_bic = {"rank": "criterion"} | self.BIC
@@ -760,6 +771,7 @@ class PLNPCA:
 
 
 class _PLNPCA(_PLN):
+
     NAME = "PLNPCA"
     _components: torch.Tensor
 
@@ -767,14 +779,18 @@ class _PLNPCA(_PLN):
         super().__init__()
         self._rank = rank
 
-    def init_shapes(self):
-        super().init_shapes()
-        if self._dim < self._rank:
+    def init_parameters(self, do_smart_init):
+        if self.dim < self._rank:
             warning_string = f"\nThe requested rank of approximation {self._rank} \
-                is greater than the number of variables {self._dim}. \
-                Setting rank to {self._dim}"
+                is greater than the number of variables {self.dim}. \
+                Setting rank to {self.dim}"
             warnings.warn(warning_string)
-            self._rank = self._dim
+            self._rank = self.dim
+        super().init_parameters(do_smart_init)
+
+    @property
+    def model_path(self):
+        return f"{self.NAME}_{self._rank}_rank"
 
     @property
     def rank(self):
@@ -789,9 +805,7 @@ class _PLNPCA(_PLN):
 
     @property
     def model_parameters(self):
-        model_parameters = super().model_parameters
-        model_parameters["components"] = self.components
-        return model_parameters
+        return {"coef": self.coef, "components": self.components}
 
     def smart_init_model_parameters(self):
         super().smart_init_coef()
@@ -801,11 +815,11 @@ class _PLNPCA(_PLN):
 
     def random_init_model_parameters(self):
         super().random_init_coef()
-        self._components = torch.randn((self._dim, self._rank)).to(DEVICE)
+        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
 
     def random_init_latent_parameters(self):
-        self._latent_var = 1 / 2 * torch.ones((self._n_samples, self._rank)).to(DEVICE)
-        self._latent_mean = torch.ones((self._n_samples, self._rank)).to(DEVICE)
+        self._latent_var = 1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+        self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
 
     def smart_init_latent_parameters(self):
         self._latent_mean = (
@@ -819,7 +833,7 @@ class _PLNPCA(_PLN):
             .to(DEVICE)
             .detach()
         )
-        self._latent_var = 1 / 2 * torch.ones((self._n_samples, self._rank)).to(DEVICE)
+        self._latent_var = 1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
         self._latent_mean.requires_grad_(True)
         self._latent_var.requires_grad_(True)
 
@@ -840,9 +854,7 @@ class _PLNPCA(_PLN):
 
     @property
     def number_of_parameters(self):
-        return (
-            self._dim * (self._nb_cov + self._rank) - self._rank * (self._rank - 1) / 2
-        )
+        return self.dim * (self.nb_cov + self._rank) - self._rank * (self._rank - 1) / 2
 
     @property
     def additional_properties_string(self):
@@ -852,32 +864,6 @@ class _PLNPCA(_PLN):
     def additional_methods_string(self):
         string = "    only for rank=2: .viz()"
         return string
-
-    def set_parameters_from_dict(self, model_in_a_dict):
-        latent_var = format_data(model_in_a_dict["latent_var"])
-        dim1_latent_var, dim2_latent_var = latent_var.shape
-        latent_mean = format_data(model_in_a_dict["latent_mean"])
-        dim1latent_mean, dim2_latent_mean = latent_mean.shape
-        coef = format_data(model_in_a_dict["coef"])
-        _, dim2_coef = coef.shape
-        components = format_data(model_in_a_dict["components"])
-        dim1_components, dim2_components = components.shape
-        check_two_dimensions_are_equal(
-            "latent_var", "latent_mean", dim1_latent_var, dim1latent_mean, 0
-        )
-        check_two_dimensions_are_equal(
-            "latent_var", "latent_mean", dim2_latent_var, dim2_latent_mean, 1
-        )
-        check_two_dimensions_are_equal(
-            "components.t", "coef", dim1_components, dim2_coef, 1
-        )
-        check_two_dimensions_are_equal(
-            "latent_mean", "components", dim2_latent_mean, dim2_components, 1
-        )
-        self._latent_var = latent_var.to(DEVICE)
-        self._latent_mean = latent_mean.to(DEVICE)
-        self._coef = coef.to(DEVICE)
-        self._components = components.to(DEVICE)
 
     @property
     def covariance(self):
@@ -897,17 +883,12 @@ class _PLNPCA(_PLN):
         return torch.mm(self.latent_variables, ortho_components).detach().cpu()
 
     @property
-    def model_in_a_dict(self):
-        return super().model_in_a_dict | {"rank": self._rank}
-
-    @model_in_a_dict.setter
-    def model_in_a_dict(self, model_in_a_dict):
-        self.set_data_from_dict(model_in_a_dict)
-        self.set_parameters_from_dict(model_in_a_dict)
-
-    @property
     def components(self):
-        return self._components
+        return self.attribute_or_none("_components")
+
+    @components.setter
+    def components(self, components):
+        self._components = components
 
     def viz(self, ax=None, color=None):
         if self._rank != 2:
@@ -942,8 +923,8 @@ class ZIPLN(PLN):
 
     def random_init_model_parameters(self):
         super().random_init_model_parameters()
-        self._coef_inflation = torch.randn(self._nb_cov, self._dim)
-        self._covariance = torch.diag(torch.ones(self._dim)).to(DEVICE)
+        self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+        self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
 
     # should change the good initialization, especially for _coef_inflation
     def smart_init_model_parameters(self):
@@ -951,14 +932,14 @@ class ZIPLN(PLN):
         self._covariance = init_sigma(
             self._counts, self._covariates, self._offsets, self._coef
         )
-        self._coef_inflation = torch.randn(self._nb_cov, self._dim)
+        self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
     def random_init_latent_parameters(self):
         self._dirac = self._counts == 0
-        self._latent_mean = torch.randn(self._n_samples, self._dim)
-        self._latent_var = torch.randn(self._n_samples, self._dim)
+        self._latent_mean = torch.randn(self.n_samples, self.dim)
+        self._latent_var = torch.randn(self.n_samples, self.dim)
         self._pi = (
-            torch.empty(self._n_samples, self._dim).uniform_(0, 1).to(DEVICE)
+            torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
         )
 
@@ -987,7 +968,7 @@ class ZIPLN(PLN):
             self._latent_mean,
             self._latent_var,
             self._coef,
-            self._n_samples,
+            self.n_samples,
         )
         self._pi = closed_formula_pi(
             self._offsets,
@@ -1000,4 +981,4 @@ class ZIPLN(PLN):
 
     @property
     def number_of_parameters(self):
-        return self._dim * (2 * self._nb_cov + (self._dim + 1) / 2)
+        return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)

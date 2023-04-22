@@ -506,9 +506,13 @@ def is_2d_tensor(tens):
         raise RuntimeError("The tensor should be 2d.")
 
 
+def return_none_if_not_def():
+    pass
+
+
 def to_tensor(obj):
     if isinstance(obj, np.ndarray):
-        return torch.from_file(obj)
+        return torch.from_numpy(obj)
     if isinstance(obj, torch.Tensor):
         return obj
     if isinstance(obj, pd.DataFrame):
