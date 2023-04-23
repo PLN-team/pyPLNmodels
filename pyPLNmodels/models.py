@@ -134,7 +134,7 @@ class _PLN(ABC):
         nb_max_iteration=50000,
         lr=0.001,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-4,
+        tol=1e-7,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
@@ -561,7 +561,7 @@ class PLNPCA:
         nb_max_iteration=100000,
         lr=0.001,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-4,
+        tol=1e-7,
         do_smart_init=True,
         verbose=False,
         error_loss=MSE,
@@ -882,7 +882,7 @@ class _PLNPCA(_PLN):
 class _PLNPCA_noS(_PLNPCA):
     @property
     def list_of_parameters_needing_gradient(self):
-        return [self._beta, self._C, self._M]
+        return [self._beta, self._C]
 
     def update_closed_forms(self):
         super().update_closed_forms()

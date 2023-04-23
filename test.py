@@ -1,4 +1,4 @@
-from pyPLNmodels.VEM import PLNPCA, PLN, _PLNPCA, _PLNPCA_noS
+from pyPLNmodels.models import PLNPCA, PLN, _PLNPCA, _PLNPCA_noS
 from pyPLNmodels._utils import get_simulated_count_data, get_real_count_data
 import torch
 import numpy as np
@@ -9,42 +9,38 @@ import os
 print(os.getcwd())
 os.chdir("pyPLNmodels/")
 
-Y, covariates, O, true_Sigma, true_beta = get_simulated_count_data(
-    return_true_param=True, p=100, rank=25
-)
-
+Y = get_real_count_data()
 q = 10
-lr = 0.01
-# nb_max = 1000
-pca = _PLNPCA(q, true_Sigma, true_beta)
+
+
+pln = PLN()
+pln.fit(Y)
+true_Sigma = pln.Sigma
+true_beta = pln.beta
+
 tol = 0.0000001
-pca.fit(Y, covariates, O, tol=tol, lr=lr)
-# pca.show()
 
-# pca = _PLNPCA(q)
-# pca.fit(Y, tol = 0.000000001)
-# pca.show()
-nospca = _PLNPCA_noS(q, true_Sigma, true_beta)
-nospca.fit(Y, covariates, O, tol=tol, lr=lr)
-# nospca.show()
-# abscisse_pca = np.arange(len(pca.elbos_list))
-abscisse_pca = pca.plotargs.running_times
-abscisse_nospca = np.arange(len(nospca.elbos_list))
-abscisse_nospca = nospca.plotargs.running_times
-fig, axes = plt.subplots(2)
+pca = _PLNPCA(q, true_Sigma=true_Sigma, true_beta=true_beta)
+pca.fit(Y, tol=tol)
 
-axes[0].plot(abscisse_pca, pca.elbos_list, label="pca")
-axes[0].plot(abscisse_nospca, nospca.elbos_list, label="nospca")
-axes[0].legend()
+nos = _PLNPCA_noS(q, true_Sigma=true_Sigma, true_beta=true_beta)
+nos.fit(Y, tol=tol)
 
 
-axes[1].plot(
-    abscisse_pca, pca.mse_Sigma_list, label="pca Sigma", color="red", linestyle="--"
-)
-axes[1].plot(
-    abscisse_pca, pca.mse_beta_list, label="pca beta", color="blue", linestyle="--"
-)
-axes[1].plot(abscisse_nospca, nospca.mse_Sigma_list, label="noS Sigma", color="red")
-axes[1].plot(abscisse_nospca, nospca.mse_beta_list, label="noS beta", color="blue")
-axes[1].legend()
+y_nos_sigma = nos.mse_Sigma_list
+y_nos_beta = nos.mse_beta_list
+
+y_s_sigma = pca.mse_Sigma_list
+y_s_beta = pca.mse_beta_list
+
+
+abs_nos = np.arange(len(y_nos_sigma))
+abs_s = np.arange(len(y_s_sigma))
+plt.plot(abs_nos, y_nos_sigma, label="no S Sigma", color="blue", linestyle="--")
+plt.plot(abs_nos, y_nos_beta, label="no S beta", color="red", linestyle="--")
+
+plt.plot(abs_s, y_s_sigma, label="S Sigma", color="blue")
+plt.plot(abs_s, y_s_beta, label="S beta", color="red")
+
+plt.legend()
 plt.show()
