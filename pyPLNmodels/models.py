@@ -148,7 +148,7 @@ class _PLN(ABC):
         nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-5,
+        tol=1e-7,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
@@ -185,11 +185,6 @@ class _PLN(ABC):
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
-                if self.nb_iteration_done % 50 == 0:
-                    sns.heatmap(
-                        torch.matmul(self._components, self._components.T).detach()
-                    )
-                    plt.show()
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -639,7 +634,7 @@ class PLNPCA:
         nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-5,
+        tol=1e-7,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
@@ -833,8 +828,6 @@ class _PLNPCA(_PLN):
         self._components = init_components(
             self._counts, self._covariates, self._coef, self._rank
         )
-        sns.heatmap(torch.matmul(self._components, self._components.T))
-        plt.show()
 
     def random_init_model_parameters(self):
         super().random_init_coef()
