@@ -11,8 +11,8 @@ RANKS = [2, 4]
     counts_sim,
     covariates_sim,
     offsets_sim,
-    true_Sigma,
-    true_beta,
+    true_covariance,
+    true_coef,
 ) = get_simulated_count_data(return_true_param=True)
 
 
@@ -45,20 +45,20 @@ def test_projected_variables(best_model):
     assert plv.shape[0] == best_model.n and plv.shape[0] == plv.rank
 
 
-def test_find_right_Sigma(simulated_fitted_plnpca):
+def test_find_right_covariance(simulated_fitted_plnpca):
     passed = True
     for model in simulated_fitted_plnpca.models:
-        mse_Sigma = MSE(model.Sigma - true_Sigma)
-        if mse_Sigma > 0.3:
+        mse_covariance = MSE(model.covariance - true_covariance)
+        if mse_covariance > 0.3:
             return False
     return True
 
 
-def test_find_right_beta(simulated_fitted_plnpca):
+def test_find_right_coef(simulated_fitted_plnpca):
     passed = True
     for model in simulated_fitted_plnpca.models:
-        mse_beta = MSE(model.beta - true_beta)
-        if mse_beta > 0.3:
+        mse_coef = MSE(model.coef - true_coef)
+        if mse_coef > 0.3:
             passed = False
     assert passed
 

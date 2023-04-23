@@ -67,7 +67,6 @@ class _PLN(ABC):
     _offsets: torch.Tensor
     _coef: torch.Tensor
     beginnning_time: float
-    nb_iteration_done: int
     _latent_var: torch.Tensor
     _latent_mean: torch.Tensor
 
@@ -82,6 +81,10 @@ class _PLN(ABC):
         self._counts, self._covariates, self._offsets = format_model_param(
             counts, covariates, offsets, offsets_formula
         )
+
+    @property
+    def nb_iteration_done(self):
+        return len(self.plotargs.elbos_list)
 
     @property
     def n_samples(self):
@@ -175,15 +178,18 @@ class _PLN(ABC):
             self.beginnning_time -= self.plotargs.running_times[-1]
         self.optim = class_optimizer(self.list_of_parameters_needing_gradient, lr=lr)
         stop_condition = False
-        self.nb_iteration_done = 0
         while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
-            self.nb_iteration_done += 1
             loss = self.trainstep()
             criterion = self.compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
+                if self.nb_iteration_done % 50 == 0:
+                    sns.heatmap(
+                        torch.matmul(self._components, self._components.T).detach()
+                    )
+                    plt.show()
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -206,7 +212,7 @@ class _PLN(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = PCA(n_components=n_components)
-        return pca.fit_transform(self.latent_variables.cpu())
+        return pca.fit_transform(self.latent_variables.detach().cpu())
 
     @property
     @abstractmethod
@@ -321,7 +327,9 @@ class _PLN(ABC):
     @property
     def loglike(self):
         if self._fitted is False:
-            return self.compute_elbo()
+            t0 = time.time()
+            self.plotargs.elbos_list.append(self.compute_elbo())
+            self.plotargs.running_times.append(time.time() - t0)
         return self.n_samples * self.elbos_list[-1]
 
     @property
@@ -378,7 +386,10 @@ class _PLN(ABC):
 
     def attribute_or_none(self, attribute_name):
         if hasattr(self, attribute_name):
-            return getattr(self, attribute_name)
+            attr = getattr(self, attribute_name)
+            if isinstance(attr, torch.Tensor):
+                return attr.detach().cpu()
+            return attr
         return None
 
     def save(self, path_of_directory="./"):
@@ -394,6 +405,7 @@ class _PLN(ABC):
                 pd.DataFrame(np.array([value])).to_csv(
                     filename, header=None, index=None
                 )
+        self._fitted = True
 
     def load(self, path_of_directory="./"):
         path = f"{path_of_directory}/{self.model_path}/"
@@ -570,7 +582,7 @@ class PLN(_PLN):
                 "n_samples",
             ]
         ):
-            return self._covariance
+            return self._covariance.detach()
         return None
 
     @covariance.setter
@@ -612,6 +624,10 @@ class PLNPCA:
             counts, covariates, offsets, offsets_formula
         )
         return counts, covariates, offsets
+
+    @property
+    def dim(self):
+        return self[self.ranks[0]].dim
 
     ## should do something for this weird init. pb: if doing the init of self._counts etc
     ## only in PLNPCA, then we don't do it for each _PLNPCA but then PLN is not doing it.
@@ -721,10 +737,15 @@ class PLNPCA:
             return self[self.best_AIC_model_rank]
         raise ValueError(f"Unknown criterion {criterion}")
 
-    def save_models(self, filename):
+    def save(self, path_of_directory="./"):
         for model in self.models:
-            model_filename = filename + str(model.rank)
-            model.save_model(model_filename)
+            model.save(path_of_directory)
+
+    def load(self, path_of_directory="./"):
+        for model in self.models:
+            model.load(path_of_directory)
+
+    # def
 
     @property
     def _p(self):
@@ -812,6 +833,8 @@ class _PLNPCA(_PLN):
         self._components = init_components(
             self._counts, self._covariates, self._coef, self._rank
         )
+        sns.heatmap(torch.matmul(self._components, self._components.T))
+        plt.show()
 
     def random_init_model_parameters(self):
         super().random_init_coef()
@@ -867,7 +890,9 @@ class _PLNPCA(_PLN):
 
     @property
     def covariance(self):
-        return torch.matmul(self._components, self._components.T).detach().cpu()
+        if hasattr(self, "_components"):
+            return torch.matmul(self._components, self._components.T).detach()
+        return None
 
     @property
     def description(self):
@@ -875,7 +900,7 @@ class _PLNPCA(_PLN):
 
     @property
     def latent_variables(self):
-        return torch.matmul(self._latent_mean, self._components.T).detach().cpu()
+        return torch.matmul(self._latent_mean, self._components.T)
 
     @property
     def projected_latent_variables(self):
