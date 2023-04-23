@@ -494,3 +494,102 @@ def closest(lst, K):
     lst = np.asarray(lst)
     idx = (np.abs(lst - K)).argmin()
     return lst[idx]
+
+
+def batch_log_PW_given_Y(Y_b, O_b, covariates_b, W, C, beta):
+    """Compute the log posterior of the PLN model. Compute it either
+    for W of size (N_samples, N_batch,q) or (batch_size, q). Need to have
+    both cases since it is done for both cases after. Please the mathematical
+    description of the package for the formula.
+    Args :
+                Y_b : torch.tensor of size (batch_size, p)
+        covariates_b : torch.tensor of size (batch_size, d) or (d)
+    Returns: torch.tensor of size (N_samples, batch_size) or (batch_size).
+    """
+    length = len(W.shape)
+    q = W.shape[-1]
+    if length == 2:
+        CW = torch.matmul(C.unsqueeze(0), W.unsqueeze(2)).squeeze()
+    elif length == 3:
+        CW = torch.matmul(C.unsqueeze(0).unsqueeze(1), W.unsqueeze(3)).squeeze()
+    A_b = O_b + CW + covariates_b @ beta
+    first_term = -q / 2 * math.log(2 * math.pi) - 1 / 2 * torch.norm(W, dim=-1) ** 2
+    second_term = torch.sum(-torch.exp(A_b) + A_b * Y_b - log_stirling(Y_b), axis=-1)
+    return first_term + second_term
+
+
+def find_mode(
+    counts,
+    covariates,
+    offsets,
+    C,
+    beta,
+    M,
+    S,
+    step_sizes,
+    epoch_number,
+    n_iter_max=200,
+    eps=0.01,
+):
+    def maximizing(W):
+        # return torch.mean(batch_log_PW_given_Y(counts, O, covariates, W, C, beta))
+        return ELBOPLNPCA(counts, covariates, offsets, W, S, C, beta)
+
+    W = torch.clone(M)
+    W.requires_grad = True
+    optim = torch.optim.Rprop([W], lr=0)
+    old_W = torch.clone(W)
+    i = 0
+    stop_condition = False
+    while i < n_iter_max and stop_condition == False:
+        if i == 1 and epoch_number > 1:
+            optim.state_dict()["state"][0]["step_size"] = 1 * step_sizes
+        loss = -torch.mean(maximizing(W))
+        loss.backward()
+        optim.step()
+        crit = torch.max(torch.abs(W - old_W))
+        optim.zero_grad()
+        if crit < eps and i > 2:  # we want to do at least 3 iteration per loop.
+            stop_condition = True
+        old_W = torch.clone(W)
+        i += 1
+    # Stock the mode
+    step_sizes = optim.state_dict()["state"][0]["step_size"]
+    return W, step_sizes
+
+
+def ELBOPLNPCA(counts, covariates, offsets, M, S, C, beta):
+    """
+    Compute the ELBO (Evidence LOwer Bound) for the PLN model with a PCA
+    parametrization. See the doc for more details on the computation.
+
+    Args:
+        counts: torch.tensor. Counts with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        covariates: torch.tensor. Covariates, size (n,d)
+        M: torch.tensor. Variational parameter with size (n,p)
+        S: torch.tensor. Variational parameter with size (n,p)
+        C: torch.tensor. Model parameter with size (p,q)
+        beta: torch.tensor. Model parameter with size (d,p)
+    Returns:
+        torch.tensor of size 1 with a gradient.
+    """
+    n = counts.shape[0]
+    rank = C.shape[1]
+    A = offsets + torch.mm(covariates, beta) + torch.mm(M, C.T)
+    SrondS = torch.multiply(S, S)
+    countsA = torch.sum(torch.multiply(counts, A))
+    moinsexpAplusSrondSCCT = torch.sum(
+        -torch.exp(A + 1 / 2 * torch.mm(SrondS, torch.multiply(C, C).T))
+    )
+    moinslogSrondS = 1 / 2 * torch.sum(torch.log(SrondS))
+    MMplusSrondS = torch.sum(-1 / 2 * (torch.multiply(M, M) + torch.multiply(S, S)))
+    log_stirlingcounts = torch.sum(log_stirling(counts))
+    return (
+        countsA
+        + moinsexpAplusSrondSCCT
+        + moinslogSrondS
+        + MMplusSrondS
+        - log_stirlingcounts
+        + n * rank / 2
+    )

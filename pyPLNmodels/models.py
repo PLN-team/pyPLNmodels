@@ -29,6 +29,7 @@ from ._utils import (
     plot_ellipse,
     closest,
     prepare_covariates,
+    find_mode,
 )
 
 if torch.cuda.is_available():
@@ -880,13 +881,27 @@ class _PLNPCA(_PLN):
 
 
 class _PLNPCA_noS(_PLNPCA):
+    step_sizes = 0
+
     @property
     def list_of_parameters_needing_gradient(self):
-        return [self._beta, self._C]
+        return [self._beta, self._C, self._S]
 
     def update_closed_forms(self):
         super().update_closed_forms()
-        self._S = self.noS
+        # self._S = self.noS
+        self._M, self.step_sizes = find_mode(
+            self.counts,
+            self.covariates,
+            self.offsets,
+            self.C,
+            self.beta,
+            self.M,
+            self.S,
+            self.step_sizes,
+            self.nb_iteration_done,
+            n_iter_max=2,
+        )
 
 
 ## WIP

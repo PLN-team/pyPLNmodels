@@ -18,13 +18,13 @@ pln.fit(Y)
 true_Sigma = pln.Sigma
 true_beta = pln.beta
 
-tol = 0.0000001
+tol = 0.001
+
+nos = _PLNPCA_noS(q, true_Sigma=true_Sigma, true_beta=true_beta)
+nos.fit(Y, tol=tol, verbose=True)
 
 pca = _PLNPCA(q, true_Sigma=true_Sigma, true_beta=true_beta)
 pca.fit(Y, tol=tol)
-
-nos = _PLNPCA_noS(q, true_Sigma=true_Sigma, true_beta=true_beta)
-nos.fit(Y, tol=tol)
 
 
 y_nos_sigma = nos.mse_Sigma_list
