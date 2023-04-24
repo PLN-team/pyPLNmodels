@@ -7,8 +7,6 @@ from pytest_lazyfixture import lazy_fixture as lf
 import pandas as pd
 import numpy as np
 
-os.chdir("./pyPLNmodels/")
-
 (
     counts_sim,
     covariates_sim,

@@ -8,7 +8,6 @@ import pytest
 from pytest_lazyfixture import lazy_fixture as lf
 import os
 
-os.chdir("./tests")
 (
     counts_sim,
     covariates_sim,

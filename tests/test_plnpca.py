@@ -6,7 +6,6 @@ from pyPLNmodels.models import PLNPCA, _PLNPCA
 from pyPLNmodels import get_simulated_count_data, get_real_count_data
 from tests.utils import MSE
 
-os.chdir("./pyPLNmodels/")
 (
     counts_sim,
     covariates_sim,
