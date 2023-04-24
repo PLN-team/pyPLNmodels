@@ -91,5 +91,8 @@ def test_find_right_coef(simulated_fitted_plnpca):
         assert mse_coef < 0.3
 
 
-def test_additional_methods_pca(plnpca):
-    return True
+def test_additional_methods_pca(simulated_fitted_plnpca):
+    simulated_fitted_plnpca.show()
+    simulated_fitted_plnpca.BIC
+    simulated_fitted_plnpca.AIC
+    simulated_fitted_plnpca.loglikes
