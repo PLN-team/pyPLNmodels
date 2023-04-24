@@ -87,13 +87,6 @@ class PLNPlotArgs:
             plt.savefig(name_doss)
 
 
-class PlnData:
-    def __init__(self, counts, covariates, offsets):
-        self._counts = counts
-        self._covariates = covariates
-        self._offsets = offsets
-
-
 def init_sigma(counts, covariates, coef):
     """Initialization for covariance for the PLN model. Take the log of counts
     (careful when counts=0), remove the covariates effects X@coef and
@@ -285,14 +278,9 @@ def log_posterior(counts, covariates, offsets, posterior_mean, components, coef)
     """
     length = len(posterior_mean.shape)
     rank = posterior_mean.shape[-1]
-    if length == 2:
-        components_posterior_mean = torch.matmul(
-            components.unsqueeze(0), posterior_mean.unsqueeze(2)
-        ).squeeze()
-    elif length == 3:
-        components_posterior_mean = torch.matmul(
-            components.unsqueeze(0).unsqueeze(1), posterior_mean.unsqueeze(3)
-        ).squeeze()
+    components_posterior_mean = torch.matmul(
+        components.unsqueeze(0), posterior_mean.unsqueeze(2)
+    ).squeeze()
 
     log_lambda = offsets + components_posterior_mean + covariates @ coef
     first_term = (
@@ -382,13 +370,6 @@ def check_data_shape(counts, covariates, offsets):
     check_two_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0)
     check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0)
     check_two_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1)
-
-
-def extract_cov_offsets_offsetsformula(dictionnary):
-    covariates = dictionnary.get("covariates", None)
-    offsets = dictionnary.get("offsets", None)
-    offsets_formula = dictionnary.get("offsets_formula", None)
-    return covariates, offsets, offsets_formula
 
 
 def nice_string_of_dict(dictionnary):

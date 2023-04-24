@@ -28,7 +28,6 @@ from ._utils import (
     format_data,
     format_model_param,
     check_data_shape,
-    extract_cov_offsets_offsetsformula,
     nice_string_of_dict,
     plot_ellipse,
     closest,
@@ -95,7 +94,7 @@ class _PLN(ABC):
 
     @property
     def nb_cov(self):
-        return self._coef.shape[0]
+        return self.covariates.shape[1]
 
     def smart_init_coef(self):
         self._coef = init_coef(self._counts, self._covariates)
@@ -214,7 +213,7 @@ class _PLN(ABC):
         pass
 
     def print_end_of_fitting_message(self, stop_condition, tol):
-        if stop_condition:
+        if stop_condition is True:
             print(
                 f"Tolerance {tol} reached"
                 f"n {self.plotargs.iteration_number} iterations"
@@ -273,10 +272,12 @@ class _PLN(ABC):
             The name of the file the graphic will be saved to if saved.
             Default is an empty string.
         """
-        sigma = self.covariance
         if self.dim > 400:
+            warnings.warn("Only displaying the first 400 variables.")
             sigma = sigma[:400, :400]
-        sns.heatmap(sigma, ax=ax)
+            sns.heatmap(self.covariance[:400, :400], ax=ax)
+        else:
+            sns.heatmap(self.covariance, ax=ax)
         if savefig:
             plt.savefig(name_file + self.NAME)
         plt.show()  # to avoid displaying a blanck screen
@@ -362,10 +363,6 @@ class _PLN(ABC):
         return self.dict_data | self.model_parameters | self.latent_parameters
 
     @property
-    def covariance(self):
-        return self.attribute_or_none("_covariance")
-
-    @property
     def coef(self):
         return self.attribute_or_none("_coef")
 
@@ -415,6 +412,7 @@ class _PLN(ABC):
                 pd.read_csv(path + key + ".csv", header=None).values
             )
             setattr(self, key, value)
+        self.put_parameters_to_device()
 
     @property
     def counts(self):
@@ -620,12 +618,6 @@ class PLNPCA:
     def print_beginning_message(self):
         return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
 
-    def format_model_param(self, counts, covariates, offsets, offsets_formula):
-        counts, covariates, offsets = format_model_param(
-            counts, covariates, offsets, offsets_formula
-        )
-        return counts, covariates, offsets
-
     @property
     def dim(self):
         return self[self.ranks[0]].dim
@@ -786,12 +778,6 @@ class PLNPCA:
     @property
     def useful_properties_string(self):
         return ".BIC, .AIC, .loglikes"
-
-    def load_model_from_file(self, rank, path_of_file):
-        with open(path_of_file, "rb") as filepath:
-            model_in_a_dict = pickle.load(filepath)
-        rank = model_in_a_dict["rank"]
-        self.dict_models[rank].model_in_a_dict = model_in_a_dict
 
 
 class _PLNPCA(_PLN):

@@ -28,7 +28,7 @@ def my_instance_plnpca():
 
 
 @pytest.fixture
-def real_fitted_plnpca(my_instance_plnpca):
+def real_all_fitted_plnpca(my_instance_plnpca):
     my_instance_plnpca.fit(counts_real)
     return my_instance_plnpca
 
@@ -42,13 +42,20 @@ def simulated_fitted_plnpca(my_instance_plnpca):
 
 
 @pytest.fixture
-def real_best_aic(real_fitted_plnpca):
-    return real_fitted_plnpca.best_model("AIC")
+def one_simulated_fitted_plnpca():
+    model = PLNPCA(ranks=2)
+    model.fit(counts=counts_sim, covariates=covariates_sim, offsets=offsets_sim)
+    return model
 
 
 @pytest.fixture
-def real_best_bic(real_fitted_plnpca):
-    return real_fitted_plnpca.best_model("BIC")
+def real_best_aic(real_all_fitted_plnpca):
+    return real_all_fitted_plnpca.best_model("AIC")
+
+
+@pytest.fixture
+def real_best_bic(real_all_fitted_plnpca):
+    return real_all_fitted_plnpca.best_model("BIC")
 
 
 @pytest.fixture
@@ -65,7 +72,12 @@ simulated_best_models = [lf("simulated_best_aic"), lf("simulated_best_bic")]
 real_best_models = [lf("real_best_aic"), lf("real_best_bic")]
 best_models = simulated_best_models + real_best_models
 
-fitted_plnpca = [lf("simulated_fitted_plnpca"), lf("real_fitted_plnpca")]
+
+all_fitted_simulated_plnpca = [
+    lf("simulated_fitted_plnpca"),
+    lf("one_simulated_fitted_plnpca"),
+]
+all_fitted_plnpca = [lf("real_all_fitted_plnpca")] + all_fitted_simulated_plnpca
 
 
 def test_print_plnpca(simulated_fitted_plnpca):
@@ -83,39 +95,62 @@ def test_projected_variables(best_model):
     assert plv.shape[0] == best_model.n_samples and plv.shape[1] == best_model.rank
 
 
-def test_find_right_covariance(simulated_fitted_plnpca):
+def test_save_load_back_and_refit(simulated_fitted_plnpca):
+    simulated_fitted_plnpca.save()
+    new = PLNPCA(ranks=RANKS)
+    new.load()
+    new.fit(counts=counts_sim, covariates=covariates_sim, offsets=offsets_sim)
+
+
+@pytest.mark.parametrize("plnpca", all_fitted_simulated_plnpca)
+def test_find_right_covariance(plnpca):
     passed = True
-    for model in simulated_fitted_plnpca.models:
+    for model in plnpca.models:
         mse_covariance = MSE(model.covariance - true_covariance)
         assert mse_covariance < 0.3
 
 
-def test_find_right_coef(simulated_fitted_plnpca):
-    passed = True
-    for model in simulated_fitted_plnpca.models:
+@pytest.mark.parametrize("plnpca", all_fitted_simulated_plnpca)
+def test_find_right_coef(plnpca):
+    for model in plnpca.models:
         mse_coef = MSE(model.coef - true_coef)
         assert mse_coef < 0.3
 
 
-def test_additional_methods_pca(simulated_fitted_plnpca):
-    simulated_fitted_plnpca.show()
-    simulated_fitted_plnpca.BIC
-    simulated_fitted_plnpca.AIC
-    simulated_fitted_plnpca.loglikes
+@pytest.mark.parametrize("all_pca", all_fitted_plnpca)
+def test_additional_methods_pca(all_pca):
+    all_pca.show()
+    all_pca.BIC
+    all_pca.AIC
+    all_pca.loglikes
 
 
-def test_viz_pca(simulated_fitted_plnpca):
+@pytest.mark.parametrize("all_pca", all_fitted_plnpca)
+def test_viz_pca(all_pca):
     _, ax = plt.subplots()
-    simulated_fitted_plnpca[2].viz(ax=ax)
+    all_pca[2].viz(ax=ax)
     plt.show()
-    simulated_fitted_plnpca[2].viz()
+    all_pca[2].viz()
     plt.show()
-    n_samples = simulated_fitted_plnpca.n_samples
+    n_samples = all_pca.n_samples
     colors = np.random.randint(low=0, high=2, size=n_samples)
-    simulated_fitted_plnpca[2].viz(colors=colors)
+    all_pca[2].viz(colors=colors)
     plt.show()
 
 
-def test_fails_viz_pca(simulated_fitted_plnpca):
+@pytest.mark.parametrize("all_pca", all_fitted_plnpca)
+def test_fails_viz_pca(all_pca):
     with pytest.raises(Exception):
-        simulated_fitted_plnpca[8].viz()
+        all_pca[8].viz()
+
+
+@pytest.mark.parametrize("all_pca", all_fitted_plnpca)
+def test_closest(all_pca):
+    with pytest.warns(UserWarning):
+        all_pca[9]
+
+
+@pytest.mark.parametrize("plnpca", all_fitted_plnpca)
+def test_wrong_criterion(plnpca):
+    with pytest.raises(ValueError):
+        plnpca.best_model("AIK")
