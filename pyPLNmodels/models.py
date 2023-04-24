@@ -787,7 +787,6 @@ class PLNPCA:
 
 
 class _PLNPCA(_PLN):
-
     NAME = "PLNPCA"
     _components: torch.Tensor
 
