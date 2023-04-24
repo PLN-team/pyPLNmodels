@@ -35,7 +35,6 @@ from ._utils import (
     prepare_covariates,
     to_tensor,
     check_dimensions_are_equal,
-    is_2d_tensor,
 )
 
 if torch.cuda.is_available():
@@ -235,7 +234,7 @@ class _PLN(ABC):
         print("ELBO:", np.round(self.plotargs.elbos_list[-1], 6))
 
     def compute_criterion_and_update_plotargs(self, loss, tol):
-        self.plotargs.elbos_list.append(-loss.item() / self.n_samples)
+        self.plotargs.elbos_list.append(-loss.item())
         self.plotargs.running_times.append(time.time() - self.beginnning_time)
         if self.plotargs.iteration_number > self.WINDOW:
             criterion = abs(
@@ -307,12 +306,19 @@ class _PLN(ABC):
         pass
 
     def show(self, axes=None):
-        print("Best likelihood:", np.max(-self.plotargs.elbos_list[-1]))
+        print("Likelihood:", -self.loglike)
+        if self._fitted is False:
+            nb_axes = 1
+        else:
+            nb_axes = 3
         if axes is None:
-            _, axes = plt.subplots(1, 3, figsize=(23, 5))
-        self.plotargs.show_loss(ax=axes[-3])
-        self.plotargs.show_stopping_criterion(ax=axes[-2])
-        self.display_covariance(ax=axes[-1])
+            _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
+        if self._fitted is True:
+            self.plotargs.show_loss(ax=axes[2])
+            self.plotargs.show_stopping_criterion(ax=axes[1])
+            self.display_covariance(ax=axes[0])
+        else:
+            self.display_covariance(ax=axes)
         plt.show()
 
     @property
@@ -323,9 +329,9 @@ class _PLN(ABC):
     def loglike(self):
         if self._fitted is False:
             t0 = time.time()
-            self.plotargs.elbos_list.append(self.compute_elbo())
+            self.plotargs.elbos_list.append(self.compute_elbo().item())
             self.plotargs.running_times.append(time.time() - t0)
-        return self.n_samples * self.elbos_list[-1]
+        return self.elbos_list[-1]
 
     @property
     def BIC(self):
@@ -740,7 +746,9 @@ class PLNPCA:
         for model in self.models:
             model.load(path_of_directory)
 
-    # def
+    @property
+    def n_samples(self):
+        return self.models[0].n_samples
 
     @property
     def _p(self):
@@ -907,7 +915,7 @@ class _PLNPCA(_PLN):
     def components(self, components):
         self._components = components
 
-    def viz(self, ax=None, color=None):
+    def viz(self, ax=None, colors=None):
         if self._rank != 2:
             raise RuntimeError("Can't perform visualization for rank != 2.")
         if ax is None:
@@ -915,7 +923,7 @@ class _PLNPCA(_PLN):
         proj_variables = self.projected_latent_variables
         x = proj_variables[:, 0].cpu().numpy()
         y = proj_variables[:, 1].cpu().numpy()
-        sns.scatterplot(x=x, y=y, hue=color, ax=ax)
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         covariances = torch.diag_embed(self._latent_var**2).detach().cpu()
         for i in range(covariances.shape[0]):
             plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)

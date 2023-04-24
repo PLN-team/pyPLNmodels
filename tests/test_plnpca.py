@@ -6,6 +6,9 @@ from pyPLNmodels.models import PLNPCA, _PLNPCA
 from pyPLNmodels import get_simulated_count_data, get_real_count_data
 from tests.utils import MSE
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 (
     counts_sim,
     covariates_sim,
@@ -15,7 +18,7 @@ from tests.utils import MSE
 ) = get_simulated_count_data(return_true_param=True)
 
 counts_real = get_real_count_data()
-RANKS = [4, 8]
+RANKS = [2, 8]
 
 
 @pytest.fixture
@@ -65,6 +68,10 @@ best_models = simulated_best_models + real_best_models
 fitted_plnpca = [lf("simulated_fitted_plnpca"), lf("real_fitted_plnpca")]
 
 
+def test_print_plnpca(simulated_fitted_plnpca):
+    print(simulated_fitted_plnpca)
+
+
 @pytest.mark.parametrize("best_model", best_models)
 def test_best_model(best_model):
     print(best_model)
@@ -73,7 +80,7 @@ def test_best_model(best_model):
 @pytest.mark.parametrize("best_model", best_models)
 def test_projected_variables(best_model):
     plv = best_model.projected_latent_variables
-    assert plv.shape[0] == best_model.n and plv.shape[0] == plv.rank
+    assert plv.shape[0] == best_model.n_samples and plv.shape[1] == best_model.rank
 
 
 def test_find_right_covariance(simulated_fitted_plnpca):
@@ -95,3 +102,20 @@ def test_additional_methods_pca(simulated_fitted_plnpca):
     simulated_fitted_plnpca.BIC
     simulated_fitted_plnpca.AIC
     simulated_fitted_plnpca.loglikes
+
+
+def test_viz_pca(simulated_fitted_plnpca):
+    _, ax = plt.subplots()
+    simulated_fitted_plnpca[2].viz(ax=ax)
+    plt.show()
+    simulated_fitted_plnpca[2].viz()
+    plt.show()
+    n_samples = simulated_fitted_plnpca.n_samples
+    colors = np.random.randint(low=0, high=2, size=n_samples)
+    simulated_fitted_plnpca[2].viz(colors=colors)
+    plt.show()
+
+
+def test_fails_viz_pca(simulated_fitted_plnpca):
+    with pytest.raises(Exception):
+        simulated_fitted_plnpca[8].viz()

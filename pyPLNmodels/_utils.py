@@ -501,15 +501,6 @@ def check_dimensions_are_equal(tens1, tens2):
         raise ValueError("Tensors should have the same size.")
 
 
-def is_2d_tensor(tens):
-    if len(tens.shape) != 2:
-        raise RuntimeError("The tensor should be 2d.")
-
-
-def return_none_if_not_def():
-    pass
-
-
 def to_tensor(obj):
     if isinstance(obj, np.ndarray):
         return torch.from_numpy(obj)

@@ -121,20 +121,6 @@ def loaded_refit_real__plnpca(loaded_real__plnpca):
     return loaded_real__plnpca
 
 
-# all_fitted_models = [
-#     lf("simulated_fitted_pln_full"),
-#     lf("loaded_simulated_pln_full"),
-#     lf("loaded_refit_simulated_pln_full"),
-#     lf("simulated_fitted__plnpca"),
-#     # lf("loaded_simulated__plnpca"),
-#     # lf("loaded_refit_simulated__plnpca"),
-#     # lf("real_fitted_pln_full"),
-#     # lf("loaded_real_pln_full"),
-#     # lf("loaded_refit_real_pln_full"),
-#     # lf("real_fitted__plnpca"),
-#     # lf("loaded_real__plnpca"),
-#     # lf("loaded_refit_real__plnpca"),
-# ]
 real_pln_full = [
     lf("real_fitted_pln_full"),
     lf("loaded_real_pln_full"),
@@ -177,7 +163,6 @@ def test_properties(any_pln):
     all_fitted_models,
 )
 def test_show_coef_transform_covariance_pcaprojected(any_pln):
-    outputs = []
     any_pln.show()
     assert hasattr(any_pln, "coef")
     assert callable(any_pln.transform)
@@ -210,7 +195,7 @@ def test_print(any_pln):
 
 
 @pytest.mark.parametrize(
-    "any_instance_pln", [lf("instance__plnpca"), lf("my_instance_pln_full")]
+    "any_instance_pln", [lf("instance__plnpca"), lf("instance_pln_full")]
 )
 def test_verbose(any_instance_pln):
     any_instance_pln.fit(
@@ -231,36 +216,6 @@ def test_only_Y_and_O(sim_pln):
 @pytest.mark.parametrize("sim_pln", simulated_any_pln)
 def test_only_Y_and_cov(sim_pln):
     sim_pln.fit(counts=counts_sim, covariates=covariates_sim)
-
-
-@pytest.mark.parametrize("plnpca", all_fitted__plnpca)
-def test_loading_back_pca(plnpca):
-    save_and_loadback_pca(plnpca)
-
-
-@pytest.mark.parametrize("pln_full", all_fitted_pln_full)
-def test_load_back_pln_full(pln_full):
-    save_and_loadback_pca(pln_full)
-
-
-@pytest.mark.parametrize("pln_full", all_fitted_pln_full)
-def test_load_back_and_refit_pln_full(pln_full):
-    save_and_loadback_pca(pln_full)
-    pln_full.fit()
-
-
-def save_and_loadback_pln_full(model):
-    model.save()
-    newpln_full = PLN()
-    newpln_full.load()
-    return newpln_full
-
-
-def save_and_loadback_pca(plnpca):
-    plnpca.save()
-    new = _PLNPCA(rank=rank)
-    new.load()
-    return new
 
 
 @pytest.mark.parametrize("simulated_fitted_any_pln", simulated_any_pln)

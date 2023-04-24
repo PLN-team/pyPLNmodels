@@ -13,8 +13,8 @@ import numpy as np
     offsets_sim,
 ) = get_simulated_count_data(nb_cov=2)
 
-couts_real = get_real_count_data()
-RANKS = [4, 8]
+couts_real = get_real_count_data(n_samples=298, dim=101)
+RANKS = [2, 8]
 
 
 @pytest.fixture
