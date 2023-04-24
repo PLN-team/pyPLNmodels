@@ -189,7 +189,6 @@ def test_show_coef_transform_covariance_pcaprojected(any_pln):
 
 @pytest.mark.parametrize("sim_pln", simulated_any_pln)
 def test_predict_simulated(sim_pln):
-
     X = torch.randn((sim_pln.n_samples, sim_pln.nb_cov - 1))
     prediction = sim_pln.predict(X)
     expected = (
