@@ -14,10 +14,12 @@ offsets = None
 pca = PLNPCA([3, 4])
 
 pca.fit(counts, covariates, offsets, tol=0.1)
-# pln = PLN()
-pcamodel = pca.best_model()
-pcamodel.save()
-model = PLNPCA([4])[4]
+print(pca)
 
-model.load()
-# pln.fit(counts, covariates, offsets, tol=0.1)
+# pln = PLN()
+# pcamodel = pca.best_model()
+# pcamodel.save()
+# model = PLNPCA([4])[4]
+
+# model.load()
+# # pln.fit(counts, covariates, offsets, tol=0.1)
