@@ -18,7 +18,8 @@ tests:
     - pip install -r requirements.txt
     - cd tests
     - pip install -r requirements.txt
-    - pytest
+    - cd ..
+    - pytest tests
 
 publish_package:
   stage: publish
