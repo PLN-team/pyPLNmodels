@@ -1,12 +1,12 @@
+import os
+
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
-
-from pyPLNmodels.models import PLN, PLNPCA, _PLNPCA
+from pyPLNmodels.models import PLNPCA, _PLNPCA
+from pyPLNmodels import get_simulated_count_data, get_real_count_data
 from tests.utils import MSE
-from pyPLNmodels import get_simulated_count_data
 
-RANKS = [2, 4]
-
+os.chdir("./pyPLNmodels/")
 (
     counts_sim,
     covariates_sim,
@@ -14,6 +14,9 @@ RANKS = [2, 4]
     true_covariance,
     true_coef,
 ) = get_simulated_count_data(return_true_param=True)
+
+counts_real = get_real_count_data()
+RANKS = [4, 8]
 
 
 @pytest.fixture
@@ -23,23 +26,52 @@ def my_instance_plnpca():
 
 
 @pytest.fixture
-def simulated_fitted_plnpca():
-    plnpca = PLNPCA(RANKS)
-    plnpca.fit(counts=counts_sim, covariates=covariates_sim, offsets=offsets_sim)
-    return plnpca
+def real_fitted_plnpca(my_instance_plnpca):
+    my_instance_plnpca.fit(counts_real)
+    return my_instance_plnpca
 
 
 @pytest.fixture
-def best_aic_model(plnpca):
-    return plnpca.best_model("AIC")
+def simulated_fitted_plnpca(my_instance_plnpca):
+    my_instance_plnpca.fit(
+        counts=counts_sim, covariates=covariates_sim, offsets=offsets_sim
+    )
+    return my_instance_plnpca
 
 
 @pytest.fixture
-def best_bic_model(plnpca):
-    return plnpca.best_model("BIC")
+def real_best_aic(real_fitted_plnpca):
+    return real_fitted_plnpca.best_model("AIC")
 
 
-@pytest.mark.parametrize("best_model", [lf("best_aic_model"), lf("best_bic_model")])
+@pytest.fixture
+def real_best_bic(real_fitted_plnpca):
+    return real_fitted_plnpca.best_model("BIC")
+
+
+@pytest.fixture
+def simulated_best_aic(simulated_fitted_plnpca):
+    return simulated_fitted_plnpca.best_model("AIC")
+
+
+@pytest.fixture
+def simulated_best_bic(simulated_fitted_plnpca):
+    return simulated_fitted_plnpca.best_model("BIC")
+
+
+simulated_best_models = [lf("simulated_best_aic"), lf("simulated_best_bic")]
+real_best_models = [lf("real_best_aic"), lf("real_best_bic")]
+best_models = simulated_best_models + real_best_models
+
+fitted_plnpca = [lf("simulated_fitted_plnpca"), lf("real_fitted_plnpca")]
+
+
+@pytest.mark.parametrize("best_model", best_models)
+def test_best_model(best_model):
+    print(best_model)
+
+
+@pytest.mark.parametrize("best_model", best_models)
 def test_projected_variables(best_model):
     plv = best_model.projected_latent_variables
     assert plv.shape[0] == best_model.n and plv.shape[0] == plv.rank
@@ -49,31 +81,15 @@ def test_find_right_covariance(simulated_fitted_plnpca):
     passed = True
     for model in simulated_fitted_plnpca.models:
         mse_covariance = MSE(model.covariance - true_covariance)
-        if mse_covariance > 0.3:
-            return False
-    return True
+        assert mse_covariance < 0.3
 
 
 def test_find_right_coef(simulated_fitted_plnpca):
     passed = True
     for model in simulated_fitted_plnpca.models:
         mse_coef = MSE(model.coef - true_coef)
-        if mse_coef > 0.3:
-            passed = False
-    assert passed
+        assert mse_coef < 0.3
 
 
 def test_additional_methods_pca(plnpca):
     return True
-
-
-def test_computable_elbo(simulated_fitted_plnpca):
-    new_pca = _PLNPCA(simulated_fitted_plnpca.rank)
-    new_pca.counts = simulated_fitted_plnpca.counts
-    new_pca.covariates = simulated_fitted_plnpca._covariates
-    new_pca.counts = simulated_fitted_plnpca._offsets
-    new_pca.latent_mean = simulated_fitted_plnpca._latent_mean
-    new_pca.latent_var = simulated_fitted_plnpca._latent_var
-    new_pca._components = simulated_fitted_plnpca._components
-    new_pca.coef = simulated_fitted_plnpca._coef
-    new_pca.compute_elbo()

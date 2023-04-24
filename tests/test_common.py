@@ -23,13 +23,13 @@ rank = 8
 
 
 @pytest.fixture
-def my_instance_pln_full():
+def instance_pln_full():
     pln_full = PLN()
     return pln_full
 
 
 @pytest.fixture
-def my_instance__plnpca():
+def instance__plnpca():
     plnpca = _PLNPCA(rank=rank)
     return plnpca
 
@@ -212,7 +212,7 @@ def test_print(any_pln):
 
 
 @pytest.mark.parametrize(
-    "any_instance_pln", [lf("my_instance__plnpca"), lf("my_instance_pln_full")]
+    "any_instance_pln", [lf("instance__plnpca"), lf("my_instance_pln_full")]
 )
 def test_verbose(any_instance_pln):
     any_instance_pln.fit(
@@ -280,3 +280,25 @@ def test_find_right_coef(sim_pln):
 def test_number_of_iterations_pln_full(simulated_fitted_pln_full):
     nb_iterations = len(simulated_fitted_pln_full.elbos_list)
     assert 50 < nb_iterations < 300
+
+
+def test_computable_elbopca(instance__plnpca, simulated_fitted__plnpca):
+    instance__plnpca.counts = simulated_fitted__plnpca.counts
+    instance__plnpca.covariates = simulated_fitted__plnpca.covariates
+    instance__plnpca.offsets = simulated_fitted__plnpca.offsets
+    instance__plnpca.latent_mean = simulated_fitted__plnpca.latent_mean
+    instance__plnpca.latent_var = simulated_fitted__plnpca.latent_var
+    instance__plnpca.components = simulated_fitted__plnpca.components
+    instance__plnpca.coef = simulated_fitted__plnpca.coef
+    instance__plnpca.compute_elbo()
+
+
+def test_computable_elbo_full(instance_pln_full, simulated_fitted_pln_full):
+    instance_pln_full.counts = simulated_fitted_pln_full.counts
+    instance_pln_full.covariates = simulated_fitted_pln_full.covariates
+    instance_pln_full.offsets = simulated_fitted_pln_full.offsets
+    instance_pln_full.latent_mean = simulated_fitted_pln_full.latent_mean
+    instance_pln_full.latent_var = simulated_fitted_pln_full.latent_var
+    instance_pln_full.covariance = simulated_fitted_pln_full.covariance
+    instance_pln_full.coef = simulated_fitted_pln_full.coef
+    instance_pln_full.compute_elbo()
