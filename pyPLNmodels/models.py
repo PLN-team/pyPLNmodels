@@ -194,7 +194,7 @@ class _PLN(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
-        print("norm latent grad ", self._latent_prob.grad)
+        # print("norm latent grad ", self._latent_prob.grad)
         print("elbo:", -loss / self.n_samples)
         self.optim.step()
         self.update_closed_forms()
@@ -1004,7 +1004,7 @@ class ZIPLN(_PLN):
         self.mse_sigma_list.append(MSE(self._covariance - self.true_covariance).item())
         with torch.no_grad():
             self._latent_prob *= self._dirac
-            self._latent_prob = torch.clamp(self._latent_prob, min=0, max=1)
+            torch.clamp(self._latent_prob, min=0, max=1, out=self._latent_prob)
         # self._coef = closed_formula_coef(self._covariates, self._latent_mean)
         # self._covariance = closed_formula_covariance(
         #     self._covariates,

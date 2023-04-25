@@ -121,6 +121,7 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
     )
 
 
+## pb with trunc_log
 ## should rename some variables so that is is clearer when we see the formula
 def elbo_zi_pln(
     counts,
@@ -159,7 +160,7 @@ def elbo_zi_pln(
     m_minus_xb = latent_mean - torch.mm(covariates, coef)
     x_coef_inflation = torch.mm(covariates, _coef_inflation)
 
-    a = b = c = d = e = f = 0
+    # a = b = c = d = e = f = 0
     A = torch.exp(o_plus_m + s_rond_s / 2)
     inside_a = torch.multiply(
         1 - latent_prob, torch.multiply(counts, o_plus_m) - A - log_stirling(counts)
@@ -175,9 +176,9 @@ def elbo_zi_pln(
         / 2
         * torch.multiply(Omega, torch.multiply(un_moins_rho_outer, m_moins_xb_outer))
     )
-    # b = n_samples/2 * torch.logdet(Omega) + torch.sum(inside_b)
+    b = n_samples / 2 * torch.logdet(Omega) + torch.sum(inside_b)
 
-    inside_c = torch.multiply(latent_prob, x_coef_inflation) - trunc_log(
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
         1 + torch.exp(x_coef_inflation)
     )
     c = torch.sum(inside_c)
@@ -200,6 +201,7 @@ def elbo_zi_pln(
     )
     inside_f = torch.multiply(torch.diag(Omega), sum_un_moins_rho_s2 + diag_sig_sum_rho)
     f = -1 / 2 * torch.sum(inside_f)
+
     # f = 0
     # elbo = torch.sum(
     #     torch.multiply(
