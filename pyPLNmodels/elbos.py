@@ -21,15 +21,15 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
     """
     n_samples, dim = counts.shape
     s_rond_s = torch.multiply(latent_var, latent_var)
-    offsets_plus_m = offsets + latent_mean
+    o_plus_m = offsets + latent_mean
     m_minus_xb = latent_mean - torch.mm(covariates, coef)
     d_plus_minus_xb2 = torch.diag(torch.sum(s_rond_s, dim=0)) + torch.mm(
         m_minus_xb.T, m_minus_xb
     )
     elbo = -n_samples / 2 * torch.logdet(covariance)
     elbo += torch.sum(
-        torch.multiply(counts, offsets_plus_m)
-        - torch.exp(offsets_plus_m + s_rond_s / 2)
+        torch.multiply(counts, o_plus_m)
+        - torch.exp(o_plus_m + s_rond_s / 2)
         + 1 / 2 * torch.log(s_rond_s)
     )
     elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(covariance), d_plus_minus_xb2))
@@ -57,15 +57,15 @@ def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
     """
     n_samples, _ = counts.shape
     s_rond_s = torch.multiply(latent_var, latent_var)
-    offsets_plus_m = offsets + latent_mean
+    o_plus_m = offsets + latent_mean
     closed_coef = closed_formula_coef(covariates, latent_mean)
     closed_covariance = closed_formula_covariance(
         covariates, latent_mean, latent_var, closed_coef, n_samples
     )
     elbo = -n_samples / 2 * torch.logdet(closed_covariance)
     elbo += torch.sum(
-        torch.multiply(counts, offsets_plus_m)
-        - torch.exp(offsets_plus_m + s_rond_s / 2)
+        torch.multiply(counts, o_plus_m)
+        - torch.exp(o_plus_m + s_rond_s / 2)
         + 1 / 2 * torch.log(s_rond_s)
     )
     elbo -= torch.sum(log_stirling(counts))
@@ -128,7 +128,7 @@ def elbo_zi_pln(
     offsets,
     latent_mean,
     latent_var,
-    pi,
+    latent_prob,
     covariance,
     coef,
     _coef_inflation,
@@ -150,45 +150,82 @@ def elbo_zi_pln(
     Returns:
         torch.tensor of size 1 with a gradient.
     """
-    if torch.norm(pi * dirac - pi) > 0.0001:
+    if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
         print("Bug")
-        return False
-    n_samples = counts.shape[0]
-    dim = counts.shape[1]
+        raise RuntimeError("rho error")
+    n_samples, dim = counts.shape
     s_rond_s = torch.multiply(latent_var, latent_var)
-    offsets_plus_m = offsets + latent_mean
+    o_plus_m = offsets + latent_mean
     m_minus_xb = latent_mean - torch.mm(covariates, coef)
     x_coef_inflation = torch.mm(covariates, _coef_inflation)
-    elbo = torch.sum(
-        torch.multiply(
-            1 - pi,
-            torch.multiply(counts, offsets_plus_m)
-            - torch.exp(offsets_plus_m + s_rond_s / 2)
-            - log_stirling(counts),
-        )
-        + pi
-    )
-    # print('O:', O)
-    elbo -= torch.sum(
-        torch.multiply(pi, trunc_log(pi)) + torch.multiply(1 - pi, trunc_log(1 - pi))
-    )
-    elbo += torch.sum(
-        torch.multiply(pi, x_coef_inflation)
-        - torch.log(1 + torch.exp(x_coef_inflation))
-    )
 
-    elbo -= (
-        1
-        / 2
-        * torch.trace(
-            torch.mm(
-                torch.inverse(covariance),
-                torch.diag(torch.sum(s_rond_s, dim=0))
-                + torch.mm(m_minus_xb.T, m_minus_xb),
-            )
-        )
+    a = b = c = d = e = f = 0
+    A = torch.exp(o_plus_m + s_rond_s / 2)
+    inside_a = torch.multiply(
+        1 - latent_prob, torch.multiply(counts, o_plus_m) - A - log_stirling(counts)
     )
-    elbo += n_samples / 2 * torch.log(torch.det(covariance))
-    elbo += n_samples * dim / 2
-    elbo += torch.sum(1 / 2 * torch.log(s_rond_s))
-    return elbo
+    a = torch.sum(inside_a)
+
+    Omega = torch.inverse(covariance)
+    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+    un_moins_rho = 1 - latent_prob
+    un_moins_rho_outer = torch.mm(un_moins_rho.T, un_moins_rho)
+    inside_b = (
+        -1
+        / 2
+        * torch.multiply(Omega, torch.multiply(un_moins_rho_outer, m_moins_xb_outer))
+    )
+    # b = n_samples/2 * torch.logdet(Omega) + torch.sum(inside_b)
+
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - trunc_log(
+        1 + torch.exp(x_coef_inflation)
+    )
+    c = torch.sum(inside_c)
+
+    log_diag = torch.log(torch.diag(covariance))
+    Diag_log_diag = torch.diag_embed(log_diag)
+    inside_d = torch.multiply(
+        1 - latent_prob, torch.log(torch.abs(latent_var))
+    ) + torch.matmul(latent_prob / 2, Diag_log_diag)
+    d = n_samples * dim / 2 + torch.sum(inside_d)
+
+    inside_e = torch.multiply(latent_prob, trunc_log(latent_prob)) + torch.multiply(
+        1 - latent_prob, trunc_log(1 - latent_prob)
+    )
+    e = -torch.sum(inside_e)
+
+    sum_un_moins_rho_s2 = torch.sum(torch.multiply(1 - latent_prob, s_rond_s), axis=0)
+    diag_sig_sum_rho = torch.multiply(
+        torch.diag(covariance), torch.sum(latent_prob, axis=0)
+    )
+    inside_f = torch.multiply(torch.diag(Omega), sum_un_moins_rho_s2 + diag_sig_sum_rho)
+    f = -1 / 2 * torch.sum(inside_f)
+    # f = 0
+    # elbo = torch.sum(
+    #     torch.multiply(
+    #         1 - latent_prob,
+    #         torch.multiply(counts, o_plus_m)
+    #         - torch.exp(o_plus_m + s_rond_s / 2)
+    #         - log_stirling(counts),
+    #     )
+    #     + latent_prob
+    # )
+    # # print('O:', O)
+    # elbo -= torch.sum(
+    #     torch.multiply(latent_prob, trunc_log(latent_prob)) + torch.multiply(1 - latent_prob, trunc_log(1 - latent_prob))
+    # )
+    # elbo -= (
+    #     1
+    #     / 2
+    #     * torch.trace(
+    #         torch.mm(
+    #             torch.inverse(covariance),
+    #             torch.diag(torch.sum(s_rond_s, dim=0))
+    #             + torch.mm(m_minus_xb.T, m_minus_xb),
+    #         )
+    #     )
+    # )
+    # elbo += n_samples / 2 * torch.log(torch.det(covariance))
+    # elbo += n_samples * dim / 2
+    # elbo += torch.sum(1 / 2 * torch.log(s_rond_s))
+    return a + b + c + d + e + f

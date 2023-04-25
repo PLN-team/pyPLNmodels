@@ -449,7 +449,8 @@ def get_simulated_count_data(
     offsets, cov, true_coef, true_infla = get_simulation_offsets_cov_coef_coefinfla(
         n_samples, nb_cov, dim
     )
-
+    true_infla *= 0
+    true_coef *= 0
     true_covariance = torch.matmul(components, components.T)
     counts, _, _ = sample_pln(
         components, true_coef, cov, offsets, seed=seed, _coef_inflation=true_infla
@@ -496,3 +497,7 @@ def to_tensor(obj):
     if isinstance(obj, pd.DataFrame):
         return torch.from_numpy(obj.values)
     raise TypeError("Please give either a nd.array or torch.Tensor or pd.DataFrame")
+
+
+def MSE(tens):
+    return torch.mean(tens**2)

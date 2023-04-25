@@ -15,7 +15,7 @@ from sklearn.decomposition import PCA
 from ._closed_forms import (
     closed_formula_coef,
     closed_formula_covariance,
-    closed_formula_pi,
+    closed_formula_latent_prob,
 )
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
@@ -34,6 +34,7 @@ from ._utils import (
     prepare_covariates,
     to_tensor,
     check_dimensions_are_equal,
+    MSE,
 )
 
 if torch.cuda.is_available():
@@ -193,6 +194,8 @@ class _PLN(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
+        print("norm latent grad ", self._latent_prob.grad)
+        print("elbo:", -loss / self.n_samples)
         self.optim.step()
         self.update_closed_forms()
         return loss
@@ -921,38 +924,53 @@ class _PLNPCA(_PLN):
         return self.latent_variables
 
 
-class ZIPLN(PLN):
+class ZIPLN(_PLN):
     NAME = "ZIPLN"
 
-    _pi: torch.Tensor
+    _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
+
+    def __init__(self, true_covariance, true_coef, true_infla):
+        super().__init__()
+        self.true_covariance = true_covariance
+        self.true_coef = true_coef
+        self.true_infla = true_infla
+        self.mse_sigma_list = []
+        self.mse_coef_list = []
+        self.mse_infla_list = []
 
     @property
     def description(self):
         return "with full covariance model and zero-inflation."
 
     def random_init_model_parameters(self):
-        super().random_init_model_parameters()
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+        self._coef = torch.randn(self.nb_cov, self.dim)
         self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
 
     # should change the good initialization, especially for _coef_inflation
     def smart_init_model_parameters(self):
-        super().smart_init_model_parameters()
-        self._covariance = init_sigma(
-            self._counts, self._covariates, self._offsets, self._coef
-        )
-        self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+        self.random_init_model_parameters()
 
     def random_init_latent_parameters(self):
         self._dirac = self._counts == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
         self._latent_var = torch.randn(self.n_samples, self.dim)
-        self._pi = (
+        self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
         )
+
+    def smart_init_latent_parameters(self):
+        self.random_init_latent_parameters()
+
+    def print_beginning_message(self):
+        print("Training a zero inflated PLN")
+
+    @property
+    def latent_variables(self):
+        return self.latent_mean, self.latent_prob
 
     def compute_elbo(self):
         return elbo_zi_pln(
@@ -961,7 +979,7 @@ class ZIPLN(PLN):
             self._offsets,
             self._latent_mean,
             self._latent_var,
-            self._pi,
+            self._latent_prob,
             self._covariance,
             self._coef,
             self._coef_inflation,
@@ -970,26 +988,50 @@ class ZIPLN(PLN):
 
     @property
     def list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_var, self._coef_inflation]
+        l = []
+        l = l + [self._latent_mean]
+        l = l + [self._latent_var]
+        l = l + [self._coef]
+        l = l + [self._coef_inflation]
+        l = l + [self._latent_prob]
+        return l
+        # return [self._latent_mean, self._latent_var, self._coef_inflation, self._coef, self._latent_prob]
+        # return [self._latent_mean, self._latent_var, self._coef_inflation, self._coef]
 
     def update_closed_forms(self):
-        self._coef = closed_formula_coef(self._covariates, self._latent_mean)
-        self._covariance = closed_formula_covariance(
-            self._covariates,
-            self._latent_mean,
-            self._latent_var,
-            self._coef,
-            self.n_samples,
-        )
-        self._pi = closed_formula_pi(
-            self._offsets,
-            self._latent_mean,
-            self._latent_var,
-            self._dirac,
-            self._covariates,
-            self._coef_inflation,
-        )
+        self.mse_coef_list.append(MSE(self._coef - self.true_coef).item())
+        self.mse_infla_list.append(MSE(self._coef_inflation - self.true_infla).item())
+        self.mse_sigma_list.append(MSE(self._covariance - self.true_covariance).item())
+        with torch.no_grad():
+            self._latent_prob *= self._dirac
+            self._latent_prob = torch.clamp(self._latent_prob, min=0, max=1)
+        # self._coef = closed_formula_coef(self._covariates, self._latent_mean)
+        # self._covariance = closed_formula_covariance(
+        #     self._covariates,
+        #     self._latent_mean,
+        #     self._latent_var,
+        #     self._coef,
+        #     self.n_samples,
+        # )
+        # self._latent_prob = closed_formula_latent_prob(
+        #     self._offsets,
+        #     self._latent_mean,
+        #     self._latent_var,
+        #     self._dirac,
+        #     self._covariates,
+        #     self._coef_inflation,
+        # )
 
     @property
     def number_of_parameters(self):
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
+
+    def print_mse(self):
+        fig, axes = plt.subplots(2)
+        absc = np.arange(len(self.mse_sigma_list))
+        axes[0].plot(absc, self.mse_sigma_list, label="sigma")
+        axes[0].plot(absc, self.mse_coef_list, label="coef")
+        axes[0].plot(absc, self.mse_infla_list, label="infla")
+        axes[0].legend()
+        axes[1].plot(absc, self.elbos_list)
+        plt.show()

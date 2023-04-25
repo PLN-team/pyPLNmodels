@@ -17,7 +17,7 @@ def closed_formula_coef(covariates, latent_mean):
     )
 
 
-def closed_formula_pi(
+def closed_formula_latent_prob(
     offsets, latent_mean, latent_var, dirac, covariates, _coef_inflation
 ):
     poiss_param = torch.exp(
