@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-VERSION = "0.0.34"
+VERSION = "0.0.36"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -34,7 +34,7 @@ setup(
     py_modules=[
         "pyPLNmodels._utils",
         "pyPLNmodels.elbos",
-        "pyPLNmodels.VEM",
+        "pyPLNmodels.models",
         "pyPLNmodels._closed_forms",
     ],
     long_description_content_type="text/markdown",
