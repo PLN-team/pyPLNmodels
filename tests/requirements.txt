@@ -1,0 +1,8 @@
+numpy
+pandas
+pyPLNmodels
+pytest
+pytest_lazy_fixture
+scanpy
+scikit_learn
+torch
