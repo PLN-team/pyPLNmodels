@@ -1,4 +1,4 @@
-from pyPLNmodels.models import PLNPCA, _PLNPCA, PLN
+from pyPLNmodels.models import PLNPCA, _PLNPCA, PLN, ZIPLN
 from pyPLNmodels import get_real_count_data, get_simulated_count_data
 
 import os
@@ -6,20 +6,11 @@ import os
 os.chdir("./pyPLNmodels/")
 
 
-counts = get_real_count_data()
-covariates = None
-offsets = None
-# counts, covariates, offsets = get_simulated_count_data(seed = 0)
-
-pca = PLNPCA([3, 4])
-
-pca.fit(counts, covariates, offsets, tol=0.1)
-print(pca)
-
-# pln = PLN()
-# pcamodel = pca.best_model()
-# pcamodel.save()
-# model = PLNPCA([4])[4]
-
-# model.load()
-# # pln.fit(counts, covariates, offsets, tol=0.1)
+(
+    counts,
+    covariates,
+    offsets,
+    true_Sigma,
+    true_beta,
+    true_infla,
+) = get_simulated_count_data(return_true_param=True)

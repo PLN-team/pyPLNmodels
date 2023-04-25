@@ -420,7 +420,7 @@ def get_components_simulation(dim, rank):
     return components.to(DEVICE)
 
 
-def get_simulation_offsets_cov_coef(n_samples, nb_cov, dim):
+def get_simulation_offsets_cov_coef_coefinfla(n_samples, nb_cov, dim):
     prev_state = torch.random.get_rng_state()
     torch.random.manual_seed(0)
     if nb_cov < 2:
@@ -434,22 +434,28 @@ def get_simulation_offsets_cov_coef(n_samples, nb_cov, dim):
             device=DEVICE,
         )
     coef = torch.randn(nb_cov, dim, device=DEVICE)
+    coefinfla = torch.randn(nb_cov, dim, device=DEVICE)
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device=DEVICE
     )
     torch.random.set_rng_state(prev_state)
-    return offsets, covariates, coef
+    return offsets, covariates, coef, coefinfla
 
 
 def get_simulated_count_data(
     n_samples=100, dim=25, rank=5, nb_cov=1, return_true_param=False, seed=0
 ):
     components = get_components_simulation(dim, rank)
-    offsets, cov, true_coef = get_simulation_offsets_cov_coef(n_samples, nb_cov, dim)
+    offsets, cov, true_coef, true_infla = get_simulation_offsets_cov_coef_coefinfla(
+        n_samples, nb_cov, dim
+    )
+
     true_covariance = torch.matmul(components, components.T)
-    counts, _, _ = sample_pln(components, true_coef, cov, offsets, seed=seed)
+    counts, _, _ = sample_pln(
+        components, true_coef, cov, offsets, seed=seed, _coef_inflation=true_infla
+    )
     if return_true_param is True:
-        return counts, cov, offsets, true_covariance, true_coef
+        return counts, cov, offsets, true_covariance, true_coef, true_infla
     return counts, cov, offsets
 
 
