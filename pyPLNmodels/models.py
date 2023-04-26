@@ -16,6 +16,7 @@ from ._closed_forms import (
     closed_formula_coef,
     closed_formula_covariance,
     closed_formula_latent_prob,
+    zi_closed_formula_covariance,
 )
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
@@ -994,6 +995,7 @@ class ZIPLN(_PLN):
         l = l + [self._coef]
         l = l + [self._coef_inflation]
         l = l + [self._latent_prob]
+        # l = l + [self._covariance]
         return l
         # return [self._latent_mean, self._latent_var, self._coef_inflation, self._coef, self._latent_prob]
         # return [self._latent_mean, self._latent_var, self._coef_inflation, self._coef]
@@ -1006,11 +1008,12 @@ class ZIPLN(_PLN):
             self._latent_prob *= self._dirac
             torch.clamp(self._latent_prob, min=0, max=1, out=self._latent_prob)
         # self._coef = closed_formula_coef(self._covariates, self._latent_mean)
-        # self._covariance = closed_formula_covariance(
+        # self._covariance = zi_closed_formula_covariance(
         #     self._covariates,
         #     self._latent_mean,
         #     self._latent_var,
         #     self._coef,
+        #     self._latent_var,
         #     self.n_samples,
         # )
         # self._latent_prob = closed_formula_latent_prob(
@@ -1028,10 +1031,10 @@ class ZIPLN(_PLN):
 
     def print_mse(self):
         fig, axes = plt.subplots(2)
-        absc = np.arange(len(self.mse_sigma_list))
-        axes[0].plot(absc, self.mse_sigma_list, label="sigma")
-        axes[0].plot(absc, self.mse_coef_list, label="coef")
-        axes[0].plot(absc, self.mse_infla_list, label="infla")
+        absc = np.arange(len(self.mse_sigma_list))[-200:]
+        axes[0].plot(absc, self.mse_sigma_list[-200:], label="sigma")
+        axes[0].plot(absc, self.mse_coef_list[-200:], label="coef")
+        axes[0].plot(absc, self.mse_infla_list[-200:], label="infla")
         axes[0].legend()
-        axes[1].plot(absc, self.elbos_list)
+        axes[1].plot(absc, self.elbos_list[-200:])
         plt.show()

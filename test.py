@@ -14,3 +14,10 @@ os.chdir("./pyPLNmodels/")
     true_beta,
     true_infla,
 ) = get_simulated_count_data(return_true_param=True)
+
+pln = ZIPLN(true_infla=true_infla, true_covariance=true_Sigma, true_coef=true_beta)
+pln.fit(counts, covariates, offsets, nb_max_iteration=250)
+pln.print_mse()
+# full = PLN()
+# full.fit(counts, covariates, offsets, tol = 0.1)
+# print(full)
