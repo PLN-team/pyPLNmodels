@@ -501,3 +501,16 @@ def to_tensor(obj):
 
 def MSE(tens):
     return torch.mean(tens**2)
+
+
+def vec_to_mat(C, p, q):
+    c = torch.zeros(p, q)
+    c[torch.tril_indices(p, q, offset=0).tolist()] = C
+    # c = C.reshape(p,q)
+    return c
+
+
+def mat_to_vec(matc, p, q):
+    tril = torch.tril(matc)
+    # tril = matc.reshape(-1,1).squeeze()
+    return tril[torch.tril_indices(p, q, offset=0).tolist()]
