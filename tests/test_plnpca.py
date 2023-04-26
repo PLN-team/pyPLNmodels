@@ -28,7 +28,7 @@ def my_instance_plnpca():
 
 
 @pytest.fixture
-def real_all_fitted_plnpca(my_instance_plnpca):
+def real_fitted_plnpca(my_instance_plnpca):
     my_instance_plnpca.fit(counts_real)
     return my_instance_plnpca
 
@@ -49,13 +49,13 @@ def one_simulated_fitted_plnpca():
 
 
 @pytest.fixture
-def real_best_aic(real_all_fitted_plnpca):
-    return real_all_fitted_plnpca.best_model("AIC")
+def real_best_aic(real_fitted_plnpca):
+    return real_fitted_plnpca.best_model("AIC")
 
 
 @pytest.fixture
-def real_best_bic(real_all_fitted_plnpca):
-    return real_all_fitted_plnpca.best_model("BIC")
+def real_best_bic(real_fitted_plnpca):
+    return real_fitted_plnpca.best_model("BIC")
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ all_fitted_simulated_plnpca = [
     lf("simulated_fitted_plnpca"),
     lf("one_simulated_fitted_plnpca"),
 ]
-all_fitted_plnpca = [lf("real_all_fitted_plnpca")] + all_fitted_simulated_plnpca
+all_fitted_plnpca = [lf("real_fitted_plnpca")] + all_fitted_simulated_plnpca
 
 
 def test_print_plnpca(simulated_fitted_plnpca):
@@ -138,10 +138,12 @@ def test_viz_pca(all_pca):
     plt.show()
 
 
-@pytest.mark.parametrize("all_pca", all_fitted_plnpca)
-def test_fails_viz_pca(all_pca):
-    with pytest.raises(Exception):
-        all_pca[8].viz()
+@pytest.mark.parametrize(
+    "pca", [lf("real_fitted_plnpca"), lf("simulated_fitted_plnpca")]
+)
+def test_fails_viz_pca(pca):
+    with pytest.raises(RuntimeError):
+        pca[8].viz()
 
 
 @pytest.mark.parametrize("all_pca", all_fitted_plnpca)
