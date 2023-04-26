@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 import pickle
 import warnings
 import os
+from functools import singledispatchmethod
+from multipledispatch import dispatch
 
 import pandas as pd
 import torch
@@ -68,17 +70,17 @@ class _PLN(ABC):
     _latent_var: torch.Tensor
     _latent_mean: torch.Tensor
 
-    def __init__(self):
+    def __init__(self, counts, covariates, offsets, offsets_formula):
         """
         Simple initialization method.
         """
-        self._fitted = False
-        self.plotargs = PLNPlotArgs(self.WINDOW)
 
-    def format_model_param(self, counts, covariates, offsets, offsets_formula):
         self._counts, self._covariates, self._offsets = format_model_param(
             counts, covariates, offsets, offsets_formula
         )
+        check_data_shape(self._counts, self._covariates, self._offsets)
+        self._fitted = False
+        self.plotargs = PLNPlotArgs(self.WINDOW)
 
     @property
     def nb_iteration_done(self):
@@ -140,16 +142,12 @@ class _PLN(ABC):
 
     def fit(
         self,
-        counts,
-        covariates=None,
-        offsets=None,
         nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-6,
         do_smart_init=True,
         verbose=False,
-        offsets_formula="logsum",
         keep_going=False,
     ):
         """
@@ -169,8 +167,6 @@ class _PLN(ABC):
         self.beginnning_time = time.time()
 
         if keep_going is False:
-            self.format_model_param(counts, covariates, offsets, offsets_formula)
-            check_data_shape(self._counts, self._covariates, self._offsets)
             self.init_parameters(do_smart_init)
         if self._fitted is True and keep_going is True:
             self.beginnning_time -= self.plotargs.running_times[-1]
@@ -487,6 +483,20 @@ class PLN(_PLN):
     NAME = "PLN"
     coef: torch.Tensor
 
+    @singledispatchmethod
+    def __init__(self, counts, covariates=None, offsets=None, offsets_formula="logsum"):
+        super().__init__(counts, covariates, offsets, offsets_formula)
+
+    @__init__.register(str)
+    @__init__.register(str)
+    def _(self, path_of_directory: str, other: str):
+        print("file")
+
+    @__init__.register(pd.DataFrame)
+    @__init__.register(str)
+    def _(self, formula: str, data: pd.DataFrame):
+        print("formula")
+
     @property
     def description(self):
         return "full covariance model."
@@ -590,13 +600,30 @@ class PLN(_PLN):
 
 
 class PLNPCA:
-    def __init__(self, ranks):
+    def __init__(
+        self,
+        counts,
+        covariates=None,
+        offsets=None,
+        offsets_formula="logsum",
+        ranks=range(1, 5),
+    ):
+        self._counts, self._covariates, self._offsets = format_model_param(
+            counts, covariates, offsets, offsets_formula
+        )
+        check_data_shape(self._counts, self._covariates, self._offsets)
+        self._fitted = False
+        self.init_models(ranks)
+
+    def init_models(self, ranks):
         if isinstance(ranks, (list, np.ndarray)):
             self.ranks = ranks
             self.dict_models = {}
             for rank in ranks:
                 if isinstance(rank, (int, np.int64)):
-                    self.dict_models[rank] = _PLNPCA(rank)
+                    self.dict_models[rank] = _PLNPCA(
+                        rank, self._counts, self._covariates, self._offsets
+                    )
                 else:
                     raise TypeError(
                         "Please instantiate with either a list\
@@ -626,34 +653,23 @@ class PLNPCA:
     ## only in PLNPCA, then we don't do it for each _PLNPCA but then PLN is not doing it.
     def fit(
         self,
-        counts,
-        covariates=None,
-        offsets=None,
         nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
         tol=1e-6,
         do_smart_init=True,
         verbose=False,
-        offsets_formula="logsum",
         keep_going=False,
     ):
         self.print_beginning_message()
-        counts, _, offsets = format_model_param(
-            counts, covariates, offsets, offsets_formula
-        )
         for pca in self.dict_models.values():
             pca.fit(
-                counts,
-                covariates,
-                offsets,
                 nb_max_iteration,
                 lr,
                 class_optimizer,
                 tol,
                 do_smart_init,
                 verbose,
-                None,
                 keep_going,
             )
         self.print_ending_message()
@@ -784,18 +800,20 @@ class _PLNPCA(_PLN):
     NAME = "PLNPCA"
     _components: torch.Tensor
 
-    def __init__(self, rank):
-        super().__init__()
+    def __init__(self, rank, counts, covariates, offsets):
         self._rank = rank
+        self._counts = counts
+        self._covariates = covariates
+        self._offsets = offsets
 
-    def init_parameters(self, do_smart_init):
-        if self.dim < self._rank:
-            warning_string = f"\nThe requested rank of approximation {self._rank} \
+        if self.dim < self.rank:
+            warning_string = f"\nThe requested rank of approximation {self.rank} \
                 is greater than the number of variables {self.dim}. \
                 Setting rank to {self.dim}"
             warnings.warn(warning_string)
             self._rank = self.dim
-        super().init_parameters(do_smart_init)
+        self._fitted = False
+        self.plotargs = PLNPlotArgs(self.WINDOW)
 
     @property
     def model_path(self):
