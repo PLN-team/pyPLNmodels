@@ -54,4 +54,6 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3 :: Only",
     ],
+    include_package_data=True,
+    package_data={"": ["data/oaks/*.csv"]},
 )
