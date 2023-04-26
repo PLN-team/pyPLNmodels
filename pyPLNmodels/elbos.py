@@ -35,7 +35,7 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
     elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(covariance), d_plus_minus_xb2))
     elbo -= torch.sum(log_stirling(counts))
     elbo += n_samples * dim / 2
-    return elbo
+    return elbo / n_samples
 
 
 def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
@@ -69,7 +69,7 @@ def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
         + 1 / 2 * torch.log(s_rond_s)
     )
     elbo -= torch.sum(log_stirling(counts))
-    return elbo
+    return elbo / n_samples
 
 
 def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components, coef):
@@ -118,7 +118,7 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
         + mm_plus_s_rond_s
         - log_stirlingcounts
         + n_samples * rank / 2
-    )
+    ) / n_samples
 
 
 ## should rename some variables so that is is clearer when we see the formula

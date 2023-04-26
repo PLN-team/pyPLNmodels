@@ -56,7 +56,7 @@ class _PLN(ABC):
     be defined.
     """
 
-    WINDOW = 3
+    WINDOW = 15
     n_samples: int
     dim: int
     nb_cov: int
@@ -146,7 +146,7 @@ class _PLN(ABC):
         nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-7,
+        tol=1e-6,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
@@ -332,7 +332,7 @@ class _PLN(ABC):
             t0 = time.time()
             self.plotargs.elbos_list.append(self.compute_elbo().item())
             self.plotargs.running_times.append(time.time() - t0)
-        return self.elbos_list[-1]
+        return self.n_samples * self.elbos_list[-1]
 
     @property
     def BIC(self):
@@ -632,7 +632,7 @@ class PLNPCA:
         nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-7,
+        tol=1e-6,
         do_smart_init=True,
         verbose=False,
         offsets_formula="logsum",
