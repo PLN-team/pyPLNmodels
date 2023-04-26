@@ -28,7 +28,7 @@ class PLNPlotArgs:
     def iteration_number(self):
         return len(self.elbos_list)
 
-    def show_loss(self, ax=None, savefig=False, name_doss=""):
+    def show_loss(self, ax=None, name_doss=""):
         """Show the ELBO of the algorithm along the iterations.
 
         args:
@@ -53,11 +53,8 @@ class PLNPlotArgs:
         ax.set_xlabel("Seconds")
         ax.set_ylabel("ELBO")
         ax.legend()
-        # save the graphic if needed
-        if savefig:
-            plt.savefig(name_doss)
 
-    def show_stopping_criterion(self, ax=None, savefig=False, name_doss=""):
+    def show_stopping_criterion(self, ax=None, name_doss=""):
         """Show the criterion of the algorithm along the iterations.
 
         args:
@@ -82,9 +79,6 @@ class PLNPlotArgs:
         ax.set_ylabel("Delta")
         ax.set_title("Increments")
         ax.legend()
-        # save the graphic if needed
-        if savefig:
-            plt.savefig(name_doss)
 
 
 def init_sigma(counts, covariates, coef):

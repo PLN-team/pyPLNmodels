@@ -189,8 +189,8 @@ def test_properties(any_pln):
 @pytest.mark.parametrize("any_pln", all_fitted_models)
 def test_show_coef_transform_covariance_pcaprojected(any_pln):
     any_pln.show()
-    any_pln.plotargs.show_loss(savefig=True)
-    any_pln.plotargs.show_stopping_criterion(savefig=True)
+    any_pln.plotargs.show_loss()
+    any_pln.plotargs.show_stopping_criterion()
     assert hasattr(any_pln, "coef")
     assert callable(any_pln.transform)
     assert hasattr(any_pln, "covariance")
