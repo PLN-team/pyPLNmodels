@@ -70,7 +70,8 @@ class _PLN(ABC):
     _latent_var: torch.Tensor
     _latent_mean: torch.Tensor
 
-    def __init__(self, counts, covariates, offsets, offsets_formula):
+    @singledispatchmethod
+    def __init__(self, counts, covariates=None, offsets=None, offsets_formula="logsum"):
         """
         Simple initialization method.
         """
@@ -81,6 +82,10 @@ class _PLN(ABC):
         check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
+
+    @__init__.register(str)
+    def _(self, formula: str, data: pd.DataFrame):
+        print("formula")
 
     @property
     def nb_iteration_done(self):
@@ -483,20 +488,6 @@ class PLN(_PLN):
     NAME = "PLN"
     coef: torch.Tensor
 
-    @singledispatchmethod
-    def __init__(self, counts, covariates=None, offsets=None, offsets_formula="logsum"):
-        super().__init__(counts, covariates, offsets, offsets_formula)
-
-    @__init__.register(str)
-    @__init__.register(str)
-    def _(self, path_of_directory: str, other: str):
-        print("file")
-
-    @__init__.register(pd.DataFrame)
-    @__init__.register(str)
-    def _(self, formula: str, data: pd.DataFrame):
-        print("formula")
-
     @property
     def description(self):
         return "full covariance model."
@@ -600,6 +591,7 @@ class PLN(_PLN):
 
 
 class PLNPCA:
+    @singledispatchmethod
     def __init__(
         self,
         counts,
@@ -614,6 +606,10 @@ class PLNPCA:
         check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
         self.init_models(ranks)
+
+    @__init__.register(str)
+    def _(self, formula: str, data: pd.DataFrame):
+        print("formula")
 
     def init_models(self, ranks):
         if isinstance(ranks, (list, np.ndarray)):
