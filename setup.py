@@ -55,5 +55,5 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
     ],
     include_package_data=True,
-    package_data={'': ['data/oaks/*.csv']},
+    package_data={"": ["data/oaks/*.csv"]},
 )
