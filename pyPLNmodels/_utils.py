@@ -293,9 +293,9 @@ def log_posterior(counts, covariates, offsets, posterior_mean, components, coef)
     return first_term + second_term
 
 
-def trunc_log(tens, eps=1e-16):
-    integer = torch.min(torch.max(tens, torch.tensor([eps])), torch.tensor([1 - eps]))
-    return torch.log(integer)
+def trunc_log(tens, eps=1e-12):
+    clamped = torch.clamp(tens, min=eps, max=1 - eps)
+    return torch.log(clamped)
 
 
 def get_offsets_from_sum_of_counts(counts):

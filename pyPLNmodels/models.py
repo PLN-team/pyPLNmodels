@@ -36,6 +36,8 @@ from ._utils import (
     to_tensor,
     check_dimensions_are_equal,
     MSE,
+    mat_to_vec,
+    vec_to_mat,
 )
 
 if torch.cuda.is_available():
@@ -696,26 +698,34 @@ class PLNPCA:
         return {model.rank: model.loglike for model in self.models}
 
     def show(self):
+        """
+        Plots the BIC criterion, AIC criterion, and negative log likelihood for each model
+        in the object and highlights the best models based on the criteria.
+        """
         bic = self.BIC
         aic = self.AIC
         loglikes = self.loglikes
-        bic_color = "blue"
-        aic_color = "red"
-        loglikes_color = "orange"
-        plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
-        plt.plot(bic.keys(), bic.values(), c=bic_color)
-        plt.axvline(self.best_BIC_model_rank, c=bic_color, linestyle="dotted")
-        plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
-        plt.axvline(self.best_AIC_model_rank, c=aic_color, linestyle="dotted")
-        plt.plot(aic.keys(), aic.values(), c=aic_color)
-        plt.xticks(list(aic.keys()))
-        plt.scatter(
-            loglikes.keys(),
-            -np.array(list(loglikes.values())),
-            label="Negative log likelihood",
-            c=loglikes_color,
-        )
-        plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
+        colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
+        for criterion, values in zip(
+            ["BIC", "AIC", "Negative log likelihood"], [bic, aic, loglikes]
+        ):
+            plt.scatter(
+                values.keys(),
+                values.values(),
+                label=f"{criterion} criterion",
+                c=colors[criterion],
+            )
+            plt.plot(values.keys(), values.values(), c=colors[criterion])
+            if criterion == "BIC":
+                plt.axvline(
+                    self.best_BIC_model_rank, c=colors[criterion], linestyle="dotted"
+                )
+            elif criterion == "AIC":
+                plt.axvline(
+                    self.best_AIC_model_rank, c=colors[criterion], linestyle="dotted"
+                )
+            if criterion == "AIC":
+                plt.xticks(list(values.keys()))
         plt.legend()
         plt.show()
 
@@ -948,11 +958,20 @@ class ZIPLN(_PLN):
     def random_init_model_parameters(self):
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)
         self._coef = torch.randn(self.nb_cov, self.dim)
-        self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
+        # self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
+
+        self._components = torch.randn(int(self.dim * (self.dim + 1) / 2))
+        # self._components = torch.randn(self.dim, self.dim)
 
     # should change the good initialization, especially for _coef_inflation
     def smart_init_model_parameters(self):
         self.random_init_model_parameters()
+
+    @property
+    def _covariance(self):
+        mat = vec_to_mat(self._components, self.dim, self.dim)
+        # mat = self._components
+        return torch.matmul(mat, mat.T)
 
     def random_init_latent_parameters(self):
         self._dirac = self._counts == 0
@@ -995,7 +1014,7 @@ class ZIPLN(_PLN):
         l = l + [self._coef]
         l = l + [self._coef_inflation]
         l = l + [self._latent_prob]
-        # l = l + [self._covariance]
+        l = l + [self._components]
         return l
         # return [self._latent_mean, self._latent_var, self._coef_inflation, self._coef, self._latent_prob]
         # return [self._latent_mean, self._latent_var, self._coef_inflation, self._coef]
@@ -1031,10 +1050,12 @@ class ZIPLN(_PLN):
 
     def print_mse(self):
         fig, axes = plt.subplots(2)
-        absc = np.arange(len(self.mse_sigma_list))[-200:]
-        axes[0].plot(absc, self.mse_sigma_list[-200:], label="sigma")
-        axes[0].plot(absc, self.mse_coef_list[-200:], label="coef")
-        axes[0].plot(absc, self.mse_infla_list[-200:], label="infla")
+        nb_to_plot = len(self.mse_sigma_list)
+        absc = np.arange(len(self.mse_sigma_list))[-nb_to_plot:]
+        axes[0].plot(absc, self.mse_sigma_list[-nb_to_plot:], label="sigma")
+        axes[0].plot(absc, self.mse_coef_list[-nb_to_plot:], label="coef")
+        axes[0].plot(absc, self.mse_infla_list[-nb_to_plot:], label="infla")
+        axes[0].set_yscale("log")
         axes[0].legend()
-        axes[1].plot(absc, self.elbos_list[-200:])
+        axes[1].plot(absc, self.elbos_list[-nb_to_plot:])
         plt.show()
