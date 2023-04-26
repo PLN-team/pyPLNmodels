@@ -360,7 +360,7 @@ def prepare_covariates(covariates, n_samples):
     if covariates is None:
         return full_of_ones
     covariates = format_data(covariates)
-    return torch.stack((full_of_ones, covariates), axis=1).squeeze()
+    return torch.concat((full_of_ones, covariates), axis=1)
 
 
 def check_data_shape(counts, covariates, offsets):
