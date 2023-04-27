@@ -878,9 +878,7 @@ class _PLNPCA(_PLN):
     def covariance(self):
         if hasattr(self, "_components"):
             cov_latent = self._latent_mean.T @ self._latent_mean
-            cov_latent += torch.diag(
-                torch.sum(self._latent_var * self._latent_var), dim=0)
-            )
+            cov_latent += torch.diag(torch.sum(torch.square(self._latent_var), dim=0))
             cov_latent /= self.n_samples
             return (self._components @ cov_latent @ self._components.T).detach()
         return None

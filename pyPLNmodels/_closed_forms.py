@@ -3,26 +3,20 @@ import torch  # pylint:disable=[C0114]
 
 def closed_formula_covariance(covariates, latent_mean, latent_var, coef, n_samples):
     """Closed form for covariance for the M step for the noPCA model."""
-    m_moins_xb = latent_mean - torch.mm(covariates, coef)
-    closed = torch.mm(m_moins_xb.T, m_moins_xb)
-    closed += torch.diag(torch.sum(torch.multiply(latent_var, latent_var), dim=0))
-    return 1 / (n_samples) * closed
+    m_moins_xb = latent_mean - covariates @ coef
+    closed = m_moins_xb.T @ m_moins_xb + torch.diag(
+        torch.sum(torch.square(latent_var), dim=0)
+    )
+    return closed / n_samples
 
 
 def closed_formula_coef(covariates, latent_mean):
     """Closed form for coef for the M step for the noPCA model."""
-    return torch.mm(
-        torch.mm(torch.inverse(torch.mm(covariates.T, covariates)), covariates.T),
-        latent_mean,
-    )
+    return torch.inverse(covariates.T @ covariates) @ covariates.T @ latent_mean
 
 
 def closed_formula_pi(
     offsets, latent_mean, latent_var, dirac, covariates, _coef_inflation
 ):
-    poiss_param = torch.exp(
-        offsets + latent_mean + torch.multiply(latent_var, latent_var) / 2
-    )
-    return torch.multiply(
-        torch.sigmoid(poiss_param + torch.mm(covariates, _coef_inflation)), dirac
-    )
+    poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_var))
+    return torch.sigmoid(poiss_param + torch.mm(covariates, _coef_inflation)) * dirac
