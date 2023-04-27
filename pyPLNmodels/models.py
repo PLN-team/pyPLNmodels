@@ -12,6 +12,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from patsy import dmatrices
 
 
 from ._closed_forms import (
@@ -85,7 +86,10 @@ class _PLN(ABC):
 
     @__init__.register(str)
     def _(self, formula: str, data: pd.DataFrame):
-        print("formula")
+        dmatrix = dmatrices(formula, data=data)
+        self._counts = dmatrix[0]
+        self._covariates = dmatrix[1]
+        offsets = None
 
     @property
     def nb_iteration_done(self):
