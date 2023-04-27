@@ -1,9 +1,9 @@
-import torch
+import torch  # pylint:disable=[C0114]
 from ._utils import log_stirling, trunc_log
-from ._closed_forms import closed_formula_Sigma, closed_formula_beta
+from ._closed_forms import closed_formula_covariance, closed_formula_coef
 
 
-def ELBOPLN(counts, covariates, offsets, M, S, Sigma, beta):
+def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, coef):
     """
     Compute the ELBO (Evidence LOwer Bound) for the PLN model. See the doc for more details
     on the computation.
@@ -12,66 +12,67 @@ def ELBOPLN(counts, covariates, offsets, M, S, Sigma, beta):
         counts: torch.tensor. Counts with size (n,p)
         0: torch.tensor. Offset, size (n,p)
         covariates: torch.tensor. Covariates, size (n,d)
-        M: torch.tensor. Variational parameter with size (n,p)
-        S: torch.tensor. Variational parameter with size (n,p)
-        Sigma: torch.tensor. Model parameter with size (p,p)
-        beta: torch.tensor. Model parameter with size (d,p)
+        latent_mean: torch.tensor. Variational parameter with size (n,p)
+        latent_var: torch.tensor. Variational parameter with size (n,p)
+        covariance: torch.tensor. Model parameter with size (p,p)
+        coef: torch.tensor. Model parameter with size (d,p)
     Returns:
         torch.tensor of size 1 with a gradient.
     """
-    n, p = counts.shape
-    SrondS = torch.multiply(S, S)
-    offsetsplusM = offsets + M
-    MmoinsXB = M - torch.mm(covariates, beta)
-    elbo = -n / 2 * torch.logdet(Sigma)
+    n_samples, dim = counts.shape
+    s_rond_s = torch.square(latent_var)
+    offsets_plus_m = offsets + latent_mean
+    m_minus_xb = latent_mean - covariates @ coef
+    d_plus_minus_xb2 = (
+        torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
+    )
+    elbo = -0.5 * n_samples * torch.logdet(covariance)
     elbo += torch.sum(
-        torch.multiply(counts, offsetsplusM)
-        - torch.exp(offsetsplusM + SrondS / 2)
-        + 1 / 2 * torch.log(SrondS)
+        counts * offsets_plus_m
+        - 0.5 * torch.exp(offsets_plus_m + s_rond_s)
+        + 0.5 * torch.log(s_rond_s)
     )
-    DplusMmoinsXB2 = torch.diag(torch.sum(SrondS, dim=0)) + torch.mm(
-        MmoinsXB.T, MmoinsXB
-    )
-    moinspsur2n = 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
-    elbo -= 1 / 2 * torch.trace(torch.mm(torch.inverse(Sigma), DplusMmoinsXB2))
+    elbo -= 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
     elbo -= torch.sum(log_stirling(counts))
-    elbo += n * p / 2
-    return elbo
+    elbo += 0.5 * n_samples * dim
+    return elbo / n_samples
 
 
-def profiledELBOPLN(counts, covariates, offsets, M, S):
+def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
     """
-    Compute the ELBO (Evidence LOwer Bound) for the PLN model. We use the fact that Sigma and beta are
-    completely determined by M,S, and the covariates. See the doc for more details
+    Compute the ELBO (Evidence LOwer Bound) for the PLN model. We use the fact that covariance and coef are
+    completely determined by latent_mean,latent_var, and the covariates. See the doc for more details
     on the computation.
 
     Args:
         counts: torch.tensor. Counts with size (n,p)
         0: torch.tensor. Offset, size (n,p)
         covariates: torch.tensor. Covariates, size (n,d)
-        M: torch.tensor. Variational parameter with size (n,p)
-        S: torch.tensor. Variational parameter with size (n,p)
-        Sigma: torch.tensor. Model parameter with size (p,p)
-        beta: torch.tensor. Model parameter with size (d,p)
+        latent_mean: torch.tensor. Variational parameter with size (n,p)
+        latent_var: torch.tensor. Variational parameter with size (n,p)
+        covariance: torch.tensor. Model parameter with size (p,p)
+        coef: torch.tensor. Model parameter with size (d,p)
     Returns:
         torch.tensor of size 1 with a gradient.
     """
-    n, p = counts.shape
-    SrondS = torch.multiply(S, S)
-    offsetsplusM = offsets + M
-    closed_beta = closed_formula_beta(covariates, M)
-    closed_Sigma = closed_formula_Sigma(covariates, M, S, closed_beta, n)
-    elbo = -n / 2 * torch.logdet(closed_Sigma)
+    n_samples, _ = counts.shape
+    s_rond_s = torch.square(latent_var)
+    offsets_plus_m = offsets + latent_mean
+    closed_coef = closed_formula_coef(covariates, latent_mean)
+    closed_covariance = closed_formula_covariance(
+        covariates, latent_mean, latent_var, closed_coef, n_samples
+    )
+    elbo = -0.5 * n_samples * torch.logdet(closed_covariance)
     elbo += torch.sum(
-        torch.multiply(counts, offsetsplusM)
-        - torch.exp(offsetsplusM + SrondS / 2)
-        + 1 / 2 * torch.log(SrondS)
+        counts * offsets_plus_m
+        - torch.exp(offsets_plus_m + s_rond_s / 2)
+        + 0.5 * torch.log(s_rond_s)
     )
     elbo -= torch.sum(log_stirling(counts))
-    return elbo
+    return elbo / n_samples
 
 
-def ELBOPLNPCA(counts, covariates, offsets, M, S, C, beta):
+def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components, coef):
     """
     Compute the ELBO (Evidence LOwer Bound) for the PLN model with a PCA
     parametrization. See the doc for more details on the computation.
@@ -80,36 +81,49 @@ def ELBOPLNPCA(counts, covariates, offsets, M, S, C, beta):
         counts: torch.tensor. Counts with size (n,p)
         0: torch.tensor. Offset, size (n,p)
         covariates: torch.tensor. Covariates, size (n,d)
-        M: torch.tensor. Variational parameter with size (n,p)
-        S: torch.tensor. Variational parameter with size (n,p)
-        C: torch.tensor. Model parameter with size (p,q)
-        beta: torch.tensor. Model parameter with size (d,p)
+        latent_mean: torch.tensor. Variational parameter with size (n,p)
+        latent_var: torch.tensor. Variational parameter with size (n,p)
+        components: torch.tensor. Model parameter with size (p,q)
+        coef: torch.tensor. Model parameter with size (d,p)
     Returns:
         torch.tensor of size 1 with a gradient.
     """
-    n = counts.shape[0]
-    rank = C.shape[1]
-    A = offsets + torch.mm(covariates, beta) + torch.mm(M, C.T)
-    SrondS = torch.multiply(S, S)
-    countsA = torch.sum(torch.multiply(counts, A))
-    moinsexpAplusSrondSCCT = torch.sum(
-        -torch.exp(A + 1 / 2 * torch.mm(SrondS, torch.multiply(C, C).T))
+    n_samples = counts.shape[0]
+    rank = components.shape[1]
+    log_intensity = offsets + covariates @ coef + latent_mean @ components.T
+    s_rond_s = torch.square(latent_var)
+    counts_log_intensity = torch.sum(counts * log_intensity)
+    minus_intensity_plus_s_rond_s_cct = torch.sum(
+        -torch.exp(log_intensity + 0.5 * s_rond_s @ (components * components).T)
     )
-    moinslogSrondS = 1 / 2 * torch.sum(torch.log(SrondS))
-    MMplusSrondS = torch.sum(-1 / 2 * (torch.multiply(M, M) + torch.multiply(S, S)))
+    minuslogs_rond_s = 0.5 * torch.sum(torch.log(s_rond_s))
+    mm_plus_s_rond_s = -0.5 * torch.sum(
+        torch.square(latent_mean) + torch.square(latent_var)
+    )
     log_stirlingcounts = torch.sum(log_stirling(counts))
     return (
-        countsA
-        + moinsexpAplusSrondSCCT
-        + moinslogSrondS
-        + MMplusSrondS
+        counts_log_intensity
+        + minus_intensity_plus_s_rond_s_cct
+        + minuslogs_rond_s
+        + mm_plus_s_rond_s
         - log_stirlingcounts
-        + n * rank / 2
-    )
+        + 0.5 * n_samples * rank
+    ) / n_samples
 
 
 ## should rename some variables so that is is clearer when we see the formula
-def ELBOZIPLN(counts, covariates, offsets, M, S, pi, Sigma, beta, B_zero, dirac):
+def elbo_zi_pln(
+    counts,
+    covariates,
+    offsets,
+    latent_mean,
+    latent_var,
+    pi,
+    covariance,
+    coef,
+    _coef_inflation,
+    dirac,
+):
     """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated PLN model.
     See the doc for more details on the computation.
 
@@ -117,50 +131,46 @@ def ELBOZIPLN(counts, covariates, offsets, M, S, pi, Sigma, beta, B_zero, dirac)
         counts: torch.tensor. Counts with size (n,p)
         0: torch.tensor. Offset, size (n,p)
         covariates: torch.tensor. Covariates, size (n,d)
-        M: torch.tensor. Variational parameter with size (n,p)
-        S: torch.tensor. Variational parameter with size (n,p)
+        latent_mean: torch.tensor. Variational parameter with size (n,p)
+        latent_var: torch.tensor. Variational parameter with size (n,p)
         pi: torch.tensor. Variational parameter with size (n,p)
-        Sigma: torch.tensor. Model parameter with size (p,p)
-        beta: torch.tensor. Model parameter with size (d,p)
-        B_zero: torch.tensor. Model parameter with size (d,p)
+        covariance: torch.tensor. Model parameter with size (p,p)
+        coef: torch.tensor. Model parameter with size (d,p)
+        _coef_inflation: torch.tensor. Model parameter with size (d,p)
     Returns:
         torch.tensor of size 1 with a gradient.
     """
     if torch.norm(pi * dirac - pi) > 0.0001:
         print("Bug")
         return False
-    n = counts.shape[0]
-    p = counts.shape[1]
-    SrondS = torch.multiply(S, S)
-    offsetsplusM = offsets + M
-    MmoinsXB = M - torch.mm(covariates, beta)
-    XB_zero = torch.mm(covariates, B_zero)
+    n_samples = counts.shape[0]
+    dim = counts.shape[1]
+    s_rond_s = torch.square(latent_var)
+    offsets_plus_m = offsets + latent_mean
+    m_minus_xb = latent_mean - covariates @ coef
+    x_coef_inflation = covariates @ _coef_inflation
     elbo = torch.sum(
-        torch.multiply(
-            1 - pi,
-            torch.multiply(counts, offsetsplusM)
-            - torch.exp(offsetsplusM + SrondS / 2)
+        (1 - pi)
+        * (
+            counts @ offsets_plus_m
+            - torch.exp(offsets_plus_m + s_rond_s / 2)
             - log_stirling(counts),
         )
         + pi
     )
 
-    elbo -= torch.sum(
-        torch.multiply(pi, trunc_log(pi)) + torch.multiply(1 - pi, trunc_log(1 - pi))
+    elbo -= torch.sum(pi * trunc_log(pi) + (1 - pi) * trunc_log(1 - pi))
+    elbo += torch.sum(
+        pi * x_coef_inflation - torch.log(1 + torch.exp(x_coef_inflation))
     )
-    elbo += torch.sum(torch.multiply(pi, XB_zero) - torch.log(1 + torch.exp(XB_zero)))
 
-    elbo -= (
-        1
-        / 2
-        * torch.trace(
-            torch.mm(
-                torch.inverse(Sigma),
-                torch.diag(torch.sum(SrondS, dim=0)) + torch.mm(MmoinsXB.T, MmoinsXB),
-            )
+    elbo -= 0.5 * torch.trace(
+        torch.mm(
+            torch.inverse(covariance),
+            torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb,
         )
     )
-    elbo += n / 2 * torch.log(torch.det(Sigma))
-    elbo += n * p / 2
-    elbo += torch.sum(1 / 2 * torch.log(SrondS))
+    elbo += 0.5 * n_samples * torch.log(torch.det(covariance))
+    elbo += 0.5 * n_samples * dim
+    elbo += 0.5 * torch.sum(torch.log(s_rond_s))
     return elbo

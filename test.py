@@ -1,21 +1,25 @@
-from pyPLNmodels.VEM import PLN, PLNPCA
-import torch
-import numpy as np
-import pandas as pd
+from pyPLNmodels.models import PLNPCA, _PLNPCA, PLN
+from pyPLNmodels import get_real_count_data, get_simulated_count_data
 
-if torch.cuda.is_available():
-    DEVICE = "cuda"
-else:
-    DEVICE = "cpu"
+import os
 
-Y = pd.read_csv("./example_data/real_data/oaks_counts.csv")
+os.chdir("./pyPLNmodels/")
+
+
+counts = get_real_count_data()
 covariates = None
-O = np.log(pd.read_csv("./example_data/real_data/oaks_offsets.csv"))
+offsets = None
+# counts, covariates, offsets = get_simulated_count_data(seed = 0)
 
-pln = PLN()
-pln.fit(Y, covariates, O)
-print(pln)
+pca = PLNPCA([3, 4])
 
-pca = PLNPCA(ranks=[4, 5])
-pca.fit(Y, covariates, O, tol=0.1)
-print(pca.best_model())
+pca.fit(counts, covariates, offsets, tol=0.1)
+print(pca)
+
+# pln = PLN()
+# pcamodel = pca.best_model()
+# pcamodel.save()
+# model = PLNPCA([4])[4]
+
+# model.load()
+# # pln.fit(counts, covariates, offsets, tol=0.1)
