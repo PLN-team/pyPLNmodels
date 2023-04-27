@@ -29,10 +29,10 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
     elbo = -0.5 * n_samples * torch.logdet(covariance)
     elbo += torch.sum(
         counts * offsets_plus_m
-        - torch.exp(offsets_plus_m + s_rond_s / 2)
+        - 0.5 * torch.exp(offsets_plus_m + s_rond_s)
         + 0.5 * torch.log(s_rond_s)
     )
-    elbo -= 0.5 * torch.trace(torch.mm(torch.inverse(covariance), d_plus_minus_xb2))
+    elbo -= 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
     elbo -= torch.sum(log_stirling(counts))
     elbo += 0.5 * n_samples * dim
     return elbo / n_samples
@@ -90,10 +90,8 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
     """
     n_samples = counts.shape[0]
     rank = components.shape[1]
-    log_intensity = (
-        offsets + torch.mm(covariates, coef) + torch.mm(latent_mean, components.T)
-    )
-    s_rond_s = torch.multiply(latent_var, latent_var)
+    log_intensity = offsets + covariates @ coef + latent_mean @ components.T
+    s_rond_s = torch.square(latent_var)
     counts_log_intensity = torch.sum(counts * log_intensity)
     minus_intensity_plus_s_rond_s_cct = torch.sum(
         -torch.exp(log_intensity + 0.5 * s_rond_s @ (components * components).T)
@@ -147,40 +145,32 @@ def elbo_zi_pln(
         return False
     n_samples = counts.shape[0]
     dim = counts.shape[1]
-    s_rond_s = torch.multiply(latent_var, latent_var)
+    s_rond_s = torch.square(latent_var)
     offsets_plus_m = offsets + latent_mean
-    m_minus_xb = latent_mean - torch.mm(covariates, coef)
-    x_coef_inflation = torch.mm(covariates, _coef_inflation)
+    m_minus_xb = latent_mean - covariates @ coef
+    x_coef_inflation = covariates @ _coef_inflation
     elbo = torch.sum(
-        torch.multiply(
-            1 - pi,
-            torch.multiply(counts, offsets_plus_m)
+        (1 - pi)
+        * (
+            counts @ offsets_plus_m
             - torch.exp(offsets_plus_m + s_rond_s / 2)
             - log_stirling(counts),
         )
         + pi
     )
 
-    elbo -= torch.sum(
-        torch.multiply(pi, trunc_log(pi)) + torch.multiply(1 - pi, trunc_log(1 - pi))
-    )
+    elbo -= torch.sum(pi * trunc_log(pi) + (1 - pi) * trunc_log(1 - pi))
     elbo += torch.sum(
-        torch.multiply(pi, x_coef_inflation)
-        - torch.log(1 + torch.exp(x_coef_inflation))
+        pi * x_coef_inflation - torch.log(1 + torch.exp(x_coef_inflation))
     )
 
-    elbo -= (
-        1
-        / 2
-        * torch.trace(
-            torch.mm(
-                torch.inverse(covariance),
-                torch.diag(torch.sum(s_rond_s, dim=0))
-                + torch.mm(m_minus_xb.T, m_minus_xb),
-            )
+    elbo -= 0.5 * torch.trace(
+        torch.mm(
+            torch.inverse(covariance),
+            torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb,
         )
     )
-    elbo += n_samples / 2 * torch.log(torch.det(covariance))
-    elbo += n_samples * dim / 2
-    elbo += torch.sum(1 / 2 * torch.log(s_rond_s))
+    elbo += 0.5 * n_samples * torch.log(torch.det(covariance))
+    elbo += 0.5 * n_samples * dim
+    elbo += 0.5 * torch.sum(torch.log(s_rond_s))
     return elbo
