@@ -4,7 +4,6 @@ import pickle
 import warnings
 import os
 from functools import singledispatchmethod
-from multipledispatch import dispatch
 
 import pandas as pd
 import torch
@@ -83,13 +82,15 @@ class _PLN(ABC):
         check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
+        print("normal init")
 
     @__init__.register(str)
-    def _(self, formula: str, data: pd.DataFrame):
+    def _(self, formula: str, data: pd.DataFrame, offsets_formula="logsum"):
         dmatrix = dmatrices(formula, data=data)
-        self._counts = dmatrix[0]
-        self._covariates = dmatrix[1]
+        counts = dmatrix[0]
+        covariates = dmatrix[1]
         offsets = None
+        super().__init__(counts, covariates, offsets, offsets_formula)
 
     @property
     def nb_iteration_done(self):

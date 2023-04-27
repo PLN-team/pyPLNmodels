@@ -13,13 +13,14 @@ covariates = None
 offsets = None
 # counts, covariates, offsets = get_simulated_count_data(seed = 0)
 
-pca = PLNPCA(counts, covariates, offsets, ranks=[3, 4])
-pca.fit()
+# pca = PLNPCA(counts, covariates, offsets, ranks=[3, 4])
+# pca.fit(tol = 0.1)
 
 # pca.fit()
 # print(pca)
-
-# pln = PLN(counts, covariates, offsets)
+data = pd.DataFrame(counts)
+print("data :", data)
+# pln = PLN("counts~1", data)
 # pln.fit()
 # print(pln)
 # pcamodel = pca.best_model()
