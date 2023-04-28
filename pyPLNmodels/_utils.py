@@ -87,7 +87,7 @@ class PLNPlotArgs:
             plt.savefig(name_doss)
 
 
-def init_sigma(counts, covariates, coef):
+def init_covariance(counts, covariates, coef):
     """Initialization for covariance for the PLN model. Take the log of counts
     (careful when counts=0), remove the covariates effects X@coef and
     then do as a MLE for Gaussians samples.
@@ -99,9 +99,7 @@ def init_sigma(counts, covariates, coef):
     Returns : torch.tensor of size (p,p).
     """
     log_y = torch.log(counts + (counts == 0) * math.exp(-2))
-    log_y_centered = (
-        log_y - torch.matmul(covariates.unsqueeze(1), coef.unsqueeze(0)).squeeze()
-    )
+    log_y_centered = log_y - torch.mean(log_y, axis=0)
     # MLE in a Gaussian setting
     n_samples = counts.shape[0]
     sigma_hat = 1 / (n_samples - 1) * (log_y_centered.T) @ log_y_centered
@@ -121,7 +119,7 @@ def init_components(counts, covariates, coef, rank):
     Returns :
         torch.tensor of size (p,rank). The initialization of components.
     """
-    sigma_hat = init_sigma(counts, covariates, coef).detach()
+    sigma_hat = init_covariance(counts, covariates, coef).detach()
     components = components_from_covariance(sigma_hat, rank)
     return components
 
@@ -241,13 +239,8 @@ def components_from_covariance(covariance, rank):
     return requested_components
 
 
-def init_coef(counts, covariates):
-    log_y = torch.log(counts + (counts == 0) * math.exp(-2))
-    log_y = log_y.to(DEVICE)
-    return torch.matmul(
-        torch.inverse(torch.matmul(covariates.T, covariates)),
-        torch.matmul(covariates.T, log_y),
-    )
+def init_coef(counts, covariates, offsets):
+    poiss_reg = PoissonReg()
 
 
 def log_stirling(integer):
@@ -452,7 +445,7 @@ def closest(lst, K):
     return lst[idx]
 
 
-class poissonReg:
+class PoissonReg:
     """Poisson regressor class."""
 
     def __init__(self):
