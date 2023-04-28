@@ -552,3 +552,8 @@ def to_tensor(obj):
     if isinstance(obj, pd.DataFrame):
         return torch.from_numpy(obj.values)
     raise TypeError("Please give either a nd.array or torch.Tensor or pd.DataFrame")
+
+
+def check_dimensions_are_equal(tens1, tens2):
+    if tens1.shape[0] != tens2.shape[0] or tens1.shape[1] != tens2.shape[1]:
+        raise ValueError("Tensors should have the same size.")
