@@ -327,6 +327,18 @@ def check_two_dimensions_are_equal(
         )
 
 
+def init_S(counts, covariates, offsets, beta, C, M):
+    n, rank = M.shape
+    batch_matrix = torch.matmul(C.unsqueeze(2), C.unsqueeze(1)).unsqueeze(0)
+    CW = torch.matmul(C.unsqueeze(0), M.unsqueeze(2)).squeeze()
+    common = torch.exp(offsets + covariates @ beta + CW).unsqueeze(2).unsqueeze(3)
+    prod = batch_matrix * common
+    hess_posterior = torch.sum(prod, axis=1) + torch.eye(rank).to(DEVICE)
+    inv_hess_posterior = -torch.inverse(hess_posterior)
+    hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
+    return hess_posterior
+
+
 def format_data(data):
     if isinstance(data, pd.DataFrame):
         return torch.from_numpy(data.values).double().to(DEVICE)
@@ -406,87 +418,97 @@ def plot_ellipse(mean_x, mean_y, cov, ax):
     return pearson
 
 
-def get_components_simulation(dim, rank):
-    block_size = dim // rank
-    prev_state = torch.random.get_rng_state()
-    torch.random.manual_seed(0)
-    components = torch.zeros(dim, rank)
-    for column_number in range(rank):
-        components[
-            column_number * block_size : (column_number + 1) * block_size, column_number
-        ] = 1
-    components += torch.randn(dim, rank) / 8
-    torch.random.set_rng_state(prev_state)
-    return components.to(DEVICE)
-
-
-def get_simulation_offsets_cov_coef(n_samples, nb_cov, dim):
-    prev_state = torch.random.get_rng_state()
-    torch.random.manual_seed(0)
-    if nb_cov < 2:
-        covariates = None
-    else:
-        covariates = torch.randint(
-            low=-1,
-            high=2,
-            size=(n_samples, nb_cov - 1),
-            dtype=torch.float64,
-            device=DEVICE,
-        )
-    coef = torch.randn(nb_cov, dim, device=DEVICE)
-    offsets = torch.randint(
-        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device=DEVICE
-    )
-    torch.random.set_rng_state(prev_state)
-    return offsets, covariates, coef
-
-
-def get_simulated_count_data(
-    n_samples=100, dim=25, rank=5, nb_cov=1, return_true_param=False, seed=0
-):
-    components = get_components_simulation(dim, rank)
-    offsets, cov, true_coef = get_simulation_offsets_cov_coef(n_samples, nb_cov, dim)
-    true_covariance = torch.matmul(components, components.T)
-    counts, _, _ = sample_pln(components, true_coef, cov, offsets, seed=seed)
+def get_simulated_count_data(n=100, p=25, rank=25, d=1, return_true_param=False):
+    true_beta = torch.randn(d + 1, p, device=DEVICE)
+    C = torch.randn(p, rank, device=DEVICE) / 5
+    O = torch.ones((n, p), device=DEVICE) / 2
+    covariates = torch.randn((n, d), device=DEVICE)
+    true_Sigma = torch.matmul(C, C.T)
+    Y, _, _ = sample_PLN(C, true_beta, covariates, O)
     if return_true_param is True:
-        return counts, cov, offsets, true_covariance, true_coef
-    return counts, cov, offsets
+        return Y, covariates, O, true_Sigma, true_beta
+    return Y, covariates, O
 
 
-def get_real_count_data(n_samples=270, dim=100):
-    if n_samples > 297:
+def get_real_count_data(n=270, p=100):
+    if n > 297:
         warnings.warn(
-            f"\nTaking the whole 270 samples of the dataset. Requested:n_samples={n_samples}, returned:270"
+            f"\nTaking the whole 270 samples of the dataset. Requested:n={n}, returned:270"
         )
-        n_samples = 270
-    if dim > 100:
+        n = 270
+    if p > 100:
         warnings.warn(
-            f"\nTaking the whole 100 variables. Requested:dim={dim}, returned:100"
+            f"\nTaking the whole 100 variables. Requested:p={p}, returned:100"
         )
         dim = 100
-    counts = pd.read_csv("../example_data/real_data/Y_mark.csv").values[
-        :n_samples, :dim
-    ]
-    print(f"Returning dataset of size {counts.shape}")
-    return counts
+    Y = pd.read_csv("../example_data/real_data/Y_mark.csv").values[:n, :p]
+    print(f"Returning dataset of size {Y.shape}")
+    return Y
 
 
-def closest(lst, element):
+def closest(lst, K):
     lst = np.asarray(lst)
-    idx = (np.abs(lst - element)).argmin()
+    idx = (np.abs(lst - K)).argmin()
     return lst[idx]
 
 
-def check_dimensions_are_equal(tens1, tens2):
-    if tens1.shape[0] != tens2.shape[0] or tens1.shape[1] != tens2.shape[1]:
-        raise ValueError("Tensors should have the same size.")
+class poissonReg:
+    """Poisson regressor class."""
+
+    def __init__(self):
+        """No particular initialization is needed."""
+        pass
+
+    def fit(self, Y, O, covariates, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
+        """Run a gradient ascent to maximize the log likelihood, using
+        pytorch autodifferentiation. The log likelihood considered is
+        the one from a poisson regression model. It is roughly the
+        same as PLN without the latent layer Z.
+
+        Args:
+                        Y: torch.tensor. Counts with size (n,p)
+            0: torch.tensor. Offset, size (n,p)
+            covariates: torch.tensor. Covariates, size (n,d)
+            Niter_max: int, optional. The maximum number of iteration.
+                Default is 300.
+            tol: non negative float, optional. The tolerance criteria.
+                Will stop if the norm of the gradient is less than
+                or equal to this threshold. Default is 0.001.
+            lr: positive float, optional. Learning rate for the gradient ascent.
+                Default is 0.005.
+            verbose: bool, optional. If True, will print some stats.
+
+        Returns : None. Update the parameter beta. You can access it
+                by calling self.beta.
+        """
+        # Initialization of beta of size (d,p)
+        beta = torch.rand(
+            (covariates.shape[1], Y.shape[1]), device=DEVICE, requires_grad=True
+        )
+        optimizer = torch.optim.Rprop([beta], lr=lr)
+        i = 0
+        grad_norm = 2 * tol  # Criterion
+        while i < Niter_max and grad_norm > tol:
+            loss = -compute_poissreg_log_like(Y, O, covariates, beta)
+            loss.backward()
+            optimizer.step()
+            grad_norm = torch.norm(beta.grad)
+            beta.grad.zero_()
+            i += 1
+            if verbose:
+                if i % 10 == 0:
+                    print("log like : ", -loss)
+                    print("grad_norm : ", grad_norm)
+                if i < Niter_max:
+                    print("Tolerance reached in {} iterations".format(i))
+                else:
+                    print("Maxium number of iterations reached")
+        self.beta = beta
 
 
-def to_tensor(obj):
-    if isinstance(obj, np.ndarray):
-        return torch.from_numpy(obj)
-    if isinstance(obj, torch.Tensor):
-        return obj
-    if isinstance(obj, pd.DataFrame):
-        return torch.from_numpy(obj.values)
-    raise TypeError("Please give either a nd.array or torch.Tensor or pd.DataFrame")
+def compute_poissreg_log_like(Y, O, covariates, beta):
+    """Compute the log likelihood of a Poisson regression."""
+    # Matrix multiplication of X and beta.
+    XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    # Returns the formula of the log likelihood of a poisson regression model.
+    return torch.sum(-torch.exp(O + XB) + torch.multiply(Y, O + XB))
