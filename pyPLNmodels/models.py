@@ -82,7 +82,6 @@ class _PLN(ABC):
         check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
-        print("normal init")
 
     @__init__.register(str)
     def _(self, formula: str, data: pd.DataFrame, offsets_formula="logsum"):
@@ -173,6 +172,10 @@ class _PLN(ABC):
         offsets : torch.tensor or ndarray or DataFrame or None, default = None
             Model offset. If not `None`, size should be the same as `counts`.
         """
+
+        def error_loss(x):
+            return torch.mean(x**2)
+
         self.mse_Sigma_list = []
         self.mse_beta_list = []
         self.print_beginning_message()
@@ -193,10 +196,10 @@ class _PLN(ABC):
                 self.print_stats()
             try:
                 self.mse_beta_list.append(
-                    error_loss(self.true_beta.cpu() - self.beta).detach().item()
+                    error_loss(self.true_beta.cpu() - self._coef).detach().item()
                 )
                 self.mse_Sigma_list.append(
-                    error_loss(self.true_Sigma.cpu() - self.Sigma).detach().item()
+                    error_loss(self.true_Sigma.cpu() - self.covariance).detach().item()
                 )
             except:
                 self.mse_beta_list = [None]
@@ -616,12 +619,16 @@ class PLNPCA:
         offsets=None,
         offsets_formula="logsum",
         ranks=range(1, 5),
+        true_Sigma=None,
+        true_beta=None,
     ):
         self._counts, self._covariates, self._offsets = format_model_param(
             counts, covariates, offsets, offsets_formula
         )
         check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
+        self.true_beta = true_beta
+        self.true_Sigma = true_Sigma
         self.init_models(ranks)
 
     @__init__.register(str)
@@ -635,7 +642,12 @@ class PLNPCA:
             for rank in ranks:
                 if isinstance(rank, (int, np.int64)):
                     self.dict_models[rank] = _PLNPCA(
-                        rank, self._counts, self._covariates, self._offsets
+                        rank,
+                        self._counts,
+                        self._covariates,
+                        self._offsets,
+                        self.true_Sigma,
+                        self.true_beta,
                     )
                 else:
                     raise TypeError(
@@ -813,11 +825,13 @@ class _PLNPCA(_PLN):
     NAME = "PLNPCA"
     _components: torch.Tensor
 
-    def __init__(self, rank, counts, covariates, offsets):
+    def __init__(self, rank, counts, covariates, offsets, true_Sigma, true_beta):
         self._rank = rank
         self._counts = counts
         self._covariates = covariates
         self._offsets = offsets
+        self.true_Sigma = true_Sigma
+        self.true_beta = true_beta
 
         if self.dim < self.rank:
             warning_string = f"\nThe requested rank of approximation {self.rank} \
