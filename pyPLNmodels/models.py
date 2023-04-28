@@ -22,7 +22,7 @@ from ._closed_forms import (
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
     PLNPlotArgs,
-    init_sigma,
+    init_covariance,
     init_components,
     init_coef,
     check_two_dimensions_are_equal,
@@ -109,7 +109,7 @@ class _PLN(ABC):
         return self.covariates.shape[1]
 
     def smart_init_coef(self):
-        self._coef = init_coef(self._counts, self._covariates)
+        self._coef = init_coef(self._counts, self._covariates, self._offsets)
 
     def random_init_coef(self):
         self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
@@ -221,8 +221,8 @@ class _PLN(ABC):
     def print_end_of_fitting_message(self, stop_condition, tol):
         if stop_condition is True:
             print(
-                f"Tolerance {tol} reached"
-                f"n {self.plotargs.iteration_number} iterations"
+                f"Tolerance {tol} reached "
+                f"in {self.plotargs.iteration_number} iterations"
             )
         else:
             print(
@@ -959,7 +959,7 @@ class ZIPLN(PLN):
     # should change the good initialization, especially for _coef_inflation
     def smart_init_model_parameters(self):
         super().smart_init_model_parameters()
-        self._covariance = init_sigma(
+        self._covariance = init_covariance(
             self._counts, self._covariates, self._offsets, self._coef
         )
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)

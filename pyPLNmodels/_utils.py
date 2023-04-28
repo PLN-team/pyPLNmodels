@@ -241,6 +241,8 @@ def components_from_covariance(covariance, rank):
 
 def init_coef(counts, covariates, offsets):
     poiss_reg = PoissonReg()
+    poiss_reg.fit(counts, covariates, offsets)
+    return poiss_reg.beta
 
 
 def log_stirling(integer):
@@ -489,7 +491,7 @@ class PoissonReg:
         """No particular initialization is needed."""
         pass
 
-    def fit(self, Y, O, covariates, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
+    def fit(self, Y, covariates, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False):
         """Run a gradient ascent to maximize the log likelihood, using
         pytorch autodifferentiation. The log likelihood considered is
         the one from a poisson regression model. It is roughly the
