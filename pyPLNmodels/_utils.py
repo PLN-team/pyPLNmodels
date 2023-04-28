@@ -505,3 +505,13 @@ def compute_poissreg_log_like(Y, O, covariates, beta):
     XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     # Returns the formula of the log likelihood of a poisson regression model.
     return torch.sum(-torch.exp(O + XB) + torch.multiply(Y, O + XB))
+
+
+def to_tensor(obj):
+    if isinstance(obj, np.ndarray):
+        return torch.from_numpy(obj)
+    if isinstance(obj, torch.Tensor):
+        return obj
+    if isinstance(obj, pd.DataFrame):
+        return torch.from_numpy(obj.values)
+    raise TypeError("Please give either a nd.array or torch.Tensor or pd.DataFrame")
