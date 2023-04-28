@@ -173,6 +173,8 @@ class _PLN(ABC):
         offsets : torch.tensor or ndarray or DataFrame or None, default = None
             Model offset. If not `None`, size should be the same as `counts`.
         """
+        self.mse_Sigma_list = []
+        self.mse_beta_list = []
         self.print_beginning_message()
         self.beginnning_time = time.time()
 
@@ -189,6 +191,16 @@ class _PLN(ABC):
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
+            try:
+                self.mse_beta_list.append(
+                    error_loss(self.true_beta.cpu() - self.beta).detach().item()
+                )
+                self.mse_Sigma_list.append(
+                    error_loss(self.true_Sigma.cpu() - self.Sigma).detach().item()
+                )
+            except:
+                self.mse_beta_list = [None]
+                self.mse_Sigma_list = [None]
         self.print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
