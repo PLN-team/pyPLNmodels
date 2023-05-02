@@ -1,5 +1,6 @@
 import math  # pylint:disable=[C0114]
 import warnings
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +9,7 @@ import torch.linalg as TLA
 import pandas as pd
 from matplotlib.patches import Ellipse
 from matplotlib import transforms
+from patsy import dmatrices
 
 torch.set_default_dtype(torch.float64)
 
@@ -192,15 +194,11 @@ def sample_pln(components, coef, covariates, offsets, _coef_inflation=None, seed
         torch.random.manual_seed(seed)
     n_samples = offsets.shape[0]
     rank = components.shape[1]
-    full_of_ones = torch.ones((n_samples, 1))
     if covariates is None:
-        covariates = full_of_ones
+        XB = 0
     else:
-        covariates = torch.stack((full_of_ones, covariates), axis=1).squeeze()
-    gaussian = (
-        torch.mm(torch.randn(n_samples, rank, device=DEVICE), components.T)
-        + covariates @ coef
-    )
+        XB = covariates @ coef
+    gaussian = torch.mm(torch.randn(n_samples, rank, device=DEVICE), components.T) + XB
     parameter = torch.exp(offsets + gaussian)
     if _coef_inflation is not None:
         print("ZIPLN is sampled")
@@ -348,7 +346,10 @@ def format_data(data):
 
 def format_model_param(counts, covariates, offsets, offsets_formula):
     counts = format_data(counts)
-    covariates = prepare_covariates(covariates, counts.shape[0])
+    if covariates is None:
+        covariates = torch.zeros(counts.shape[0])
+    else:
+        covariates = format_data(covariates)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of counts")
@@ -362,12 +363,16 @@ def format_model_param(counts, covariates, offsets, offsets_formula):
     return counts, covariates, offsets
 
 
-def prepare_covariates(covariates, n_samples):
-    full_of_ones = torch.full((n_samples, 1), 1, device=DEVICE).double()
-    if covariates is None:
-        return full_of_ones
+def remove_useless_intercepts(covariates):
     covariates = format_data(covariates)
-    return torch.stack((full_of_ones, covariates), axis=1).squeeze()
+    if covariates.shape[1] < 2:
+        return covariates
+    first_column = covariates[:, 0]
+    second_column = covariates[:, 1]
+    diff = first_column - second_column
+    if torch.sum(torch.abs(diff - diff[0])) == 0:
+        return covariates[:, 1:]
+    return covariates
 
 
 def check_data_shape(counts, covariates, offsets):
@@ -430,13 +435,13 @@ def get_components_simulation(dim, rank):
 def get_simulation_offsets_cov_coef(n_samples, nb_cov, dim):
     prev_state = torch.random.get_rng_state()
     torch.random.manual_seed(0)
-    if nb_cov < 2:
+    if nb_cov == 0:
         covariates = None
     else:
         covariates = torch.randint(
             low=-1,
             high=2,
-            size=(n_samples, nb_cov - 1),
+            size=(n_samples, nb_cov),
             dtype=torch.float64,
             device=DEVICE,
         )
@@ -559,3 +564,73 @@ def to_tensor(obj):
 def check_dimensions_are_equal(tens1, tens2):
     if tens1.shape[0] != tens2.shape[0] or tens1.shape[1] != tens2.shape[1]:
         raise ValueError("Tensors should have the same size.")
+
+
+def load_model(path_of_directory):
+    os.chdir(path_of_directory)
+    all_files = os.listdir()
+    data = {}
+    for filename in all_files:
+        if len(filename) > 4:
+            if filename[-4:] == ".csv":
+                parameter = filename[:-4]
+                # data[parameter] = pd.read_csv(filename, header=None).values
+                try:
+                    data[parameter] = pd.read_csv(filename, header=None).values
+                except pd.errors.EmptyDataError as err:
+                    print(
+                        f"Can t load {parameter} since empty. Standard initialization will be performed"
+                    )
+    os.chdir("../")
+    return data
+
+
+def load_plnpca(path_of_directory, ranks=None):
+    os.chdir(path_of_directory)
+    if ranks is None:
+        dirnames = os.listdir()
+        ranks = []
+        for dirname in dirnames:
+            try:
+                rank = int(dirname[-1])
+            except ValueError:
+                print(
+                    f"Can t load the model {dirname}. End of {dirname} should be an int"
+                )
+            ranks.append(rank)
+    datas = {}
+    for rank in ranks:
+        datas[rank] = load_model(f"PLNPCA_rank_{rank}")
+    os.chdir("../")
+    return datas
+
+
+def check_right_rank(data, rank):
+    data_rank = data["latent_mean"].shape[1]
+    if data_rank != rank:
+        raise RuntimeError(
+            f"Wrong rank during initialization."
+            f" Got rank {rank} and data with rank {data_rank}."
+        )
+
+
+def extract_data_from_formula(formula, data):
+    dmatrix = dmatrices(formula, data=data)
+    counts = dmatrix[0]
+    covariates = dmatrix[1]
+    if len(covariates) > 0:
+        covariates = remove_useless_intercepts(covariates)
+    offsets = data.get("offsets", None)
+    return counts, covariates, offsets
+
+
+def is_dict_of_dict(dictionnary):
+    if isinstance(dictionnary[list(dictionnary.keys())[0]], dict):
+        return True
+    return False
+
+
+def get_dict_initialization(rank, dict_of_dict):
+    if dict_of_dict is None:
+        return None
+    return dict_of_dict[rank]
