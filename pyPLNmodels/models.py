@@ -517,6 +517,9 @@ class PLN(_PLN):
     NAME = "PLN"
     coef: torch.Tensor
 
+    def get_class(self):
+        return PLN
+
     @property
     def description(self):
         return "full covariance model."
@@ -620,6 +623,9 @@ class PLN(_PLN):
 ## en train d'essayer de faire une seule init pour_PLNPCA
 class PLNPCA:
     NAME = "PLNPCA"
+
+    def get_class(self):
+        return PLNPCA
 
     @singledispatchmethod
     def __init__(
@@ -872,6 +878,9 @@ class _PLNPCA(_PLN):
     NAME = "PLNPCA"
     _components: torch.Tensor
 
+    def get_class(self):
+        return _PLNPCA
+
     @singledispatchmethod
     def __init__(self, counts, covariates, offsets, rank, dict_initialization=None):
         self._rank = rank
@@ -883,6 +892,11 @@ class _PLNPCA(_PLN):
             self.set_init_parameters(dict_initialization)
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
+
+    @__init__.register(str)
+    def _(self, formula, data, dict_initialization):
+        counts, covariates, offsets = extract_data_from_formula(formula, data)
+        self.__init__(counts, covariates, offsets, None, dict_initialization)
 
     def set_init_parameters(self, dict_parameters):
         for key, array in dict_parameters.items():
@@ -901,7 +915,7 @@ class _PLNPCA(_PLN):
 
     @property
     def model_path(self):
-        return f"{super().model_path}_rank_{self._rank}"
+        return f"{self.NAME}_rank_{self._rank}"
 
     @property
     def rank(self):

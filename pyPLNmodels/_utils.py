@@ -347,7 +347,7 @@ def format_data(data):
 def format_model_param(counts, covariates, offsets, offsets_formula):
     counts = format_data(counts)
     if covariates is None:
-        covariates = torch.zeros(counts.shape[0])
+        covariates = torch.zeros(counts.shape[0], 1)
     else:
         covariates = format_data(covariates)
     if offsets is None:
@@ -583,6 +583,10 @@ def load_model(path_of_directory):
                     )
     os.chdir("../")
     return data
+
+
+def load_pln(path_of_directory):
+    return load_model(path_of_directory)
 
 
 def load_plnpca(path_of_directory, ranks=None):
