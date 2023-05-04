@@ -1,6 +1,6 @@
 import sys
 import glob
-from functools import singledispatch
+from functools import singledispatch, singledispatchmethod
 
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
@@ -67,7 +67,7 @@ def convenient_plnpca(
 
 
 @convenient_plnpca.register(str)
-def _(formula, data, offsets_formula, dict_initialization=None):
+def _(formula, data, offsets_formula=None, dict_initialization=None):
     return _PLNPCA(formula, data, rank=RANK, dict_initialization=dict_initialization)
 
 
@@ -89,8 +89,16 @@ def convenientplnpca(
     )
 
 
+# class convenientplnpca(PLNPCA):
+#     @singledispatchmethod
+#     def __init__(self,counts, covariates=None, offsets= None, offsets_formula=None, dict_initialization=None):
+#         super().__init__(counts, covariates, offsets, offsets_formula, dict_initialization)
+
+#     def _(formula, data, offsets.)
+
+
 @convenientplnpca.register(str)
-def _(formula, data, offsets_formula, dict_initialization=None):
+def _(formula, data, offsets_formula=None, dict_initialization=None):
     return PLNPCA(
         formula,
         data,
@@ -100,11 +108,23 @@ def _(formula, data, offsets_formula, dict_initialization=None):
     )
 
 
+def cache(func):
+    dict_cache = {}
+
+    def new_func(request):
+        if request.param.__name__ not in dict_cache:
+            dict_cache[request.param.__name__] = func(request)
+        return dict_cache[request.param.__name__]
+
+    return new_func
+
+
 params = [PLN, convenient_plnpca, convenientplnpca]
 dict_fixtures = {}
 
 
 @pytest.fixture(params=params)
+@cache
 def simulated_pln_0cov_array(request):
     cls = request.param
     pln_full = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
@@ -298,6 +318,7 @@ def real_fitted_pln_intercept_array(real_pln_intercept_array):
 @pytest.fixture(params=params)
 def real_pln_intercept_formula(request):
     cls = request.param
+    print("cls:", cls)
     pln_full = cls("counts ~ 1", data_real)
     return pln_full
 

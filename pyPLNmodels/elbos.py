@@ -22,7 +22,11 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
     n_samples, dim = counts.shape
     s_rond_s = torch.multiply(latent_var, latent_var)
     offsets_plus_m = offsets + latent_mean
-    m_minus_xb = latent_mean - torch.mm(covariates, coef)
+    if covariates is None:
+        XB = 0
+    else:
+        XB = covariates @ coef
+    m_minus_xb = latent_mean - XB
     d_plus_minus_xb2 = torch.diag(torch.sum(s_rond_s, dim=0)) + torch.mm(
         m_minus_xb.T, m_minus_xb
     )

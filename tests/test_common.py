@@ -1,4 +1,5 @@
 import os
+import functools
 
 import torch
 import numpy as np
@@ -35,15 +36,37 @@ def get_all_fixtures(key):
     )
 
 
-# @pytest.mark.parametrize("any_pln", [dict_fixtures["simulated_pln_0cov_array"]])
-@pytest.mark.parametrize("any_pln", dict_fixtures["loaded_and_fitted_pln"])
-def test_properties(any_pln):
-    if any_pln.NAME in ("PLN", "_PLNPCA"):
-        assert hasattr(any_pln, "latent_variables")
-        assert hasattr(any_pln, "model_parameters")
-        assert hasattr(any_pln, "latent_parameters")
-        assert hasattr(any_pln, "optim_parameters")
+def filter_models(models_name):
+    def decorator(my_test):
+        @functools.wraps(my_test)
+        def new_test(**kwargs):
+            fixture = next(iter(kwargs.values()))
+            if type(fixture).__name__ not in models_name:
+                return None
+            return my_test(**kwargs)
 
+        return new_test
+
+    return decorator
+
+
+# @pytest.mark.parametrize("any_pln", [dict_fixtures["simulated_pln_0cov_array"]])
+# @pytest.mark.parametrize("any_pln", [dict_fixtures["simulated_pln_0cov_array"]])
+@filter_models(["PLN", "_PLNPCA"])
+def test_properties(simulated_fitted_pln_0cov_array):
+    assert hasattr(simulated_fitted_pln_0cov_array, "model_parameters")
+    assert hasattr(simulated_fitted_pln_0cov_array, "latent_parameters")
+    print("model_param", simulated_fitted_pln_0cov_array.model_parameters)
+    assert hasattr(simulated_fitted_pln_0cov_array, "latent_variables")
+    assert hasattr(simulated_fitted_pln_0cov_array, "optim_parameters")
+
+
+@pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
+def test_print(any_pln):
+    print(any_pln)
+
+
+print("len :", len(dict_fixtures["all_pln"]))
 
 """
 @pytest.mark.parametrize("any_pln", all_fitted_models)
