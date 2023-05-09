@@ -49,3 +49,18 @@ def test_pandas_init(instance):
 @pytest.mark.parametrize("instance", all_instances)
 def test_numpy_init(instance):
     instance.fit(counts_sim.numpy(), covariates_sim.numpy(), offsets_sim.numpy())
+
+
+@pytest.mark.parametrize("sim_pln", simulated_any_pln)
+def test_only_counts(sim_pln):
+    sim_pln.fit()
+
+
+@pytest.mark.parametrize("sim_pln", simulated_any_pln)
+def test_only_counts_and_offsets(sim_pln):
+    sim_pln.fit(counts=counts_sim, offsets=offsets_sim)
+
+
+@pytest.mark.parametrize("sim_pln", simulated_any_pln)
+def test_only_Y_and_cov(sim_pln):
+    sim_pln.fit(counts=counts_sim, covariates=covariates_sim)

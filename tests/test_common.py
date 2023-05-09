@@ -2,38 +2,9 @@ import os
 import functools
 
 import torch
-import numpy as np
-import pandas as pd
 import pytest
-from pytest_lazyfixture import lazy_fixture as lf
-
-from pyPLNmodels.models import PLN, _PLNPCA
-from tests.utils import MSE
-
-# from tests.import_fixtures import get_dict_fixtures
 
 from tests.conftest import dict_fixtures
-
-
-# dict_fixtures_pln_full = dict_fixtures_models[0]
-# dict_fixtures_plnpca = dict_fixtures_models[1]
-# dict_fixturesplnpca = dict_fixtures_models[2]
-
-
-def get_pln_and_plncpca_fixtures(key):
-    return dict_fixtures_pln_full[key] + dict_fixtures_plnpca[key]
-
-
-def get_pca_fixtures(key):
-    return dict_fixtures_plnpca[key] + dict_fixturesplnpca[key]
-
-
-def get_all_fixtures(key):
-    return (
-        dict_fixtures_plnpca[key]
-        + dict_fixtures_pln_full[key]
-        + dict_fixturesplnpca[key]
-    )
 
 
 def filter_models(models_name):
@@ -50,26 +21,22 @@ def filter_models(models_name):
     return decorator
 
 
-# @pytest.mark.parametrize("any_pln", [dict_fixtures["simulated_pln_0cov_array"]])
-# @pytest.mark.parametrize("any_pln", [dict_fixtures["simulated_pln_0cov_array"]])
-@filter_models(["PLN", "_PLNPCA"])
-def test_properties(simulated_fitted_pln_0cov_array):
-    assert hasattr(simulated_fitted_pln_0cov_array, "model_parameters")
-    assert hasattr(simulated_fitted_pln_0cov_array, "latent_parameters")
-    print("model_param", simulated_fitted_pln_0cov_array.model_parameters)
-    assert hasattr(simulated_fitted_pln_0cov_array, "latent_variables")
-    assert hasattr(simulated_fitted_pln_0cov_array, "optim_parameters")
-
-
 @pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
+@filter_models(["PLN", "_PLNPCA"])
+def test_properties(any_pln):
+    assert hasattr(any_pln, "latent_parameters")
+    assert hasattr(any_pln, "latent_variables")
+    assert hasattr(any_pln, "optim_parameters")
+    assert hasattr(any_pln, "model_parameters")
+
+
+@pytest.mark.parametrize("any_pln", dict_fixtures["loaded_and_fitted_pln"])
 def test_print(any_pln):
     print(any_pln)
 
 
-print("len :", len(dict_fixtures["all_pln"]))
-
-"""
-@pytest.mark.parametrize("any_pln", all_fitted_models)
+@pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
+@filter_models(["PLN", "_PLNPCA"])
 def test_show_coef_transform_covariance_pcaprojected(any_pln):
     any_pln.show()
     any_pln.plotargs.show_loss(savefig=True)
@@ -83,52 +50,33 @@ def test_show_coef_transform_covariance_pcaprojected(any_pln):
         any_pln.pca_projected_latent_variables(n_components=any_pln.dim + 1)
 
 
-@pytest.mark.parametrize("sim_pln", simulated_any_pln)
+print("loaded and fitted ", dict_fixtures["loaded_and_fitted_pln"])
+
+
+@pytest.mark.parametrize("sim_pln", dict_fixtures["loaded_and_fitted_pln"])
+@filter_models(["PLN", "_PLNPCA"])
 def test_predict_simulated(sim_pln):
-    X = torch.randn((sim_pln.n_samples, sim_pln.nb_cov - 1))
-    prediction = sim_pln.predict(X)
-    expected = (
-        torch.stack((torch.ones(sim_pln.n_samples, 1), X), axis=1).squeeze()
-        @ sim_pln.coef
-    )
-    assert torch.all(torch.eq(expected, prediction))
+    if sim_pln.nb_cov == 0:
+        assert sim_pln.predict() is None
+        with pytest.raises(AttributeError):
+            sim_pln.predict(1)
+    else:
+        X = torch.randn((sim_pln.n_samples, sim_pln.nb_cov))
+        prediction = sim_pln.predict(X)
+        expected = X @ sim_pln.coef
+        assert torch.all(torch.eq(expected, prediction))
 
 
-@pytest.mark.parametrize("real_pln", real_any_pln)
-def test_predict_real(real_pln):
-    prediction = real_pln.predict()
-    expected = torch.ones(real_pln.n_samples, 1) @ real_pln.coef
-    assert torch.all(torch.eq(expected, prediction))
+print("instances:", dict_fixtures["instances"])
 
 
-@pytest.mark.parametrize("any_pln", all_fitted_models)
-def test_print(any_pln):
-    print(any_pln)
-
-
-@pytest.mark.parametrize("any_instance_pln", all_instances)
+@pytest.mark.parametrize("any_instance_pln", dict_fixtures["instances"])
 def test_verbose(any_instance_pln):
-    any_instance_pln.fit(
-        counts=counts_sim, covariates=covariates_sim, offsets=offsets_sim, verbose=True
-    )
+    any_instance_pln.fit(verbose=True, tol=0.1)
 
 
-@pytest.mark.parametrize("sim_pln", simulated_any_pln)
-def test_only_counts(sim_pln):
-    sim_pln.fit(counts=counts_sim)
-
-
-@pytest.mark.parametrize("sim_pln", simulated_any_pln)
-def test_only_counts_and_offsets(sim_pln):
-    sim_pln.fit(counts=counts_sim, offsets=offsets_sim)
-
-
-@pytest.mark.parametrize("sim_pln", simulated_any_pln)
-def test_only_Y_and_cov(sim_pln):
-    sim_pln.fit(counts=counts_sim, covariates=covariates_sim)
-
-
-@pytest.mark.parametrize("simulated_fitted_any_pln", simulated_any_pln)
+@pytest.mark.parametrize("simulated_fitted_any_pln", dict_fixtureskk["sim_pln"])
+@filter_models(["PLN", "_PLNPCA"])
 def test_find_right_covariance(simulated_fitted_any_pln):
     mse_covariance = MSE(simulated_fitted_any_pln.covariance - true_covariance)
     assert mse_covariance < 0.05
@@ -139,6 +87,8 @@ def test_find_right_coef(sim_pln):
     mse_coef = MSE(sim_pln.coef - true_coef)
     assert mse_coef < 0.1
 
+
+"""
 
 def test_number_of_iterations_pln_full(simulated_fitted_pln_full_0cov):
     nb_iterations = len(simulated_fitted_pln_full_0cov.elbos_list)

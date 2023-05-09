@@ -94,9 +94,11 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
     """
     n_samples = counts.shape[0]
     rank = components.shape[1]
-    log_intensity = (
-        offsets + torch.mm(covariates, coef) + torch.mm(latent_mean, components.T)
-    )
+    if covariates is None:
+        XB = 0
+    else:
+        XB = covariates @ coef
+    log_intensity = offsets + XB + torch.mm(latent_mean, components.T)
     s_rond_s = torch.multiply(latent_var, latent_var)
     counts_log_intensity = torch.sum(torch.multiply(counts, log_intensity))
     minus_intensity_plus_s_rond_s_cct = torch.sum(

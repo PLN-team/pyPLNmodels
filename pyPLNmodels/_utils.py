@@ -238,6 +238,8 @@ def components_from_covariance(covariance, rank):
 
 
 def init_coef(counts, covariates, offsets):
+    if covariates is None:
+        return None
     poiss_reg = PoissonReg()
     poiss_reg.fit(counts, covariates, offsets)
     return poiss_reg.beta
@@ -274,8 +276,11 @@ def log_posterior(counts, covariates, offsets, posterior_mean, components, coef)
     components_posterior_mean = torch.matmul(
         components.unsqueeze(0), posterior_mean.unsqueeze(2)
     ).squeeze()
-
-    log_lambda = offsets + components_posterior_mean + covariates @ coef
+    if covariates is None:
+        XB = 0
+    else:
+        XB = covariates @ coef
+    log_lambda = offsets + components_posterior_mean + XB
     first_term = (
         -rank / 2 * math.log(2 * math.pi)
         - 1 / 2 * torch.norm(posterior_mean, dim=-1) ** 2
@@ -333,6 +338,8 @@ def init_S(counts, covariates, offsets, beta, C, M):
 
 
 def format_data(data):
+    if data is None:
+        return None
     if isinstance(data, pd.DataFrame):
         return torch.from_numpy(data.values).double().to(DEVICE)
     if isinstance(data, np.ndarray):
@@ -346,9 +353,7 @@ def format_data(data):
 
 def format_model_param(counts, covariates, offsets, offsets_formula):
     counts = format_data(counts)
-    if covariates is None:
-        covariates = torch.zeros(counts.shape[0], 1)
-    else:
+    if covariates is not None:
         covariates = format_data(covariates)
     if offsets is None:
         if offsets_formula == "logsum":
@@ -371,6 +376,7 @@ def remove_useless_intercepts(covariates):
     second_column = covariates[:, 1]
     diff = first_column - second_column
     if torch.sum(torch.abs(diff - diff[0])) == 0:
+        print("removing one")
         return covariates[:, 1:]
     return covariates
 
@@ -378,9 +384,10 @@ def remove_useless_intercepts(covariates):
 def check_data_shape(counts, covariates, offsets):
     n_counts, p_counts = counts.shape
     n_offsets, p_offsets = offsets.shape
-    n_cov, _ = covariates.shape
     check_two_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0)
-    check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0)
+    if covariates is not None:
+        n_cov, _ = covariates.shape
+        check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0)
     check_two_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1)
 
 
@@ -567,6 +574,7 @@ def check_dimensions_are_equal(tens1, tens2):
 
 
 def load_model(path_of_directory):
+    working_dict = os.getcwd()
     os.chdir(path_of_directory)
     all_files = os.listdir()
     data = {}
@@ -574,14 +582,13 @@ def load_model(path_of_directory):
         if len(filename) > 4:
             if filename[-4:] == ".csv":
                 parameter = filename[:-4]
-                # data[parameter] = pd.read_csv(filename, header=None).values
                 try:
                     data[parameter] = pd.read_csv(filename, header=None).values
                 except pd.errors.EmptyDataError as err:
                     print(
-                        f"Can t load {parameter} since empty. Standard initialization will be performed"
+                        f"Can't load {parameter} since empty. Standard initialization will be performed"
                     )
-    os.chdir("../")
+    os.chdir(working_dict)
     return data
 
 
@@ -590,6 +597,7 @@ def load_pln(path_of_directory):
 
 
 def load_plnpca(path_of_directory, ranks=None):
+    working_dict = os.getcwd()
     os.chdir(path_of_directory)
     if ranks is None:
         dirnames = os.listdir()
@@ -598,14 +606,14 @@ def load_plnpca(path_of_directory, ranks=None):
             try:
                 rank = int(dirname[-1])
             except ValueError:
-                print(
-                    f"Can t load the model {dirname}. End of {dirname} should be an int"
+                raise ValueError(
+                    f"Can't load the model {dirname}. End of {dirname} should be an int"
                 )
             ranks.append(rank)
     datas = {}
     for rank in ranks:
-        datas[rank] = load_model(f"PLNPCA_rank_{rank}")
-    os.chdir("../")
+        datas[rank] = load_model(f"_PLNPCA_rank_{rank}")
+    os.chdir(working_dict)
     return datas
 
 
@@ -622,8 +630,11 @@ def extract_data_from_formula(formula, data):
     dmatrix = dmatrices(formula, data=data)
     counts = dmatrix[0]
     covariates = dmatrix[1]
-    if len(covariates) > 0:
+    if covariates.size > 0:
+        pass
         covariates = remove_useless_intercepts(covariates)
+    else:
+        covariates = None
     offsets = data.get("offsets", None)
     return counts, covariates, offsets
 

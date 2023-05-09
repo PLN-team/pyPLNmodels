@@ -1,18 +1,19 @@
 import sys
 import glob
-from functools import singledispatch, singledispatchmethod
+from functools import singledispatch
 
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
 from pyPLNmodels import load_model, load_plnpca
-from tests.import_fixtures import get_dict_fixtures
 from pyPLNmodels.models import PLN, _PLNPCA, PLNPCA
+
 
 sys.path.append("../")
 
-
-pln_full_fixture = get_dict_fixtures(PLN)
-plnpca_fixture = get_dict_fixtures(_PLNPCA)
+pytest_plugins = [
+    fixture_file.replace("/", ".").replace(".py", "")
+    for fixture_file in glob.glob("src/**/tests/fixtures/[!__]*.py", recursive=True)
+]
 
 
 from tests.import_data import (
@@ -34,7 +35,7 @@ counts_real = data_real["counts"]
 
 
 def add_fixture_to_dict(my_dict, string_fixture):
-    my_dict[string_fixture] = lf(string_fixture)
+    my_dict[string_fixture] = [lf(string_fixture)]
     return my_dict
 
 
@@ -49,7 +50,7 @@ def add_list_of_fixture_to_dict(
 
 RANK = 8
 RANKS = [2, 6]
-
+instances = []
 # dict_fixtures_models = []
 
 
@@ -89,14 +90,6 @@ def convenientplnpca(
     )
 
 
-# class convenientplnpca(PLNPCA):
-#     @singledispatchmethod
-#     def __init__(self,counts, covariates=None, offsets= None, offsets_formula=None, dict_initialization=None):
-#         super().__init__(counts, covariates, offsets, offsets_formula, dict_initialization)
-
-#     def _(formula, data, offsets.)
-
-
 @convenientplnpca.register(str)
 def _(formula, data, offsets_formula=None, dict_initialization=None):
     return PLNPCA(
@@ -106,6 +99,22 @@ def _(formula, data, offsets_formula=None, dict_initialization=None):
         ranks=RANKS,
         dict_of_dict_initialization=dict_initialization,
     )
+
+
+def generate_new_model(model, *args, **kwargs):
+    name_dir = model.directory_name
+    name = model.NAME
+    if name in ("PLN", "_PLNPCA"):
+        path = model.path_to_directory + name_dir
+        init = load_model(path)
+        if name == "PLN":
+            new = PLN(*args, **kwargs, dict_initialization=init)
+        if name == "_PLNPCA":
+            new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
+    if name == "PLNPCA":
+        init = load_plnpca(name_dir)
+        new = convenientplnpca(*args, **kwargs, dict_initialization=init)
+    return new
 
 
 def cache(func):
@@ -124,69 +133,65 @@ dict_fixtures = {}
 
 
 @pytest.fixture(params=params)
-@cache
 def simulated_pln_0cov_array(request):
     cls = request.param
-    pln_full = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
-    return pln_full
+    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
+    return pln
 
 
-@pytest.fixture
-def simulated_fitted_pln_0cov_array(simulated_pln_0cov_array):
-    simulated_pln_0cov_array.fit()
-    return simulated_pln_0cov_array
+@pytest.fixture(params=params)
+@cache
+def simulated_fitted_pln_0cov_array(request):
+    cls = request.param
+    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
+    pln.fit()
+    return pln
 
 
 @pytest.fixture(params=params)
 def simulated_pln_0cov_formula(request):
     cls = request.param
-    pln_full = cls("counts ~ 0", data_sim_0cov)
-    return pln_full
+    pln = cls("counts ~ 0", data_sim_0cov)
+    return pln
 
 
-@pytest.fixture
-def simulated_fitted_pln_0cov_formula(simulated_pln_0cov_formula):
-    simulated_pln_0cov_formula.fit()
-    return simulated_pln_0cov_formula
+@pytest.fixture(params=params)
+@cache
+def simulated_fitted_pln_0cov_formula(request):
+    cls = request.param
+    pln = cls("counts ~ 0", data_sim_0cov)
+    pln.fit()
+    return pln
 
 
 @pytest.fixture
 def simulated_loaded_pln_0cov_formula(simulated_fitted_pln_0cov_formula):
     simulated_fitted_pln_0cov_formula.save()
-    path = simulated_fitted_pln_0cov_formula.model_path
-    name = simulated_fitted_pln_0cov_formula.NAME
-    if name == "PLN" or name == "_PLNPCA":
-        init = load_model(path)
-    if name == "PLNPCA":
-        init = load_plnpca(path)
-    new = simulated_loaded_pln_0cov_formula.get_class(
-        "counts ~0", data_sim_0cov, dict_initialization=init
+    return generate_new_model(
+        simulated_fitted_pln_0cov_formula,
+        "counts ~ 0",
+        data_sim_0cov,
     )
-    return new
 
 
 @pytest.fixture
 def simulated_loaded_pln_0cov_array(simulated_fitted_pln_0cov_array):
     simulated_fitted_pln_0cov_array.save()
-    path = simulated_fitted_pln_0cov_array.model_path
-    name = simulated_fitted_pln_0cov_array.NAME
-    if name == "PLN" or name == "_PLNPCA":
-        init = load_model(path)
-    if name == "PLNPCA":
-        init = load_plnpca(path)
-    new = simulated_fitted_pln_0cov_array.get_class(
+    return generate_new_model(
+        simulated_fitted_pln_0cov_array,
         counts_sim_0cov,
         covariates_sim_0cov,
         offsets_sim_0cov,
-        dict_initialization=init,
     )
-    return new
 
 
 sim_pln_0cov_instance = [
     "simulated_pln_0cov_array",
     "simulated_pln_0cov_formula",
 ]
+
+instances = sim_pln_0cov_instance + instances
+
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_pln_0cov_instance", sim_pln_0cov_instance
 )
@@ -214,6 +219,7 @@ dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_0cov", sim_p
 
 
 @pytest.fixture(params=params)
+@cache
 def simulated_pln_2cov_array(request):
     cls = request.param
     pln_full = cls(counts_sim_2cov, covariates_sim_2cov, offsets_sim_2cov)
@@ -227,7 +233,9 @@ def simulated_fitted_pln_2cov_array(simulated_pln_2cov_array):
 
 
 @pytest.fixture(params=params)
-def simulated_pln_2cov_formula():
+@cache
+def simulated_pln_2cov_formula(request):
+    cls = request.param
     pln_full = cls("counts ~ 0 + covariates", data_sim_2cov)
     return pln_full
 
@@ -241,40 +249,29 @@ def simulated_fitted_pln_2cov_formula(simulated_pln_2cov_formula):
 @pytest.fixture
 def simulated_loaded_pln_2cov_formula(simulated_fitted_pln_2cov_formula):
     simulated_fitted_pln_2cov_formula.save()
-    path = simulated_fitted_pln_2cov_formula.model_path
-    name = simulated_fitted_pln_2cov_formula.NAME
-    if name == "PLN":
-        init = load_model(path)
-    if name == "PLNPCA":
-        init = load_plnpca(path)
-    new = simulated_fitted_pln_2cov_formula.get_class(
-        "counts ~1", data_sim_2cov, dict_initialization=init
+    return generate_new_model(
+        simulated_fitted_pln_2cov_formula,
+        "counts ~0 + covariates",
+        data_sim_2cov,
     )
-    return new
 
 
 @pytest.fixture
 def simulated_loaded_pln_2cov_array(simulated_fitted_pln_2cov_array):
     simulated_fitted_pln_2cov_array.save()
-    path = simulated_fitted_pln_2cov_array.model_path
-    name = simulated_fitted_pln_2cov_array.NAME
-    if name == "PLN" or name == "_PLNPCA":
-        init = load_model(path)
-    if name == "PLNPCA":
-        init = load_model(path)
-    new = simulated_fitted_pln_2cov_array.get_class(
+    return generate_new_model(
+        simulated_fitted_pln_2cov_array,
         counts_sim_2cov,
         covariates_sim_2cov,
         offsets_sim_2cov,
-        dict_initialization=init,
     )
-    return new
 
 
 sim_pln_2cov_instance = [
     "simulated_pln_2cov_array",
     "simulated_pln_2cov_formula",
 ]
+instances = sim_pln_2cov_instance + instances
 
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_pln_2cov_instance", sim_pln_2cov_instance
@@ -303,6 +300,7 @@ dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_2cov", sim_p
 
 
 @pytest.fixture(params=params)
+@cache
 def real_pln_intercept_array(request):
     cls = request.param
     pln_full = cls(counts_real)
@@ -316,9 +314,9 @@ def real_fitted_pln_intercept_array(real_pln_intercept_array):
 
 
 @pytest.fixture(params=params)
+@cache
 def real_pln_intercept_formula(request):
     cls = request.param
-    print("cls:", cls)
     pln_full = cls("counts ~ 1", data_real)
     return pln_full
 
@@ -332,37 +330,23 @@ def real_fitted_pln_intercept_formula(real_pln_intercept_formula):
 @pytest.fixture
 def real_loaded_pln_intercept_formula(real_fitted_pln_intercept_formula):
     real_fitted_pln_intercept_formula.save()
-    path = real_fitted_pln_intercept_formula.model_path
-    name = real_fitted_pln_intercept_formula.NAME
-    if name == "PLN" or name == "_PLNPCA":
-        init = load_model(path)
-    if name == "PLNPCA":
-        init = load_plnpca(path)
-    new = real_fitted_pln_intercept_formula.get_class(
-        "counts~ 1", data_real, dict_initialization=init
+    return generate_new_model(
+        real_fitted_pln_intercept_formula, "counts ~ 1", data_real
     )
-    return new
 
 
 @pytest.fixture
 def real_loaded_pln_intercept_array(real_fitted_pln_intercept_array):
     real_fitted_pln_intercept_array.save()
-    path = real_fitted_pln_intercept_array.model_path
-    name = real_fitted_pln_intercept_array.NAME
-    if name == "PLN" or name == "_PLNPCA":
-        init = load_model(path)
-    if name == "PLNPCA":
-        init = load_plnpca(path)
-    new = real_fitted_pln_intercept_array.get_class(
-        counts_real, dict_initialization=init
-    )
-    return new
+    return generate_new_model(real_fitted_pln_intercept_array, counts_real)
 
 
 real_pln_instance = [
     "real_pln_intercept_array",
     "real_pln_intercept_formula",
 ]
+instances = real_pln_instance + instances
+
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "real_pln_instance", real_pln_instance
 )
@@ -407,14 +391,11 @@ dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "real_pln", real_pln)
 sim_pln = sim_pln_2cov + sim_pln_0cov
 dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln", sim_pln)
 
-all_pln = real_pln + sim_pln
+all_pln = real_pln + sim_pln + instances
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "instances", instances)
 dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "all_pln", all_pln)
 
 
 for string_fixture in all_pln:
+    print("string_fixture", string_fixture)
     dict_fixtures = add_fixture_to_dict(dict_fixtures, string_fixture)
-
-pytest_plugins = [
-    fixture_file.replace("/", ".").replace(".py", "")
-    for fixture_file in glob.glob("src/**/tests/fixtures/[!__]*.py", recursive=True)
-]
