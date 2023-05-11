@@ -16,7 +16,7 @@ def closed_formula_covariance(covariates, latent_mean, latent_var, coef, n_sampl
 def closed_formula_coef(covariates, latent_mean):
     """Closed form for coef for the M step for the noPCA model."""
     if covariates is None:
-        return 0
+        return None
     return torch.mm(
         torch.mm(torch.inverse(torch.mm(covariates.T, covariates)), covariates.T),
         latent_mean,

@@ -630,10 +630,8 @@ def extract_data_from_formula(formula, data):
     dmatrix = dmatrices(formula, data=data)
     counts = dmatrix[0]
     covariates = dmatrix[1]
-    if covariates.size > 0:
-        pass
-        covariates = remove_useless_intercepts(covariates)
-    else:
+    print("covariates size:", covariates.size)
+    if covariates.size == 0:
         covariates = None
     offsets = data.get("offsets", None)
     return counts, covariates, offsets

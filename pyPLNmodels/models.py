@@ -104,12 +104,7 @@ class _PLN(ABC):
         offsets_formula="logsum",
         dict_initialization=None,
     ):
-        dmatrix = dmatrices(formula, data=data)
-        counts = dmatrix[0]
-        covariates = dmatrix[1]
-        if len(covariates) > 0:
-            covariates = remove_useless_intercepts(covariates)
-        offsets = data.get("offsets", None)
+        counts, covariates, offsets = extract_data_from_formula(formula, data)
         self.__init__(counts, covariates, offsets, offsets_formula, dict_initialization)
 
     def set_init_parameters(self, dict_initialization):
