@@ -111,6 +111,8 @@ def generate_new_model(model, *args, **kwargs):
             new = PLN(*args, **kwargs, dict_initialization=init)
         if name == "_PLNPCA":
             new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
+            print("now", new.nb_cov)
+            x
     if name == "PLNPCA":
         init = load_plnpca(name_dir)
         new = convenientplnpca(*args, **kwargs, dict_initialization=init)
@@ -330,6 +332,7 @@ def real_fitted_pln_intercept_formula(real_pln_intercept_formula):
 @pytest.fixture
 def real_loaded_pln_intercept_formula(real_fitted_pln_intercept_formula):
     real_fitted_pln_intercept_formula.save()
+    print("before", real_fitted_pln_intercept_formula.nb_cov)
     return generate_new_model(
         real_fitted_pln_intercept_formula, "counts ~ 1", data_real
     )
@@ -376,10 +379,18 @@ simulated_pln_fitted = sim_pln_0cov_fitted + sim_pln_2cov_fitted
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "simulated_pln_fitted", simulated_pln_fitted
 )
-
 fitted_pln = real_pln_fitted + simulated_pln_fitted
 dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "fitted_pln", fitted_pln)
 
+
+loaded_and_fitted_sim_pln = simulated_pln_fitted + sim_loaded_pln
+loaded_and_fitted_real_pln = real_pln_fitted + real_pln_loaded
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "loaded_and_fitted_real_pln", loaded_and_fitted_real_pln
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "loaded_and_fitted_sim_pln", loaded_and_fitted_sim_pln
+)
 loaded_and_fitted_pln = fitted_pln + loaded_pln
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "loaded_and_fitted_pln", loaded_and_fitted_pln

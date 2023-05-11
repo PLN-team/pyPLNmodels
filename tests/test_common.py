@@ -5,6 +5,9 @@ import torch
 import pytest
 
 from tests.conftest import dict_fixtures
+from tests.utils import MSE
+
+from tests.import_data import true_sim_0cov, true_sim_2cov
 
 
 def filter_models(models_name):
@@ -50,9 +53,6 @@ def test_show_coef_transform_covariance_pcaprojected(any_pln):
         any_pln.pca_projected_latent_variables(n_components=any_pln.dim + 1)
 
 
-print("loaded and fitted ", dict_fixtures["loaded_and_fitted_pln"])
-
-
 @pytest.mark.parametrize("sim_pln", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PLN", "_PLNPCA"])
 def test_predict_simulated(sim_pln):
@@ -67,29 +67,47 @@ def test_predict_simulated(sim_pln):
         assert torch.all(torch.eq(expected, prediction))
 
 
-print("instances:", dict_fixtures["instances"])
-
-
 @pytest.mark.parametrize("any_instance_pln", dict_fixtures["instances"])
 def test_verbose(any_instance_pln):
     any_instance_pln.fit(verbose=True, tol=0.1)
 
 
-@pytest.mark.parametrize("simulated_fitted_any_pln", dict_fixtureskk["sim_pln"])
+@pytest.mark.parametrize(
+    "simulated_fitted_any_pln", dict_fixtures["loaded_and_fitted_sim_pln"]
+)
 @filter_models(["PLN", "_PLNPCA"])
 def test_find_right_covariance(simulated_fitted_any_pln):
+    if simulated_fitted_any_pln.nb_cov == 0:
+        true_covariance = true_sim_0cov["Sigma"]
+    elif simulated_fitted_any_pln.nb_cov == 2:
+        true_covariance = true_sim_2cov["Sigma"]
     mse_covariance = MSE(simulated_fitted_any_pln.covariance - true_covariance)
     assert mse_covariance < 0.05
 
 
-@pytest.mark.parametrize("sim_pln", simulated_any_pln)
-def test_find_right_coef(sim_pln):
-    mse_coef = MSE(sim_pln.coef - true_coef)
-    assert mse_coef < 0.1
+@pytest.mark.parametrize(
+    "real_fitted_and_loaded_pln", dict_fixtures["loaded_and_fitted_real_pln"]
+)
+@filter_models(["PLN", "_PLNPCA"])
+def test_right_covariance_shape(real_fitted_and_loaded_pln):
+    assert real_fitted_and_loaded_pln.covariance.shape == (100, 100)
+
+
+@pytest.mark.parametrize(
+    "simulated_fitted_any_pln", dict_fixtures["loaded_and_fitted_pln"]
+)
+@filter_models(["PLN", "_PLNPCA"])
+def test_find_right_coef(simulated_fitted_any_pln):
+    if simulated_fitted_any_pln.nb_cov == 2:
+        true_coef = true_sim_2cov["beta"]
+        mse_coef = MSE(simulated_fitted_any_pln.coef - true_coef)
+        assert mse_coef < 0.1
+    elif simulated_fitted_any_pln.nb_cov == 0:
+        print("nb cov", simulated_fitted_any_pln.nb_cov)
+        assert simulated_fitted_any_pln.coef is None
 
 
 """
-
 def test_number_of_iterations_pln_full(simulated_fitted_pln_full_0cov):
     nb_iterations = len(simulated_fitted_pln_full_0cov.elbos_list)
     assert 50 < nb_iterations < 300
