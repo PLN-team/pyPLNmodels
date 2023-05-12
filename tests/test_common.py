@@ -1,27 +1,13 @@
 import os
-import functools
 
 import torch
 import pytest
+import pandas as pd
 
 from tests.conftest import dict_fixtures
-from tests.utils import MSE
+from tests.utils import MSE, filter_models
 
 from tests.import_data import true_sim_0cov, true_sim_2cov
-
-
-def filter_models(models_name):
-    def decorator(my_test):
-        @functools.wraps(my_test)
-        def new_test(**kwargs):
-            fixture = next(iter(kwargs.values()))
-            if type(fixture).__name__ not in models_name:
-                return None
-            return my_test(**kwargs)
-
-        return new_test
-
-    return decorator
 
 
 @pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
@@ -138,8 +124,8 @@ def test_setter_with_numpy(pln):
 @pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
 @filter_models(["PLN", "PLNPCA"])
 def test_setter_with_pandas(pln):
-    pd_counts = pd.DataFrame(any_pln.counts.numpy())
-    any_pln.counts = pd_counts
+    pd_counts = pd.DataFrame(pln.counts.numpy())
+    pln.counts = pd_counts
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
@@ -147,40 +133,27 @@ def test_random_init(instance):
     instance.fit(do_smart_init=False)
 
 
-"""
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
 def test_print_end_of_fitting_message(instance):
-    instance.fit(counts_sim, covariates_sim, offsets_sim, nb_max_iteration=4)
+    instance.fit(nb_max_iteration=4)
 
 
-@pytest.mark.parametrize("any_pln", all_fitted_models)
+@pytest.mark.parametrize("pln", dict_fixtures["fitted_pln"])
 @filter_models(["PLN", "_PLNPCA"])
-def test_fail_wrong_covariates_prediction(any_pln):
-    X = torch.randn(any_pln.n_samples, any_pln.nb_cov+1)
+def test_fail_wrong_covariates_prediction(pln):
+    X = torch.randn(pln.n_samples, pln.nb_cov + 1)
     with pytest.raises(Exception):
-        any_pln.predict(X)
+        pln.predict(X)
 
 
-@pytest.mark.parametrize(
-    "pln", dict_fixtures["loaded_and_fitted_pln"]
-)
+@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
+@filter_models(["_PLNPCA"])
+def test_latent_var_pca(plnpca):
+    assert plnpca.transform(project=False).shape == plnpca.counts.shape
+    assert plnpca.transform().shape == (plnpca.n_samples, plnpca.rank)
+
+
+@pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PLN"])
-def test_latent_var_pca(any__plnpca):
-    assert any__plnpca.transform(project=False).shape == any__plnpca.counts.shape
-    assert any__plnpca.transform().shape == (any__plnpca.n_samples, any__plnpca.rank)
-
-
-@pytest.mark.parametrize(
-    "pln", dict_fixtures["loaded_and_fitted_pln"]
-)
-@filter_models(["PLN"])
-def test_latent_var_pln_full(any_pln_full):
-    assert any_pln_full.transform().shape == any_pln_full.counts.shape
-
-
-def test_wrong_rank():
-    instance = _PLNPCA(counts_sim.shape[1] + 1)
-    with pytest.warns(UserWarning):
-        instance.fit(counts=counts_sim, covariates=covariates_sim, offsets=offsets_sim)
-
-"""
+def test_latent_var_full(pln):
+    assert pln.transform().shape == pln.counts.shape

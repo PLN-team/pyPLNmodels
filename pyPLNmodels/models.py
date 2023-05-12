@@ -675,25 +675,38 @@ class PLNPCA:
 
     @property
     def covariates(self):
-        return self.models[0].covariates
+        return self.list_models[0].covariates
 
     @property
     def counts(self):
-        return self.models[0].counts
+        return self.list_models[0].counts
+
+    @counts.setter
+    def counts(self, counts):
+        counts = format_data(counts)
+        if hasattr(self, "_counts"):
+            check_dimensions_are_equal(self._counts, counts)
+        self._counts = counts
+
+    @covariates.setter
+    def covariates(self, covariates):
+        covariates = format_data(covariates)
+        # if hasattr(self,)
+        self._covariates = covariates
 
     @property
     def offsets(self):
-        return self.models[0].offsets
+        return self.list_models[0].offsets
 
     def init_models(self, ranks, dict_of_dict_initialization):
         if isinstance(ranks, (Iterable, np.ndarray)):
-            self.models = []
+            self.list_models = []
             for rank in ranks:
                 if isinstance(rank, (int, np.integer)):
                     dict_initialization = get_dict_initialization(
                         rank, dict_of_dict_initialization
                     )
-                    self.models.append(
+                    self.list_models.append(
                         _PLNPCA(
                             self._counts,
                             self._covariates,
@@ -711,7 +724,7 @@ class PLNPCA:
             dict_initialization = get_dict_initialization(
                 ranks, dict_of_dict_initialization
             )
-            self.models = [
+            self.list_models = [
                 _PLNPCA(
                     self._counts,
                     self._covariates,
@@ -727,11 +740,11 @@ class PLNPCA:
 
     @property
     def ranks(self):
-        return [model.rank for model in self.models]
+        return [model.rank for model in self.list_models]
 
     @property
     def dict_models(self):
-        return {model.rank: model for model in self.models}
+        return {model.rank: model for model in self.list_models}
 
     def print_beginning_message(self):
         return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
@@ -790,15 +803,15 @@ class PLNPCA:
 
     @property
     def BIC(self):
-        return {model.rank: int(model.BIC) for model in self.models}
+        return {model.rank: int(model.BIC) for model in self.list_models}
 
     @property
     def AIC(self):
-        return {model.rank: int(model.AIC) for model in self.models}
+        return {model.rank: int(model.AIC) for model in self.list_models}
 
     @property
     def loglikes(self):
-        return {model.rank: model.loglike for model in self.models}
+        return {model.rank: model.loglike for model in self.list_models}
 
     def show(self):
         bic = self.BIC
@@ -842,7 +855,7 @@ class PLNPCA:
     def save(self, path_of_directory="./", ranks=None):
         if ranks is None:
             ranks = self.ranks
-        for model in self.models:
+        for model in self.list_models:
             if model.rank in ranks:
                 model.save(path_of_directory)
 
@@ -852,14 +865,18 @@ class PLNPCA:
 
     @property
     def n_samples(self):
-        return self.models[0].n_samples
+        return self.list_models[0].n_samples
 
     @property
     def _p(self):
         return self[self.ranks[0]].p
 
+    @property
+    def models(self):
+        return self.dict_models.values()
+
     def __str__(self):
-        nb_models = len(self.models)
+        nb_models = len(self.list_models)
         delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
         to_print = delimiter
         to_print += f"Collection of {nb_models} PLNPCA models with \
@@ -1032,6 +1049,16 @@ class _PLNPCA(_PLN):
         ortho_components = torch.linalg.qr(self._components, "reduced")[0]
         return torch.mm(self.latent_variables, ortho_components).detach().cpu()
 
+    def pca_projected_latent_variables(self, n_components=None):
+        if n_components is None:
+            n_components = self.get_max_components()
+        if n_components > self.dim:
+            raise RuntimeError(
+                f"You ask more components ({n_components}) than variables ({self.dim})"
+            )
+        pca = PCA(n_components=n_components)
+        return pca.fit_transform(self.projected_latent_variables.detach().cpu())
+
     @property
     def components(self):
         return self.attribute_or_none("_components")
@@ -1041,13 +1068,16 @@ class _PLNPCA(_PLN):
         self._components = components
 
     def viz(self, ax=None, colors=None):
-        if self._rank != 2:
-            raise RuntimeError("Can't perform visualization for rank != 2.")
         if ax is None:
             ax = plt.gca()
-        proj_variables = self.projected_latent_variables
-        x = proj_variables[:, 0].cpu().numpy()
-        y = proj_variables[:, 1].cpu().numpy()
+        if self._rank < 2:
+            raise RuntimeError("Can't perform visualization for rank < 2.")
+        if self._rank > 2:
+            proj_variables = self.pca_projected_latent_variables(n_components=2)
+        if self._rank == 2:
+            proj_variables = self.projected_latent_variables.cpu().numpy()
+        x = proj_variables[:, 0]
+        y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         covariances = torch.diag_embed(self._latent_var**2).detach().cpu()
         for i in range(covariances.shape[0]):
