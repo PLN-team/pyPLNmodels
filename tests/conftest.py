@@ -3,6 +3,7 @@ import glob
 from functools import singledispatch
 
 import pytest
+import torch
 from pytest_lazyfixture import lazy_fixture as lf
 from pyPLNmodels import load_model, load_plnpca
 from pyPLNmodels.models import PLN, _PLNPCA, PLNPCA
@@ -111,8 +112,6 @@ def generate_new_model(model, *args, **kwargs):
             new = PLN(*args, **kwargs, dict_initialization=init)
         if name == "_PLNPCA":
             new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
-            print("now", new.nb_cov)
-            x
     if name == "PLNPCA":
         init = load_plnpca(name_dir)
         new = convenientplnpca(*args, **kwargs, dict_initialization=init)
@@ -305,7 +304,7 @@ dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_2cov", sim_p
 @cache
 def real_pln_intercept_array(request):
     cls = request.param
-    pln_full = cls(counts_real)
+    pln_full = cls(counts_real, covariates=torch.ones((counts_real.shape[0], 1)))
     return pln_full
 
 
@@ -332,7 +331,6 @@ def real_fitted_pln_intercept_formula(real_pln_intercept_formula):
 @pytest.fixture
 def real_loaded_pln_intercept_formula(real_fitted_pln_intercept_formula):
     real_fitted_pln_intercept_formula.save()
-    print("before", real_fitted_pln_intercept_formula.nb_cov)
     return generate_new_model(
         real_fitted_pln_intercept_formula, "counts ~ 1", data_real
     )
@@ -341,7 +339,11 @@ def real_loaded_pln_intercept_formula(real_fitted_pln_intercept_formula):
 @pytest.fixture
 def real_loaded_pln_intercept_array(real_fitted_pln_intercept_array):
     real_fitted_pln_intercept_array.save()
-    return generate_new_model(real_fitted_pln_intercept_array, counts_real)
+    return generate_new_model(
+        real_fitted_pln_intercept_array,
+        counts_real,
+        covariates=torch.ones((counts_real.shape[0], 1)),
+    )
 
 
 real_pln_instance = [

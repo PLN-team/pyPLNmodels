@@ -439,7 +439,7 @@ class _PLN(ABC):
                 pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
                 )
-            else:
+            elif value is not None:
                 pd.DataFrame(np.array([value])).to_csv(
                     filename, header=None, index=None
                 )
