@@ -26,11 +26,12 @@ publish_package:
   script:
     - pip install twine
     - python setup.py bdist_wheel
-    - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+    - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
-  only:
-    - tags
+  # only:
+  #   - main
+  #   - tags
 
 pages:
   stage: publish
