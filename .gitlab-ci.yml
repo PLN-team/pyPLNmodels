@@ -31,7 +31,6 @@ publish_package:
     - docker
   only:
     - main
-  only:
     - tags
 
 pages:
