@@ -119,6 +119,7 @@ def test_fail_count_setter(pln):
 def test_setter_with_numpy(pln):
     np_counts = pln.counts.numpy()
     pln.counts = np_counts
+    pln.fit()
 
 
 @pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
@@ -126,6 +127,7 @@ def test_setter_with_numpy(pln):
 def test_setter_with_pandas(pln):
     pd_counts = pd.DataFrame(pln.counts.numpy())
     pln.counts = pd_counts
+    pln.fit()
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
