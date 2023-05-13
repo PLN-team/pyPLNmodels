@@ -22,7 +22,11 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
     n_samples, dim = counts.shape
     s_rond_s = torch.square(latent_var)
     offsets_plus_m = offsets + latent_mean
-    m_minus_xb = latent_mean - covariates @ coef
+    if covariates is None:
+        XB = 0
+    else:
+        XB = covariates @ coef
+    m_minus_xb = latent_mean - XB
     d_plus_minus_xb2 = (
         torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
     )
@@ -90,7 +94,11 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
     """
     n_samples = counts.shape[0]
     rank = components.shape[1]
-    log_intensity = offsets + covariates @ coef + latent_mean @ components.T
+    if covariates is None:
+        XB = 0
+    else:
+        XB = covariates @ coef
+    log_intensity = offsets + XB + latent_mean @ components.T
     s_rond_s = torch.square(latent_var)
     counts_log_intensity = torch.sum(counts * log_intensity)
     minus_intensity_plus_s_rond_s_cct = torch.sum(

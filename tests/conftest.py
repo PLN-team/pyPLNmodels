@@ -1,3 +1,414 @@
 import sys
+import glob
+from functools import singledispatch
+
+import pytest
+import torch
+from pytest_lazyfixture import lazy_fixture as lf
+from pyPLNmodels import load_model, load_plnpca
+from pyPLNmodels.models import PLN, _PLNPCA, PLNPCA
+
 
 sys.path.append("../")
+
+pytest_plugins = [
+    fixture_file.replace("/", ".").replace(".py", "")
+    for fixture_file in glob.glob("src/**/tests/fixtures/[!__]*.py", recursive=True)
+]
+
+
+from tests.import_data import (
+    data_sim_0cov,
+    data_sim_2cov,
+    data_real,
+)
+
+
+counts_sim_0cov = data_sim_0cov["counts"]
+covariates_sim_0cov = data_sim_0cov["covariates"]
+offsets_sim_0cov = data_sim_0cov["offsets"]
+
+counts_sim_2cov = data_sim_2cov["counts"]
+covariates_sim_2cov = data_sim_2cov["covariates"]
+offsets_sim_2cov = data_sim_2cov["offsets"]
+
+counts_real = data_real["counts"]
+
+
+def add_fixture_to_dict(my_dict, string_fixture):
+    my_dict[string_fixture] = [lf(string_fixture)]
+    return my_dict
+
+
+def add_list_of_fixture_to_dict(
+    my_dict, name_of_list_of_fixtures, list_of_string_fixtures
+):
+    my_dict[name_of_list_of_fixtures] = []
+    for string_fixture in list_of_string_fixtures:
+        my_dict[name_of_list_of_fixtures].append(lf(string_fixture))
+    return my_dict
+
+
+RANK = 8
+RANKS = [2, 6]
+instances = []
+# dict_fixtures_models = []
+
+
+@singledispatch
+def convenient_plnpca(
+    counts,
+    covariates=None,
+    offsets=None,
+    offsets_formula=None,
+    dict_initialization=None,
+):
+    return _PLNPCA(
+        counts, covariates, offsets, rank=RANK, dict_initialization=dict_initialization
+    )
+
+
+@convenient_plnpca.register(str)
+def _(formula, data, offsets_formula=None, dict_initialization=None):
+    return _PLNPCA(formula, data, rank=RANK, dict_initialization=dict_initialization)
+
+
+@singledispatch
+def convenientplnpca(
+    counts,
+    covariates=None,
+    offsets=None,
+    offsets_formula=None,
+    dict_initialization=None,
+):
+    return PLNPCA(
+        counts,
+        covariates,
+        offsets,
+        offsets_formula,
+        dict_of_dict_initialization=dict_initialization,
+        ranks=RANKS,
+    )
+
+
+@convenientplnpca.register(str)
+def _(formula, data, offsets_formula=None, dict_initialization=None):
+    return PLNPCA(
+        formula,
+        data,
+        offsets_formula,
+        ranks=RANKS,
+        dict_of_dict_initialization=dict_initialization,
+    )
+
+
+def generate_new_model(model, *args, **kwargs):
+    name_dir = model.directory_name
+    name = model.NAME
+    if name in ("PLN", "_PLNPCA"):
+        path = model.path_to_directory + name_dir
+        init = load_model(path)
+        if name == "PLN":
+            new = PLN(*args, **kwargs, dict_initialization=init)
+        if name == "_PLNPCA":
+            new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
+    if name == "PLNPCA":
+        init = load_plnpca(name_dir)
+        new = convenientplnpca(*args, **kwargs, dict_initialization=init)
+    return new
+
+
+def cache(func):
+    dict_cache = {}
+
+    def new_func(request):
+        if request.param.__name__ not in dict_cache:
+            dict_cache[request.param.__name__] = func(request)
+        return dict_cache[request.param.__name__]
+
+    return new_func
+
+
+params = [PLN, convenient_plnpca, convenientplnpca]
+dict_fixtures = {}
+
+
+@pytest.fixture(params=params)
+def simulated_pln_0cov_array(request):
+    cls = request.param
+    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
+    return pln
+
+
+@pytest.fixture(params=params)
+@cache
+def simulated_fitted_pln_0cov_array(request):
+    cls = request.param
+    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
+    pln.fit()
+    return pln
+
+
+@pytest.fixture(params=params)
+def simulated_pln_0cov_formula(request):
+    cls = request.param
+    pln = cls("counts ~ 0", data_sim_0cov)
+    return pln
+
+
+@pytest.fixture(params=params)
+@cache
+def simulated_fitted_pln_0cov_formula(request):
+    cls = request.param
+    pln = cls("counts ~ 0", data_sim_0cov)
+    pln.fit()
+    return pln
+
+
+@pytest.fixture
+def simulated_loaded_pln_0cov_formula(simulated_fitted_pln_0cov_formula):
+    simulated_fitted_pln_0cov_formula.save()
+    return generate_new_model(
+        simulated_fitted_pln_0cov_formula,
+        "counts ~ 0",
+        data_sim_0cov,
+    )
+
+
+@pytest.fixture
+def simulated_loaded_pln_0cov_array(simulated_fitted_pln_0cov_array):
+    simulated_fitted_pln_0cov_array.save()
+    return generate_new_model(
+        simulated_fitted_pln_0cov_array,
+        counts_sim_0cov,
+        covariates_sim_0cov,
+        offsets_sim_0cov,
+    )
+
+
+sim_pln_0cov_instance = [
+    "simulated_pln_0cov_array",
+    "simulated_pln_0cov_formula",
+]
+
+instances = sim_pln_0cov_instance + instances
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_pln_0cov_instance", sim_pln_0cov_instance
+)
+
+sim_pln_0cov_fitted = [
+    "simulated_fitted_pln_0cov_array",
+    "simulated_fitted_pln_0cov_formula",
+]
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_pln_0cov_fitted", sim_pln_0cov_fitted
+)
+
+sim_pln_0cov_loaded = [
+    "simulated_loaded_pln_0cov_array",
+    "simulated_loaded_pln_0cov_formula",
+]
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_pln_0cov_loaded", sim_pln_0cov_loaded
+)
+
+sim_pln_0cov = sim_pln_0cov_instance + sim_pln_0cov_fitted + sim_pln_0cov_loaded
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_0cov", sim_pln_0cov)
+
+
+@pytest.fixture(params=params)
+@cache
+def simulated_pln_2cov_array(request):
+    cls = request.param
+    pln_full = cls(counts_sim_2cov, covariates_sim_2cov, offsets_sim_2cov)
+    return pln_full
+
+
+@pytest.fixture
+def simulated_fitted_pln_2cov_array(simulated_pln_2cov_array):
+    simulated_pln_2cov_array.fit()
+    return simulated_pln_2cov_array
+
+
+@pytest.fixture(params=params)
+@cache
+def simulated_pln_2cov_formula(request):
+    cls = request.param
+    pln_full = cls("counts ~ 0 + covariates", data_sim_2cov)
+    return pln_full
+
+
+@pytest.fixture
+def simulated_fitted_pln_2cov_formula(simulated_pln_2cov_formula):
+    simulated_pln_2cov_formula.fit()
+    return simulated_pln_2cov_formula
+
+
+@pytest.fixture
+def simulated_loaded_pln_2cov_formula(simulated_fitted_pln_2cov_formula):
+    simulated_fitted_pln_2cov_formula.save()
+    return generate_new_model(
+        simulated_fitted_pln_2cov_formula,
+        "counts ~0 + covariates",
+        data_sim_2cov,
+    )
+
+
+@pytest.fixture
+def simulated_loaded_pln_2cov_array(simulated_fitted_pln_2cov_array):
+    simulated_fitted_pln_2cov_array.save()
+    return generate_new_model(
+        simulated_fitted_pln_2cov_array,
+        counts_sim_2cov,
+        covariates_sim_2cov,
+        offsets_sim_2cov,
+    )
+
+
+sim_pln_2cov_instance = [
+    "simulated_pln_2cov_array",
+    "simulated_pln_2cov_formula",
+]
+instances = sim_pln_2cov_instance + instances
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_pln_2cov_instance", sim_pln_2cov_instance
+)
+
+sim_pln_2cov_fitted = [
+    "simulated_fitted_pln_2cov_array",
+    "simulated_fitted_pln_2cov_formula",
+]
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_pln_2cov_fitted", sim_pln_2cov_fitted
+)
+
+sim_pln_2cov_loaded = [
+    "simulated_loaded_pln_2cov_array",
+    "simulated_loaded_pln_2cov_formula",
+]
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_pln_2cov_loaded", sim_pln_2cov_loaded
+)
+
+sim_pln_2cov = sim_pln_2cov_instance + sim_pln_2cov_fitted + sim_pln_2cov_loaded
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_2cov", sim_pln_2cov)
+
+
+@pytest.fixture(params=params)
+@cache
+def real_pln_intercept_array(request):
+    cls = request.param
+    pln_full = cls(counts_real, covariates=torch.ones((counts_real.shape[0], 1)))
+    return pln_full
+
+
+@pytest.fixture
+def real_fitted_pln_intercept_array(real_pln_intercept_array):
+    real_pln_intercept_array.fit()
+    return real_pln_intercept_array
+
+
+@pytest.fixture(params=params)
+@cache
+def real_pln_intercept_formula(request):
+    cls = request.param
+    pln_full = cls("counts ~ 1", data_real)
+    return pln_full
+
+
+@pytest.fixture
+def real_fitted_pln_intercept_formula(real_pln_intercept_formula):
+    real_pln_intercept_formula.fit()
+    return real_pln_intercept_formula
+
+
+@pytest.fixture
+def real_loaded_pln_intercept_formula(real_fitted_pln_intercept_formula):
+    real_fitted_pln_intercept_formula.save()
+    return generate_new_model(
+        real_fitted_pln_intercept_formula, "counts ~ 1", data_real
+    )
+
+
+@pytest.fixture
+def real_loaded_pln_intercept_array(real_fitted_pln_intercept_array):
+    real_fitted_pln_intercept_array.save()
+    return generate_new_model(
+        real_fitted_pln_intercept_array,
+        counts_real,
+        covariates=torch.ones((counts_real.shape[0], 1)),
+    )
+
+
+real_pln_instance = [
+    "real_pln_intercept_array",
+    "real_pln_intercept_formula",
+]
+instances = real_pln_instance + instances
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "real_pln_instance", real_pln_instance
+)
+
+real_pln_fitted = [
+    "real_fitted_pln_intercept_array",
+    "real_fitted_pln_intercept_formula",
+]
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "real_pln_fitted", real_pln_fitted
+)
+
+real_pln_loaded = [
+    "real_loaded_pln_intercept_array",
+    "real_loaded_pln_intercept_formula",
+]
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "real_pln_loaded", real_pln_loaded
+)
+
+sim_loaded_pln = sim_pln_0cov_loaded + sim_pln_2cov_loaded
+
+loaded_pln = real_pln_loaded + sim_loaded_pln
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "loaded_pln", loaded_pln)
+
+simulated_pln_fitted = sim_pln_0cov_fitted + sim_pln_2cov_fitted
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "simulated_pln_fitted", simulated_pln_fitted
+)
+fitted_pln = real_pln_fitted + simulated_pln_fitted
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "fitted_pln", fitted_pln)
+
+
+loaded_and_fitted_sim_pln = simulated_pln_fitted + sim_loaded_pln
+loaded_and_fitted_real_pln = real_pln_fitted + real_pln_loaded
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "loaded_and_fitted_real_pln", loaded_and_fitted_real_pln
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "loaded_and_fitted_sim_pln", loaded_and_fitted_sim_pln
+)
+loaded_and_fitted_pln = fitted_pln + loaded_pln
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "loaded_and_fitted_pln", loaded_and_fitted_pln
+)
+
+real_pln = real_pln_instance + real_pln_fitted + real_pln_loaded
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "real_pln", real_pln)
+
+sim_pln = sim_pln_2cov + sim_pln_0cov
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln", sim_pln)
+
+all_pln = real_pln + sim_pln + instances
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "instances", instances)
+dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "all_pln", all_pln)
+
+
+for string_fixture in all_pln:
+    print("string_fixture", string_fixture)
+    dict_fixtures = add_fixture_to_dict(dict_fixtures, string_fixture)
