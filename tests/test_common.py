@@ -2,7 +2,6 @@ import os
 
 import torch
 import pytest
-import pandas as pd
 
 from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
@@ -92,42 +91,12 @@ def test_find_right_coef(simulated_fitted_any_pln):
         assert simulated_fitted_any_pln.coef is None
 
 
-@pytest.mark.parametrize("fitted_pln", dict_fixtures["fitted_pln"])
-@filter_models(["PLN"])
-def test_number_of_iterations_pln_full(fitted_pln):
-    nb_iterations = len(fitted_pln.elbos_list)
-    assert 50 < nb_iterations < 300
-
-
-@pytest.mark.parametrize("fitted_pln", dict_fixtures["fitted_pln"])
-@filter_models(["_PLNPCA"])
-def test_number_of_iterations_plnpca(fitted_pln):
-    nb_iterations = len(fitted_pln.elbos_list)
-    assert 100 < nb_iterations < 5000
-
-
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["PLN"])
+@filter_models(["PLN", "_PLNPCA"])
 def test_fail_count_setter(pln):
     wrong_counts = torch.randint(size=(10, 5), low=0, high=10)
     with pytest.raises(Exception):
         pln.counts = wrong_counts
-
-
-@pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
-@filter_models(["PLN", "PLNPCA"])
-def test_setter_with_numpy(pln):
-    np_counts = pln.counts.numpy()
-    pln.counts = np_counts
-    pln.fit()
-
-
-@pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
-@filter_models(["PLN", "PLNPCA"])
-def test_setter_with_pandas(pln):
-    pd_counts = pd.DataFrame(pln.counts.numpy())
-    pln.counts = pd_counts
-    pln.fit()
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
@@ -146,16 +115,3 @@ def test_fail_wrong_covariates_prediction(pln):
     X = torch.randn(pln.n_samples, pln.nb_cov + 1)
     with pytest.raises(Exception):
         pln.predict(X)
-
-
-@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["_PLNPCA"])
-def test_latent_var_pca(plnpca):
-    assert plnpca.transform(project=False).shape == plnpca.counts.shape
-    assert plnpca.transform().shape == (plnpca.n_samples, plnpca.rank)
-
-
-@pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["PLN"])
-def test_latent_var_full(pln):
-    assert pln.transform().shape == pln.counts.shape

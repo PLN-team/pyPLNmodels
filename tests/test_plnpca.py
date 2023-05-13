@@ -23,6 +23,20 @@ def test_projected_variables(plnpca):
     assert plv.shape[0] == best_model.n_samples and plv.shape[1] == best_model.rank
 
 
+@pytest.mark.parametrize("fitted_pln", dict_fixtures["fitted_pln"])
+@filter_models(["_PLNPCA"])
+def test_number_of_iterations_plnpca(fitted_pln):
+    nb_iterations = len(fitted_pln.elbos_list)
+    assert 100 < nb_iterations < 5000
+
+
+@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
+@filter_models(["_PLNPCA"])
+def test_latent_var_pca(plnpca):
+    assert plnpca.transform(project=False).shape == plnpca.counts.shape
+    assert plnpca.transform().shape == (plnpca.n_samples, plnpca.rank)
+
+
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PLNPCA"])
 def test_additional_methods_pca(plnpca):
