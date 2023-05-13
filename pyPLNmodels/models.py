@@ -84,7 +84,7 @@ class _PLN(ABC):
         dict_initialization=None,
     ):
         """
-        Simple initialization method.
+        Simple initialization method wors fine.
         """
 
         self._counts, self._covariates, self._offsets = format_model_param(
