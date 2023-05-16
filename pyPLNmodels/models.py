@@ -629,10 +629,6 @@ class PLN(_PLN):
         pass
 
 
-from multipledispatch import dispatch
-
-
-## en train d'essayer de faire une seule init pour_PLNPCA
 class PLNPCA:
     _NAME = "PLNPCA"
 
