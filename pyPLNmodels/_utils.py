@@ -345,7 +345,7 @@ def _format_data(data):
     )
 
 
-def _format_model_param(counts, covariates, offsets, offsets_formula):
+def _format_model_param(counts, covariates, offsets, offsets_formula, take_log_offsets):
     counts = _format_data(counts)
     if covariates is not None:
         covariates = _format_data(covariates)
@@ -359,6 +359,8 @@ def _format_model_param(counts, covariates, offsets, offsets_formula):
             offsets = torch.zeros(counts.shape, device=DEVICE)
     else:
         offsets = _format_data(offsets).to(DEVICE)
+        if take_log_offsets is True:
+            offsets = torch.log(offsets)
     return counts, covariates, offsets
 
 
@@ -624,7 +626,6 @@ def _extract_data_from_formula(formula, data):
     dmatrix = dmatrices(formula, data=data)
     counts = dmatrix[0]
     covariates = dmatrix[1]
-    print("covariates size:", covariates.size)
     if covariates.size == 0:
         covariates = None
     offsets = data.get("offsets", None)

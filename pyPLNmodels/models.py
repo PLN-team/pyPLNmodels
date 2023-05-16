@@ -81,13 +81,14 @@ class _PLN(ABC):
         offsets=None,
         offsets_formula="logsum",
         dict_initialization=None,
+        take_log_offsets=False,
     ):
         """
         Simple initialization method wors fine.
         """
 
         self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, offsets_formula
+            counts, covariates, offsets, offsets_formula, take_log_offsets
         )
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
@@ -102,9 +103,17 @@ class _PLN(ABC):
         data: dict,
         offsets_formula="logsum",
         dict_initialization=None,
+        take_log_offsets=False,
     ):
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
-        self.__init__(counts, covariates, offsets, offsets_formula, dict_initialization)
+        self.__init__(
+            counts,
+            covariates,
+            offsets,
+            offsets_formula,
+            dict_initialization,
+            take_log_offsets,
+        )
 
     def _set__init_parameters(self, dict_initialization):
         if "coef" not in dict_initialization.keys():
@@ -641,13 +650,16 @@ class PLNPCA:
         offsets_formula="logsum",
         ranks=range(3, 5),
         dict_of_dict_initialization=None,
+        take_log_offsets=False,
     ):
-        self._init_data(counts, covariates, offsets, offsets_formula)
+        self._init_data(counts, covariates, offsets, offsets_formula, take_log_offsets)
         self._init_models(ranks, dict_of_dict_initialization)
 
-    def _init_data(self, counts, covariates, offsets, offsets_formula):
+    def _init_data(
+        self, counts, covariates, offsets, offsets_formula, take_log_offsets
+    ):
         self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, offsets_formula
+            counts, covariates, offsets, offsets_formula, take_log_offsets
         )
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
@@ -660,6 +672,7 @@ class PLNPCA:
         offsets_formula="logsum",
         ranks=range(3, 5),
         dict_of_dict_initialization=None,
+        take_log_offsets=False,
     ):
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         self.__init__(
@@ -669,6 +682,7 @@ class PLNPCA:
             offsets_formula,
             ranks,
             dict_of_dict_initialization,
+            take_log_offsets,
         )
 
     @property
@@ -916,7 +930,7 @@ class _PLNPCA(_PLN):
     def __init__(self, counts, covariates, offsets, rank, dict_initialization=None):
         self._rank = rank
         self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, None
+            counts, covariates, offsets, None, take_log_offsets=False
         )
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._check_if_rank_is_too_high()
