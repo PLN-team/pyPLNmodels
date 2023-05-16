@@ -64,7 +64,7 @@ def test_viz_pca(plnpca):
 
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PLNPCA"])
-def test_closest(plnpca):
+def test__closest(plnpca):
     with pytest.warns(UserWarning):
         plnpca[9]
 

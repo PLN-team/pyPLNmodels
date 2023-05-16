@@ -104,7 +104,7 @@ def _(formula, data, offsets_formula=None, dict_initialization=None):
 
 def generate_new_model(model, *args, **kwargs):
     name_dir = model.directory_name
-    name = model.NAME
+    name = model._NAME
     if name in ("PLN", "_PLNPCA"):
         path = model.path_to_directory + name_dir
         init = load_model(path)

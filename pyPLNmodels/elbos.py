@@ -1,6 +1,6 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import log_stirling, trunc_log
-from ._closed_forms import closed_formula_covariance, closed_formula_coef
+from ._utils import _log_stirling, _trunc_log
+from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 
 def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, coef):
@@ -37,7 +37,7 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
         + 0.5 * torch.log(s_rond_s)
     )
     elbo -= 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
-    elbo -= torch.sum(log_stirling(counts))
+    elbo -= torch.sum(_log_stirling(counts))
     elbo += 0.5 * n_samples * dim
     return elbo / n_samples
 
@@ -62,8 +62,8 @@ def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
     n_samples, _ = counts.shape
     s_rond_s = torch.square(latent_var)
     offsets_plus_m = offsets + latent_mean
-    closed_coef = closed_formula_coef(covariates, latent_mean)
-    closed_covariance = closed_formula_covariance(
+    closed_coef = _closed_formula_coef(covariates, latent_mean)
+    closed_covariance = _closed_formula_covariance(
         covariates, latent_mean, latent_var, closed_coef, n_samples
     )
     elbo = -0.5 * n_samples * torch.logdet(closed_covariance)
@@ -72,7 +72,7 @@ def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
         - torch.exp(offsets_plus_m + s_rond_s / 2)
         + 0.5 * torch.log(s_rond_s)
     )
-    elbo -= torch.sum(log_stirling(counts))
+    elbo -= torch.sum(_log_stirling(counts))
     return elbo / n_samples
 
 
@@ -108,13 +108,13 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
     mm_plus_s_rond_s = -0.5 * torch.sum(
         torch.square(latent_mean) + torch.square(latent_var)
     )
-    log_stirlingcounts = torch.sum(log_stirling(counts))
+    _log_stirlingcounts = torch.sum(_log_stirling(counts))
     return (
         counts_log_intensity
         + minus_intensity_plus_s_rond_s_cct
         + minuslogs_rond_s
         + mm_plus_s_rond_s
-        - log_stirlingcounts
+        - _log_stirlingcounts
         + 0.5 * n_samples * rank
     ) / n_samples
 
@@ -162,12 +162,12 @@ def elbo_zi_pln(
         * (
             counts @ offsets_plus_m
             - torch.exp(offsets_plus_m + s_rond_s / 2)
-            - log_stirling(counts),
+            - _log_stirling(counts),
         )
         + pi
     )
 
-    elbo -= torch.sum(pi * trunc_log(pi) + (1 - pi) * trunc_log(1 - pi))
+    elbo -= torch.sum(pi * _trunc_log(pi) + (1 - pi) * _trunc_log(1 - pi))
     elbo += torch.sum(
         pi * x_coef_inflation - torch.log(1 + torch.exp(x_coef_inflation))
     )

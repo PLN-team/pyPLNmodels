@@ -27,8 +27,8 @@ def test_print(any_pln):
 @filter_models(["PLN", "_PLNPCA"])
 def test_show_coef_transform_covariance_pcaprojected(any_pln):
     any_pln.show()
-    any_pln.plotargs.show_loss()
-    any_pln.plotargs.show_stopping_criterion()
+    any_pln._plotargs._show_loss()
+    any_pln._plotargs._show_stopping_criteration()
     assert hasattr(any_pln, "coef")
     assert callable(any_pln.transform)
     assert hasattr(any_pln, "covariance")
@@ -105,7 +105,7 @@ def test_random_init(instance):
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
-def test_print_end_of_fitting_message(instance):
+def test__print_end_of_fitting_message(instance):
     instance.fit(nb_max_iteration=4)
 
 
