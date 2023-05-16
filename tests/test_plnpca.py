@@ -26,7 +26,7 @@ def test_projected_variables(plnpca):
 @pytest.mark.parametrize("fitted_pln", dict_fixtures["fitted_pln"])
 @filter_models(["_PLNPCA"])
 def test_number_of_iterations_plnpca(fitted_pln):
-    nb_iterations = len(fitted_pln.elbos_list)
+    nb_iterations = len(fitted_pln._elbos_list)
     assert 100 < nb_iterations < 5000
 
 
