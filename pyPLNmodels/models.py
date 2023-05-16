@@ -652,7 +652,7 @@ class PLNPCA:
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
 
-    @__init__.register
+    @__init__.register(str)
     def _(
         self,
         formula,
