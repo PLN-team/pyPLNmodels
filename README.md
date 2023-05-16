@@ -1,10 +1,35 @@
+
+# PLNmodels: Poisson lognormal models
+
+> The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
+> This package implements
+> efficient algorithms to fit such models.
+<!-- accompanied with a set of -->
+<!-- > functions for visualization and diagnostic. See [this deck of -->
+<!-- > slides](https://pln-team.github.io/slideshow/) for a -->
+<!-- > comprehensive introduction. -->
+
+
+
+## Installation
+
+**PLNmodels** is available on
+[pypi](https://pypi.org/project/pyPLNmodels/). The development
+version is available on [Gitlab](https://github.com/pln-team/PLNmodels).
+
+### R Package installation
+
+
 # Usage and main fitting functions
+
+
+
+
 
 ### Description of the package
 
-The package implements 3 differents classes that fits a PLN-PCA model (described in the mathematical description above). Basically, it tries to find the correlation between features and the effect of covariables on these features. As main characteristic, this model takes into account count data.
-- The fastPLN class fits a PLN model (a special PLN-PCA model) using variational approximation.
-- The fastPLNPCA class fits a PLN-PCA  using variational approximation.
+The package implements 2 differents classes that fits a Poisson-Log-Normal model.
+- The PLN class fits a PLN model with full covariance matrix.
 - The IMPS_PLN fits a PLN-PCA model using Importance sampling.
 
 IMPS_PLN is always slower than fastPLN. fastPLNPCA is faster than fastPLN only for datasets with very large number of genes (p>5000, see [here](https://github.com/PLN-team/PLNpy/blob/master/images/Comparison_fastPLN_vs_fastPLNPCA_n%3D1000.png)). However,
