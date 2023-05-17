@@ -74,7 +74,6 @@ class _PLN(ABC):
     _latent_var: torch.Tensor
     _latent_mean: torch.Tensor
 
-    @singledispatchmethod
     def __init__(
         self,
         counts,
@@ -96,16 +95,16 @@ class _PLN(ABC):
         if dict_initialization is not None:
             self.set_init_parameters(dict_initialization)
 
-    @__init__.register(str)
-    def _(
-        self,
+    @classmethod
+    def from_formula(
+        cls,
         formula: str,
         data: dict,
         offsets_formula="logsum",
         dict_initialization=None,
     ):
         counts, covariates, offsets = extract_data_from_formula(formula, data)
-        self.__init__(counts, covariates, offsets, offsets_formula, dict_initialization)
+        return cls(counts, covariates, offsets, offsets_formula, dict_initialization)
 
     def set_init_parameters(self, dict_initialization):
         if "coef" not in dict_initialization.keys():
@@ -634,7 +633,6 @@ class PLN(_PLN):
 class PLNPCA:
     NAME = "PLNPCA"
 
-    @singledispatchmethod
     def __init__(
         self,
         counts,
@@ -654,9 +652,9 @@ class PLNPCA:
         check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
 
-    @__init__.register(str)
-    def _(
-        self,
+    @classmethod
+    def from_formula(
+        cls,
         formula: str,
         data: dict,
         offsets_formula="logsum",
@@ -664,7 +662,7 @@ class PLNPCA:
         dict_of_dict_initialization=None,
     ):
         counts, covariates, offsets = extract_data_from_formula(formula, data)
-        self.__init__(
+        return cls(
             counts,
             covariates,
             offsets,
@@ -914,7 +912,6 @@ class _PLNPCA(_PLN):
     NAME = "_PLNPCA"
     _components: torch.Tensor
 
-    @singledispatchmethod
     def __init__(self, counts, covariates, offsets, rank, dict_initialization=None):
         self._rank = rank
         self._counts, self._covariates, self._offsets = format_model_param(
@@ -927,10 +924,10 @@ class _PLNPCA(_PLN):
         self._fitted = False
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
-    @__init__.register(str)
-    def _(self, formula, data, rank, dict_initialization):
+    @classmethod
+    def from_formula(self, formula, data, rank, dict_initialization):
         counts, covariates, offsets = extract_data_from_formula(formula, data)
-        self.__init__(counts, covariates, offsets, rank, dict_initialization)
+        return cls(counts, covariates, offsets, rank, dict_initialization)
 
     def check_if_rank_is_too_high(self):
         if self.dim < self.rank:

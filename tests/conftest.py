@@ -102,9 +102,16 @@ def _(formula, data, offsets_formula=None, dict_initialization=None):
     )
 
 
+# def convenientpln()
+
+
 def generate_new_model(model, *args, **kwargs):
     name_dir = model.directory_name
     name = model.NAME
+    if isinstance(*args[0], str):
+        from_formula = True
+    else:
+        from_formula = False
     if name in ("PLN", "_PLNPCA"):
         path = model.path_to_directory + name_dir
         init = load_model(path)
