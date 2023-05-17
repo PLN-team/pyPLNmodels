@@ -706,11 +706,11 @@ class PLNPCA:
                     )
                     self.list_models.append(
                         _PLNPCA(
-                            self._counts,
-                            self._covariates,
-                            self._offsets,
-                            rank,
-                            dict_initialization,
+                            counts=self._counts,
+                            covariates=self._covariates,
+                            offsets=self._offsets,
+                            rank=rank,
+                            dict_initialization=dict_initialization,
                         )
                     )
                 else:
@@ -912,10 +912,18 @@ class _PLNPCA(_PLN):
     NAME = "_PLNPCA"
     _components: torch.Tensor
 
-    def __init__(self, counts, covariates, offsets, rank, dict_initialization=None):
+    def __init__(
+        self,
+        counts,
+        covariates=None,
+        offsets=None,
+        offsets_formula="logsum",
+        rank=5,
+        dict_initialization=None,
+    ):
         self._rank = rank
         self._counts, self._covariates, self._offsets = format_model_param(
-            counts, covariates, offsets, None
+            counts, covariates, offsets, offsets_formula
         )
         check_data_shape(self._counts, self._covariates, self._offsets)
         self.check_if_rank_is_too_high()
@@ -925,9 +933,13 @@ class _PLNPCA(_PLN):
         self.plotargs = PLNPlotArgs(self.WINDOW)
 
     @classmethod
-    def from_formula(self, formula, data, rank, dict_initialization):
+    def from_formula(
+        cls, formula, data, rank=5, offsets_formula="logsum", dict_initialization=None
+    ):
         counts, covariates, offsets = extract_data_from_formula(formula, data)
-        return cls(counts, covariates, offsets, rank, dict_initialization)
+        return cls(
+            counts, covariates, offsets, offsets_formula, rank, dict_initialization
+        )
 
     def check_if_rank_is_too_high(self):
         if self.dim < self.rank:

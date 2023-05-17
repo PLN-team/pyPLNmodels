@@ -55,68 +55,39 @@ instances = []
 # dict_fixtures_models = []
 
 
-@singledispatch
-def convenient_plnpca(
-    counts,
-    covariates=None,
-    offsets=None,
-    offsets_formula=None,
-    dict_initialization=None,
-):
-    return _PLNPCA(
-        counts, covariates, offsets, rank=RANK, dict_initialization=dict_initialization
-    )
+def convenient_plnpca(*args, **kwargs):
+    dict_init = kwargs.pop("dict_initialization", None)
+    if isinstance(args[0], str):
+        return _PLNPCA.from_formula(
+            *args, **kwargs, dict_initialization=dict_init, rank=RANK
+        )
+    print("rank:", RANK)
+    return _PLNPCA(*args, **kwargs, dict_initialization=dict_init, rank=RANK)
 
 
-@convenient_plnpca.register(str)
-def _(formula, data, offsets_formula=None, dict_initialization=None):
-    return _PLNPCA(formula, data, rank=RANK, dict_initialization=dict_initialization)
+def convenientplnpca(*args, **kwargs):
+    dict_init = kwargs.pop("dict_initialization", None)
+    if isinstance(args[0], str):
+        return PLNPCA.from_formula(
+            *args, **kwargs, dict_of_dict_initialization=dict_init, ranks=RANKS
+        )
+    return PLNPCA(*args, **kwargs, dict_of_dict_initialization=dict_init, ranks=RANKS)
 
 
-@singledispatch
-def convenientplnpca(
-    counts,
-    covariates=None,
-    offsets=None,
-    offsets_formula=None,
-    dict_initialization=None,
-):
-    return PLNPCA(
-        counts,
-        covariates,
-        offsets,
-        offsets_formula,
-        dict_of_dict_initialization=dict_initialization,
-        ranks=RANKS,
-    )
-
-
-@convenientplnpca.register(str)
-def _(formula, data, offsets_formula=None, dict_initialization=None):
-    return PLNPCA(
-        formula,
-        data,
-        offsets_formula,
-        ranks=RANKS,
-        dict_of_dict_initialization=dict_initialization,
-    )
-
-
-# def convenientpln()
+def convenientpln(*args, **kwargs):
+    if isinstance(args[0], str):
+        return PLN.from_formula(*args, **kwargs)
+    return PLN(*args, **kwargs)
 
 
 def generate_new_model(model, *args, **kwargs):
     name_dir = model.directory_name
     name = model.NAME
-    if isinstance(*args[0], str):
-        from_formula = True
-    else:
-        from_formula = False
     if name in ("PLN", "_PLNPCA"):
         path = model.path_to_directory + name_dir
         init = load_model(path)
         if name == "PLN":
-            new = PLN(*args, **kwargs, dict_initialization=init)
+            new = convenientpln(*args, **kwargs, dict_initialization=init)
         if name == "_PLNPCA":
             new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
     if name == "PLNPCA":
@@ -136,7 +107,7 @@ def cache(func):
     return new_func
 
 
-params = [PLN, convenient_plnpca, convenientplnpca]
+params = [convenientpln, convenient_plnpca, convenientplnpca]
 dict_fixtures = {}
 
 
