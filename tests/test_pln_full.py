@@ -7,7 +7,7 @@ from tests.utils import filter_models
 @pytest.mark.parametrize("fitted_pln", dict_fixtures["fitted_pln"])
 @filter_models(["PLN"])
 def test_number_of_iterations_pln_full(fitted_pln):
-    nb_iterations = len(fitted_pln.elbos_list)
+    nb_iterations = len(fitted_pln._elbos_list)
     assert 50 < nb_iterations < 300
 
 

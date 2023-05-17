@@ -30,8 +30,6 @@ publish_package:
   tags:
     - docker
   only:
-    - main
-  only:
     - tags
 
 pages:
