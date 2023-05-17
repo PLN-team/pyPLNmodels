@@ -48,4 +48,4 @@ pages:
   tags:
     - docker
   only:
-    - main
+    - tags
