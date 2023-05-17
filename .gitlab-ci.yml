@@ -29,9 +29,8 @@ publish_package:
     - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
-  # only:
-  #   - main
-  #   - tags
+  only:
+    - tags
 
 pages:
   stage: publish
