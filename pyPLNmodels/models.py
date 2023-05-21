@@ -26,19 +26,17 @@ from ._utils import (
     _init_covariance,
     _init_components,
     _init_coef,
-    _check_two_dimensions_are_equal,
     _init_latent_mean,
     _format_data,
     _format_model_param,
-    _check_data_shape,
     _nice_string_of_dict,
     _plot_ellipse,
     _closest,
-    _to_tensor,
-    _check_dimensions_are_equal,
+    _check_data_shape,
     _check_right_rank,
     _extract_data_from_formula,
-    _get_dict_initalization,
+    _get_dict_initialization,
+    array2tensor,
 )
 
 if torch.cuda.is_available():
@@ -360,7 +358,7 @@ class _PLN(ABC):
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
             self._plotargs._show_loss(ax=axes[2])
-            self._plotargs._show_stopping_criteration(ax=axes[1])
+            self._plotargs._show_stopping_criterion(ax=axes[1])
             self.display_covariance(ax=axes[0])
         else:
             self.display_covariance(ax=axes)
@@ -423,10 +421,12 @@ class _PLN(ABC):
         return self._attribute_or_none("_latent_var")
 
     @latent_var.setter
+    @array2tensor
     def latent_var(self, latent_var):
         self._latent_var = latent_var
 
     @latent_mean.setter
+    @array2tensor
     def latent_mean(self, latent_mean):
         self._latent_mean = latent_mean
 
@@ -465,21 +465,25 @@ class _PLN(ABC):
         return self._attribute_or_none("_covariates")
 
     @counts.setter
+    @array2tensor
     def counts(self, counts):
-        counts = _to_tensor(counts)
         if hasattr(self, "_counts"):
-            _check_dimensions_are_equal(self._counts, counts)
+            if self.counts.shape != counts.shape:
+                raise ValueError
         self._counts = counts
 
     @offsets.setter
+    @array2tensor
     def offsets(self, offsets):
         self._offsets = offsets
 
     @covariates.setter
+    @array2tensor
     def covariates(self, covariates):
         self._covariates = covariates
 
     @coef.setter
+    @array2tensor
     def coef(self, coef):
         self._coef = coef
 
@@ -694,16 +698,19 @@ class PLNPCA:
         return self.list_models[0].counts
 
     @counts.setter
+    @array2tensor
     def counts(self, counts):
-        counts = _format_data(counts)
         if hasattr(self, "_counts"):
-            _check_dimensions_are_equal(self._counts, counts)
+            if self.counts.shape != counts.shape:
+                raise ValueError
         self._counts = counts
 
     @covariates.setter
+    @array2tensor
     def covariates(self, covariates):
-        covariates = _format_data(covariates)
-        # if hasattr(self,)
+        if hasattr(self, "_covariates"):
+            if self._covariates is not None:
+                pass
         self._covariates = covariates
 
     @property
@@ -715,7 +722,7 @@ class PLNPCA:
             self.list_models = []
             for rank in ranks:
                 if isinstance(rank, (int, np.integer)):
-                    dict_initialization = _get_dict_initalization(
+                    dict_initialization = _get_dict_initialization(
                         rank, dict_of_dict_initialization
                     )
                     self.list_models.append(
@@ -733,7 +740,7 @@ class PLNPCA:
                         f"of integers or an integer."
                     )
         elif isinstance(ranks, (int, np.integer)):
-            dict_initialization = _get_dict_initalization(
+            dict_initialization = _get_dict_initialization(
                 ranks, dict_of_dict_initialization
             )
             self.list_models = [
@@ -1079,6 +1086,7 @@ class _PLNPCA(_PLN):
         return self._attribute_or_none("_components")
 
     @components.setter
+    @array2tensor
     def components(self, components):
         self._components = components
 
