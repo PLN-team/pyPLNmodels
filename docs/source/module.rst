@@ -11,3 +11,5 @@ API documentation
 .. autoclass:: pyPLNmodels.PLNPCA
    :members:
    :show-inheritance:
+   :special-members: __init__
+   :undoc-members:
