@@ -420,15 +420,23 @@ class _PLN(ABC):
     def latent_var(self):
         return self._attribute_or_none("_latent_var")
 
-    @latent_var.setter
-    @array2tensor
-    def latent_var(self, latent_var):
-        self._latent_var = latent_var
-
     @latent_mean.setter
     @array2tensor
     def latent_mean(self, latent_mean):
+        if latent_mean.shape != (self.n, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n, self.dim}, got {latent_mean.shape}"
+            )
         self._latent_mean = latent_mean
+
+    @latent_var.setter
+    @array2tensor
+    def latent_var(self, latent_var):
+        if latent_var.shape != (self.n, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n, self.dim}, got {latent_var.shape}"
+            )
+        self._latent_var = latent_var
 
     def _attribute_or_none(self, attribute_name):
         if hasattr(self, attribute_name):
@@ -467,19 +475,25 @@ class _PLN(ABC):
     @counts.setter
     @array2tensor
     def counts(self, counts):
-        if hasattr(self, "_counts"):
-            if self.counts.shape != counts.shape:
-                raise ValueError
+        if self.counts.shape != counts.shape:
+            raise ValueError(
+                f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
+            )
         self._counts = counts
 
     @offsets.setter
     @array2tensor
     def offsets(self, offsets):
+        if self.offsets.shape != offsets.shape:
+            raise ValueError(
+                f"Wrong shape for the offsets. Expected {self.offsets.shape}, got {offsets.shape}"
+            )
         self._offsets = offsets
 
     @covariates.setter
     @array2tensor
     def covariates(self, covariates):
+        _check_data_shape(self.counts, covariates, self.offsets)
         self._covariates = covariates
 
     @coef.setter
@@ -700,22 +714,27 @@ class PLNPCA:
     @counts.setter
     @array2tensor
     def counts(self, counts):
-        if hasattr(self, "_counts"):
-            if self.counts.shape != counts.shape:
-                raise ValueError
+        if self.counts.shape != counts.shape:
+            raise ValueError(
+                f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
+            )
         self._counts = counts
 
     @covariates.setter
     @array2tensor
     def covariates(self, covariates):
-        if hasattr(self, "_covariates"):
-            if self._covariates is not None:
-                pass
-        self._covariates = covariates
+        for model in self.list_models:
+            model.covariates = covariates
 
     @property
     def offsets(self):
         return self.list_models[0].offsets
+
+    @offsets.setter
+    @array2tensor
+    def offsets(self, offsets):
+        for model in self.list_models:
+            model.offsets = offsets
 
     def _init_models(self, ranks, dict_of_dict_initialization):
         if isinstance(ranks, (Iterable, np.ndarray)):
@@ -748,7 +767,7 @@ class PLNPCA:
                     self._counts,
                     self._covariates,
                     self._offsets,
-                    rank,
+                    ranks,
                     dict_initialization,
                 )
             ]
@@ -788,8 +807,9 @@ class PLNPCA:
         verbose=False,
     ):
         self._pring_beginning_message()
-        for pca in self.dict_models.values():
-            pca.fit(
+        for i in range(len(self.list_models)):
+            model = self.list_models[i]
+            model.fit(
                 nb_max_iteration,
                 lr,
                 class_optimizer,
@@ -797,6 +817,13 @@ class PLNPCA:
                 do_smart_init,
                 verbose,
             )
+            if i < len(self.list_models) - 1:
+                next_model = self.list_models[i + 1]
+                next_model.coef = model.coef
+                actual_rank = model.rank
+                next_model._components = torch.zeros(self.dim, next_model.rank)
+                with torch.no_grad():
+                    next_model._components[:, : model.rank] = model._components
         self._print_ending_message()
 
     def _print_ending_message(self):
@@ -962,9 +989,47 @@ class _PLNPCA(_PLN):
             self._rank = self.dim
 
     @property
+    def latent_mean(self):
+        return self._attribute_or_none("_latent_mean")
+
+    @property
+    def latent_var(self):
+        return self._attribute_or_none("_latent_var")
+
+    @latent_mean.setter
+    @array2tensor
+    def latent_mean(self, latent_mean):
+        if latent_mean.shape != (self.n, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n, self.rank}, got {latent_mean.shape}"
+            )
+        self._latent_mean = latent_mean
+
+    @latent_var.setter
+    @array2tensor
+    def latent_var(self, latent_var):
+        if latent_var.shape != (self.n, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n, self.rank}, got {latent_var.shape}"
+            )
+        self._latent_var = latent_var
+
+    @property
     def directory_name(self):
         return f"{self._NAME}_rank_{self._rank}"
         # return f"PLNPCA_nbcov_{self.nb_cov}_dim_{self.dim}/{self._NAME}_rank_{self._rank}"
+
+    @property
+    def covariates(self):
+        return self._attribute_or_none("_covariates")
+
+    @covariates.setter
+    @array2tensor
+    def covariates(self, covariates):
+        _check_data_shape(self.counts, covariates, self.offsets)
+        self._covariates = covariates
+        print("Setting coef to initialization")
+        self._coef = self._smart_init_coef()
 
     @property
     def path_to_directory(self):
