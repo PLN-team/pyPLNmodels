@@ -1034,10 +1034,26 @@ class Pln(_Pln):
 
     @property
     def _description(self):
+        """
+        Property representing the description of the model.
+
+        Returns
+        -------
+        str
+            The description of the model.
+        """
         return "full covariance model."
 
     @property
     def coef(self):
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None.
+        """
         if (
             hasattr(self, "_latent_mean")
             and hasattr(self, "_covariates")
@@ -1048,12 +1064,26 @@ class Pln(_Pln):
 
     @coef.setter
     def coef(self, coef):
+        """
+        Setter for the coef property.
+
+        Parameters
+        ----------
+        coef : torch.Tensor
+            The coefficients.
+        """
         pass
 
     def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
         self._random_init_latent_parameters()
 
     def _random_init_latent_parameters(self):
+        """
+        Method for randomly initializing the latent parameters.
+        """
         if not hasattr(self, "_latent_var"):
             self._latent_var = 1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
         if not hasattr(self, "_latent_mean"):
@@ -1061,12 +1091,36 @@ class Pln(_Pln):
 
     @property
     def _list_of_parameters_needing_gradient(self):
+        """
+        Property representing the list of parameters needing gradient.
+
+        Returns
+        -------
+        list
+            The list of parameters needing gradient.
+        """
         return [self._latent_mean, self._latent_var]
 
     def _get_max_components(self):
+        """
+        Method for getting the maximum number of components.
+
+        Returns
+        -------
+        int
+            The maximum number of components.
+        """
         return self.dim
 
     def compute_elbo(self):
+        """
+        Method for computing the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
         return profiled_elbo_pln(
             self._counts,
             self._covariates,
@@ -1076,19 +1130,41 @@ class Pln(_Pln):
         )
 
     def _smart_init_model_parameters(self):
+        """
+        Method for smartly initializing the model parameters.
+        """
         # no model parameters since we are doing a profiled ELBO
         pass
 
     def _random_init_model_parameters(self):
+        """
+        Method for randomly initializing the model parameters.
+        """
         # no model parameters since we are doing a profiled ELBO
         pass
 
     @property
     def _coef(self):
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        torch.Tensor
+            The coefficients.
+        """
         return _closed_formula_coef(self._covariates, self._latent_mean)
 
     @property
     def _covariance(self):
+        """
+        Property representing the covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The covariance matrix or None.
+        """
         return _closed_formula_covariance(
             self._covariates,
             self._latent_mean,
@@ -1098,21 +1174,56 @@ class Pln(_Pln):
         )
 
     def _pring_beginning_message(self):
+        """
+        Method for printing the beginning message.
+        """
         print(f"Fitting a Pln model with {self._description}")
 
     @property
     def latent_variables(self):
+        """
+        Property representing the latent variables.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variables.
+        """
         return self.latent_mean
 
     @property
     def number_of_parameters(self):
+        """
+        Property representing the number of parameters.
+
+        Returns
+        -------
+        int
+            The number of parameters.
+        """
         return self.dim * (self.dim + self.nb_cov)
 
     def transform(self):
+        """
+        Method for transforming the model.
+
+        Returns
+        -------
+        torch.Tensor
+            The transformed model.
+        """
         return self.latent_variables
 
     @property
     def covariance(self):
+        """
+        Property representing the covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The covariance matrix or None.
+        """
         if all(
             hasattr(self, attr)
             for attr in [
@@ -1128,6 +1239,14 @@ class Pln(_Pln):
 
     @covariance.setter
     def covariance(self, covariance):
+        """
+        Setter for the covariance property.
+
+        Parameters
+        ----------
+        covariance : torch.Tensor
+            The covariance matrix.
+        """
         pass
 
 

@@ -10,6 +10,7 @@ from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
 from typing import Optional, Dict, Any, Union
+import pkg_resources
 
 
 torch.set_default_dtype(torch.float64)
@@ -646,32 +647,6 @@ def _format_model_param(
     return counts, covariates, offsets
 
 
-def _remove_useless_intercepts(covariates: torch.Tensor) -> torch.Tensor:
-    """
-    Remove useless intercepts from covariates.
-
-    Parameters
-    ----------
-    covariates : torch.Tensor, shape (n, d)
-        Covariate data.
-
-    Returns
-    -------
-    torch.Tensor
-        Covariate data with useless intercepts removed.
-    """
-    covariates = _format_data(covariates)
-    if covariates.shape[1] < 2:
-        return covariates
-    first_column = covariates[:, 0]
-    second_column = covariates[:, 1]
-    diff = first_column - second_column
-    if torch.sum(torch.abs(diff - diff[0])) == 0:
-        print("removing one")
-        return covariates[:, 1:]
-    return covariates
-
-
 def _check_data_shape(
     counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> None:
@@ -902,9 +877,11 @@ def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
             f"\nTaking the whole 100 variables. Requested:dim={dim}, returned:100"
         )
         dim = 100
-    counts = pd.read_csv("../example_data/real_data/Y_mark.csv").values[
-        :n_samples, :dim
-    ]
+    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/Y_mark.csv")
+    counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
+    # counts = pd.read_csv("./pyPLNmodels/data/scRT/Y_mark.csv").values[
+    # :n_samples, :dim
+    # ]
     print(f"Returning dataset of size {counts.shape}")
     return counts
 
