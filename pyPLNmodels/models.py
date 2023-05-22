@@ -1,9 +1,7 @@
 import time
 from abc import ABC, abstractmethod
-import pickle
 import warnings
 import os
-from functools import singledispatchmethod
 from collections.abc import Iterable
 
 import pandas as pd
@@ -12,7 +10,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-from patsy import dmatrices
 
 
 from ._closed_forms import (
@@ -31,9 +28,7 @@ from ._utils import (
     _format_model_param,
     _nice_string_of_dict,
     _plot_ellipse,
-    _closest,
     _check_data_shape,
-    _check_right_rank,
     _extract_data_from_formula,
     _get_dict_initialization,
     array2tensor,

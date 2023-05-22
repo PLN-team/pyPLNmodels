@@ -63,13 +63,6 @@ def test_viz_pca(plnpca):
 
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PlnPCAcollection"])
-def test__closest(plnpca):
-    with pytest.warns(UserWarning):
-        plnpca[9]
-
-
-@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["PlnPCAcollection"])
 def test_wrong_criterion(plnpca):
     with pytest.raises(ValueError):
         plnpca.best_model("AIK")
