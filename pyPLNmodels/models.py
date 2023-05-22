@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from collections.abc import Iterable
+from typing import Optional
 
 import pandas as pd
 import torch
@@ -60,13 +61,31 @@ class _Pln(ABC):
 
     def __init__(
         self,
-        counts,
-        covariates=None,
-        offsets=None,
-        offsets_formula="logsum",
-        dict_initialization=None,
-        take_log_offsets=False,
+        counts: torch.Tensor,
+        covariates: Optional[torch.Tensor] = None,
+        offsets: Optional[torch.Tensor] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[dict] = None,
+        take_log_offsets: bool = False,
     ):
+        """
+        Initializes the _Pln class.
+
+        Parameters
+        ----------
+        counts : torch.Tensor
+            The count data.
+        covariates : torch.Tensor, optional
+            The covariate data. Defaults to None.
+        offsets : torch.Tensor, optional
+            The offsets data. Defaults to None.
+        offsets_formula : str, optional
+            The formula for offsets. Defaults to "logsum".
+        dict_initialization : dict, optional
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional
+            Whether to take the log of offsets. Defaults to False.
+        """
         self._counts, self._covariates, self._offsets = _format_model_param(
             counts, covariates, offsets, offsets_formula, take_log_offsets
         )
@@ -81,10 +100,31 @@ class _Pln(ABC):
         cls,
         formula: str,
         data: dict,
-        offsets_formula="logsum",
-        dict_initialization=None,
-        take_log_offsets=False,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[dict] = None,
+        take_log_offsets: bool = False,
     ):
+        """
+        Create a _Pln instance from a formula and data.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : dict
+            The data dictionary.
+        offsets_formula : str, optional
+            The formula for offsets. Defaults to "logsum".
+        dict_initialization : dict, optional
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional
+            Whether to take the log of offsets. Defaults to False.
+
+        Returns
+        -------
+        _Pln
+            The initialized _Pln instance.
+        """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
@@ -95,7 +135,15 @@ class _Pln(ABC):
             take_log_offsets,
         )
 
-    def _set_init_parameters(self, dict_initialization):
+    def _set_init_parameters(self, dict_initialization: dict):
+        """
+        Set initial parameters based on a dictionary.
+
+        Parameters
+        ----------
+        dict_initialization : dict
+            The initialization dictionary.
+        """
         if "coef" not in dict_initialization.keys():
             print("No coef is initialized.")
             self.coef = None
@@ -104,51 +152,110 @@ class _Pln(ABC):
             setattr(self, key, array)
 
     @property
-    def fitted(self):
+    def fitted(self) -> bool:
+        """
+        Whether the model is fitted.
+
+        Returns
+        -------
+        bool
+            True if the model is fitted, False otherwise.
+        """
         return self._fitted
 
     @property
-    def nb_iteration_done(self):
+    def nb_iteration_done(self) -> int:
+        """
+        The number of iterations done.
+
+        Returns
+        -------
+        int
+            The number of iterations done.
+        """
         return len(self._plotargs._elbos_list)
 
     @property
-    def n_samples(self):
+    def n_samples(self) -> int:
+        """
+        The number of samples.
+
+        Returns
+        -------
+        int
+            The number of samples.
+        """
         return self._counts.shape[0]
 
     @property
-    def dim(self):
+    def dim(self) -> int:
+        """
+        The dimension.
+
+        Returns
+        -------
+        int
+            The dimension.
+        """
         return self._counts.shape[1]
 
     @property
-    def nb_cov(self):
+    def nb_cov(self) -> int:
+        """
+        The number of covariates.
+
+        Returns
+        -------
+        int
+            The number of covariates.
+        """
         if self.covariates is None:
             return 0
         return self.covariates.shape[1]
 
     def _smart_init_coef(self):
+        """
+        Initialize coefficients smartly.
+        """
         self._coef = _init_coef(self._counts, self._covariates, self._offsets)
 
     def _random_init_coef(self):
+        """
+        Randomly initialize coefficients.
+        """
         if self.nb_cov == 0:
             self._coef = None
         self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
 
     @abstractmethod
     def _random_init_model_parameters(self):
-        pass
-
-    @abstractmethod
-    def _smart_init_model_parameters(self):
+        """
+        Abstract method to randomly initialize model parameters.
+        """
         pass
 
     @abstractmethod
     def _random_init_latent_parameters(self):
+        """
+        Abstract method to randomly initialize latent parameters.
+        """
         pass
 
     def _smart_init_latent_parameters(self):
+        """
+        Initialize latent parameters smartly.
+        """
         pass
 
-    def _init_parameters(self, do_smart_init):
+    def _init_parameters(self, do_smart_init: bool):
+        """
+        Initialize model parameters.
+
+        Parameters
+        ----------
+        do_smart_init : bool
+            Whether to perform smart initialization.
+        """
         print("Initialization ...")
         if do_smart_init:
             self._smart_init_model_parameters()
@@ -159,24 +266,51 @@ class _Pln(ABC):
         print("Initialization finished")
 
     def _put_parameters_to_device(self):
+        """
+        Move parameters to the device.
+        """
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
     @property
     def _list_of_parameters_needing_gradient(self):
         """
-        A list containing all the parameters that needs to be upgraded via a gradient step.
+        A list containing all the parameters that need to be upgraded via a gradient step.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            List of parameters needing gradient.
         """
+        ...
 
     def fit(
         self,
-        nb_max_iteration=50000,
-        lr=0.01,
-        class_optimizer=torch.optim.Rprop,
-        tol=1e-3,
-        do_smart_init=True,
-        verbose=False,
+        nb_max_iteration: int = 50000,
+        lr: float = 0.01,
+        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
     ):
+        """
+        Fit the model.
+
+        Parameters
+        ----------
+        nb_max_iteration : int, optional
+            The maximum number of iterations. Defaults to 50000.
+        lr : float, optional
+            The learning rate. Defaults to 0.01.
+        class_optimizer : torch.optim.Optimizer, optional
+            The optimizer class. Defaults to torch.optim.Rprop.
+        tol : float, optional
+            The tolerance for convergence. Defaults to 1e-3.
+        do_smart_init : bool, optional
+            Whether to perform smart initialization. Defaults to True.
+        verbose : bool, optional
+            Whether to print training progress. Defaults to False.
+        """
         self._pring_beginning_message()
         self._beginning_time = time.time()
 
@@ -187,7 +321,7 @@ class _Pln(ABC):
         self._put_parameters_to_device()
         self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
         stop_condition = False
-        while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
+        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
@@ -198,6 +332,14 @@ class _Pln(ABC):
         self._fitted = True
 
     def _trainstep(self):
+        """
+        Perform a single training step.
+
+        Returns
+        -------
+        torch.Tensor
+            The loss value.
+        """
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
@@ -205,7 +347,20 @@ class _Pln(ABC):
         self._update_closed_forms()
         return loss
 
-    def pca_projected_latent_variables(self, n_components=None):
+    def pca_projected_latent_variables(self, n_components: Optional[int] = None):
+        """
+        Perform PCA on the latent variables and project them onto a lower-dimensional space.
+
+        Parameters
+        ----------
+        n_components : int, optional
+            The number of components to keep. If None, all components are kept. Defaults to None.
+
+        Returns
+        -------
+        numpy.ndarray
+            The projected latent variables.
+        """
         if n_components is None:
             n_components = self._get_max_components()
         if n_components > self.dim:
@@ -218,9 +373,22 @@ class _Pln(ABC):
     @property
     @abstractmethod
     def latent_variables(self):
+        """
+        Abstract property representing the latent variables.
+        """
         pass
 
-    def _print_end_of_fitting_message(self, stop_condition, tol):
+    def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
+        """
+        Print the end-of-fitting message.
+
+        Parameters
+        ----------
+        stop_condition : bool
+            Whether the stop condition was met.
+        tol : float
+            The tolerance for convergence.
+        """
         if stop_condition is True:
             print(
                 f"Tolerance {tol} reached "
@@ -235,12 +403,30 @@ class _Pln(ABC):
             )
 
     def print_stats(self):
+        """
+        Print the training statistics.
+        """
         print("-------UPDATE-------")
         print("Iteration number: ", self._plotargs.iteration_number)
         print("Criterion: ", np.round(self._plotargs.criterions[-1], 8))
         print("ELBO:", np.round(self._plotargs._elbos_list[-1], 6))
 
     def _compute_criterion_and_update_plotargs(self, loss, tol):
+        """
+        Compute the convergence criterion and update the plot arguments.
+
+        Parameters
+        ----------
+        loss : torch.Tensor
+            The loss value.
+        tol : float
+            The tolerance for convergence.
+
+        Returns
+        -------
+        float
+            The computed criterion.
+        """
         self._plotargs._elbos_list.append(-loss.item())
         self._plotargs.running_times.append(time.time() - self._beginning_time)
         if self._plotargs.iteration_number > self._WINDOW:
@@ -253,6 +439,9 @@ class _Pln(ABC):
         return tol
 
     def _update_closed_forms(self):
+        """
+        Update closed-form expressions.
+        """
         pass
 
     @abstractmethod
@@ -261,8 +450,21 @@ class _Pln(ABC):
         Compute the Evidence Lower BOund (ELBO) that will be maximized
         by pytorch.
         """
+        pass
 
     def display_covariance(self, ax=None, savefig=False, name_file=""):
+        """
+        Display the covariance matrix.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes to plot on. If None, a new figure will be created. Defaults to None.
+        savefig : bool, optional
+            Whether to save the figure. Defaults to False.
+        name_file : str, optional
+            The name of the file to save. Defaults to "".
+        """
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
             sigma = sigma[:400, :400]
@@ -271,9 +473,17 @@ class _Pln(ABC):
             sns.heatmap(self.covariance, ax=ax)
         if savefig:
             plt.savefig(name_file + self._NAME)
-        plt.show()  # to avoid displaying a blanck screen
+        plt.show()  # to avoid displaying a blank screen
 
     def __repr__(self):
+        """
+        Generate the string representation of the object.
+
+        Returns
+        -------
+        str
+            The string representation of the object.
+        """
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
         string = f"A multivariate Poisson Lognormal with {self._description} \n"
         string += f"{delimiter}\n"
@@ -285,19 +495,33 @@ class _Pln(ABC):
         string += f"    {self._useful_methods_strings}\n"
         string += f"* Additional properties for {self._NAME}\n"
         string += f"    {self._additional_properties_string}\n"
-        string += f"* Additionial methods for {self._NAME}\n"
+        string += f"* Additional methods for {self._NAME}\n"
         string += f"    {self._additional_methods_string}"
         return string
 
     @property
     def _additional_methods_string(self):
+        """
+        Abstract property representing the additional methods string.
+        """
         pass
 
     @property
     def _additional_properties_string(self):
+        """
+        Abstract property representing the additional properties string.
+        """
         pass
 
     def show(self, axes=None):
+        """
+        Show plots.
+
+        Parameters
+        ----------
+        axes : numpy.ndarray, optional
+            The axes to plot on. If None, a new figure will be created. Defaults to None.
+        """
         print("Likelihood:", -self.loglike)
         if self._fitted is False:
             nb_axes = 1
@@ -315,10 +539,21 @@ class _Pln(ABC):
 
     @property
     def _elbos_list(self):
+        """
+        Property representing the list of ELBO values.
+        """
         return self._plotargs._elbos_list
 
     @property
     def loglike(self):
+        """
+        Property representing the log-likelihood.
+
+        Returns
+        -------
+        float
+            The log-likelihood.
+        """
         if self._fitted is False:
             t0 = time.time()
             self._plotargs._elbos_list.append(self.compute_elbo().item())
@@ -327,22 +562,62 @@ class _Pln(ABC):
 
     @property
     def BIC(self):
+        """
+        Property representing the Bayesian Information Criterion (BIC).
+
+        Returns
+        -------
+        float
+            The BIC value.
+        """
         return -self.loglike + self.number_of_parameters / 2 * np.log(self.n_samples)
 
     @property
     def AIC(self):
+        """
+        Property representing the Akaike Information Criterion (AIC).
+
+        Returns
+        -------
+        float
+            The AIC value.
+        """
         return -self.loglike + self.number_of_parameters
 
     @property
     def latent_parameters(self):
+        """
+        Property representing the latent parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of latent parameters.
+        """
         return {"latent_var": self.latent_var, "latent_mean": self.latent_mean}
 
     @property
     def model_parameters(self):
+        """
+        Property representing the model parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of model parameters.
+        """
         return {"coef": self.coef, "covariance": self.covariance}
 
     @property
     def dict_data(self):
+        """
+        Property representing the data dictionary.
+
+        Returns
+        -------
+        dict
+            The dictionary of data.
+        """
         return {
             "counts": self.counts,
             "covariates": self.covariates,
@@ -351,27 +626,80 @@ class _Pln(ABC):
 
     @property
     def _model_in_a_dict(self):
+        """
+        Property representing the model in a dictionary.
+
+        Returns
+        -------
+        dict
+            The dictionary representing the model.
+        """
         return self.dict_data | self._dict_parameters
 
     @property
     def _dict_parameters(self):
+        """
+        Property representing the dictionary of parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of parameters.
+        """
         return self.model_parameters | self.latent_parameters
 
     @property
     def coef(self):
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None.
+        """
         return self._cpu_attribute_or_none("_coef")
 
     @property
     def latent_mean(self):
+        """
+        Property representing the latent mean.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The latent mean or None.
+        """
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
     def latent_var(self):
+        """
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The latent variance or None.
+        """
         return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
     @array2tensor
     def latent_mean(self, latent_mean):
+        """
+        Setter for the latent mean property.
+
+        Parameters
+        ----------
+        latent_mean : torch.Tensor
+            The latent mean.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the latent mean is incorrect.
+        """
         if latent_mean.shape != (self.n_samples, self.dim):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
@@ -381,6 +709,19 @@ class _Pln(ABC):
     @latent_var.setter
     @array2tensor
     def latent_var(self, latent_var):
+        """
+        Setter for the latent variance property.
+
+        Parameters
+        ----------
+        latent_var : torch.Tensor
+            The latent variance.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the latent variance is incorrect.
+        """
         if latent_var.shape != (self.n_samples, self.dim):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_var.shape}"
@@ -388,6 +729,19 @@ class _Pln(ABC):
         self._latent_var = latent_var
 
     def _cpu_attribute_or_none(self, attribute_name):
+        """
+        Get the CPU attribute or return None.
+
+        Parameters
+        ----------
+        attribute_name : str
+            The attribute name.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The attribute value or None.
+        """
         if hasattr(self, attribute_name):
             attr = getattr(self, attribute_name)
             if isinstance(attr, torch.Tensor):
@@ -395,7 +749,15 @@ class _Pln(ABC):
             return attr
         return None
 
-    def save(self, path_of_directory="./"):
+    def save(self, path_of_directory: str = "./"):
+        """
+        Save the model parameters to disk.
+
+        Parameters
+        ----------
+        path_of_directory : str, optional
+            The path of the directory to save the parameters, by default "./".
+        """
         path = f"{path_of_directory}/{self.path_to_directory}{self.directory_name}"
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
@@ -411,19 +773,56 @@ class _Pln(ABC):
 
     @property
     def counts(self):
+        """
+        Property representing the counts.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The counts or None.
+        """
         return self._cpu_attribute_or_none("_counts")
 
     @property
     def offsets(self):
+        """
+        Property representing the offsets.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The offsets or None.
+        """
         return self._cpu_attribute_or_none("_offsets")
 
     @property
     def covariates(self):
+        """
+        Property representing the covariates.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The covariates or None.
+        """
         return self._cpu_attribute_or_none("_covariates")
 
     @counts.setter
     @array2tensor
     def counts(self, counts):
+        """
+        Setter for the counts property.
+
+        Parameters
+        ----------
+        counts : torch.Tensor
+            The counts.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the counts is incorrect or if the input is not integers.
+        """
         if self.counts.shape != counts.shape:
             raise ValueError(
                 f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
@@ -435,6 +834,19 @@ class _Pln(ABC):
     @offsets.setter
     @array2tensor
     def offsets(self, offsets):
+        """
+        Setter for the offsets property.
+
+        Parameters
+        ----------
+        offsets : torch.Tensor
+            The offsets.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the offsets is incorrect.
+        """
         if self.offsets.shape != offsets.shape:
             raise ValueError(
                 f"Wrong shape for the offsets. Expected {self.offsets.shape}, got {offsets.shape}"
@@ -444,12 +856,38 @@ class _Pln(ABC):
     @covariates.setter
     @array2tensor
     def covariates(self, covariates):
+        """
+        Setter for the covariates property.
+
+        Parameters
+        ----------
+        covariates : torch.Tensor
+            The covariates.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the covariates or counts is incorrect.
+        """
         _check_data_shape(self.counts, covariates, self.offsets)
         self._covariates = covariates
 
     @coef.setter
     @array2tensor
     def coef(self, coef):
+        """
+        Setter for the coef property.
+
+        Parameters
+        ----------
+        coef : torch.Tensor or None
+            The coefficients.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the coef is incorrect.
+        """
         if coef is None:
             pass
         elif coef.shape != (self.nb_cov, self.dim):
@@ -460,6 +898,14 @@ class _Pln(ABC):
 
     @property
     def dict_for_printing(self):
+        """
+        Property representing the dictionary for printing.
+
+        Returns
+        -------
+        dict
+            The dictionary for printing.
+        """
         return {
             "Loglike": np.round(self.loglike, 2),
             "Dimension": self.dim,
@@ -470,22 +916,79 @@ class _Pln(ABC):
 
     @property
     def optim_parameters(self):
+        """
+        Property representing the optimization parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of optimization parameters.
+        """
         return {"Number of iterations done": self.nb_iteration_done}
 
     @property
     def _useful_properties_string(self):
-        return ".latent_variables, .model_parameters, .latent_parameters, \
-.optim_parameters"
+        """
+        Property representing the useful properties as a string.
+
+        Returns
+        -------
+        str
+            The string representation of the useful properties.
+        """
+        return ".latent_variables, .model_parameters, .latent_parameters, .optim_parameters"
 
     @property
     def _useful_methods_strings(self):
-        return ".show(), .coef() .transform(), .sigma(), .predict(), \
-.pca_projected_latent_variables()"
+        """
+        Property representing the useful methods as a string.
+
+        Returns
+        -------
+        str
+            The string representation of the useful methods.
+        """
+        return ".show(), .coef() .transform(), .sigma(), .predict(), .pca_projected_latent_variables()"
 
     def sigma(self):
+        """
+        Method returning the covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The covariance matrix or None.
+        """
         return self.covariance
 
     def predict(self, covariates=None):
+        """
+        Method for making predictions.
+
+        Parameters
+        ----------
+        covariates : torch.Tensor, optional
+            The covariates, by default None.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The predicted values or None.
+
+        Raises
+        ------
+        AttributeError
+            If there are no covariates in the model.
+        RuntimeError
+            If the shape of thecovariates is incorrect.
+
+        Notes
+        -----
+        - If `covariates` is not provided and there are no covariates in the model, None is returned.
+        - If `covariates` is provided, it should have the shape `(n_samples, nb_cov)`, where `n_samples` is the number of samples and `nb_cov` is the number of covariates.
+        - The predicted values are obtained by multiplying the covariates by the coefficients.
+
+        """
         if covariates is not None and self.nb_cov == 0:
             raise AttributeError("No covariates in the model, can't predict")
         if covariates is None:
@@ -494,17 +997,33 @@ class _Pln(ABC):
                 return None
             return self.covariates @ self.coef
         if covariates.shape[-1] != self.nb_cov:
-            error_string = f"X has wrong shape ({covariates.shape}).Should"
+            error_string = f"X has wrong shape ({covariates.shape}). Should"
             error_string += f" be ({self.n_samples, self.nb_cov})."
             raise RuntimeError(error_string)
         return covariates @ self.coef
 
     @property
     def directory_name(self):
+        """
+        Property representing the directory name.
+
+        Returns
+        -------
+        str
+            The directory name.
+        """
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
 
     @property
     def path_to_directory(self):
+        """
+        Property representing the path to the directory.
+
+        Returns
+        -------
+        str
+            The path to the directory.
+        """
         return ""
 
 
