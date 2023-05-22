@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from collections.abc import Iterable
-from typing import Optional
+from typing import Optional, Dict, List, Type, Any
 
 import pandas as pd
 import torch
@@ -1256,21 +1256,62 @@ class PlnPCAcollection:
 
     def __init__(
         self,
-        counts,
-        covariates=None,
-        offsets=None,
-        offsets_formula="logsum",
-        ranks=range(3, 5),
-        dict_of_dict_initialization=None,
-        take_log_offsets=False,
+        counts: torch.Tensor,
+        covariates: Optional[torch.Tensor] = None,
+        offsets: Optional[torch.Tensor] = None,
+        offsets_formula: str = "logsum",
+        ranks: Iterable[int] = range(3, 5),
+        dict_of_dict_initialization: Optional[dict] = None,
+        take_log_offsets: bool = False,
     ):
+        """
+        Constructor for PlnPCAcollection.
+
+        Parameters
+        ----------
+        counts : torch.Tensor
+            The counts.
+        covariates : torch.Tensor, optional
+            The covariates, by default None.
+        offsets : torch.Tensor, optional
+            The offsets, by default None.
+        offsets_formula : str, optional
+            The formula for offsets, by default "logsum".
+        ranks : Iterable[int], optional
+            The range of ranks, by default range(3, 5).
+        dict_of_dict_initialization : dict, optional
+            The dictionary of initialization, by default None.
+        take_log_offsets : bool, optional
+            Whether to take the logarithm of offsets, by default False.
+        """
         self._dict_models = {}
         self._init_data(counts, covariates, offsets, offsets_formula, take_log_offsets)
         self._init_models(ranks, dict_of_dict_initialization)
 
     def _init_data(
-        self, counts, covariates, offsets, offsets_formula, take_log_offsets
+        self,
+        counts: torch.Tensor,
+        covariates: Optional[torch.Tensor],
+        offsets: Optional[torch.Tensor],
+        offsets_formula: str,
+        take_log_offsets: bool,
     ):
+        """
+        Method for initializing the data.
+
+        Parameters
+        ----------
+        counts : torch.Tensor
+            The counts.
+        covariates : torch.Tensor, optional
+            The covariates, by default None.
+        offsets : torch.Tensor, optional
+            The offsets, by default None.
+        offsets_formula : str
+            The formula for offsets.
+        take_log_offsets : bool
+            Whether to take the logarithm of offsets.
+        """
         self._counts, self._covariates, self._offsets = _format_model_param(
             counts, covariates, offsets, offsets_formula, take_log_offsets
         )
@@ -1282,11 +1323,34 @@ class PlnPCAcollection:
         cls,
         formula: str,
         data: dict,
-        offsets_formula="logsum",
-        ranks=range(3, 5),
-        dict_of_dict_initialization=None,
-        take_log_offsets=False,
-    ):
+        offsets_formula: str = "logsum",
+        ranks: Iterable[int] = range(3, 5),
+        dict_of_dict_initialization: Optional[dict] = None,
+        take_log_offsets: bool = False,
+    ) -> "PlnPCAcollection":
+        """
+        Create an instance of PlnPCAcollection from a formula.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : dict
+            The data dictionary.
+        offsets_formula : str, optional
+            The formula for offsets, by default "logsum".
+        ranks : Iterable[int], optional
+            The range of ranks, by default range(3, 5).
+        dict_of_dict_initialization : dict, optional
+            The dictionary of initialization, by default None.
+        take_log_offsets : bool, optional
+            Whether to take the logarithm of offsets, by default False.
+
+        Returns
+        -------
+        PlnPCAcollection
+            The created PlnPCAcollection instance.
+        """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
@@ -1299,58 +1363,158 @@ class PlnPCAcollection:
         )
 
     @property
-    def covariates(self):
+    def covariates(self) -> torch.Tensor:
+        """
+        Property representing the covariates.
+
+        Returns
+        -------
+        torch.Tensor
+            The covariates.
+        """
         return self[self.ranks[0]].covariates
 
     @property
-    def counts(self):
+    def counts(self) -> torch.Tensor:
+        """
+        Property representing the counts.
+
+        Returns
+        -------
+        torch.Tensor
+            The counts.
+        """
         return self[self.ranks[0]].counts
 
     @property
-    def coef(self):
+    def coef(self) -> Dict[int, torch.Tensor]:
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        Dict[int, torch.Tensor]
+            The coefficients.
+        """
         return {model.rank: model.coef for model in self.values()}
 
     @property
-    def components(self):
+    def components(self) -> Dict[int, torch.Tensor]:
+        """
+        Property representing the components.
+
+        Returns
+        -------
+        Dict[int, torch.Tensor]
+            The components.
+        """
         return {model.rank: model.components for model in self.values()}
 
     @property
-    def latent_mean(self):
+    def latent_mean(self) -> Dict[int, torch.Tensor]:
+        """
+        Property representing the latent means.
+
+        Returns
+        -------
+        Dict[int, torch.Tensor]
+            The latent means.
+        """
         return {model.rank: model.latent_mean for model in self.values()}
 
     @property
-    def latent_var(self):
+    def latent_var(self) -> Dict[int, torch.Tensor]:
+        """
+        Property representing the latent variances.
+
+        Returns
+        -------
+        Dict[int, torch.Tensor]
+            The latent variances.
+        """
         return {model.rank: model.latent_var for model in self.values()}
 
     @counts.setter
     @array2tensor
-    def counts(self, counts):
+    def counts(self, counts: torch.Tensor):
+        """
+        Setter for the counts property.
+
+        Parameters
+        ----------
+        counts : torch.Tensor
+            The counts.
+        """
         for model in self.values():
             model.counts = counts
 
     @coef.setter
     @array2tensor
-    def coef(self, coef):
+    def coef(self, coef: torch.Tensor):
+        """
+        Setter for the coef property.
+
+        Parameters
+        ----------
+        coef : torch.Tensor
+            The coefficients.
+        """
         for model in self.values():
             model.coef = coef
 
     @covariates.setter
     @array2tensor
-    def covariates(self, covariates):
+    def covariates(self, covariates: torch.Tensor):
+        """
+        Setter for the covariates property.
+
+        Parameters
+        ----------
+        covariates : torch.Tensor
+            The covariates.
+        """
         for model in self.values():
             model.covariates = covariates
 
     @property
-    def offsets(self):
+    def offsets(self) -> torch.Tensor:
+        """
+        Property representing the offsets.
+
+        Returns
+        -------
+        torch.Tensor
+            The offsets.
+        """
         return self[self.ranks[0]].offsets
 
     @offsets.setter
     @array2tensor
-    def offsets(self, offsets):
+    def offsets(self, offsets: torch.Tensor):
+        """
+        Setter for the offsets property.
+
+        Parameters
+        ----------
+        offsets : torch.Tensor
+            The offsets.
+        """
         for model in self.values():
             model.offsets = offsets
 
-    def _init_models(self, ranks, dict_of_dict_initialization):
+    def _init_models(
+        self, ranks: Iterable[int], dict_of_dict_initialization: Optional[dict]
+    ):
+        """
+        Method for initializing the models.
+
+        Parameters
+        ----------
+        ranks : Iterable[int]
+            The range of ranks.
+        dict_of_dict_initialization : dict, optional
+            The dictionary of initialization.
+        """
         if isinstance(ranks, (Iterable, np.ndarray)):
             for rank in ranks:
                 if isinstance(rank, (int, np.integer)):
@@ -1387,31 +1551,79 @@ class PlnPCAcollection:
             )
 
     @property
-    def ranks(self):
+    def ranks(self) -> List[int]:
+        """
+        Property representing the ranks.
+
+        Returns
+        -------
+        List[int]
+            The ranks.
+        """
         return [model.rank for model in self.values()]
 
-    def _pring_beginning_message(self):
+    def _pring_beginning_message(self) -> str:
+        """
+        Method for printing the beginning message.
+
+        Returns
+        -------
+        str
+            The beginning message.
+        """
         return f"Adjusting {len(self.ranks)} Pln models for PCA analysis \n"
 
     @property
-    def dim(self):
+    def dim(self) -> int:
+        """
+        Property representing the dimension.
+
+        Returns
+        -------
+        int
+            The dimension.
+        """
         return self[self.ranks[0]].dim
 
     @property
-    def nb_cov(self):
+    def nb_cov(self) -> int:
+        """
+        Property representing the number of covariates.
+
+        Returns
+        -------
+        int
+            The number of covariates.
+        """
         return self[self.ranks[0]].nb_cov
 
-    ## should do something for this weird init. pb: if doing the init of self._counts etc
-    ## only in PlnPCAcollection, then we don't do it for each PlnPCA but then Pln is not doing it.
     def fit(
         self,
-        nb_max_iteration=100000,
-        lr=0.01,
-        class_optimizer=torch.optim.Rprop,
-        tol=1e-3,
-        do_smart_init=True,
-        verbose=False,
+        nb_max_iteration: int = 100000,
+        lr: float = 0.01,
+        class_optimizer: Type[torch.optim.Optimizer] = torch.optim.Rprop,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
     ):
+        """
+        Fit the PlnPCAcollection.
+
+        Parameters
+        ----------
+        nb_max_iteration : int, optional
+            The maximum number of iterations, by default 100000.
+        lr : float, optional
+            The learning rate, by default 0.01.
+        class_optimizer : Type[torch.optim.Optimizer], optional
+            The optimizer class, by default torch.optim.Rprop.
+        tol : float, optional
+            The tolerance, by default 1e-3.
+        do_smart_init : bool, optional
+            Whether to do smart initialization, by default True.
+        verbose : bool, optional
+            Whether to print verbose output, by default False.
+        """
         self._pring_beginning_message()
         for i in range(len(self.values())):
             model = self[self.ranks[i]]
@@ -1428,13 +1640,28 @@ class PlnPCAcollection:
                 self.init_next_model_with_previous_parameters(next_model, model)
         self._print_ending_message()
 
-    def init_next_model_with_previous_parameters(self, next_model, current_model):
+    def init_next_model_with_previous_parameters(
+        self, next_model: Any, current_model: Any
+    ):
+        """
+        Initialize the next model with the parameters of the current model.
+
+        Parameters
+        ----------
+        next_model : Any
+            The next model to initialize.
+        current_model : Any
+            The current model.
+        """
         next_model.coef = current_model.coef
         next_model.components = torch.zeros(self.dim, next_model.rank)
         with torch.no_grad():
             next_model._components[:, : current_model.rank] = current_model._components
 
     def _print_ending_message(self):
+        """
+        Method for printing the ending message.
+        """
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
         print(f"{delimiter}\n")
         print("DONE!")
@@ -1442,49 +1669,170 @@ class PlnPCAcollection:
         print(f"    Best model(lower AIC): {self._criterion_dict('AIC')}\n ")
         print(f"{delimiter}\n")
 
-    def _criterion_dict(self, criterion="AIC"):
+    def _criterion_dict(self, criterion: str = "AIC") -> int:
+        """
+        Return the rank of the best model according to the specified criterion.
+
+        Parameters
+        ----------
+        criterion : str, optional
+            The criterion to use ('AIC' or 'BIC'), by default 'AIC'.
+
+        Returns
+        -------
+        int
+            The rank of the best model.
+        """
         return self.best_model(criterion).rank
 
-    def __getitem__(self, rank):
+    def __getitem__(self, rank: int) -> Any:
+        """
+        Get the model with the specified rank.
+
+        Parameters
+        ----------
+        rank : int
+            The rank of the model.
+
+        Returns
+        -------
+        Any
+            The model with the specified rank.
+        """
         return self._dict_models[rank]
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Get the number of models in the collection.
+
+        Returns
+        -------
+        int
+            The number of models in the collection.
+        """
         return len(self._dict_models)
 
     def __iter__(self):
+        """
+        Iterate over the models in the collection.
+
+        Returns
+        -------
+        Iterator
+            Iterator over the models.
+        """
         return iter(self._dict_models)
 
-    def __contains__(self, rank):
+    def __contains__(self, rank: int) -> bool:
+        """
+        Check if a model with the specified rank exists in the collection.
+
+        Parameters
+        ----------
+        rank : int
+            The rank to check.
+
+        Returns
+        -------
+        bool
+            True if a model with the specified rank exists, False otherwise.
+        """
         return rank in self._dict_models.keys()
 
     def keys(self):
+        """
+        Get the ranks of the models in the collection.
+
+        Returns
+        -------
+        KeysView
+            The ranks of the models.
+        """
         return self._dict_models.keys()
 
-    def get(self, key, default):
+    def get(self, key: Any, default: Any) -> Any:
+        """
+        Get the model with the specified key, or return a default value if the key does not exist.
+
+        Parameters
+        ----------
+        key : Any
+            The key to search for.
+        default : Any
+            The default value to return if the key does not exist.
+
+        Returns
+        -------
+        Any
+            The model with the specified key, or the default value if the key does not exist.
+        """
         if key in self:
             return self[key]
         else:
             return default
 
     def values(self):
+        """
+        Get the models in the collection.
+
+        Returns
+        -------
+        ValuesView
+            The models in the collection.
+        """
         return self._dict_models.values()
 
     def items(self):
+        """
+        Get the key-value pairs of the models in the collection.
+
+        Returns
+        -------
+        ItemsView
+            The key-value pairs of the models.
+        """
         return self._dict_models.items()
 
     @property
-    def BIC(self):
+    def BIC(self) -> Dict[int, int]:
+        """
+        Property representing the BIC scores of the models in the collection.
+
+        Returns
+        -------
+        Dict[int, int]
+            The BIC scores of the models.
+        """
         return {model.rank: int(model.BIC) for model in self.values()}
 
     @property
-    def AIC(self):
+    def AIC(self) -> Dict[int, int]:
+        """
+        Property representing the AIC scores of the models in the collection.
+
+        Returns
+        -------
+        Dict[int, int]
+            The AIC scores of the models.
+        """
         return {model.rank: int(model.AIC) for model in self.values()}
 
     @property
-    def loglikes(self):
+    def loglikes(self) -> Dict[int, Any]:
+        """
+        Property representing the log-likelihoods of the models in the collection.
+
+        Returns
+        -------
+        Dict[int, Any]
+            The log-likelihoods of the models.
+        """
         return {model.rank: model.loglike for model in self.values()}
 
     def show(self):
+        """
+        Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+        """
         bic = self.BIC
         aic = self.AIC
         loglikes = self.loglikes
@@ -1509,21 +1857,60 @@ class PlnPCAcollection:
         plt.show()
 
     @property
-    def best_BIC_model_rank(self):
+    def best_BIC_model_rank(self) -> int:
+        """
+        Property representing the rank of the best model according to the BIC criterion.
+
+        Returns
+        -------
+        int
+            The rank of the best model.
+        """
         return self.ranks[np.argmin(list(self.BIC.values()))]
 
     @property
-    def best_AIC_model_rank(self):
+    def best_AIC_model_rank(self) -> int:
+        """
+        Property representing the rank of the best model according to the AIC criterion.
+
+        Returns
+        -------
+        int
+            The rank of the best model.
+        """
         return self.ranks[np.argmin(list(self.AIC.values()))]
 
-    def best_model(self, criterion="AIC"):
+    def best_model(self, criterion: str = "AIC") -> Any:
+        """
+        Get the best model according to the specified criterion.
+
+        Parameters
+        ----------
+        criterion : str, optional
+            The criterion to use ('AIC' or 'BIC'), by default 'AIC'.
+
+        Returns
+        -------
+        Any
+            The best model.
+        """
         if criterion == "BIC":
             return self[self.best_BIC_model_rank]
         if criterion == "AIC":
             return self[self.best_AIC_model_rank]
         raise ValueError(f"Unknown criterion {criterion}")
 
-    def save(self, path_of_directory="./", ranks=None):
+    def save(self, path_of_directory: str = "./", ranks: Optional[List[int]] = None):
+        """
+        Save the models in the specified directory.
+
+        Parameters
+        ----------
+        path_of_directory : str, optional
+            The path of the directory to save the models, by default "./".
+        ranks : Optional[List[int]], optional
+            The ranks of the models to save, by default None.
+        """
         if ranks is None:
             ranks = self.ranks
         for model in self.values():
@@ -1531,18 +1918,38 @@ class PlnPCAcollection:
                 model.save(path_of_directory)
 
     @property
-    def directory_name(self):
+    def directory_name(self) -> str:
+        """
+        Property representing the directory name.
+
+        Returns
+        -------
+        str
+            The directory name.
+        """
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
 
     @property
-    def n_samples(self):
+    def n_samples(self) -> int:
+        """
+        Property representing the number of samples.
+
+        Returns
+        -------
+        int
+            The number of samples.
+        """
         return self[self.ranks[0]].n_samples
 
-    @property
-    def _p(self):
-        return self[self.ranks[0]].p
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the PlnPCAcollection object.
 
-    def __repr__(self):
+        Returns
+        -------
+        str
+            The string representation of the PlnPCAcollection object.
+        """
         nb_models = len(self)
         delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
         to_print = delimiter
@@ -1552,13 +1959,12 @@ class PlnPCAcollection:
         to_print += f" - Ranks considered:{self.ranks}\n"
         dict_bic = {"rank": "criterion"} | self.BIC
         to_print += f" - BIC metric:\n{_nice_string_of_dict(dict_bic)}\n"
-
         dict_to_print = self.best_model(criterion="BIC")._rank
         to_print += f"   Best model(lower BIC): {dict_to_print}\n \n"
         dict_aic = {"rank": "criterion"} | self.AIC
         to_print += f" - AIC metric:\n{_nice_string_of_dict(dict_aic)}\n"
         to_print += f"   Best model(lower AIC): \
-                {self.best_model(criterion = 'AIC')._rank}\n"
+                {self.best_model(criterion='AIC')._rank}\n"
         to_print += delimiter
         to_print += "* Useful properties\n"
         to_print += f"    {self._useful_properties_string}\n"
@@ -1568,28 +1974,62 @@ class PlnPCAcollection:
         return to_print
 
     @property
-    def _useful_methods_strings(self):
+    def _useful_methods_strings(self) -> str:
+        """
+        Property representing the useful methods.
+
+        Returns
+        -------
+        str
+            The string representation of the useful methods.
+        """
         return ".show(), .best_model()"
 
     @property
-    def _useful_properties_string(self):
+    def _useful_properties_string(self) -> str:
+        """
+        Property representing the useful properties.
+
+        Returns
+        -------
+        str
+            The string representation of the useful properties.
+        """
         return ".BIC, .AIC, .loglikes"
 
 
 # Here, setting the value for each key in _dict_parameters
 class PlnPCA(_Pln):
-    _NAME = "PlnPCA"
+    _NAME: str = "PlnPCA"
     _components: torch.Tensor
 
     def __init__(
         self,
-        counts,
-        covariates=None,
-        offsets=None,
-        offsets_formula="logsum",
-        rank=5,
-        dict_initialization=None,
+        counts: torch.Tensor,
+        covariates: Optional[torch.Tensor] = None,
+        offsets: Optional[torch.Tensor] = None,
+        offsets_formula: str = "logsum",
+        rank: int = 5,
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
+        """
+        Initialize the PlnPCA object.
+
+        Parameters
+        ----------
+        counts : torch.Tensor
+            The counts tensor.
+        covariates : torch.Tensor, optional
+            The covariates tensor, by default None.
+        offsets : torch.Tensor, optional
+            The offsets tensor, by default None.
+        offsets_formula : str, optional
+            The offsets formula, by default "logsum".
+        rank : int, optional
+            The rank of the approximation, by default 5.
+        dict_initialization : Dict[str, torch.Tensor], optional
+            The dictionary for initialization, by default None.
+        """
         self._rank = rank
         self._counts, self._covariates, self._offsets = _format_model_param(
             counts, covariates, offsets, None, take_log_offsets=False
@@ -1603,14 +2043,43 @@ class PlnPCA(_Pln):
 
     @classmethod
     def from_formula(
-        cls, formula, data, rank=5, offsets_formula="logsum", dict_initialization=None
+        cls,
+        formula: str,
+        data: Any,
+        rank: int = 5,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
+        """
+        Create a PlnPCA object from a formula.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : Any
+            The data.
+        rank : int, optional
+            The rank of the approximation, by default 5.
+        offsets_formula : str, optional
+            The offsets formula, by default "logsum".
+        dict_initialization : Dict[str, torch.Tensor], optional
+            The dictionary for initialization, by default None.
+
+        Returns
+        -------
+        PlnPCA
+            The created PlnPCA object.
+        """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts, covariates, offsets, offsets_formula, rank, dict_initialization
         )
 
     def _check_if_rank_is_too_high(self):
+        """
+        Check if the rank is too high and issue a warning if necessary.
+        """
         if self.dim < self.rank:
             warning_string = (
                 f"\nThe requested rank of approximation {self.rank} "
@@ -1621,16 +2090,40 @@ class PlnPCA(_Pln):
             self._rank = self.dim
 
     @property
-    def latent_mean(self):
+    def latent_mean(self) -> torch.Tensor:
+        """
+        Property representing the latent mean.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent mean tensor.
+        """
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
-    def latent_var(self):
+    def latent_var(self) -> torch.Tensor:
+        """
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
+        """
         return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
     @array2tensor
-    def latent_mean(self, latent_mean):
+    def latent_mean(self, latent_mean: torch.Tensor):
+        """
+        Setter for the latent mean.
+
+        Parameters
+        ----------
+        latent_mean : torch.Tensor
+            The latent mean tensor.
+        """
         if latent_mean.shape != (self.n_samples, self.rank):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_mean.shape}"
@@ -1639,7 +2132,15 @@ class PlnPCA(_Pln):
 
     @latent_var.setter
     @array2tensor
-    def latent_var(self, latent_var):
+    def latent_var(self, latent_var: torch.Tensor):
+        """
+        Setter for the latent variance.
+
+        Parameters
+        ----------
+        latent_var : torch.Tensor
+            The latent variance tensor.
+        """
         if latent_var.shape != (self.n_samples, self.rank):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_var.shape}"
@@ -1647,42 +2148,103 @@ class PlnPCA(_Pln):
         self._latent_var = latent_var
 
     @property
-    def directory_name(self):
+    def directory_name(self) -> str:
+        """
+        Property representing the directory name.
+
+        Returns
+        -------
+        str
+            The directory name.
+        """
         return f"{self._NAME}_rank_{self._rank}"
-        # return f"PlnPCAcollection_nbcov_{self.nb_cov}_dim_{self.dim}/{self._NAME}_rank_{self._rank}"
 
     @property
-    def covariates(self):
+    def covariates(self) -> torch.Tensor:
+        """
+        Property representing the covariates.
+
+        Returns
+        -------
+        torch.Tensor
+            The covariates tensor.
+        """
         return self._cpu_attribute_or_none("_covariates")
 
     @covariates.setter
     @array2tensor
-    def covariates(self, covariates):
+    def covariates(self, covariates: torch.Tensor):
+        """
+        Setter for the covariates.
+
+        Parameters
+        ----------
+        covariates : torch.Tensor
+            The covariates tensor.
+        """
         _check_data_shape(self.counts, covariates, self.offsets)
         self._covariates = covariates
         print("Setting coef to initialization")
         self._smart_init_coef()
 
     @property
-    def path_to_directory(self):
+    def path_to_directory(self) -> str:
+        """
+        Property representing the path to the directory.
+
+        Returns
+        -------
+        str
+            The path to the directory.
+        """
         return f"PlnPCAcollection_nbcov_{self.nb_cov}_dim_{self.dim}/"
 
     @property
-    def rank(self):
+    def rank(self) -> int:
+        """
+        Property representing the rank.
+
+        Returns
+        -------
+        int
+            The rank.
+        """
         return self._rank
 
-    def _get_max_components(self):
+    def _get_max_components(self) -> int:
+        """
+        Get the maximum number of components.
+
+        Returns
+        -------
+        int
+            The maximum number of components.
+        """
         return self._rank
 
     def _pring_beginning_message(self):
+        """
+        Print the beginning message.
+        """
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
         print(f"Fitting a PlnPCAcollection model with {self._rank} components")
 
     @property
-    def model_parameters(self):
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        """
+        Property representing the model parameters.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            The model parameters.
+        """
         return {"coef": self.coef, "components": self.components}
 
     def _smart_init_model_parameters(self):
+        """
+        Initialize the model parameters smartly.
+        """
         if not hasattr(self, "_coef"):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
@@ -1691,14 +2253,23 @@ class PlnPCA(_Pln):
             )
 
     def _random_init_model_parameters(self):
+        """
+        Randomly initialize the model parameters.
+        """
         super()._random_init_coef()
         self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
 
     def _random_init_latent_parameters(self):
+        """
+        Randomly initialize the latent parameters.
+        """
         self._latent_var = 1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
         self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
 
     def _smart_init_latent_parameters(self):
+        """
+        Initialize the latent parameters smartly.
+        """
         if not hasattr(self, "_latent_mean"):
             self._latent_mean = (
                 _init_latent_mean(
@@ -1718,11 +2289,27 @@ class PlnPCA(_Pln):
 
     @property
     def _list_of_parameters_needing_gradient(self):
+        """
+        Property representing the list of parameters needing gradient.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            The list of parameters needing gradient.
+        """
         if self._coef is None:
             return [self._components, self._latent_mean, self._latent_var]
         return [self._components, self._coef, self._latent_mean, self._latent_var]
 
-    def compute_elbo(self):
+    def compute_elbo(self) -> torch.Tensor:
+        """
+        Compute the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The ELBO value.
+        """
         return elbo_plnpca(
             self._counts,
             self._covariates,
@@ -1734,20 +2321,52 @@ class PlnPCA(_Pln):
         )
 
     @property
-    def number_of_parameters(self):
+    def number_of_parameters(self) -> int:
+        """
+        Property representing the number of parameters.
+
+        Returns
+        -------
+        int
+            The number of parameters.
+        """
         return self.dim * (self.nb_cov + self._rank) - self._rank * (self._rank - 1) / 2
 
     @property
-    def _additional_properties_string(self):
+    def _additional_properties_string(self) -> str:
+        """
+        Property representing the additional properties string.
+
+        Returns
+        -------
+        str
+            The additional properties string.
+        """
         return ".projected_latent_variables"
 
     @property
-    def _additional_methods_string(self):
+    def _additional_methods_string(self) -> str:
+        """
+        Property representing the additional methods string.
+
+        Returns
+        -------
+        str
+            The additional methods string.
+        """
         string = "    only for rank=2: .viz()"
         return string
 
     @property
-    def covariance(self):
+    def covariance(self) -> Optional[torch.Tensor]:
+        """
+        Property representing the covariance.
+
+        Returns
+        -------
+        Optional[torch.Tensor]
+            The covariance tensor or None if components are not present.
+        """
         if hasattr(self, "_components"):
             cov_latent = self._latent_mean.T @ self._latent_mean
             cov_latent += torch.diag(torch.sum(torch.square(self._latent_var), dim=0))
@@ -1756,19 +2375,58 @@ class PlnPCA(_Pln):
         return None
 
     @property
-    def _description(self):
+    def _description(self) -> str:
+        """
+        Property representing the description.
+
+        Returns
+        -------
+        str
+            The description string.
+        """
         return f" {self.rank} principal component."
 
     @property
-    def latent_variables(self):
+    def latent_variables(self) -> torch.Tensor:
+        """
+        Property representing the latent variables.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variables.
+        """
         return torch.matmul(self._latent_mean, self._components.T)
 
     @property
-    def projected_latent_variables(self):
+    def projected_latent_variables(self) -> torch.Tensor:
+        """
+        Property representing the projected latent variables.
+
+        Returns
+        -------
+        torch.Tensor
+            The projected latent variables.
+        """
         ortho_components = torch.linalg.qr(self._components, "reduced")[0]
         return torch.mm(self.latent_variables, ortho_components).detach().cpu()
 
-    def pca_projected_latent_variables(self, n_components=None):
+    def pca_projected_latent_variables(
+        self, n_components: Optional[int] = None
+    ) -> np.ndarray:
+        """
+        Perform PCA on projected latent variables.
+
+        Parameters
+        ----------
+        n_components : Optional[int]
+            Number of components to keep. Defaults to None.
+
+        Returns
+        -------
+        np.ndarray
+            The transformed projected latent variables.
+        """
         if n_components is None:
             n_components = self._get_max_components()
         if n_components > self.dim:
@@ -1779,12 +2437,33 @@ class PlnPCA(_Pln):
         return pca.fit_transform(self.projected_latent_variables.detach().cpu())
 
     @property
-    def components(self):
+    def components(self) -> torch.Tensor:
+        """
+        Property representing the components.
+
+        Returns
+        -------
+        torch.Tensor
+            The components.
+        """
         return self._cpu_attribute_or_none("_components")
 
     @components.setter
     @array2tensor
-    def components(self, components):
+    def components(self, components: torch.Tensor):
+        """
+        Setter for the components.
+
+        Parameters
+        ----------
+        components : torch.Tensor
+            The components to set.
+
+        Raises
+        ------
+        ValueError
+            If the components have an invalid shape.
+        """
         if components.shape != (self.dim, self.rank):
             raise ValueError(
                 f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
@@ -1792,6 +2471,26 @@ class PlnPCA(_Pln):
         self._components = components
 
     def viz(self, ax=None, colors=None):
+        """
+        Visualize the PlnPCA model.
+
+        Parameters
+        ----------
+        ax : Optional[Any], optional
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+        colors : Optional[Any], optional
+            The colors to use for plotting, by default None.
+
+        Raises
+        ------
+        RuntimeError
+            If the rank is less than 2.
+
+        Returns
+        -------
+        Any
+            The matplotlib axis.
+        """
         if ax is None:
             ax = plt.gca()
         if self._rank < 2:
@@ -1808,7 +2507,20 @@ class PlnPCA(_Pln):
             _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
 
-    def transform(self, project=True):
+    def transform(self, project: bool = True) -> torch.Tensor:
+        """
+        Transform the model.
+
+        Parameters
+        ----------
+        project : bool, optional
+            Whether to project the latent variables, by default True.
+
+        Returns
+        -------
+        torch.Tensor
+            The transformed model.
+        """
         if project is True:
             return self.projected_latent_variables
         return self.latent_variables
