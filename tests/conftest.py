@@ -5,8 +5,8 @@ from functools import singledispatch
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture as lf
-from pyPLNmodels import load_model, load_plnpca
-from pyPLNmodels.models import PLN, _PLNPCA, PLNPCA
+from pyPLNmodels import load_model, load_plnpcacollection
+from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection
 
 
 sys.path.append("../")
@@ -58,40 +58,42 @@ instances = []
 def convenient_plnpca(*args, **kwargs):
     dict_init = kwargs.pop("dict_initialization", None)
     if isinstance(args[0], str):
-        return _PLNPCA.from_formula(
+        return PlnPCA.from_formula(
             *args, **kwargs, dict_initialization=dict_init, rank=RANK
         )
     print("rank:", RANK)
-    return _PLNPCA(*args, **kwargs, dict_initialization=dict_init, rank=RANK)
+    return PlnPCA(*args, **kwargs, dict_initialization=dict_init, rank=RANK)
 
 
 def convenientplnpca(*args, **kwargs):
     dict_init = kwargs.pop("dict_initialization", None)
     if isinstance(args[0], str):
-        return PLNPCA.from_formula(
+        return PlnPCAcollection.from_formula(
             *args, **kwargs, dict_of_dict_initialization=dict_init, ranks=RANKS
         )
-    return PLNPCA(*args, **kwargs, dict_of_dict_initialization=dict_init, ranks=RANKS)
+    return PlnPCAcollection(
+        *args, **kwargs, dict_of_dict_initialization=dict_init, ranks=RANKS
+    )
 
 
 def convenientpln(*args, **kwargs):
     if isinstance(args[0], str):
-        return PLN.from_formula(*args, **kwargs)
-    return PLN(*args, **kwargs)
+        return Pln.from_formula(*args, **kwargs)
+    return Pln(*args, **kwargs)
 
 
 def generate_new_model(model, *args, **kwargs):
     name_dir = model.directory_name
     name = model._NAME
-    if name in ("PLN", "_PLNPCA"):
+    if name in ("Pln", "PlnPCA"):
         path = model.path_to_directory + name_dir
         init = load_model(path)
-        if name == "PLN":
+        if name == "Pln":
             new = convenientpln(*args, **kwargs, dict_initialization=init)
-        if name == "_PLNPCA":
+        if name == "PlnPCA":
             new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
-    if name == "PLNPCA":
-        init = load_plnpca(name_dir)
+    if name == "PlnPCAcollection":
+        init = load_plnpcacollection(name_dir)
         new = convenientplnpca(*args, **kwargs, dict_initialization=init)
     return new
 

@@ -50,9 +50,9 @@ else:
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
-class _PLN(ABC):
+class _Pln(ABC):
     """
-    Virtual class for all the PLN models.
+    Virtual class for all the Pln models.
 
     This class must be derivatived. The methods `get_covariance`, `compute_elbo`,
     `_random_init_latent_parameters` and `_list_of_parameters_needing_gradient` must
@@ -195,7 +195,7 @@ class _PLN(ABC):
         verbose=False,
     ):
         """
-        Main function of the class. Fit a PLN to the data.
+        Main function of the class. Fit a Pln to the data.
         Parameters
         ----------
         counts : torch.tensor or ndarray or DataFrame.
@@ -559,8 +559,8 @@ class _PLN(ABC):
 
 
 # need to do a good init for M and S
-class PLN(_PLN):
-    _NAME = "PLN"
+class Pln(_Pln):
+    _NAME = "Pln"
     coef: torch.Tensor
 
     @property
@@ -634,7 +634,7 @@ class PLN(_PLN):
         )
 
     def _pring_beginning_message(self):
-        print(f"Fitting a PLN model with {self._description}")
+        print(f"Fitting a Pln model with {self._description}")
 
     @property
     def latent_variables(self):
@@ -667,8 +667,9 @@ class PLN(_PLN):
         pass
 
 
-class PLNPCA:
-    _NAME = "PLNPCA"
+class PlnPCAcollection:
+    _NAME = "PlnPCAcollection"
+    _dict_models: dict
 
     def __init__(
         self,
@@ -680,6 +681,7 @@ class PLNPCA:
         dict_of_dict_initialization=None,
         take_log_offsets=False,
     ):
+        self._dict_models = {}
         self._init_data(counts, covariates, offsets, offsets_formula, take_log_offsets)
         self._init_models(ranks, dict_of_dict_initialization)
 
@@ -715,91 +717,87 @@ class PLNPCA:
 
     @property
     def covariates(self):
-        return self.list_models[0].covariates
+        return self[self.ranks[0]].covariates
 
     @property
     def counts(self):
-        return self.list_models[0].counts
+        return self[self.ranks[0]].counts
 
     @property
     def coef(self):
-        return {model.rank: model.coef for model in self.list_models}
+        return {model.rank: model.coef for model in self.values()}
 
     @property
     def components(self):
-        return {model.rank: model.components for model in self.list_models}
+        return {model.rank: model.components for model in self.values()}
 
     @property
     def latent_mean(self):
-        return {model.rank: model.latent_mean for model in self.list_models}
+        return {model.rank: model.latent_mean for model in self.values()}
 
     @property
     def latent_var(self):
-        return {model.rank: model.latent_var for model in self.list_models}
+        return {model.rank: model.latent_var for model in self.values()}
 
     @counts.setter
     @array2tensor
     def counts(self, counts):
-        for model in self.list_models:
+        for model in self.values():
             model.counts = counts
 
     @coef.setter
     @array2tensor
     def coef(self, coef):
-        for model in self.list_models:
+        for model in self.values():
             model.coef = coef
 
     @covariates.setter
     @array2tensor
     def covariates(self, covariates):
-        for model in self.list_models:
+        for model in self.values():
             model.covariates = covariates
 
     @property
     def offsets(self):
-        return self.list_models[0].offsets
+        return self[self.ranks[0]].offsets
 
     @offsets.setter
     @array2tensor
     def offsets(self, offsets):
-        for model in self.list_models:
+        for model in self.values():
             model.offsets = offsets
 
     def _init_models(self, ranks, dict_of_dict_initialization):
         if isinstance(ranks, (Iterable, np.ndarray)):
-            self.list_models = []
             for rank in ranks:
                 if isinstance(rank, (int, np.integer)):
                     dict_initialization = _get_dict_initialization(
                         rank, dict_of_dict_initialization
                     )
-                    self.list_models.append(
-                        _PLNPCA(
-                            counts=self._counts,
-                            covariates=self._covariates,
-                            offsets=self._offsets,
-                            rank=rank,
-                            dict_initialization=dict_initialization,
-                        )
+                    self._dict_models[rank] = PlnPCA(
+                        counts=self._counts,
+                        covariates=self._covariates,
+                        offsets=self._offsets,
+                        rank=rank,
+                        dict_initialization=dict_initialization,
                     )
                 else:
                     raise TypeError(
-                        f"Please instantiate with either a list "
-                        f"of integers or an integer."
+                        "Please instantiate with either a list "
+                        "of integers or an integer."
                     )
         elif isinstance(ranks, (int, np.integer)):
             dict_initialization = _get_dict_initialization(
                 ranks, dict_of_dict_initialization
             )
-            self.list_models = [
-                _PLNPCA(
-                    self._counts,
-                    self._covariates,
-                    self._offsets,
-                    ranks,
-                    dict_initialization,
-                )
-            ]
+            self._dict_models[rank] = PlnPCA(
+                self._counts,
+                self._covariates,
+                self._offsets,
+                ranks,
+                dict_initialization,
+            )
+
         else:
             raise TypeError(
                 f"Please instantiate with either a list " f"of integers or an integer."
@@ -807,14 +805,10 @@ class PLNPCA:
 
     @property
     def ranks(self):
-        return [model.rank for model in self.list_models]
-
-    @property
-    def dict_models(self):
-        return {model.rank: model for model in self.list_models}
+        return [model.rank for model in self.values()]
 
     def _pring_beginning_message(self):
-        return f"Adjusting {len(self.ranks)} PLN models for PCA analysis \n"
+        return f"Adjusting {len(self.ranks)} Pln models for PCA analysis \n"
 
     @property
     def dim(self):
@@ -825,7 +819,7 @@ class PLNPCA:
         return self[self.ranks[0]].nb_cov
 
     ## should do something for this weird init. pb: if doing the init of self._counts etc
-    ## only in PLNPCA, then we don't do it for each _PLNPCA but then PLN is not doing it.
+    ## only in PlnPCAcollection, then we don't do it for each PlnPCA but then Pln is not doing it.
     def fit(
         self,
         nb_max_iteration=100000,
@@ -836,8 +830,8 @@ class PLNPCA:
         verbose=False,
     ):
         self._pring_beginning_message()
-        for i in range(len(self.list_models)):
-            model = self.list_models[i]
+        for i in range(len(self.values())):
+            model = self[self.ranks[i]]
             model.fit(
                 nb_max_iteration,
                 lr,
@@ -846,8 +840,8 @@ class PLNPCA:
                 do_smart_init,
                 verbose,
             )
-            if i < len(self.list_models) - 1:
-                next_model = self.list_models[i + 1]
+            if i < len(self.values()) - 1:
+                next_model = self[self.ranks[i + 1]]
                 self.init_next_model_with_previous_parameters(next_model, model)
         self._print_ending_message()
 
@@ -869,26 +863,43 @@ class PLNPCA:
         return self.best_model(criterion).rank
 
     def __getitem__(self, rank):
-        if (rank in self.ranks) is False:
-            asked_rank = rank
-            rank = _closest(self.ranks, asked_rank)
-            warning_string = " \n No such a model in the collection."
-            warning_string += "Returning model with _closest value.\n"
-            warning_string += f"Requested: {asked_rank}, returned: {rank}"
-            warnings.warn(message=warning_string)
-        return self.dict_models[rank]
+        return self._dict_models[rank]
+
+    def __len__(self):
+        return len(self._dict_models)
+
+    def __iter__(self):
+        return iter(self._dict_models)
+
+    def __contains__(self, rank):
+        return rank in self._dict_models.keys()
+
+    def keys(self):
+        return self._dict_models.keys()
+
+    def get(self, key, default):
+        if key in self:
+            return self[key]
+        else:
+            return default
+
+    def values(self):
+        return self._dict_models.values()
+
+    def items(self):
+        return self._dict_models.items()
 
     @property
     def BIC(self):
-        return {model.rank: int(model.BIC) for model in self.list_models}
+        return {model.rank: int(model.BIC) for model in self.values()}
 
     @property
     def AIC(self):
-        return {model.rank: int(model.AIC) for model in self.list_models}
+        return {model.rank: int(model.AIC) for model in self.values()}
 
     @property
     def loglikes(self):
-        return {model.rank: model.loglike for model in self.list_models}
+        return {model.rank: model.loglike for model in self.values()}
 
     def show(self):
         bic = self.BIC
@@ -932,7 +943,7 @@ class PLNPCA:
     def save(self, path_of_directory="./", ranks=None):
         if ranks is None:
             ranks = self.ranks
-        for model in self.list_models:
+        for model in self.values():
             if model.rank in ranks:
                 model.save(path_of_directory)
 
@@ -942,21 +953,17 @@ class PLNPCA:
 
     @property
     def n_samples(self):
-        return self.list_models[0].n_samples
+        return self[self.ranks[0]].n_samples
 
     @property
     def _p(self):
         return self[self.ranks[0]].p
 
-    @property
-    def models(self):
-        return self.dict_models.values()
-
-    def __str__(self):
-        nb_models = len(self.list_models)
+    def __repr__(self):
+        nb_models = len(self)
         delimiter = "\n" + "-" * NB_CHARACTERS_FOR_NICE_PLOT + "\n"
         to_print = delimiter
-        to_print += f"Collection of {nb_models} PLNPCA models with \
+        to_print += f"Collection of {nb_models} PlnPCAcollection models with \
                     {self.dim} variables."
         to_print += delimiter
         to_print += f" - Ranks considered:{self.ranks}\n"
@@ -970,7 +977,7 @@ class PLNPCA:
         to_print += f"   Best model(lower AIC): \
                 {self.best_model(criterion = 'AIC')._rank}\n"
         to_print += delimiter
-        to_print += f"* Useful properties\n"
+        to_print += "* Useful properties\n"
         to_print += f"    {self._useful_properties_string}\n"
         to_print += "* Useful methods \n"
         to_print += f"    {self._useful_methods_strings}"
@@ -987,8 +994,8 @@ class PLNPCA:
 
 
 # Here, setting the value for each key in _dict_parameters
-class _PLNPCA(_PLN):
-    _NAME = "_PLNPCA"
+class PlnPCA(_Pln):
+    _NAME = "PlnPCA"
     _components: torch.Tensor
 
     def __init__(
@@ -1059,7 +1066,7 @@ class _PLNPCA(_PLN):
     @property
     def directory_name(self):
         return f"{self._NAME}_rank_{self._rank}"
-        # return f"PLNPCA_nbcov_{self.nb_cov}_dim_{self.dim}/{self._NAME}_rank_{self._rank}"
+        # return f"PlnPCAcollection_nbcov_{self.nb_cov}_dim_{self.dim}/{self._NAME}_rank_{self._rank}"
 
     @property
     def covariates(self):
@@ -1075,7 +1082,7 @@ class _PLNPCA(_PLN):
 
     @property
     def path_to_directory(self):
-        return f"PLNPCA_nbcov_{self.nb_cov}_dim_{self.dim}/"
+        return f"PlnPCAcollection_nbcov_{self.nb_cov}_dim_{self.dim}/"
 
     @property
     def rank(self):
@@ -1086,7 +1093,7 @@ class _PLNPCA(_PLN):
 
     def _pring_beginning_message(self):
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
-        print(f"Fitting a PLNPCA model with {self._rank} components")
+        print(f"Fitting a PlnPCAcollection model with {self._rank} components")
 
     @property
     def model_parameters(self):
@@ -1224,8 +1231,8 @@ class _PLNPCA(_PLN):
         return self.latent_variables
 
 
-class ZIPLN(PLN):
-    _NAME = "ZIPLN"
+class ZIPln(Pln):
+    _NAME = "ZIPln"
 
     _pi: torch.Tensor
     _coef_inflation: torch.Tensor

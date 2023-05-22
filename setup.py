@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-VERSION = "0.0.43"
+VERSION = "0.0.41"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 with open("requirements.txt", "r") as fh:
     requirements = [line.strip() for line in fh]
-
 setup(
     name="pyPLNmodels",
     version=VERSION,
-    description="Package implementing PLN models",
+    description="Package implementing Pln models",
     project_urls={
         "Source": "https://forgemia.inra.fr/bbatardiere/pyplnmodels",
         "Documentation": "https://bbatardiere.pages.mia.inra.fr/pyplnmodels/index.html",
@@ -28,7 +27,7 @@ setup(
         "count data",
         "high dimension",
         "scRNAseq",
-        "PLN",
+        "Pln",
     ],
     install_requires=requirements,
     py_modules=[

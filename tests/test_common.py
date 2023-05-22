@@ -10,7 +10,7 @@ from tests.import_data import true_sim_0cov, true_sim_2cov
 
 
 @pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_properties(any_pln):
     assert hasattr(any_pln, "latent_parameters")
     assert hasattr(any_pln, "latent_variables")
@@ -24,7 +24,7 @@ def test_print(any_pln):
 
 
 @pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_show_coef_transform_covariance_pcaprojected(any_pln):
     any_pln.show()
     any_pln._plotargs._show_loss()
@@ -39,7 +39,7 @@ def test_show_coef_transform_covariance_pcaprojected(any_pln):
 
 
 @pytest.mark.parametrize("sim_pln", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_predict_simulated(sim_pln):
     if sim_pln.nb_cov == 0:
         assert sim_pln.predict() is None
@@ -60,7 +60,7 @@ def test_verbose(any_instance_pln):
 @pytest.mark.parametrize(
     "simulated_fitted_any_pln", dict_fixtures["loaded_and_fitted_sim_pln"]
 )
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_find_right_covariance(simulated_fitted_any_pln):
     if simulated_fitted_any_pln.nb_cov == 0:
         true_covariance = true_sim_0cov["Sigma"]
@@ -73,7 +73,7 @@ def test_find_right_covariance(simulated_fitted_any_pln):
 @pytest.mark.parametrize(
     "real_fitted_and_loaded_pln", dict_fixtures["loaded_and_fitted_real_pln"]
 )
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_right_covariance_shape(real_fitted_and_loaded_pln):
     assert real_fitted_and_loaded_pln.covariance.shape == (100, 100)
 
@@ -81,7 +81,7 @@ def test_right_covariance_shape(real_fitted_and_loaded_pln):
 @pytest.mark.parametrize(
     "simulated_fitted_any_pln", dict_fixtures["loaded_and_fitted_pln"]
 )
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_find_right_coef(simulated_fitted_any_pln):
     if simulated_fitted_any_pln.nb_cov == 2:
         true_coef = true_sim_2cov["beta"]
@@ -92,7 +92,7 @@ def test_find_right_coef(simulated_fitted_any_pln):
 
 
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_fail_count_setter(pln):
     wrong_counts = torch.randint(size=(10, 5), low=0, high=10)
     with pytest.raises(Exception):
@@ -110,7 +110,7 @@ def test__print_end_of_fitting_message(instance):
 
 
 @pytest.mark.parametrize("pln", dict_fixtures["fitted_pln"])
-@filter_models(["PLN", "_PLNPCA"])
+@filter_models(["Pln", "PlnPCA"])
 def test_fail_wrong_covariates_prediction(pln):
     X = torch.randn(pln.n_samples, pln.nb_cov + 1)
     with pytest.raises(Exception):
