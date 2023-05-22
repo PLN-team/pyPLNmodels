@@ -1,6 +1,7 @@
 
 stages:
   - checks
+  - build_package
   - publish
 
 black:
@@ -21,7 +22,7 @@ tests:
     - pytest
 
 build_package:
-  stage: build
+  stage: build_package
   before_script:
     - pip install build
   script:
@@ -32,6 +33,7 @@ build_package:
     expire_in: 1 week
   tags:
     - docker
+
 publish_package:
   stage: publish
   image: "python:3.9"
