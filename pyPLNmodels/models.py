@@ -26,19 +26,17 @@ from ._utils import (
     _init_covariance,
     _init_components,
     _init_coef,
-    _check_two_dimensions_are_equal,
     _init_latent_mean,
     _format_data,
     _format_model_param,
-    _check_data_shape,
     _nice_string_of_dict,
     _plot_ellipse,
     _closest,
-    _to_tensor,
-    _check_dimensions_are_equal,
+    _check_data_shape,
     _check_right_rank,
     _extract_data_from_formula,
-    _get_dict_initalization,
+    _get_dict_initialization,
+    array2tensor,
 )
 
 if torch.cuda.is_available():
@@ -73,7 +71,6 @@ class _PLN(ABC):
     _latent_var: torch.Tensor
     _latent_mean: torch.Tensor
 
-    @singledispatchmethod
     def __init__(
         self,
         counts,
@@ -94,11 +91,11 @@ class _PLN(ABC):
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
         if dict_initialization is not None:
-            self._set__init_parameters(dict_initialization)
+            self._set_init_parameters(dict_initialization)
 
-    @__init__.register(str)
-    def _(
-        self,
+    @classmethod
+    def from_formula(
+        cls,
         formula: str,
         data: dict,
         offsets_formula="logsum",
@@ -106,7 +103,7 @@ class _PLN(ABC):
         take_log_offsets=False,
     ):
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
-        self.__init__(
+        return cls(
             counts,
             covariates,
             offsets,
@@ -115,7 +112,7 @@ class _PLN(ABC):
             take_log_offsets,
         )
 
-    def _set__init_parameters(self, dict_initialization):
+    def _set_init_parameters(self, dict_initialization):
         if "coef" not in dict_initialization.keys():
             print("No coef is initialized.")
             self.coef = None
@@ -177,7 +174,6 @@ class _PLN(ABC):
             self._random_init_model_parameters()
             self._random_init_latent_parameters()
         print("Initialization finished")
-        self._put_parameters_to_device()
 
     def _put_parameters_to_device(self):
         for parameter in self._list_of_parameters_needing_gradient:
@@ -218,6 +214,7 @@ class _PLN(ABC):
             self._init_parameters(do_smart_init)
         else:
             self._beginning_time -= self._plotargs.running_times[-1]
+        self._put_parameters_to_device()
         self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
@@ -360,7 +357,7 @@ class _PLN(ABC):
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
             self._plotargs._show_loss(ax=axes[2])
-            self._plotargs._show_stopping_criteration(ax=axes[1])
+            self._plotargs._show_stopping_criterion(ax=axes[1])
             self.display_covariance(ax=axes[0])
         else:
             self.display_covariance(ax=axes)
@@ -412,25 +409,35 @@ class _PLN(ABC):
 
     @property
     def coef(self):
-        return self._attribute_or_none("_coef")
+        return self._cpu_attribute_or_none("_coef")
 
     @property
     def latent_mean(self):
-        return self._attribute_or_none("_latent_mean")
+        return self._cpu_attribute_or_none("_latent_mean")
 
     @property
     def latent_var(self):
-        return self._attribute_or_none("_latent_var")
-
-    @latent_var.setter
-    def latent_var(self, latent_var):
-        self._latent_var = latent_var
+        return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
+    @array2tensor
     def latent_mean(self, latent_mean):
+        if latent_mean.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
+            )
         self._latent_mean = latent_mean
 
-    def _attribute_or_none(self, attribute_name):
+    @latent_var.setter
+    @array2tensor
+    def latent_var(self, latent_var):
+        if latent_var.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_var.shape}"
+            )
+        self._latent_var = latent_var
+
+    def _cpu_attribute_or_none(self, attribute_name):
         if hasattr(self, attribute_name):
             attr = getattr(self, attribute_name)
             if isinstance(attr, torch.Tensor):
@@ -454,33 +461,51 @@ class _PLN(ABC):
 
     @property
     def counts(self):
-        return self._attribute_or_none("_counts")
+        return self._cpu_attribute_or_none("_counts")
 
     @property
     def offsets(self):
-        return self._attribute_or_none("_offsets")
+        return self._cpu_attribute_or_none("_offsets")
 
     @property
     def covariates(self):
-        return self._attribute_or_none("_covariates")
+        return self._cpu_attribute_or_none("_covariates")
 
     @counts.setter
+    @array2tensor
     def counts(self, counts):
-        counts = _to_tensor(counts)
-        if hasattr(self, "_counts"):
-            _check_dimensions_are_equal(self._counts, counts)
+        if self.counts.shape != counts.shape:
+            raise ValueError(
+                f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
+            )
+        if torch.min(counts) < 0:
+            raise ValueError("Input should be integers only.")
         self._counts = counts
 
     @offsets.setter
+    @array2tensor
     def offsets(self, offsets):
+        if self.offsets.shape != offsets.shape:
+            raise ValueError(
+                f"Wrong shape for the offsets. Expected {self.offsets.shape}, got {offsets.shape}"
+            )
         self._offsets = offsets
 
     @covariates.setter
+    @array2tensor
     def covariates(self, covariates):
+        _check_data_shape(self.counts, covariates, self.offsets)
         self._covariates = covariates
 
     @coef.setter
+    @array2tensor
     def coef(self, coef):
+        if coef is None:
+            pass
+        elif coef.shape != (self.nb_cov, self.dim):
+            raise ValueError(
+                f"Wrong shape for the counts. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
+            )
         self._coef = coef
 
     @property
@@ -544,8 +569,12 @@ class PLN(_PLN):
 
     @property
     def coef(self):
-        if hasattr(self, "_latent_mean") and hasattr(self, "_covariates"):
-            return self._coef
+        if (
+            hasattr(self, "_latent_mean")
+            and hasattr(self, "_covariates")
+            and self.nb_cov > 0
+        ):
+            return self._coef.detach().cpu()
         return None
 
     @coef.setter
@@ -641,7 +670,6 @@ class PLN(_PLN):
 class PLNPCA:
     _NAME = "PLNPCA"
 
-    @singledispatchmethod
     def __init__(
         self,
         counts,
@@ -664,10 +692,10 @@ class PLNPCA:
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
 
-    @__init__.register(str)
-    def _(
-        self,
-        formula,
+    @classmethod
+    def from_formula(
+        cls,
+        formula: str,
         data: dict,
         offsets_formula="logsum",
         ranks=range(3, 5),
@@ -675,7 +703,7 @@ class PLNPCA:
         take_log_offsets=False,
     ):
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
-        self.__init__(
+        return cls(
             counts,
             covariates,
             offsets,
@@ -693,38 +721,65 @@ class PLNPCA:
     def counts(self):
         return self.list_models[0].counts
 
+    @property
+    def coef(self):
+        return {model.rank: model.coef for model in self.list_models}
+
+    @property
+    def components(self):
+        return {model.rank: model.components for model in self.list_models}
+
+    @property
+    def latent_mean(self):
+        return {model.rank: model.latent_mean for model in self.list_models}
+
+    @property
+    def latent_var(self):
+        return {model.rank: model.latent_var for model in self.list_models}
+
     @counts.setter
+    @array2tensor
     def counts(self, counts):
-        counts = _format_data(counts)
-        if hasattr(self, "_counts"):
-            _check_dimensions_are_equal(self._counts, counts)
-        self._counts = counts
+        for model in self.list_models:
+            model.counts = counts
+
+    @coef.setter
+    @array2tensor
+    def coef(self, coef):
+        for model in self.list_models:
+            model.coef = coef
 
     @covariates.setter
+    @array2tensor
     def covariates(self, covariates):
-        covariates = _format_data(covariates)
-        # if hasattr(self,)
-        self._covariates = covariates
+        for model in self.list_models:
+            model.covariates = covariates
 
     @property
     def offsets(self):
         return self.list_models[0].offsets
+
+    @offsets.setter
+    @array2tensor
+    def offsets(self, offsets):
+        for model in self.list_models:
+            model.offsets = offsets
 
     def _init_models(self, ranks, dict_of_dict_initialization):
         if isinstance(ranks, (Iterable, np.ndarray)):
             self.list_models = []
             for rank in ranks:
                 if isinstance(rank, (int, np.integer)):
-                    dict_initialization = _get_dict_initalization(
+                    dict_initialization = _get_dict_initialization(
                         rank, dict_of_dict_initialization
                     )
                     self.list_models.append(
                         _PLNPCA(
-                            self._counts,
-                            self._covariates,
-                            self._offsets,
-                            rank,
-                            dict_initialization,
+                            counts=self._counts,
+                            covariates=self._covariates,
+                            offsets=self._offsets,
+                            rank=rank,
+                            dict_initialization=dict_initialization,
                         )
                     )
                 else:
@@ -733,7 +788,7 @@ class PLNPCA:
                         f"of integers or an integer."
                     )
         elif isinstance(ranks, (int, np.integer)):
-            dict_initialization = _get_dict_initalization(
+            dict_initialization = _get_dict_initialization(
                 ranks, dict_of_dict_initialization
             )
             self.list_models = [
@@ -741,7 +796,7 @@ class PLNPCA:
                     self._counts,
                     self._covariates,
                     self._offsets,
-                    rank,
+                    ranks,
                     dict_initialization,
                 )
             ]
@@ -781,8 +836,9 @@ class PLNPCA:
         verbose=False,
     ):
         self._pring_beginning_message()
-        for pca in self.dict_models.values():
-            pca.fit(
+        for i in range(len(self.list_models)):
+            model = self.list_models[i]
+            model.fit(
                 nb_max_iteration,
                 lr,
                 class_optimizer,
@@ -790,7 +846,16 @@ class PLNPCA:
                 do_smart_init,
                 verbose,
             )
+            if i < len(self.list_models) - 1:
+                next_model = self.list_models[i + 1]
+                self.init_next_model_with_previous_parameters(next_model, model)
         self._print_ending_message()
+
+    def init_next_model_with_previous_parameters(self, next_model, current_model):
+        next_model.coef = current_model.coef
+        next_model.components = torch.zeros(self.dim, next_model.rank)
+        with torch.no_grad():
+            next_model._components[:, : current_model.rank] = current_model._components
 
     def _print_ending_message(self):
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
@@ -926,8 +991,15 @@ class _PLNPCA(_PLN):
     _NAME = "_PLNPCA"
     _components: torch.Tensor
 
-    @singledispatchmethod
-    def __init__(self, counts, covariates, offsets, rank, dict_initialization=None):
+    def __init__(
+        self,
+        counts,
+        covariates=None,
+        offsets=None,
+        offsets_formula="logsum",
+        rank=5,
+        dict_initialization=None,
+    ):
         self._rank = rank
         self._counts, self._covariates, self._offsets = _format_model_param(
             counts, covariates, offsets, None, take_log_offsets=False
@@ -935,14 +1007,18 @@ class _PLNPCA(_PLN):
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._check_if_rank_is_too_high()
         if dict_initialization is not None:
-            self._set__init_parameters(dict_initialization)
+            self._set_init_parameters(dict_initialization)
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
 
-    @__init__.register(str)
-    def _(self, formula, data, rank, dict_initialization):
+    @classmethod
+    def from_formula(
+        cls, formula, data, rank=5, offsets_formula="logsum", dict_initialization=None
+    ):
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
-        self.__init__(counts, covariates, offsets, rank, dict_initialization)
+        return cls(
+            counts, covariates, offsets, offsets_formula, rank, dict_initialization
+        )
 
     def _check_if_rank_is_too_high(self):
         if self.dim < self.rank:
@@ -955,9 +1031,47 @@ class _PLNPCA(_PLN):
             self._rank = self.dim
 
     @property
+    def latent_mean(self):
+        return self._cpu_attribute_or_none("_latent_mean")
+
+    @property
+    def latent_var(self):
+        return self._cpu_attribute_or_none("_latent_var")
+
+    @latent_mean.setter
+    @array2tensor
+    def latent_mean(self, latent_mean):
+        if latent_mean.shape != (self.n_samples, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_mean.shape}"
+            )
+        self._latent_mean = latent_mean
+
+    @latent_var.setter
+    @array2tensor
+    def latent_var(self, latent_var):
+        if latent_var.shape != (self.n_samples, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_var.shape}"
+            )
+        self._latent_var = latent_var
+
+    @property
     def directory_name(self):
         return f"{self._NAME}_rank_{self._rank}"
         # return f"PLNPCA_nbcov_{self.nb_cov}_dim_{self.dim}/{self._NAME}_rank_{self._rank}"
+
+    @property
+    def covariates(self):
+        return self._cpu_attribute_or_none("_covariates")
+
+    @covariates.setter
+    @array2tensor
+    def covariates(self, covariates):
+        _check_data_shape(self.counts, covariates, self.offsets)
+        self._covariates = covariates
+        print("Setting coef to initialization")
+        self._smart_init_coef()
 
     @property
     def path_to_directory(self):
@@ -1076,10 +1190,15 @@ class _PLNPCA(_PLN):
 
     @property
     def components(self):
-        return self._attribute_or_none("_components")
+        return self._cpu_attribute_or_none("_components")
 
     @components.setter
+    @array2tensor
     def components(self, components):
+        if components.shape != (self.dim, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
+            )
         self._components = components
 
     def viz(self, ax=None, colors=None):

@@ -146,7 +146,7 @@ nohup.out
 ## vscode config
 .vscode/
 
-.test.py
+test.py
 
 ## directories that outputs when running the tests
 tests/PLN*
