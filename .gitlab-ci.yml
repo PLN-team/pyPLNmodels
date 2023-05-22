@@ -23,6 +23,7 @@ tests:
 
 build_package:
   stage: build_package
+  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
   before_script:
     - pip install build
   script:

@@ -46,14 +46,6 @@ NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
 class _Pln(ABC):
-    """
-    Virtual class for all the Pln models.
-
-    This class must be derivatived. The methods `get_covariance`, `compute_elbo`,
-    `_random_init_latent_parameters` and `_list_of_parameters_needing_gradient` must
-    be defined.
-    """
-
     _WINDOW = 15
     n_samples: int
     dim: int
@@ -75,10 +67,6 @@ class _Pln(ABC):
         dict_initialization=None,
         take_log_offsets=False,
     ):
-        """
-        Simple initialization method wors fine.
-        """
-
         self._counts, self._covariates, self._offsets = _format_model_param(
             counts, covariates, offsets, offsets_formula, take_log_offsets
         )
@@ -189,19 +177,6 @@ class _Pln(ABC):
         do_smart_init=True,
         verbose=False,
     ):
-        """
-        Main function of the class. Fit a Pln to the data.
-        Parameters
-        ----------
-        counts : torch.tensor or ndarray or DataFrame.
-            2-d count data.
-        covariates : torch.tensor or ndarray or DataFrame or
-            None, default = None
-            If not `None`, the first dimension should equal the first
-            dimension of `counts`.
-        offsets : torch.tensor or ndarray or DataFrame or None, default = None
-            Model offset. If not `None`, size should be the same as `counts`.
-        """
         self._pring_beginning_message()
         self._beginning_time = time.time()
 
@@ -223,9 +198,6 @@ class _Pln(ABC):
         self._fitted = True
 
     def _trainstep(self):
-        """
-        simple docstrings with black errors
-        """
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
@@ -291,23 +263,6 @@ class _Pln(ABC):
         """
 
     def display_covariance(self, ax=None, savefig=False, name_file=""):
-        """
-        Display a heatmap of covariance to visualize correlations.
-
-        If covariance is too big (size is > 400), will only display the
-        first block of size (400,400).
-
-        Parameters
-        ----------
-        ax : matplotlib Axes, optional
-            Axes in which to draw the plot, otherwise use the
-            currently-active Axes.
-        savefig: bool, optional
-            If True the figure will be saved. Default is False.
-        name_file : str, optional
-            The name of the file the graphic will be saved to if saved.
-            Default is an empty string.
-        """
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
             sigma = sigma[:400, :400]
@@ -318,7 +273,7 @@ class _Pln(ABC):
             plt.savefig(name_file + self._NAME)
         plt.show()  # to avoid displaying a blanck screen
 
-    def __str__(self):
+    def __repr__(self):
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
         string = f"A multivariate Poisson Lognormal with {self._description} \n"
         string += f"{delimiter}\n"
@@ -593,11 +548,6 @@ class Pln(_Pln):
         return self.dim
 
     def compute_elbo(self):
-        """
-        Compute the Evidence Lower BOund (ELBO) that will be
-        maximized by pytorch. Here we use the profiled ELBO
-        for the full covariance matrix.
-        """
         return profiled_elbo_pln(
             self._counts,
             self._covariates,
