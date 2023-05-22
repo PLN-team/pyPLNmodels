@@ -1,29 +1,50 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import log_stirling, trunc_log
-from ._closed_forms import closed_formula_covariance, closed_formula_coef
+from ._utils import _log_stirling, _trunc_log
+from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 
-def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, coef):
+from typing import Optional
+
+
+def elbo_pln(
+    counts: torch.Tensor,
+    offsets: torch.Tensor,
+    covariates: Optional[torch.Tensor],
+    latent_mean: torch.Tensor,
+    latent_var: torch.Tensor,
+    covariance: torch.Tensor,
+    coef: torch.Tensor,
+) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence LOwer Bound) for the PLN model. See the doc for more details
-    on the computation.
+    Compute the ELBO (Evidence Lower Bound) for the PLN model.
 
-    Args:
-        counts: torch.tensor. Counts with size (n,p)
-        0: torch.tensor. Offset, size (n,p)
-        covariates: torch.tensor. Covariates, size (n,d)
-        latent_mean: torch.tensor. Variational parameter with size (n,p)
-        latent_var: torch.tensor. Variational parameter with size (n,p)
-        covariance: torch.tensor. Model parameter with size (p,p)
-        coef: torch.tensor. Model parameter with size (d,p)
+    Parameters:
+    ----------
+    counts : torch.Tensor
+        Counts with size (n, p).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    covariates : torch.Tensor, optional
+        Covariates with size (n, d).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_var : torch.Tensor
+        Variational parameter with size (n, p).
+    covariance : torch.Tensor
+        Model parameter with size (p, p).
+    coef : torch.Tensor
+        Model parameter with size (d, p).
+
     Returns:
-        torch.tensor of size 1 with a gradient.
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
     """
     n_samples, dim = counts.shape
     s_rond_s = torch.square(latent_var)
     offsets_plus_m = offsets + latent_mean
     if covariates is None:
-        XB = 0
+        XB = torch.zeros_like(counts)
     else:
         XB = covariates @ coef
     m_minus_xb = latent_mean - XB
@@ -37,60 +58,93 @@ def elbo_pln(counts, covariates, offsets, latent_mean, latent_var, covariance, c
         + 0.5 * torch.log(s_rond_s)
     )
     elbo -= 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
-    elbo -= torch.sum(log_stirling(counts))
+    elbo -= torch.sum(_log_stirling(counts))
     elbo += 0.5 * n_samples * dim
     return elbo / n_samples
 
 
-def profiled_elbo_pln(counts, covariates, offsets, latent_mean, latent_var):
-    """
-    Compute the ELBO (Evidence LOwer Bound) for the PLN model. We use the fact that covariance and coef are
-    completely determined by latent_mean,latent_var, and the covariates. See the doc for more details
-    on the computation.
+import torch
+from typing import Optional
 
-    Args:
-        counts: torch.tensor. Counts with size (n,p)
-        0: torch.tensor. Offset, size (n,p)
-        covariates: torch.tensor. Covariates, size (n,d)
-        latent_mean: torch.tensor. Variational parameter with size (n,p)
-        latent_var: torch.tensor. Variational parameter with size (n,p)
-        covariance: torch.tensor. Model parameter with size (p,p)
-        coef: torch.tensor. Model parameter with size (d,p)
+
+def profiled_elbo_pln(
+    counts: torch.Tensor,
+    covariates: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_var: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the PLN model with profiled parameters.
+
+    Parameters:
+    ----------
+    counts : torch.Tensor
+        Counts with size (n, p).
+    covariates : torch.Tensor
+        Covariates with size (n, d).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_var : torch.Tensor
+        Variational parameter with size (n, p).
+
     Returns:
-        torch.tensor of size 1 with a gradient.
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
     """
     n_samples, _ = counts.shape
-    s_rond_s = torch.square(latent_var)
-    offsets_plus_m = offsets + latent_mean
-    closed_coef = closed_formula_coef(covariates, latent_mean)
-    closed_covariance = closed_formula_covariance(
+    s_squared = torch.square(latent_var)
+    offsets_plus_mean = offsets + latent_mean
+    closed_coef = _closed_formula_coef(covariates, latent_mean)
+    closed_covariance = _closed_formula_covariance(
         covariates, latent_mean, latent_var, closed_coef, n_samples
     )
     elbo = -0.5 * n_samples * torch.logdet(closed_covariance)
     elbo += torch.sum(
-        counts * offsets_plus_m
-        - torch.exp(offsets_plus_m + s_rond_s / 2)
-        + 0.5 * torch.log(s_rond_s)
+        counts * offsets_plus_mean
+        - torch.exp(offsets_plus_mean + s_squared / 2)
+        + 0.5 * torch.log(s_squared)
     )
-    elbo -= torch.sum(log_stirling(counts))
+    elbo -= torch.sum(_log_stirling(counts))
     return elbo / n_samples
 
 
-def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components, coef):
+def elbo_plnpca(
+    counts: torch.Tensor,
+    covariates: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_var: torch.Tensor,
+    components: torch.Tensor,
+    coef: torch.Tensor,
+) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence LOwer Bound) for the PLN model with a PCA
-    parametrization. See the doc for more details on the computation.
+    Compute the ELBO (Evidence Lower Bound) for the PLN model with PCA parametrization.
 
-    Args:
-        counts: torch.tensor. Counts with size (n,p)
-        0: torch.tensor. Offset, size (n,p)
-        covariates: torch.tensor. Covariates, size (n,d)
-        latent_mean: torch.tensor. Variational parameter with size (n,p)
-        latent_var: torch.tensor. Variational parameter with size (n,p)
-        components: torch.tensor. Model parameter with size (p,q)
-        coef: torch.tensor. Model parameter with size (d,p)
+    Parameters:
+    ----------
+    counts : torch.Tensor
+        Counts with size (n, p).
+    covariates : torch.Tensor
+        Covariates with size (n, d).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_var : torch.Tensor
+        Variational parameter with size (n, p).
+    components : torch.Tensor
+        Model parameter with size (p, q).
+    coef : torch.Tensor
+        Model parameter with size (d, p).
+
     Returns:
-        torch.tensor of size 1 with a gradient.
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
     """
     n_samples = counts.shape[0]
     rank = components.shape[1]
@@ -99,22 +153,22 @@ def elbo_plnpca(counts, covariates, offsets, latent_mean, latent_var, components
     else:
         XB = covariates @ coef
     log_intensity = offsets + XB + latent_mean @ components.T
-    s_rond_s = torch.square(latent_var)
+    s_squared = torch.square(latent_var)
     counts_log_intensity = torch.sum(counts * log_intensity)
-    minus_intensity_plus_s_rond_s_cct = torch.sum(
-        -torch.exp(log_intensity + 0.5 * s_rond_s @ (components * components).T)
+    minus_intensity_plus_s_squared_cct = torch.sum(
+        -torch.exp(log_intensity + 0.5 * s_squared @ (components * components).T)
     )
-    minuslogs_rond_s = 0.5 * torch.sum(torch.log(s_rond_s))
-    mm_plus_s_rond_s = -0.5 * torch.sum(
+    minus_logs_squared = 0.5 * torch.sum(torch.log(s_squared))
+    mm_plus_s_squared = -0.5 * torch.sum(
         torch.square(latent_mean) + torch.square(latent_var)
     )
-    log_stirlingcounts = torch.sum(log_stirling(counts))
+    log_stirling_counts = torch.sum(_log_stirling(counts))
     return (
         counts_log_intensity
-        + minus_intensity_plus_s_rond_s_cct
-        + minuslogs_rond_s
-        + mm_plus_s_rond_s
-        - log_stirlingcounts
+        + minus_intensity_plus_s_squared_cct
+        + minus_logs_squared
+        + mm_plus_s_squared
+        - log_stirling_counts
         + 0.5 * n_samples * rank
     ) / n_samples
 
@@ -162,12 +216,12 @@ def elbo_zi_pln(
         * (
             counts @ offsets_plus_m
             - torch.exp(offsets_plus_m + s_rond_s / 2)
-            - log_stirling(counts),
+            - _log_stirling(counts),
         )
         + pi
     )
 
-    elbo -= torch.sum(pi * trunc_log(pi) + (1 - pi) * trunc_log(1 - pi))
+    elbo -= torch.sum(pi * _trunc_log(pi) + (1 - pi) * _trunc_log(1 - pi))
     elbo += torch.sum(
         pi * x_coef_inflation - torch.log(1 + torch.exp(x_coef_inflation))
     )
