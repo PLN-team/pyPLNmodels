@@ -45,7 +45,7 @@ print(pln)
 ### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PlnPCACollection)
 
 ```
-pca =  PlnPCACollection.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
+pca =  PlnPCAcollection.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca.fit()
 print(pca)
 ```
