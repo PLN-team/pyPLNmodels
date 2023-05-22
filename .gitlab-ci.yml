@@ -1,6 +1,7 @@
 
 stages:
   - checks
+  - build_package
   - publish
 
 black:
@@ -20,12 +21,26 @@ tests:
     - pip install -r requirements.txt
     - pytest
 
+build_package:
+  stage: build_package
+  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  before_script:
+    - pip install build
+  script:
+    - rm -rf dist/
+    - python -m build
+  artifacts:
+    untracked: true
+    expire_in: 1 week
+  tags:
+    - docker
+
 publish_package:
   stage: publish
   image: "python:3.9"
-  script:
+  before_script:
     - pip install twine
-    - python setup.py bdist_wheel
+  script:
     - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
