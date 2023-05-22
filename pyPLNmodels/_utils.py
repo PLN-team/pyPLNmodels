@@ -10,6 +10,7 @@ from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
 from typing import Optional, Dict, Any, Union
+import pkg_resources
 
 
 torch.set_default_dtype(torch.float64)
@@ -93,7 +94,7 @@ def _init_covariance(
     counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor
 ) -> torch.Tensor:
     """
-    Initialization for covariance for the PLN model. Take the log of counts
+    Initialization for covariance for the Pln model. Take the log of counts
     (careful when counts=0), remove the covariates effects X@coef and
     then do as a MLE for Gaussians samples.
 
@@ -124,7 +125,7 @@ def _init_components(
     counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor, rank: int
 ) -> torch.Tensor:
     """
-    Initialization for components for the PLN model. Get a first guess for covariance
+    Initialization for components for the Pln model. Get a first guess for covariance
     that is easier to estimate and then takes the rank largest eigenvectors to get components.
 
     Parameters
@@ -235,7 +236,7 @@ def sample_pln(
     seed: int = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Sample from the Poisson Log-Normal (PLN) model.
+    Sample from the Poisson Log-Normal (Pln) model.
 
     Parameters
     ----------
@@ -273,7 +274,7 @@ def sample_pln(
     parameter = torch.exp(offsets + gaussian)
 
     if _coef_inflation is not None:
-        print("ZIPLN is sampled")
+        print("ZIPln is sampled")
         zero_inflated_mean = torch.matmul(covariates, _coef_inflation)
         ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
     else:
@@ -368,7 +369,7 @@ def log_posterior(
     coef: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the log posterior of the Poisson Log-Normal (PLN) model.
+    Compute the log posterior of the Poisson Log-Normal (Pln) model.
 
     Parameters
     ----------
@@ -646,32 +647,6 @@ def _format_model_param(
     return counts, covariates, offsets
 
 
-def _remove_useless_intercepts(covariates: torch.Tensor) -> torch.Tensor:
-    """
-    Remove useless intercepts from covariates.
-
-    Parameters
-    ----------
-    covariates : torch.Tensor, shape (n, d)
-        Covariate data.
-
-    Returns
-    -------
-    torch.Tensor
-        Covariate data with useless intercepts removed.
-    """
-    covariates = _format_data(covariates)
-    if covariates.shape[1] < 2:
-        return covariates
-    first_column = covariates[:, 0]
-    second_column = covariates[:, 1]
-    diff = first_column - second_column
-    if torch.sum(torch.abs(diff - diff[0])) == 0:
-        print("removing one")
-        return covariates[:, 1:]
-    return covariates
-
-
 def _check_data_shape(
     counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> None:
@@ -902,9 +877,11 @@ def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
             f"\nTaking the whole 100 variables. Requested:dim={dim}, returned:100"
         )
         dim = 100
-    counts = pd.read_csv("../example_data/real_data/Y_mark.csv").values[
-        :n_samples, :dim
-    ]
+    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/Y_mark.csv")
+    counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
+    # counts = pd.read_csv("./pyPLNmodels/data/scRT/Y_mark.csv").values[
+    # :n_samples, :dim
+    # ]
     print(f"Returning dataset of size {counts.shape}")
     return counts
 
@@ -964,39 +941,39 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
 
 def load_pln(path_of_directory: str) -> Dict[str, Any]:
     """
-    Load PLN models from the given directory.
+    Load Pln models from the given directory.
 
     Parameters
     ----------
     path_of_directory : str
-        The path to the directory containing the PLN models.
+        The path to the directory containing the Pln models.
 
     Returns
     -------
     Dict[str, Any]
-        A dictionary containing the loaded PLN models.
+        A dictionary containing the loaded Pln models.
 
     """
     return load_model(path_of_directory)
 
 
-def load_plnpca(
+def load_plnpcacollection(
     path_of_directory: str, ranks: Optional[list[int]] = None
 ) -> Dict[int, Dict[str, Any]]:
     """
-    Load PLNPCA models from the given directory.
+    Load PlnPCAcollection models from the given directory.
 
     Parameters
     ----------
     path_of_directory : str
-        The path to the directory containing the PLNPCA models.
+        The path to the directory containing the PlnPCAcollection models.
     ranks : list[int], optional
         A list of ranks specifying which models to load. If None, all models in the directory will be loaded.
 
     Returns
     -------
     Dict[int, Dict[str, Any]]
-        A dictionary containing the loaded PLNPCA models, with ranks as keys.
+        A dictionary containing the loaded PlnPCAcollection models, with ranks as keys.
 
     Raises
     ------
@@ -1019,7 +996,7 @@ def load_plnpca(
             ranks.append(rank)
     datas = {}
     for rank in ranks:
-        datas[rank] = load_model(f"_PLNPCA_rank_{rank}")
+        datas[rank] = load_model(f"PlnPCA_rank_{rank}")
     os.chdir(working_dir)
     return datas
 

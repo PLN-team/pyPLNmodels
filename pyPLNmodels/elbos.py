@@ -16,7 +16,7 @@ def elbo_pln(
     coef: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the PLN model.
+    Compute the ELBO (Evidence Lower Bound) for the Pln model.
 
     Parameters:
     ----------
@@ -75,7 +75,7 @@ def profiled_elbo_pln(
     latent_var: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the PLN model with profiled parameters.
+    Compute the ELBO (Evidence Lower Bound) for the Pln model with profiled parameters.
 
     Parameters:
     ----------
@@ -122,7 +122,7 @@ def elbo_plnpca(
     coef: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the PLN model with PCA parametrization.
+    Compute the ELBO (Evidence Lower Bound) for the Pln model with PCA parametrization.
 
     Parameters:
     ----------
@@ -186,7 +186,7 @@ def elbo_zi_pln(
     _coef_inflation,
     dirac,
 ):
-    """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated PLN model.
+    """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated Pln model.
     See the doc for more details on the computation.
 
     Args:

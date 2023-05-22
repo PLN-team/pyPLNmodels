@@ -28,7 +28,7 @@ pip install pyPLNmodels
 The package comes with an ecological data set to present the functionality
 ```
 import pyPLNmodels
-from pyPLNmodels.models import PLNPCA, PLN
+from pyPLNmodels.models import PlnPCAcollection, Pln
 from pyPLNmodels.oaks import load_oaks
 oaks = load_oaks()
 ```
@@ -36,16 +36,16 @@ oaks = load_oaks()
 ### Unpenalized Poisson lognormal model (aka PLN)
 
 ```
-pln = PLN("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
+pln = Pln.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
 pln.fit()
 print(pln)
 ```
 
 
-### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PLNPCA)
+### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PlnPCACollection)
 
 ```
-pca =  PLNPCA("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
+pca =  PlnPCAcollection.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca.fit()
 print(pca)
 ```
