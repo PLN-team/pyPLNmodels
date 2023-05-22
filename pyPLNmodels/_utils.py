@@ -9,7 +9,7 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 
 torch.set_default_dtype(torch.float64)
@@ -620,8 +620,15 @@ def _format_model_param(
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Formatted model parameters.
+    Raises
+    ------
+    ValueError
+        If counts has negative values.
+
     """
     counts = _format_data(counts)
+    if torch.min(counts) < 0:
+        raise ValueError("Counts should be only non negavtive values.")
     if covariates is not None:
         covariates = _format_data(covariates)
     if offsets is None:
@@ -1109,33 +1116,37 @@ def _get_dict_initialization(
     return dict_of_dict.get(rank)
 
 
-def _to_tensor(obj):
+def _to_tensor(
+    obj: Union[np.ndarray, torch.Tensor, pd.DataFrame, None]
+) -> Union[torch.Tensor, None]:
     """
-    Convert the input object to a torch.Tensor.
+    Convert an object to a PyTorch tensor.
 
-    Parameters
+    Parameters:
     ----------
-    obj : np.ndarray or torch.Tensor or pd.DataFrame
-        The input object to be converted.
+        obj (np.ndarray or torch.Tensor or pd.DataFrame or None):
+            The object to be converted.
 
-    Returns
-    -------
-    torch.Tensor
-        The converted torch.Tensor object.
+    Returns:
+        torch.Tensor or None:
+            The converted PyTorch tensor.
 
-    Raises
+    Raises:
     ------
-    TypeError
-        If the input object is not an np.ndarray, torch.Tensor, or pd.DataFrame.
-
+        TypeError:
+            If the input object is not an np.ndarray, torch.Tensor, pd.DataFrame, or None.
     """
+    if obj is None:
+        return None
     if isinstance(obj, np.ndarray):
         return torch.from_numpy(obj)
     if isinstance(obj, torch.Tensor):
         return obj
     if isinstance(obj, pd.DataFrame):
         return torch.from_numpy(obj.values)
-    raise TypeError("Please give either a np.ndarray or torch.Tensor or pd.DataFrame")
+    raise TypeError(
+        "Please give either an np.ndarray or torch.Tensor or pd.DataFrame or None"
+    )
 
 
 class _PoissonReg:

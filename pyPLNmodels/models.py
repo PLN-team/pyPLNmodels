@@ -91,7 +91,7 @@ class _PLN(ABC):
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
         if dict_initialization is not None:
-            self._set__init_parameters(dict_initialization)
+            self._set_init_parameters(dict_initialization)
 
     @classmethod
     def from_formula(
@@ -102,7 +102,7 @@ class _PLN(ABC):
         dict_initialization=None,
         take_log_offsets=False,
     ):
-        counts, covariates, offsets = extract_data_from_formula(formula, data)
+        counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
             covariates,
@@ -112,7 +112,7 @@ class _PLN(ABC):
             take_log_offsets,
         )
 
-    def _set__init_parameters(self, dict_initialization):
+    def _set_init_parameters(self, dict_initialization):
         if "coef" not in dict_initialization.keys():
             print("No coef is initialized.")
             self.coef = None
@@ -174,7 +174,6 @@ class _PLN(ABC):
             self._random_init_model_parameters()
             self._random_init_latent_parameters()
         print("Initialization finished")
-        self._put_parameters_to_device()
 
     def _put_parameters_to_device(self):
         for parameter in self._list_of_parameters_needing_gradient:
@@ -215,6 +214,7 @@ class _PLN(ABC):
             self._init_parameters(do_smart_init)
         else:
             self._beginning_time -= self._plotargs.running_times[-1]
+        self._put_parameters_to_device()
         self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and stop_condition == False:
@@ -409,35 +409,35 @@ class _PLN(ABC):
 
     @property
     def coef(self):
-        return self._attribute_or_none("_coef")
+        return self._cpu_attribute_or_none("_coef")
 
     @property
     def latent_mean(self):
-        return self._attribute_or_none("_latent_mean")
+        return self._cpu_attribute_or_none("_latent_mean")
 
     @property
     def latent_var(self):
-        return self._attribute_or_none("_latent_var")
+        return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
     @array2tensor
     def latent_mean(self, latent_mean):
-        if latent_mean.shape != (self.n, self.dim):
+        if latent_mean.shape != (self.n_samples, self.dim):
             raise ValueError(
-                f"Wrong shape. Expected {self.n, self.dim}, got {latent_mean.shape}"
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
             )
         self._latent_mean = latent_mean
 
     @latent_var.setter
     @array2tensor
     def latent_var(self, latent_var):
-        if latent_var.shape != (self.n, self.dim):
+        if latent_var.shape != (self.n_samples, self.dim):
             raise ValueError(
-                f"Wrong shape. Expected {self.n, self.dim}, got {latent_var.shape}"
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_var.shape}"
             )
         self._latent_var = latent_var
 
-    def _attribute_or_none(self, attribute_name):
+    def _cpu_attribute_or_none(self, attribute_name):
         if hasattr(self, attribute_name):
             attr = getattr(self, attribute_name)
             if isinstance(attr, torch.Tensor):
@@ -461,15 +461,15 @@ class _PLN(ABC):
 
     @property
     def counts(self):
-        return self._attribute_or_none("_counts")
+        return self._cpu_attribute_or_none("_counts")
 
     @property
     def offsets(self):
-        return self._attribute_or_none("_offsets")
+        return self._cpu_attribute_or_none("_offsets")
 
     @property
     def covariates(self):
-        return self._attribute_or_none("_covariates")
+        return self._cpu_attribute_or_none("_covariates")
 
     @counts.setter
     @array2tensor
@@ -478,6 +478,8 @@ class _PLN(ABC):
             raise ValueError(
                 f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
             )
+        if torch.min(counts) < 0:
+            raise ValueError("Input should be integers only.")
         self._counts = counts
 
     @offsets.setter
@@ -498,6 +500,12 @@ class _PLN(ABC):
     @coef.setter
     @array2tensor
     def coef(self, coef):
+        if coef is None:
+            pass
+        elif coef.shape != (self.nb_cov, self.dim):
+            raise ValueError(
+                f"Wrong shape for the counts. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
+            )
         self._coef = coef
 
     @property
@@ -561,8 +569,12 @@ class PLN(_PLN):
 
     @property
     def coef(self):
-        if hasattr(self, "_latent_mean") and hasattr(self, "_covariates"):
-            return self._coef
+        if (
+            hasattr(self, "_latent_mean")
+            and hasattr(self, "_covariates")
+            and self.nb_cov > 0
+        ):
+            return self._coef.detach().cpu()
         return None
 
     @coef.setter
@@ -709,14 +721,33 @@ class PLNPCA:
     def counts(self):
         return self.list_models[0].counts
 
+    @property
+    def coef(self):
+        return {model.rank: model.coef for model in self.list_models}
+
+    @property
+    def components(self):
+        return {model.rank: model.components for model in self.list_models}
+
+    @property
+    def latent_mean(self):
+        return {model.rank: model.latent_mean for model in self.list_models}
+
+    @property
+    def latent_var(self):
+        return {model.rank: model.latent_var for model in self.list_models}
+
     @counts.setter
     @array2tensor
     def counts(self, counts):
-        if self.counts.shape != counts.shape:
-            raise ValueError(
-                f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
-            )
-        self._counts = counts
+        for model in self.list_models:
+            model.counts = counts
+
+    @coef.setter
+    @array2tensor
+    def coef(self, coef):
+        for model in self.list_models:
+            model.coef = coef
 
     @covariates.setter
     @array2tensor
@@ -817,12 +848,14 @@ class PLNPCA:
             )
             if i < len(self.list_models) - 1:
                 next_model = self.list_models[i + 1]
-                next_model.coef = model.coef
-                actual_rank = model.rank
-                next_model._components = torch.zeros(self.dim, next_model.rank)
-                with torch.no_grad():
-                    next_model._components[:, : model.rank] = model._components
+                self.init_next_model_with_previous_parameters(next_model, model)
         self._print_ending_message()
+
+    def init_next_model_with_previous_parameters(self, next_model, current_model):
+        next_model.coef = current_model.coef
+        next_model.components = torch.zeros(self.dim, next_model.rank)
+        with torch.no_grad():
+            next_model._components[:, : current_model.rank] = current_model._components
 
     def _print_ending_message(self):
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
@@ -974,7 +1007,7 @@ class _PLNPCA(_PLN):
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._check_if_rank_is_too_high()
         if dict_initialization is not None:
-            self._set__init_parameters(dict_initialization)
+            self._set_init_parameters(dict_initialization)
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
 
@@ -999,27 +1032,27 @@ class _PLNPCA(_PLN):
 
     @property
     def latent_mean(self):
-        return self._attribute_or_none("_latent_mean")
+        return self._cpu_attribute_or_none("_latent_mean")
 
     @property
     def latent_var(self):
-        return self._attribute_or_none("_latent_var")
+        return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
     @array2tensor
     def latent_mean(self, latent_mean):
-        if latent_mean.shape != (self.n, self.rank):
+        if latent_mean.shape != (self.n_samples, self.rank):
             raise ValueError(
-                f"Wrong shape. Expected {self.n, self.rank}, got {latent_mean.shape}"
+                f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_mean.shape}"
             )
         self._latent_mean = latent_mean
 
     @latent_var.setter
     @array2tensor
     def latent_var(self, latent_var):
-        if latent_var.shape != (self.n, self.rank):
+        if latent_var.shape != (self.n_samples, self.rank):
             raise ValueError(
-                f"Wrong shape. Expected {self.n, self.rank}, got {latent_var.shape}"
+                f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_var.shape}"
             )
         self._latent_var = latent_var
 
@@ -1030,7 +1063,7 @@ class _PLNPCA(_PLN):
 
     @property
     def covariates(self):
-        return self._attribute_or_none("_covariates")
+        return self._cpu_attribute_or_none("_covariates")
 
     @covariates.setter
     @array2tensor
@@ -1038,7 +1071,7 @@ class _PLNPCA(_PLN):
         _check_data_shape(self.counts, covariates, self.offsets)
         self._covariates = covariates
         print("Setting coef to initialization")
-        self._coef = self._smart_init_coef()
+        self._smart_init_coef()
 
     @property
     def path_to_directory(self):
@@ -1157,11 +1190,15 @@ class _PLNPCA(_PLN):
 
     @property
     def components(self):
-        return self._attribute_or_none("_components")
+        return self._cpu_attribute_or_none("_components")
 
     @components.setter
     @array2tensor
     def components(self, components):
+        if components.shape != (self.dim, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
+            )
         self._components = components
 
     def viz(self, ax=None, colors=None):
