@@ -51,3 +51,6 @@ dependencies = [
 "seaborn",
 "torch"
 ]
+[project.urls]
+Repository = "https://github.com/PLN-team/pyPLNmodels"
+Documentation = "https://bbatardiere.pages.mia.inra.fr/pyplnmodels"
