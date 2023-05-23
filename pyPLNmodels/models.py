@@ -360,11 +360,15 @@ class _Pln(ABC):
         -------
         numpy.ndarray
             The projected latent variables.
+        Raises
+        ------
+        ValueError
+           If the number of components asked is greater than the number of dimensions.
         """
         if n_components is None:
             n_components = self._get_max_components()
         if n_components > self.dim:
-            raise RuntimeError(
+            raise ValueError(
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = PCA(n_components=n_components)
@@ -821,14 +825,14 @@ class _Pln(ABC):
         Raises
         ------
         ValueError
-            If the shape of the counts is incorrect or if the input is not integers.
+            If the shape of the counts is incorrect or if the input is negative.
         """
         if self.counts.shape != counts.shape:
             raise ValueError(
                 f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
             )
         if torch.min(counts) < 0:
-            raise ValueError("Input should be integers only.")
+            raise ValueError("Input should be non-negative only.")
         self._counts = counts
 
     @offsets.setter
@@ -980,7 +984,7 @@ class _Pln(ABC):
         AttributeError
             If there are no covariates in the model.
         RuntimeError
-            If the shape of thecovariates is incorrect.
+            If the shape of the covariates is incorrect.
 
         Notes
         -----
@@ -2426,11 +2430,15 @@ class PlnPCA(_Pln):
         -------
         np.ndarray
             The transformed projected latent variables.
+        Raises
+        ------
+        ValueError
+           If the number of components asked is greater than the number of dimensions.
         """
         if n_components is None:
             n_components = self._get_max_components()
         if n_components > self.dim:
-            raise RuntimeError(
+            raise ValueError(
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = PCA(n_components=n_components)

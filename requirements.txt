@@ -4,3 +4,4 @@ pandas
 scipy
 seaborn
 torch
+sklearn
