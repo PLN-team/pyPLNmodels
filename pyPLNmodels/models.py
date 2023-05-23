@@ -327,7 +327,7 @@ class _Pln(ABC):
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
-                self.print_stats()
+                self._print_stats()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -406,7 +406,7 @@ class _Pln(ABC):
                 np.round(self._plotargs.criterions[-1], 8),
             )
 
-    def print_stats(self):
+    def _print_stats(self):
         """
         Print the training statistics.
         """
@@ -491,7 +491,7 @@ class _Pln(ABC):
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
         string = f"A multivariate Poisson Lognormal with {self._description} \n"
         string += f"{delimiter}\n"
-        string += _nice_string_of_dict(self.dict_for_printing)
+        string += _nice_string_of_dict(self._dict_for_printing)
         string += f"{delimiter}\n"
         string += "* Useful properties\n"
         string += f"    {self._useful_properties_string}\n"
@@ -762,7 +762,7 @@ class _Pln(ABC):
         path_of_directory : str, optional
             The path of the directory to save the parameters, by default "./".
         """
-        path = f"{path_of_directory}/{self.path_to_directory}{self.directory_name}"
+        path = f"{path_of_directory}/{self._path_to_directory}{self._directory_name}"
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
@@ -901,7 +901,7 @@ class _Pln(ABC):
         self._coef = coef
 
     @property
-    def dict_for_printing(self):
+    def _dict_for_printing(self):
         """
         Property representing the dictionary for printing.
 
@@ -1007,7 +1007,7 @@ class _Pln(ABC):
         return covariates @ self.coef
 
     @property
-    def directory_name(self):
+    def _directory_name(self):
         """
         Property representing the directory name.
 
@@ -1019,7 +1019,7 @@ class _Pln(ABC):
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
 
     @property
-    def path_to_directory(self):
+    def _path_to_directory(self):
         """
         Property representing the path to the directory.
 
@@ -1641,12 +1641,10 @@ class PlnPCAcollection:
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
-                self.init_next_model_with_previous_parameters(next_model, model)
+                self._init_next_model_with_current_model(next_model, model)
         self._print_ending_message()
 
-    def init_next_model_with_previous_parameters(
-        self, next_model: Any, current_model: Any
-    ):
+    def _init_next_model_with_current_model(self, next_model: Any, current_model: Any):
         """
         Initialize the next model with the parameters of the current model.
 
@@ -1922,7 +1920,7 @@ class PlnPCAcollection:
                 model.save(path_of_directory)
 
     @property
-    def directory_name(self) -> str:
+    def _directory_name(self) -> str:
         """
         Property representing the directory name.
 
@@ -2152,7 +2150,7 @@ class PlnPCA(_Pln):
         self._latent_var = latent_var
 
     @property
-    def directory_name(self) -> str:
+    def _directory_name(self) -> str:
         """
         Property representing the directory name.
 
@@ -2192,7 +2190,7 @@ class PlnPCA(_Pln):
         self._smart_init_coef()
 
     @property
-    def path_to_directory(self) -> str:
+    def _path_to_directory(self) -> str:
         """
         Property representing the path to the directory.
 
