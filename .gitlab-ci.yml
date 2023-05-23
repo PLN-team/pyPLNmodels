@@ -15,13 +15,14 @@ black:
 tests:
   stage: checks
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  before_script:
+    pip install '.[tests]'
   script:
-    - pip install -r requirements.txt
+    - pip install .
     - cd tests
-    - pip install -r requirements.txt
     - pytest
-  only:
-    - tags
+  # only:
+    # - tags
 
 build_package:
   stage: build
@@ -58,6 +59,7 @@ pages:
     - pip install '.[build-doc]'
   script:
     - pip install .
+    - pip list
     - make -C docs html
     - rm -rf public/
     - cp -r docs/build/html public

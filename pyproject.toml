@@ -50,7 +50,7 @@ dependencies = [
 "scipy",
 "seaborn",
 "torch",
-"sklearn",
+"scikit-learn",
 ]
 [project.optional-dependencies]
 tests = ["pytest","pytest_lazy_fixture"]
