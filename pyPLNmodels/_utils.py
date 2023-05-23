@@ -29,17 +29,17 @@ class _PlotArgs:
         Parameters
         ----------
         window : int
-            The size of the window for running statistics.
+            The size of the window for computing the criterion.
         """
         self.window = window
         self.running_times = []
-        self.criterions = [1] * window
+        self.criterions = [1] * window  # the first window criterion won't be computed.
         self._elbos_list = []
 
     @property
     def iteration_number(self) -> int:
         """
-        Get the number of iterations.
+        Numer of iterations done when fitting the model.
 
         Returns
         -------
@@ -48,16 +48,14 @@ class _PlotArgs:
         """
         return len(self._elbos_list)
 
-    def _show_loss(self, ax=None, name_doss=""):
+    def _show_loss(self, ax=None):
         """
-        Show the loss plot.
+        Show the loss of the model (i.e. the negative ELBO).
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            The axes object to plot on. If not provided, the current axes will be used.
-        name_doss : str, optional
-            The name of the loss. Default is an empty string.
+            The axes object to plot on. If not provided, will be created.
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(self.running_times, -np.array(self._elbos_list), label="Negative ELBO")
@@ -70,12 +68,13 @@ class _PlotArgs:
 
     def _show_stopping_criterion(self, ax=None):
         """
-        Show the stopping criterion plot.
+        Show the stopping criterion plot. The gradient ascent
+        stops according to this critertion.
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            The axes object to plot on. If not provided, the current axes will be used.
+            The axes object to plot on. If not provided, will be created.
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(
@@ -94,9 +93,9 @@ def _init_covariance(
     counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor
 ) -> torch.Tensor:
     """
-    Initialization for covariance for the Pln model. Take the log of counts
-    (careful when counts=0), remove the covariates effects X@coef and
-    then do as a MLE for Gaussians samples.
+    Initialization for the covariance for the Pln model. Take the log of counts
+    (careful when counts=0), and computes the Maximum Likelihood
+    Estimator in the gaussian case.
 
     Parameters
     ----------
@@ -162,7 +161,8 @@ def _init_latent_mean(
     eps=7e-3,
 ) -> torch.Tensor:
     """
-    Initialization for the variational parameter M. Basically, the mode of the log_posterior is computed.
+    Initialization for the variational parameter latent_mean.
+    Basically, the mode of the log_posterior is computed.
 
     Parameters
     ----------
@@ -181,8 +181,8 @@ def _init_latent_mean(
     lr : float, optional
         The learning rate of the optimizer. Default is 0.01.
     eps : float, optional
-        The tolerance. The algorithm will stop if the maximum of |W_t-W_{t-1}| is lower than eps,
-        where W_t is the t-th iteration of the algorithm. Default is 7e-3.
+        The tolerance. The algorithm will stop as soon as the criterion is lower than the tolerance.
+        Default is 7e-3.
 
     Returns
     -------
@@ -211,19 +211,6 @@ def _init_latent_mean(
 
 
 def _sigmoid(tens: torch.Tensor) -> torch.Tensor:
-    """
-    Compute the sigmoid function of x element-wise.
-
-    Parameters
-    ----------
-    tens : torch.Tensor
-        Input tensor
-
-    Returns
-    -------
-    torch.Tensor
-        Output tensor with sigmoid applied element-wise
-    """
     return 1 / (1 + torch.exp(-tens))
 
 
@@ -288,8 +275,7 @@ def sample_pln(
 
 def _components_from_covariance(covariance: torch.Tensor, rank: int) -> torch.Tensor:
     """
-    Get the best matrix of size (p, rank) when covariance is of size (p, p),
-    i.e., reduce norm(covariance - components @ components.T).
+    Get the PCA with rank components of covariance.
 
     Parameters
     ----------
@@ -315,7 +301,7 @@ def _init_coef(
     counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> torch.Tensor:
     """
-    Initialize the coefficient for the Poisson regression model.
+    Initialize the coefficient for the Pln model using Poisson regression model.
 
     Parameters
     ----------
@@ -341,8 +327,7 @@ def _init_coef(
 
 def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
     """
-    Compute log(n!) even for large n using the Stirling formula to avoid numerical
-    infinite values of n!.
+    Compute log(n!) using the Stirling formula.
 
     Parameters
     ----------
@@ -389,7 +374,7 @@ def log_posterior(
     Returns
     -------
     torch.Tensor
-        Log posterior of size (N_samples, batch_size) or (batch_size).
+        Log posterior of size n_samples.
     """
     length = len(posterior_mean.shape)
     rank = posterior_mean.shape[-1]
@@ -414,21 +399,6 @@ def log_posterior(
 
 
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
-    """
-    Compute the truncated logarithm of the input tensor.
-
-    Parameters
-    ----------
-    tens : torch.Tensor
-        Input tensor
-    eps : float, optional
-        Truncation value, default is 1e-16
-
-    Returns
-    -------
-    torch.Tensor
-        Truncated logarithm of the input tensor.
-    """
     integer = torch.min(torch.max(tens, torch.tensor([eps])), torch.tensor([1 - eps]))
     return torch.log(integer)
 
