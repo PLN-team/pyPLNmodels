@@ -13,8 +13,8 @@ Welcome to pyPLNmodels's documentation!
    ./module.rst
 
 
-Indices and tables working once again
-=====================================
+Indices and tables
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
