@@ -52,6 +52,10 @@ dependencies = [
 "torch",
 "sklearn",
 ]
+[project.optional-dependencies]
+tests = ["pytest","pytest_lazy_fixture"]
+build-doc = ["sphinx","sphinx_rtd_theme"]
+
 [project.urls]
 Repository = "https://github.com/PLN-team/pyPLNmodels"
 Documentation = "https://bbatardiere.pages.mia.inra.fr/pyplnmodels"

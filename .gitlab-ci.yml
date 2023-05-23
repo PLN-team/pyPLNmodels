@@ -1,7 +1,7 @@
 
 stages:
   - checks
-  - build_package
+  - build
   - publish
 
 black:
@@ -20,9 +20,11 @@ tests:
     - cd tests
     - pip install -r requirements.txt
     - pytest
+  only:
+    - tags
 
 build_package:
-  stage: build_package
+  stage: build
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
   before_script:
     - pip install build
@@ -47,11 +49,15 @@ publish_package:
   only:
     - tags
 
+
+
 pages:
   stage: publish
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  before_script:
+    - pip install '.[build-doc]'
   script:
-    - pip install -r requirements.txt
+    - pip install .
     - make -C docs html
     - rm -rf public/
     - cp -r docs/build/html public
@@ -60,5 +66,5 @@ pages:
       - public
   tags:
     - docker
-  only:
-    - tags
+  # only:
+    # - tags
