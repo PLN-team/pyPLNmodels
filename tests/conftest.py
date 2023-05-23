@@ -83,10 +83,10 @@ def convenientpln(*args, **kwargs):
 
 
 def generate_new_model(model, *args, **kwargs):
-    name_dir = model.directory_name
+    name_dir = model._directory_name
     name = model._NAME
     if name in ("Pln", "PlnPCA"):
-        path = model.path_to_directory + name_dir
+        path = model._path_to_directory + name_dir
         init = load_model(path)
         if name == "Pln":
             new = convenientpln(*args, **kwargs, dict_initialization=init)
