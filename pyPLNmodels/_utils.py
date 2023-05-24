@@ -9,7 +9,7 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Tuple, List
 import pkg_resources
 
 
@@ -234,7 +234,7 @@ def sample_pln(
     offsets: torch.Tensor,
     _coef_inflation: torch.Tensor = None,
     seed: int = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Sample from the Poisson Log-Normal (Pln) model.
 
@@ -255,7 +255,7 @@ def sample_pln(
 
     Returns
     -------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts (torch.Tensor), gaussian (torch.Tensor), and ksi (torch.Tensor)
     """
     prev_state = torch.random.get_rng_state()
@@ -270,7 +270,7 @@ def sample_pln(
     else:
         XB = torch.matmul(covariates, coef)
 
-    gaussian = torch.mm(torch.randn(n_samples, rank, device=DEVICE), components.T) + XB
+    gaussian = torch.mm(torch.randn(n_samples, rank, device="cpu"), components.T) + XB
     parameter = torch.exp(offsets + gaussian)
 
     if _coef_inflation is not None:
@@ -588,7 +588,7 @@ def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
     if isinstance(data, np.ndarray):
         return torch.from_numpy(data).double().to(DEVICE)
     if isinstance(data, torch.Tensor):
-        return data
+        return data.to(DEVICE)
     raise AttributeError(
         "Please insert either a numpy.ndarray, pandas.DataFrame or torch.Tensor"
     )
@@ -600,7 +600,7 @@ def _format_model_param(
     offsets: torch.Tensor,
     offsets_formula: str,
     take_log_offsets: bool,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Format the model parameters.
 
@@ -768,12 +768,12 @@ def _get_components_simulation(dim: int, rank: int) -> torch.Tensor:
         ] = 1
     components += torch.randn(dim, rank) / 8
     torch.random.set_rng_state(prev_state)
-    return components.to(DEVICE)
+    return components.to("cpu")
 
 
 def get_simulation_offsets_cov_coef(
     n_samples: int, nb_cov: int, dim: int
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulation offsets, covariance coefficients.
 
@@ -788,7 +788,7 @@ def get_simulation_offsets_cov_coef(
 
     Returns:
     --------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing offsets, covariates, and coefficients.
     """
     prev_state = torch.random.get_rng_state()
@@ -801,11 +801,11 @@ def get_simulation_offsets_cov_coef(
             high=2,
             size=(n_samples, nb_cov),
             dtype=torch.float64,
-            device=DEVICE,
+            device="cpu",
         )
-    coef = torch.randn(nb_cov, dim, device=DEVICE)
+    coef = torch.randn(nb_cov, dim, device="cpu")
     offsets = torch.randint(
-        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device=DEVICE
+        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
     torch.random.set_rng_state(prev_state)
     return offsets, covariates, coef
@@ -818,7 +818,7 @@ def get_simulated_count_data(
     nb_cov: int = 1,
     return_true_param: bool = False,
     seed: int = 0,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data.
 
@@ -839,7 +839,7 @@ def get_simulated_count_data(
 
     Returns:
     --------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
     components = _get_components_simulation(dim, rank)
@@ -886,13 +886,13 @@ def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
     return counts
 
 
-def _closest(lst: list[float], element: float) -> float:
+def _closest(lst: List[float], element: float) -> float:
     """
     Find the closest element in a list to a given element.
 
     Parameters:
     -----------
-    lst : list[float]
+    lst : List[float]
         List of float values.
     element : float
         Element to find the closest value to.
@@ -958,7 +958,7 @@ def load_pln(path_of_directory: str) -> Dict[str, Any]:
 
 
 def load_plnpcacollection(
-    path_of_directory: str, ranks: Optional[list[int]] = None
+    path_of_directory: str, ranks: Optional[List[int]] = None
 ) -> Dict[int, Dict[str, Any]]:
     """
     Load PlnPCAcollection models from the given directory.
@@ -967,8 +967,8 @@ def load_plnpcacollection(
     ----------
     path_of_directory : str
         The path to the directory containing the PlnPCAcollection models.
-    ranks : list[int], optional
-        A list of ranks specifying which models to load. If None, all models in the directory will be loaded.
+    ranks : List[int], optional
+        A List of ranks specifying which models to load. If None, all models in the directory will be loaded.
 
     Returns
     -------
@@ -1025,7 +1025,7 @@ def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
         )
 
 
-def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> tuple:
+def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> Tuple:
     """
     Extract data from the given formula and data dictionary.
 
@@ -1038,7 +1038,7 @@ def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> tuple:
 
     Returns
     -------
-    tuple
+    Tuple
         A tuple containing the extracted counts, covariates, and offsets.
 
     """
@@ -1066,7 +1066,7 @@ def _is_dict_of_dict(dictionary: Dict[Any, Any]) -> bool:
         True if the dictionary is a dictionary of dictionaries, False otherwise.
 
     """
-    return isinstance(dictionary[list(dictionary.keys())[0]], dict)
+    return isinstance(dictionary[List(dictionary.keys())[0]], dict)
 
 
 def _get_dict_initialization(
@@ -1116,11 +1116,11 @@ def _to_tensor(
     if obj is None:
         return None
     if isinstance(obj, np.ndarray):
-        return torch.from_numpy(obj)
+        return torch.from_numpy(obj).to(DEVICE)
     if isinstance(obj, torch.Tensor):
-        return obj
+        return obj.to(DEVICE)
     if isinstance(obj, pd.DataFrame):
-        return torch.from_numpy(obj.values)
+        return torch.from_numpy(obj.values).to(DEVICE)
     raise TypeError(
         "Please give either an np.ndarray or torch.Tensor or pd.DataFrame or None"
     )
