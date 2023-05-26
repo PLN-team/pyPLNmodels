@@ -557,14 +557,15 @@ def _init_S(
         Initialized S matrix.
     """
     n, rank = M.shape
-    batch_matrix = torch.matmul(C[:, None, :], C[:, :, None])[None]
-    CW = torch.matmul(C[None], M[:, None, :]).squeeze()
-    common = torch.exp(offsets + covariates @ beta + CW)[:, None, None]
+    batch_matrix = torch.matmul(C.unsqueeze(2), C.unsqueeze(1)).unsqueeze(0)
+    CW = torch.matmul(C.unsqueeze(0), M.unsqueeze(2)).squeeze()
+    common = torch.exp(offsets + covariates @ beta + CW).unsqueeze(2).unsqueeze(3)
     prod = batch_matrix * common
     hess_posterior = torch.sum(prod, dim=1) + torch.eye(rank, device=DEVICE)
     inv_hess_posterior = -torch.inverse(hess_posterior)
     hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
-    return hess_posterior
+    # print('hess_pos:', hess_posterior)
+    return torch.sqrt(-hess_posterior)
 
 
 def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
@@ -1233,3 +1234,7 @@ def array2tensor(func):
         func(self, array_like)
 
     return setter
+
+
+def MSE(t):
+    return torch.mean(t**2)

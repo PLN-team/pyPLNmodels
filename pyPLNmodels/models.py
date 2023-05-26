@@ -33,6 +33,8 @@ from ._utils import (
     _extract_data_from_formula,
     _get_dict_initialization,
     array2tensor,
+    MSE,
+    _init_S,
 )
 
 if torch.cuda.is_available():
@@ -328,6 +330,11 @@ class _Pln(ABC):
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
+            try:
+                self.mse_sigma_list.append(MSE(self.true_Sigma - self.covariance))
+                self.mse_beta_list.append(MSE(self.true_beta - self.coef))
+            except:
+                pass
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -1267,6 +1274,8 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        true_beta=None,
+        true_Sigma=None,
     ):
         """
         Constructor for PlnPCAcollection.
@@ -1289,6 +1298,10 @@ class PlnPCAcollection:
             Whether to take the logarithm of offsets, by default False.
         """
         self._dict_models = {}
+        self.mse_sigma_list = list()
+        self.mse_beta_list = list()
+        self.true_beta = true_beta
+        self.true_Sigma = true_Sigma
         self._init_data(counts, covariates, offsets, offsets_formula, take_log_offsets)
         self._init_models(ranks, dict_of_dict_initialization)
 
@@ -1531,6 +1544,8 @@ class PlnPCAcollection:
                         offsets=self._offsets,
                         rank=rank,
                         dict_initialization=dict_initialization,
+                        true_Sigma=self.true_Sigma,
+                        true_beta=self.true_beta,
                     )
                 else:
                     raise TypeError(
@@ -2015,6 +2030,9 @@ class PlnPCA(_Pln):
         offsets_formula: str = "logsum",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        true_beta=None,
+        true_Sigma=None,
+        take_s=False,
     ):
         """
         Initialize the PlnPCA object.
@@ -2035,8 +2053,13 @@ class PlnPCA(_Pln):
             The dictionary for initialization, by default None.
         """
         self._rank = rank
+        self.true_Sigma = true_Sigma
+        self.true_beta = true_beta
+        self.mse_beta_list = list()
+        self.mse_sigma_list = list()
+        self.take_s = take_s
         self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, None, take_log_offsets=False
+            counts, covariates, offsets, offsets_formula, take_log_offsets=False
         )
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._check_if_rank_is_too_high()
@@ -2287,9 +2310,19 @@ class PlnPCA(_Pln):
                 .detach()
             )
         if not hasattr(self, "_latent_var"):
-            self._latent_var = (
-                1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-            )
+            if self.take_s is True:
+                self._latent_var = _init_S(
+                    self.counts,
+                    self.covariates,
+                    self.offsets,
+                    self.coef,
+                    self.components,
+                    self.latent_mean,
+                )
+            else:
+                self._latent_var = (
+                    1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+                )
 
     @property
     def _list_of_parameters_needing_gradient(self):
