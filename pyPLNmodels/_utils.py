@@ -495,51 +495,10 @@ def _check_two_dimensions_are_equal(
         )
 
 
-def _init_S(
-    counts: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
-    beta: torch.Tensor,
-    C: torch.Tensor,
-    M: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Initialize the S matrix.
-
-    Parameters
-    ----------
-    counts : torch.Tensor, shape (n, )
-        Count data.
-    covariates : torch.Tensor or None, shape (n, d) or None
-        Covariate data.
-    offsets : torch.Tensor or None, shape (n, ) or None
-        Offset data.
-    beta : torch.Tensor, shape (d, )
-        Beta parameter.
-    C : torch.Tensor, shape (r, d)
-        C parameter.
-    M : torch.Tensor, shape (r, k)
-        M parameter.
-
-    Returns
-    -------
-    torch.Tensor, shape (r, r)
-        Initialized S matrix.
-    """
-    n, rank = M.shape
-    batch_matrix = torch.matmul(C[:, None, :], C[:, :, None])[None]
-    CW = torch.matmul(C[None], M[:, None, :]).squeeze()
-    common = torch.exp(offsets + covariates @ beta + CW)[:, None, None]
-    prod = batch_matrix * common
-    hess_posterior = torch.sum(prod, dim=1) + torch.eye(rank, device=DEVICE)
-    inv_hess_posterior = -torch.inverse(hess_posterior)
-    hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
-    return hess_posterior
-
-
 def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
     """
-    Format the input data.
+    Transforms the data in a torch.tensor if the input is an array, and None if the input is None.
+    Raises an error if the input is not an array or None.
 
     Parameters
     ----------
@@ -550,6 +509,11 @@ def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
     -------
     torch.Tensor or None
         Formatted data.
+
+    Raises
+    ------
+    AttributeError
+        If the value is not an array or None.
     """
     if data is None:
         return None
@@ -572,7 +536,7 @@ def _format_model_param(
     take_log_offsets: bool,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Format the model parameters.
+    Format each of the model parameters to an array or None if None.
 
     Parameters
     ----------
@@ -595,13 +559,11 @@ def _format_model_param(
     ------
     ValueError
         If counts has negative values.
-
     """
     counts = _format_data(counts)
     if torch.min(counts) < 0:
-        raise ValueError("Counts should be only non negavtive values.")
-    if covariates is not None:
-        covariates = _format_data(covariates)
+        raise ValueError("Counts should be only non negative values.")
+    covariates = _format_data(covariates)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of counts")
@@ -621,7 +583,7 @@ def _check_data_shape(
     counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> None:
     """
-    Check the shape of the input data.
+    Check if the shape of the input data is valid.
 
     Parameters
     ----------
@@ -631,11 +593,6 @@ def _check_data_shape(
         Covariate data.
     offsets : torch.Tensor or None, shape (n, p) or None
         Offset data.
-
-    Raises
-    ------
-    ValueError
-        If the dimensions of the input data do not match.
     """
     n_counts, p_counts = counts.shape
     n_offsets, p_offsets = offsets.shape
@@ -670,23 +627,18 @@ def _nice_string_of_dict(dictionnary: dict) -> str:
 
 def _plot_ellipse(mean_x: float, mean_y: float, cov: np.ndarray, ax) -> float:
     """
-    Plot an ellipse on the given axes.
+    Plot an ellipse given two coordinates and the covariance.
 
     Parameters:
     -----------
     mean_x : float
-        Mean value of x-coordinate.
+        x-coordinate of the mean.
     mean_y : float
-        Mean value of y-coordinate.
+        y-coordinate of the mean.
     cov : np.ndarray
-        Covariance matrix.
+        Covariance matrix of the 2d vector.
     ax : object
         Axes object to plot the ellipse on.
-
-    Returns:
-    --------
-    float
-        Pearson correlation coefficient.
     """
     pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
     ell_radius_x = np.sqrt(1 + pearson)
@@ -709,24 +661,24 @@ def _plot_ellipse(mean_x: float, mean_y: float, cov: np.ndarray, ax) -> float:
     )
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
-    return pearson
 
 
 def _get_components_simulation(dim: int, rank: int) -> torch.Tensor:
     """
-    Get the components for simulation.
+    Get the components for simulation. The resulting covariance matrix
+    will be a matrix per blocks plus a little noise.
 
     Parameters:
     -----------
     dim : int
-        Dimension.
+        Dimension of the data.
     rank : int
-        Rank.
+        Rank of the resulting covariance matrix (i.e. number of components).
 
     Returns:
     --------
     torch.Tensor
-        Components for simulation.
+        Components.
     """
     block_size = dim // rank
     prev_state = torch.random.get_rng_state()
@@ -745,16 +697,16 @@ def get_simulation_offsets_cov_coef(
     n_samples: int, nb_cov: int, dim: int
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Get simulation offsets, covariance coefficients.
+    Get offsets, covariance coefficients with right shapes.
 
     Parameters:
     -----------
     n_samples : int
         Number of samples.
     nb_cov : int
-        Number of covariates.
+        Number of covariates. If 0, covariates will be None.
     dim : int
-        Dimension.
+        Dimension required of the data.
 
     Returns:
     --------
@@ -790,7 +742,7 @@ def get_simulated_count_data(
     seed: int = 0,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Get simulated count data.
+    Get simulated count data from the Pln model.
 
     Parameters:
     -----------
@@ -799,11 +751,11 @@ def get_simulated_count_data(
     dim : int, optional
         Dimension, by default 25.
     rank : int, optional
-        Rank, by default 5.
+        Rank of the covariance matrix, by default 5.
     nb_cov : int, optional
         Number of covariates, by default 1.
     return_true_param : bool, optional
-        Whether to return true parameters, by default False.
+        Whether to return the true parameters of the model, by default False.
     seed : int, optional
         Seed value for random number generation, by default 0.
 
@@ -823,7 +775,7 @@ def get_simulated_count_data(
 
 def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
     """
-    Get real count data.
+    Get real count data from the scMARK dataset.
 
     Parameters:
     -----------
