@@ -21,10 +21,6 @@ from ._closed_forms import (
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
     _PlotArgs,
-    _init_covariance,
-    _init_components,
-    _init_coef,
-    _init_latent_mean,
     _format_data,
     _format_model_param,
     _nice_string_of_dict,
@@ -32,12 +28,19 @@ from ._utils import (
     _check_data_shape,
     _extract_data_from_formula,
     _get_dict_initialization,
-    array2tensor,
+    _array2tensor,
+)
+
+from ._initialization import (
+    _init_covariance,
+    _init_components,
+    _init_coef,
+    _init_latent_mean,
 )
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
-    print("Using a GPU")
+    print("Using a GPU.")
 else:
     DEVICE = "cpu"
 # shoudl add a good init for M. for pln we should not put
@@ -106,6 +109,7 @@ class _Pln(ABC):
     ):
         """
         Create a _Pln instance from a formula and data.
+        See also :func:`~pyPLNmodels.PlnPCAcollection.__init__`
 
         Parameters
         ----------
@@ -689,7 +693,7 @@ class _Pln(ABC):
         return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
-    @array2tensor
+    @_array2tensor
     def latent_mean(self, latent_mean):
         """
         Setter for the latent mean property.
@@ -711,7 +715,7 @@ class _Pln(ABC):
         self._latent_mean = latent_mean
 
     @latent_var.setter
-    @array2tensor
+    @_array2tensor
     def latent_var(self, latent_var):
         """
         Setter for the latent variance property.
@@ -812,7 +816,7 @@ class _Pln(ABC):
         return self._cpu_attribute_or_none("_covariates")
 
     @counts.setter
-    @array2tensor
+    @_array2tensor
     def counts(self, counts):
         """
         Setter for the counts property.
@@ -836,7 +840,7 @@ class _Pln(ABC):
         self._counts = counts
 
     @offsets.setter
-    @array2tensor
+    @_array2tensor
     def offsets(self, offsets):
         """
         Setter for the offsets property.
@@ -858,7 +862,7 @@ class _Pln(ABC):
         self._offsets = offsets
 
     @covariates.setter
-    @array2tensor
+    @_array2tensor
     def covariates(self, covariates):
         """
         Setter for the covariates property.
@@ -877,7 +881,7 @@ class _Pln(ABC):
         self._covariates = covariates
 
     @coef.setter
-    @array2tensor
+    @_array2tensor
     def coef(self, coef):
         """
         Setter for the coef property.
@@ -989,7 +993,7 @@ class _Pln(ABC):
         Notes
         -----
         - If `covariates` is not provided and there are no covariates in the model, None is returned.
-        - If `covariates` is provided, it should have the shape `(n_samples, nb_cov)`, where `n_samples` is the number of samples and `nb_cov` is the number of covariates.
+        - If `covariates` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of covariates.
         - The predicted values are obtained by multiplying the covariates by the coefficients.
 
         """
@@ -1439,7 +1443,7 @@ class PlnPCAcollection:
         return {model.rank: model.latent_var for model in self.values()}
 
     @counts.setter
-    @array2tensor
+    @_array2tensor
     def counts(self, counts: torch.Tensor):
         """
         Setter for the counts property.
@@ -1453,7 +1457,7 @@ class PlnPCAcollection:
             model.counts = counts
 
     @coef.setter
-    @array2tensor
+    @_array2tensor
     def coef(self, coef: torch.Tensor):
         """
         Setter for the coef property.
@@ -1467,7 +1471,7 @@ class PlnPCAcollection:
             model.coef = coef
 
     @covariates.setter
-    @array2tensor
+    @_array2tensor
     def covariates(self, covariates: torch.Tensor):
         """
         Setter for the covariates property.
@@ -1493,7 +1497,7 @@ class PlnPCAcollection:
         return self[self.ranks[0]].offsets
 
     @offsets.setter
-    @array2tensor
+    @_array2tensor
     def offsets(self, offsets: torch.Tensor):
         """
         Setter for the offsets property.
@@ -2116,7 +2120,7 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
-    @array2tensor
+    @_array2tensor
     def latent_mean(self, latent_mean: torch.Tensor):
         """
         Setter for the latent mean.
@@ -2133,7 +2137,7 @@ class PlnPCA(_Pln):
         self._latent_mean = latent_mean
 
     @latent_var.setter
-    @array2tensor
+    @_array2tensor
     def latent_var(self, latent_var: torch.Tensor):
         """
         Setter for the latent variance.
@@ -2174,7 +2178,7 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_covariates")
 
     @covariates.setter
-    @array2tensor
+    @_array2tensor
     def covariates(self, covariates: torch.Tensor):
         """
         Setter for the covariates.
@@ -2455,7 +2459,7 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_components")
 
     @components.setter
-    @array2tensor
+    @_array2tensor
     def components(self, components: torch.Tensor):
         """
         Setter for the components.
