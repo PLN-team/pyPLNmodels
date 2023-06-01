@@ -2,8 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from collections.abc import Iterable
-from typing import Optional, Dict, List, Type, Any
+from typing import Optional, Dict, List, Type, Any, Iterable
 
 import pandas as pd
 import torch
@@ -476,9 +475,11 @@ class _Pln(ABC):
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
             sigma = sigma[:400, :400]
-            sns.heatmap(self.covariance[:400, :400], ax=ax)
+            sns.heatmap(self.covariance[:400, :400].cpu(), ax=ax)
         else:
-            sns.heatmap(self.covariance, ax=ax)
+            sns.heatmap(self.covariance.cpu(), ax=ax)
+        ax.set_title("Covariance Matrix")
+        plt.legend()
         if savefig:
             plt.savefig(name_file + self._NAME)
         plt.show()  # to avoid displaying a blank screen
@@ -1242,7 +1243,7 @@ class Pln(_Pln):
                 "n_samples",
             ]
         ):
-            return self._covariance.detach()
+            return self._covariance.cpu().detach()
         return None
 
     @covariance.setter
@@ -2377,7 +2378,7 @@ class PlnPCA(_Pln):
             cov_latent = self._latent_mean.T @ self._latent_mean
             cov_latent += torch.diag(torch.sum(torch.square(self._latent_var), dim=0))
             cov_latent /= self.n_samples
-            return (self._components @ cov_latent @ self._components.T).detach()
+            return (self._components @ cov_latent @ self._components.T).cpu().detach()
         return None
 
     @property
