@@ -6,16 +6,31 @@
 Welcome to pyPLNmodels's documentation!
 =======================================
 
+API documentation
+=================
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents
+   :maxdepth: 1
+   :caption: Classes
 
-   ./module.rst
+   ./plnpcacollection.rst
+   ./plnpca.rst
+   ./pln.rst
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Load saved models
 
+   ./load.rst
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Sampling PLN data
+
+   ./sampling.rst
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. * :ref:`modindex`
+.. * :ref:`search`

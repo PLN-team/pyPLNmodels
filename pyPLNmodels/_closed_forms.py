@@ -11,7 +11,7 @@ def _closed_formula_covariance(
     n_samples: int,
 ) -> torch.Tensor:
     """
-    Compute the closed-form covariance for the M step of the noPCA model.
+    Compute the closed-form covariance for the M step of the Pln model.
 
     Parameters:
     ----------
@@ -46,7 +46,7 @@ def _closed_formula_coef(
     covariates: torch.Tensor, latent_mean: torch.Tensor
 ) -> Optional[torch.Tensor]:
     """
-    Compute the closed-form coef for the M step of the noPCA model.
+    Compute the closed-form coef for the M step of the Pln model.
 
     Parameters:
     ----------

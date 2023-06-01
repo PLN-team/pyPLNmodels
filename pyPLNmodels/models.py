@@ -2,8 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from collections.abc import Iterable
-from typing import Optional, Dict, List, Type, Any
+from typing import Optional, Dict, List, Type, Any, Iterable
 
 import pandas as pd
 import torch
@@ -21,10 +20,6 @@ from ._closed_forms import (
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
     _PlotArgs,
-    _init_covariance,
-    _init_components,
-    _init_coef,
-    _init_latent_mean,
     _format_data,
     _format_model_param,
     _nice_string_of_dict,
@@ -32,12 +27,19 @@ from ._utils import (
     _check_data_shape,
     _extract_data_from_formula,
     _get_dict_initialization,
-    array2tensor,
+    _array2tensor,
+)
+
+from ._initialization import (
+    _init_covariance,
+    _init_components,
+    _init_coef,
+    _init_latent_mean,
 )
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
-    print("Using a GPU")
+    print("Using a GPU.")
 else:
     DEVICE = "cpu"
 # shoudl add a good init for M. for pln we should not put
@@ -106,6 +108,7 @@ class _Pln(ABC):
     ):
         """
         Create a _Pln instance from a formula and data.
+        See also :func:`~pyPLNmodels.PlnPCAcollection.__init__`
 
         Parameters
         ----------
@@ -327,7 +330,7 @@ class _Pln(ABC):
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
-                self.print_stats()
+                self._print_stats()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -406,7 +409,7 @@ class _Pln(ABC):
                 np.round(self._plotargs.criterions[-1], 8),
             )
 
-    def print_stats(self):
+    def _print_stats(self):
         """
         Print the training statistics.
         """
@@ -472,9 +475,11 @@ class _Pln(ABC):
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
             sigma = sigma[:400, :400]
-            sns.heatmap(self.covariance[:400, :400], ax=ax)
+            sns.heatmap(self.covariance[:400, :400].cpu(), ax=ax)
         else:
-            sns.heatmap(self.covariance, ax=ax)
+            sns.heatmap(self.covariance.cpu(), ax=ax)
+        ax.set_title("Covariance Matrix")
+        plt.legend()
         if savefig:
             plt.savefig(name_file + self._NAME)
         plt.show()  # to avoid displaying a blank screen
@@ -491,7 +496,7 @@ class _Pln(ABC):
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
         string = f"A multivariate Poisson Lognormal with {self._description} \n"
         string += f"{delimiter}\n"
-        string += _nice_string_of_dict(self.dict_for_printing)
+        string += _nice_string_of_dict(self._dict_for_printing)
         string += f"{delimiter}\n"
         string += "* Useful properties\n"
         string += f"    {self._useful_properties_string}\n"
@@ -689,7 +694,7 @@ class _Pln(ABC):
         return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
-    @array2tensor
+    @_array2tensor
     def latent_mean(self, latent_mean):
         """
         Setter for the latent mean property.
@@ -711,7 +716,7 @@ class _Pln(ABC):
         self._latent_mean = latent_mean
 
     @latent_var.setter
-    @array2tensor
+    @_array2tensor
     def latent_var(self, latent_var):
         """
         Setter for the latent variance property.
@@ -762,7 +767,7 @@ class _Pln(ABC):
         path_of_directory : str, optional
             The path of the directory to save the parameters, by default "./".
         """
-        path = f"{path_of_directory}/{self.path_to_directory}{self.directory_name}"
+        path = f"{path_of_directory}/{self._path_to_directory}{self._directory_name}"
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
@@ -812,7 +817,7 @@ class _Pln(ABC):
         return self._cpu_attribute_or_none("_covariates")
 
     @counts.setter
-    @array2tensor
+    @_array2tensor
     def counts(self, counts):
         """
         Setter for the counts property.
@@ -836,7 +841,7 @@ class _Pln(ABC):
         self._counts = counts
 
     @offsets.setter
-    @array2tensor
+    @_array2tensor
     def offsets(self, offsets):
         """
         Setter for the offsets property.
@@ -858,7 +863,7 @@ class _Pln(ABC):
         self._offsets = offsets
 
     @covariates.setter
-    @array2tensor
+    @_array2tensor
     def covariates(self, covariates):
         """
         Setter for the covariates property.
@@ -877,7 +882,7 @@ class _Pln(ABC):
         self._covariates = covariates
 
     @coef.setter
-    @array2tensor
+    @_array2tensor
     def coef(self, coef):
         """
         Setter for the coef property.
@@ -901,7 +906,7 @@ class _Pln(ABC):
         self._coef = coef
 
     @property
-    def dict_for_printing(self):
+    def _dict_for_printing(self):
         """
         Property representing the dictionary for printing.
 
@@ -989,7 +994,7 @@ class _Pln(ABC):
         Notes
         -----
         - If `covariates` is not provided and there are no covariates in the model, None is returned.
-        - If `covariates` is provided, it should have the shape `(n_samples, nb_cov)`, where `n_samples` is the number of samples and `nb_cov` is the number of covariates.
+        - If `covariates` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of covariates.
         - The predicted values are obtained by multiplying the covariates by the coefficients.
 
         """
@@ -1007,7 +1012,7 @@ class _Pln(ABC):
         return covariates @ self.coef
 
     @property
-    def directory_name(self):
+    def _directory_name(self):
         """
         Property representing the directory name.
 
@@ -1019,7 +1024,7 @@ class _Pln(ABC):
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
 
     @property
-    def path_to_directory(self):
+    def _path_to_directory(self):
         """
         Property representing the path to the directory.
 
@@ -1238,7 +1243,7 @@ class Pln(_Pln):
                 "n_samples",
             ]
         ):
-            return self._covariance.detach()
+            return self._covariance.cpu().detach()
         return None
 
     @covariance.setter
@@ -1439,7 +1444,7 @@ class PlnPCAcollection:
         return {model.rank: model.latent_var for model in self.values()}
 
     @counts.setter
-    @array2tensor
+    @_array2tensor
     def counts(self, counts: torch.Tensor):
         """
         Setter for the counts property.
@@ -1453,7 +1458,7 @@ class PlnPCAcollection:
             model.counts = counts
 
     @coef.setter
-    @array2tensor
+    @_array2tensor
     def coef(self, coef: torch.Tensor):
         """
         Setter for the coef property.
@@ -1467,7 +1472,7 @@ class PlnPCAcollection:
             model.coef = coef
 
     @covariates.setter
-    @array2tensor
+    @_array2tensor
     def covariates(self, covariates: torch.Tensor):
         """
         Setter for the covariates property.
@@ -1493,7 +1498,7 @@ class PlnPCAcollection:
         return self[self.ranks[0]].offsets
 
     @offsets.setter
-    @array2tensor
+    @_array2tensor
     def offsets(self, offsets: torch.Tensor):
         """
         Setter for the offsets property.
@@ -1641,12 +1646,10 @@ class PlnPCAcollection:
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
-                self.init_next_model_with_previous_parameters(next_model, model)
+                self._init_next_model_with_current_model(next_model, model)
         self._print_ending_message()
 
-    def init_next_model_with_previous_parameters(
-        self, next_model: Any, current_model: Any
-    ):
+    def _init_next_model_with_current_model(self, next_model: Any, current_model: Any):
         """
         Initialize the next model with the parameters of the current model.
 
@@ -1922,7 +1925,7 @@ class PlnPCAcollection:
                 model.save(path_of_directory)
 
     @property
-    def directory_name(self) -> str:
+    def _directory_name(self) -> str:
         """
         Property representing the directory name.
 
@@ -2118,7 +2121,7 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_latent_var")
 
     @latent_mean.setter
-    @array2tensor
+    @_array2tensor
     def latent_mean(self, latent_mean: torch.Tensor):
         """
         Setter for the latent mean.
@@ -2135,7 +2138,7 @@ class PlnPCA(_Pln):
         self._latent_mean = latent_mean
 
     @latent_var.setter
-    @array2tensor
+    @_array2tensor
     def latent_var(self, latent_var: torch.Tensor):
         """
         Setter for the latent variance.
@@ -2152,7 +2155,7 @@ class PlnPCA(_Pln):
         self._latent_var = latent_var
 
     @property
-    def directory_name(self) -> str:
+    def _directory_name(self) -> str:
         """
         Property representing the directory name.
 
@@ -2176,7 +2179,7 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_covariates")
 
     @covariates.setter
-    @array2tensor
+    @_array2tensor
     def covariates(self, covariates: torch.Tensor):
         """
         Setter for the covariates.
@@ -2192,7 +2195,7 @@ class PlnPCA(_Pln):
         self._smart_init_coef()
 
     @property
-    def path_to_directory(self) -> str:
+    def _path_to_directory(self) -> str:
         """
         Property representing the path to the directory.
 
@@ -2375,7 +2378,7 @@ class PlnPCA(_Pln):
             cov_latent = self._latent_mean.T @ self._latent_mean
             cov_latent += torch.diag(torch.sum(torch.square(self._latent_var), dim=0))
             cov_latent /= self.n_samples
-            return (self._components @ cov_latent @ self._components.T).detach()
+            return (self._components @ cov_latent @ self._components.T).cpu().detach()
         return None
 
     @property
@@ -2457,7 +2460,7 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_components")
 
     @components.setter
-    @array2tensor
+    @_array2tensor
     def components(self, components: torch.Tensor):
         """
         Setter for the components.

@@ -9,7 +9,7 @@ from tests.utils import MSE, filter_models
 from tests.import_data import true_sim_0cov, true_sim_2cov
 
 
-@pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
+@pytest.mark.parametrize("any_pln", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["Pln", "PlnPCA"])
 def test_properties(any_pln):
     assert hasattr(any_pln, "latent_parameters")

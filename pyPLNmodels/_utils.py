@@ -9,7 +9,7 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Tuple, List
 import pkg_resources
 
 
@@ -29,17 +29,17 @@ class _PlotArgs:
         Parameters
         ----------
         window : int
-            The size of the window for running statistics.
+            The size of the window for computing the criterion.
         """
         self.window = window
         self.running_times = []
-        self.criterions = [1] * window
+        self.criterions = [1] * window  # the first window criterion won't be computed.
         self._elbos_list = []
 
     @property
     def iteration_number(self) -> int:
         """
-        Get the number of iterations.
+        Numer of iterations done when fitting the model.
 
         Returns
         -------
@@ -48,16 +48,14 @@ class _PlotArgs:
         """
         return len(self._elbos_list)
 
-    def _show_loss(self, ax=None, name_doss=""):
+    def _show_loss(self, ax=None):
         """
-        Show the loss plot.
+        Show the loss of the model (i.e. the negative ELBO).
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            The axes object to plot on. If not provided, the current axes will be used.
-        name_doss : str, optional
-            The name of the loss. Default is an empty string.
+            The axes object to plot on. If not provided, will be created.
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(self.running_times, -np.array(self._elbos_list), label="Negative ELBO")
@@ -70,12 +68,13 @@ class _PlotArgs:
 
     def _show_stopping_criterion(self, ax=None):
         """
-        Show the stopping criterion plot.
+        Show the stopping criterion plot. The gradient ascent
+        stops according to this critertion.
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            The axes object to plot on. If not provided, the current axes will be used.
+            The axes object to plot on. If not provided, will be created.
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(
@@ -90,192 +89,52 @@ class _PlotArgs:
         ax.legend()
 
 
-def _init_covariance(
-    counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor
-) -> torch.Tensor:
-    """
-    Initialization for covariance for the Pln model. Take the log of counts
-    (careful when counts=0), remove the covariates effects X@coef and
-    then do as a MLE for Gaussians samples.
-
-    Parameters
-    ----------
-    counts : torch.Tensor
-        Samples with size (n,p)
-    offsets : torch.Tensor
-        Offset, size (n,p)
-    covariates : torch.Tensor
-        Covariates, size (n,d)
-    coef : torch.Tensor
-        Coefficient of size (d,p)
-
-    Returns
-    -------
-    torch.Tensor
-        Covariance matrix of size (p,p)
-    """
-    log_y = torch.log(counts + (counts == 0) * math.exp(-2))
-    log_y_centered = log_y - torch.mean(log_y, axis=0)
-    n_samples = counts.shape[0]
-    sigma_hat = 1 / (n_samples - 1) * (log_y_centered.T) @ log_y_centered
-    return sigma_hat
-
-
-def _init_components(
-    counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor, rank: int
-) -> torch.Tensor:
-    """
-    Initialization for components for the Pln model. Get a first guess for covariance
-    that is easier to estimate and then takes the rank largest eigenvectors to get components.
-
-    Parameters
-    ----------
-    counts : torch.Tensor
-        Samples with size (n,p)
-    offsets : torch.Tensor
-        Offset, size (n,p)
-    covariates : torch.Tensor
-        Covariates, size (n,d)
-    coef : torch.Tensor
-        Coefficient of size (d,p)
-    rank : int
-        The dimension of the latent space, i.e. the reduced dimension.
-
-    Returns
-    -------
-    torch.Tensor
-        Initialization of components of size (p,rank)
-    """
-    sigma_hat = _init_covariance(counts, covariates, coef).detach()
-    components = _components_from_covariance(sigma_hat, rank)
-    return components
-
-
-def _init_latent_mean(
-    counts: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
-    coef: torch.Tensor,
-    components: torch.Tensor,
-    n_iter_max=500,
-    lr=0.01,
-    eps=7e-3,
-) -> torch.Tensor:
-    """
-    Initialization for the variational parameter M. Basically, the mode of the log_posterior is computed.
-
-    Parameters
-    ----------
-    counts : torch.Tensor
-        Samples with size (n,p)
-    offsets : torch.Tensor
-        Offset, size (n,p)
-    covariates : torch.Tensor
-        Covariates, size (n,d)
-    coef : torch.Tensor
-        Coefficient of size (d,p)
-    components : torch.Tensor
-        Components of size (p,rank)
-    n_iter_max : int, optional
-        The maximum number of iterations in the gradient ascent. Default is 500.
-    lr : float, optional
-        The learning rate of the optimizer. Default is 0.01.
-    eps : float, optional
-        The tolerance. The algorithm will stop if the maximum of |W_t-W_{t-1}| is lower than eps,
-        where W_t is the t-th iteration of the algorithm. Default is 7e-3.
-
-    Returns
-    -------
-    torch.Tensor
-        The initialized latent mean with size (n,rank)
-    """
-    mode = torch.randn(counts.shape[0], components.shape[1], device=DEVICE)
-    mode.requires_grad_(True)
-    optimizer = torch.optim.Rprop([mode], lr=lr)
-    crit = 2 * eps
-    old_mode = torch.clone(mode)
-    keep_condition = True
-    i = 0
-    while i < n_iter_max and keep_condition:
-        batch_loss = log_posterior(counts, covariates, offsets, mode, components, coef)
-        loss = -torch.mean(batch_loss)
-        loss.backward()
-        optimizer.step()
-        crit = torch.max(torch.abs(mode - old_mode))
-        optimizer.zero_grad()
-        if crit < eps and i > 2:
-            keep_condition = False
-        old_mode = torch.clone(mode)
-        i += 1
-    return mode
-
-
 def _sigmoid(tens: torch.Tensor) -> torch.Tensor:
-    """
-    Compute the sigmoid function of x element-wise.
-
-    Parameters
-    ----------
-    tens : torch.Tensor
-        Input tensor
-
-    Returns
-    -------
-    torch.Tensor
-        Output tensor with sigmoid applied element-wise
-    """
     return 1 / (1 + torch.exp(-tens))
 
 
-def sample_pln(
-    components: torch.Tensor,
-    coef: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
-    _coef_inflation: torch.Tensor = None,
-    seed: int = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor:
     """
     Sample from the Poisson Log-Normal (Pln) model.
 
     Parameters
     ----------
-    components : torch.Tensor
-        Components of size (p, rank)
-    coef : torch.Tensor
-        Coefficient of size (d, p)
-    covariates : torch.Tensor or None
-        Covariates, size (n, d) or None
-    offsets : torch.Tensor
-        Offset, size (n, p)
-    _coef_inflation : torch.Tensor or None, optional
-        Coefficient for zero-inflation model, size (d, p) or None. Default is None.
+    pln_param : PlnParameters object
+        parameters of the model, containing the coeficient, the covariates,
+        the components and the offsets.
     seed : int or None, optional
         Random seed for reproducibility. Default is None.
+    return_latent : bool, optional
+        If True will return also the latent variables. Default is False.
 
     Returns
     -------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    tuple[torch.Tensor, torch.Tensor, torch.Tensor] if return_latent is True
         Tuple containing counts (torch.Tensor), gaussian (torch.Tensor), and ksi (torch.Tensor)
+    torch.Tensor if return_latent is False
     """
     prev_state = torch.random.get_rng_state()
     if seed is not None:
         torch.random.manual_seed(seed)
 
-    n_samples = offsets.shape[0]
-    rank = components.shape[1]
+    n_samples = pln_param.offsets.shape[0]
+    rank = pln_param.components.shape[1]
 
-    if covariates is None:
+    if pln_param.covariates is None:
         XB = 0
     else:
-        XB = torch.matmul(covariates, coef)
+        XB = torch.matmul(pln_param.covariates, pln_param.coef)
 
-    gaussian = torch.mm(torch.randn(n_samples, rank, device=DEVICE), components.T) + XB
-    parameter = torch.exp(offsets + gaussian)
-
-    if _coef_inflation is not None:
+    gaussian = (
+        torch.mm(torch.randn(n_samples, rank, device=DEVICE), pln_param.components.T)
+        + XB
+    )
+    parameter = torch.exp(pln_param.offsets + gaussian)
+    if pln_param.coef_inflation is not None:
         print("ZIPln is sampled")
-        zero_inflated_mean = torch.matmul(covariates, _coef_inflation)
+        zero_inflated_mean = torch.matmul(
+            pln_param.covariates, pln_param.coef_inflation
+        )
         ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
     else:
         ksi = 0
@@ -283,66 +142,14 @@ def sample_pln(
     counts = (1 - ksi) * torch.poisson(parameter)
 
     torch.random.set_rng_state(prev_state)
-    return counts, gaussian, ksi
-
-
-def _components_from_covariance(covariance: torch.Tensor, rank: int) -> torch.Tensor:
-    """
-    Get the best matrix of size (p, rank) when covariance is of size (p, p),
-    i.e., reduce norm(covariance - components @ components.T).
-
-    Parameters
-    ----------
-    covariance : torch.Tensor
-        Covariance matrix of size (p, p)
-    rank : int
-        The number of columns wanted for components
-
-    Returns
-    -------
-    torch.Tensor
-        Requested components of size (p, rank) containing the rank eigenvectors
-        with largest eigenvalues.
-    """
-    eigenvalues, eigenvectors = TLA.eigh(covariance)
-    requested_components = eigenvectors[:, -rank:] @ torch.diag(
-        torch.sqrt(eigenvalues[-rank:])
-    )
-    return requested_components
-
-
-def _init_coef(
-    counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
-) -> torch.Tensor:
-    """
-    Initialize the coefficient for the Poisson regression model.
-
-    Parameters
-    ----------
-    counts : torch.Tensor
-        Samples with size (n, p)
-    covariates : torch.Tensor
-        Covariates, size (n, d)
-    offsets : torch.Tensor
-        Offset, size (n, p)
-
-    Returns
-    -------
-    torch.Tensor or None
-        Coefficient of size (d, p) or None if covariates is None.
-    """
-    if covariates is None:
-        return None
-
-    poiss_reg = _PoissonReg()
-    poiss_reg.fit(counts, covariates, offsets)
-    return poiss_reg.beta
+    if return_latent is True:
+        return counts, gaussian, ksi
+    return counts
 
 
 def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
     """
-    Compute log(n!) even for large n using the Stirling formula to avoid numerical
-    infinite values of n!.
+    Compute log(n!) using the Stirling formula.
 
     Parameters
     ----------
@@ -360,75 +167,7 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
     )
 
 
-def log_posterior(
-    counts: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
-    posterior_mean: torch.Tensor,
-    components: torch.Tensor,
-    coef: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Compute the log posterior of the Poisson Log-Normal (Pln) model.
-
-    Parameters
-    ----------
-    counts : torch.Tensor
-        Samples with size (batch_size, p)
-    covariates : torch.Tensor or None
-        Covariates, size (batch_size, d) or (d)
-    offsets : torch.Tensor
-        Offset, size (batch_size, p)
-    posterior_mean : torch.Tensor
-        Posterior mean with size (N_samples, N_batch, rank) or (batch_size, rank)
-    components : torch.Tensor
-        Components with size (p, rank)
-    coef : torch.Tensor
-        Coefficient with size (d, p)
-
-    Returns
-    -------
-    torch.Tensor
-        Log posterior of size (N_samples, batch_size) or (batch_size).
-    """
-    length = len(posterior_mean.shape)
-    rank = posterior_mean.shape[-1]
-    components_posterior_mean = torch.matmul(
-        components.unsqueeze(0), posterior_mean.unsqueeze(2)
-    ).squeeze()
-
-    if covariates is None:
-        XB = 0
-    else:
-        XB = torch.matmul(covariates, coef)
-
-    log_lambda = offsets + components_posterior_mean + XB
-    first_term = (
-        -rank / 2 * math.log(2 * math.pi)
-        - 1 / 2 * torch.norm(posterior_mean, dim=-1) ** 2
-    )
-    second_term = torch.sum(
-        -torch.exp(log_lambda) + log_lambda * counts - _log_stirling(counts), axis=-1
-    )
-    return first_term + second_term
-
-
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
-    """
-    Compute the truncated logarithm of the input tensor.
-
-    Parameters
-    ----------
-    tens : torch.Tensor
-        Input tensor
-    eps : float, optional
-        Truncation value, default is 1e-16
-
-    Returns
-    -------
-    torch.Tensor
-        Truncated logarithm of the input tensor.
-    """
     integer = torch.min(torch.max(tens, torch.tensor([eps])), torch.tensor([1 - eps]))
     return torch.log(integer)
 
@@ -456,7 +195,8 @@ def _raise_wrong_dimension_error(
     str_second_array: str,
     dim_first_array: int,
     dim_second_array: int,
-    dim_of_error: int,
+    dim_order_first: int,
+    dim_order_second: int,
 ) -> None:
     """
     Raise an error for mismatched dimensions between two tensors.
@@ -471,105 +211,27 @@ def _raise_wrong_dimension_error(
         Dimension of the first tensor
     dim_second_array : int
         Dimension of the second tensor
-    dim_of_error : int
-        Dimension causing the error
-
+    dim_order_first : int
+        Dimension causing the error for the first tensor.
+    dim_order_second : int
+        Dimension causing the error for the second tensor.
     Raises
     ------
     ValueError
-        If the dimensions of the two tensors do not match at the non-singleton dimension.
+        If the dimensions of the two tensors do not match.
     """
     msg = (
-        f"The size of tensor {str_first_array} ({dim_first_array}) must match "
+        f"The size of tensor {str_first_array} at non-singleton dimension {dim_order_first} ({dim_first_array}) must match "
         f"the size of tensor {str_second_array} ({dim_second_array}) at "
-        f"non-singleton dimension {dim_of_error}"
+        f"non-singleton dimension {dim_order_second}"
     )
     raise ValueError(msg)
 
 
-def _check_two_dimensions_are_equal(
-    str_first_array: str,
-    str_second_array: str,
-    dim_first_array: int,
-    dim_second_array: int,
-    dim_of_error: int,
-) -> None:
-    """
-    Check if two dimensions are equal.
-
-    Parameters
-    ----------
-    str_first_array : str
-        Name of the first array.
-    str_second_array : str
-        Name of the second array.
-    dim_first_array : int
-        Dimension of the first array.
-    dim_second_array : int
-        Dimension of the second array.
-    dim_of_error : int
-        Dimension of the error.
-
-    Raises
-    ------
-    ValueError
-        If the dimensions of the two arrays are not equal.
-    """
-    if dim_first_array != dim_second_array:
-        _raise_wrong_dimension_error(
-            str_first_array,
-            str_second_array,
-            dim_first_array,
-            dim_second_array,
-            dim_of_error,
-        )
-
-
-def _init_S(
-    counts: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
-    beta: torch.Tensor,
-    C: torch.Tensor,
-    M: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Initialize the S matrix.
-
-    Parameters
-    ----------
-    counts : torch.Tensor, shape (n, )
-        Count data.
-    covariates : torch.Tensor or None, shape (n, d) or None
-        Covariate data.
-    offsets : torch.Tensor or None, shape (n, ) or None
-        Offset data.
-    beta : torch.Tensor, shape (d, )
-        Beta parameter.
-    C : torch.Tensor, shape (r, d)
-        C parameter.
-    M : torch.Tensor, shape (r, k)
-        M parameter.
-
-    Returns
-    -------
-    torch.Tensor, shape (r, r)
-        Initialized S matrix.
-    """
-    n, rank = M.shape
-    batch_matrix = torch.matmul(C[:, None, :], C[:, :, None])[None]
-    CW = torch.matmul(C[None], M[:, None, :]).squeeze()
-    common = torch.exp(offsets + covariates @ beta + CW)[:, None, None]
-    prod = batch_matrix * common
-    hess_posterior = torch.sum(prod, dim=1) + torch.eye(rank, device=DEVICE)
-    inv_hess_posterior = -torch.inverse(hess_posterior)
-    hess_posterior = torch.diagonal(inv_hess_posterior, dim1=-2, dim2=-1)
-    return hess_posterior
-
-
 def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
     """
-    Format the input data.
+    Transforms the data in a torch.tensor if the input is an array, and None if the input is None.
+    Raises an error if the input is not an array or None.
 
     Parameters
     ----------
@@ -580,6 +242,11 @@ def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
     -------
     torch.Tensor or None
         Formatted data.
+
+    Raises
+    ------
+    AttributeError
+        If the value is not an array or None.
     """
     if data is None:
         return None
@@ -588,7 +255,7 @@ def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
     if isinstance(data, np.ndarray):
         return torch.from_numpy(data).double().to(DEVICE)
     if isinstance(data, torch.Tensor):
-        return data
+        return data.to(DEVICE)
     raise AttributeError(
         "Please insert either a numpy.ndarray, pandas.DataFrame or torch.Tensor"
     )
@@ -600,9 +267,9 @@ def _format_model_param(
     offsets: torch.Tensor,
     offsets_formula: str,
     take_log_offsets: bool,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Format the model parameters.
+    Format each of the model parameters to an array or None if None.
 
     Parameters
     ----------
@@ -625,13 +292,11 @@ def _format_model_param(
     ------
     ValueError
         If counts has negative values.
-
     """
     counts = _format_data(counts)
     if torch.min(counts) < 0:
-        raise ValueError("Counts should be only non negavtive values.")
-    if covariates is not None:
-        covariates = _format_data(covariates)
+        raise ValueError("Counts should be only non negative values.")
+    covariates = _format_data(covariates)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of counts")
@@ -651,7 +316,7 @@ def _check_data_shape(
     counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> None:
     """
-    Check the shape of the input data.
+    Check if the shape of the input data is valid.
 
     Parameters
     ----------
@@ -661,19 +326,14 @@ def _check_data_shape(
         Covariate data.
     offsets : torch.Tensor or None, shape (n, p) or None
         Offset data.
-
-    Raises
-    ------
-    ValueError
-        If the dimensions of the input data do not match.
     """
     n_counts, p_counts = counts.shape
     n_offsets, p_offsets = offsets.shape
-    _check_two_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0)
+    _check_two_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0, 0)
     if covariates is not None:
         n_cov, _ = covariates.shape
-        _check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0)
-    _check_two_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1)
+        _check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0, 0)
+    _check_two_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1, 1)
 
 
 def _nice_string_of_dict(dictionnary: dict) -> str:
@@ -700,23 +360,18 @@ def _nice_string_of_dict(dictionnary: dict) -> str:
 
 def _plot_ellipse(mean_x: float, mean_y: float, cov: np.ndarray, ax) -> float:
     """
-    Plot an ellipse on the given axes.
+    Plot an ellipse given two coordinates and the covariance.
 
     Parameters:
     -----------
     mean_x : float
-        Mean value of x-coordinate.
+        x-coordinate of the mean.
     mean_y : float
-        Mean value of y-coordinate.
+        y-coordinate of the mean.
     cov : np.ndarray
-        Covariance matrix.
+        Covariance matrix of the 2d vector.
     ax : object
         Axes object to plot the ellipse on.
-
-    Returns:
-    --------
-    float
-        Pearson correlation coefficient.
     """
     pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
     ell_radius_x = np.sqrt(1 + pearson)
@@ -739,24 +394,24 @@ def _plot_ellipse(mean_x: float, mean_y: float, cov: np.ndarray, ax) -> float:
     )
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
-    return pearson
 
 
-def _get_components_simulation(dim: int, rank: int) -> torch.Tensor:
+def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
     """
-    Get the components for simulation.
+    Get the components for simulation. The resulting covariance matrix
+    will be a matrix per blocks plus a little noise.
 
     Parameters:
     -----------
     dim : int
-        Dimension.
+        Dimension of the data.
     rank : int
-        Rank.
+        Rank of the resulting covariance matrix (i.e. number of components).
 
     Returns:
     --------
     torch.Tensor
-        Components for simulation.
+        Components.
     """
     block_size = dim // rank
     prev_state = torch.random.get_rng_state()
@@ -768,27 +423,27 @@ def _get_components_simulation(dim: int, rank: int) -> torch.Tensor:
         ] = 1
     components += torch.randn(dim, rank) / 8
     torch.random.set_rng_state(prev_state)
-    return components.to(DEVICE)
+    return components.to("cpu")
 
 
-def get_simulation_offsets_cov_coef(
+def _get_simulation_coef_cov_offsets(
     n_samples: int, nb_cov: int, dim: int
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Get simulation offsets, covariance coefficients.
+    Get offsets, covariance coefficients with right shapes.
 
     Parameters:
     -----------
     n_samples : int
         Number of samples.
     nb_cov : int
-        Number of covariates.
+        Number of covariates. If 0, covariates will be None.
     dim : int
-        Dimension.
+        Dimension required of the data.
 
     Returns:
     --------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing offsets, covariates, and coefficients.
     """
     prev_state = torch.random.get_rng_state()
@@ -801,14 +456,124 @@ def get_simulation_offsets_cov_coef(
             high=2,
             size=(n_samples, nb_cov),
             dtype=torch.float64,
-            device=DEVICE,
+            device="cpu",
         )
-    coef = torch.randn(nb_cov, dim, device=DEVICE)
+    coef = torch.randn(nb_cov, dim, device="cpu")
     offsets = torch.randint(
-        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device=DEVICE
+        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
     torch.random.set_rng_state(prev_state)
-    return offsets, covariates, coef
+    return coef, covariates, offsets
+
+
+class PlnParameters:
+    def __init__(self, components, coef, covariates, offsets, coef_inflation=None):
+        """
+        Instantiate all the needed parameters to sample from the PLN model.
+
+        Parameters:
+        -----------
+        components : torch.Tensor
+            Components of size (p, rank)
+        coef : torch.Tensor
+            Coefficient of size (d, p)
+        covariates : torch.Tensor or None
+            Covariates, size (n, d) or None
+        offsets : torch.Tensor
+            Offset, size (n, p)
+        _coef_inflation : torch.Tensor or None, optional
+            Coefficient for zero-inflation model, size (d, p) or None. Default is None.
+
+        """
+        self.components = _format_data(components)
+        self.coef = _format_data(coef)
+        self.covariates = _format_data(covariates)
+        self.offsets = _format_data(offsets)
+        self.coef_inflation = _format_data(coef_inflation)
+        _check_two_dimensions_are_equal(
+            "components", "coef", self.components.shape[0], self.coef.shape[1], 0, 1
+        )
+        if self.offsets is not None:
+            _check_two_dimensions_are_equal(
+                "components",
+                "offsets",
+                self.components.shape[0],
+                self.offsets.shape[1],
+                0,
+                1,
+            )
+        if self.covariates is not None:
+            _check_two_dimensions_are_equal(
+                "offsets",
+                "covariates",
+                self.offsets.shape[0],
+                self.covariates.shape[0],
+                0,
+                0,
+            )
+            _check_two_dimensions_are_equal(
+                "covariates", "coef", self.covariates.shape[1], self.coef.shape[0], 1, 0
+            )
+        for array in [self.components, self.coef, self.covariates, self.offsets]:
+            if array is not None:
+                if len(array.shape) != 2:
+                    raise RuntimeError(
+                        f"Expected all arrays to be 2-dimensional, got {len(array.shape)}"
+                    )
+
+    @property
+    def covariance(self):
+        return self.components @ self.components.T
+
+
+def _check_two_dimensions_are_equal(
+    str_first_array: str,
+    str_second_array: str,
+    dim_first_array: int,
+    dim_second_array: int,
+    dim_order_first: int,
+    dim_order_second: int,
+) -> None:
+    """
+    Check if two dimensions are equal.
+
+    Parameters
+    ----------
+    str_first_array : str
+        Name of the first array.
+    str_second_array : str
+        Name of the second array.
+    dim_first_array : int
+        Dimension of the first array.
+    dim_second_array : int
+        Dimension of the second array.
+    dim_order_first : int
+        Dimension causing the error for the first tensor.
+    dim_order_second : int
+        Dimension causing the error for the second tensor.
+
+    Raises
+    ------
+    ValueError
+        If the dimensions of the two arrays are not equal.
+    """
+    if dim_first_array != dim_second_array:
+        _raise_wrong_dimension_error(
+            str_first_array,
+            str_second_array,
+            dim_first_array,
+            dim_second_array,
+            dim_order_first,
+            dim_order_second,
+        )
+
+
+def get_simulation_parameters(
+    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5
+) -> PlnParameters:
+    coef, covariates, offsets = _get_simulation_coef_cov_offsets(n_samples, nb_cov, dim)
+    components = _get_simulation_components(dim, rank)
+    return PlnParameters(components, coef, covariates, offsets)
 
 
 def get_simulated_count_data(
@@ -818,9 +583,9 @@ def get_simulated_count_data(
     nb_cov: int = 1,
     return_true_param: bool = False,
     seed: int = 0,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Get simulated count data.
+    Get simulated count data from the PlnPCA model.
 
     Parameters:
     -----------
@@ -829,31 +594,35 @@ def get_simulated_count_data(
     dim : int, optional
         Dimension, by default 25.
     rank : int, optional
-        Rank, by default 5.
+        Rank of the covariance matrix, by default 5.
     nb_cov : int, optional
         Number of covariates, by default 1.
     return_true_param : bool, optional
-        Whether to return true parameters, by default False.
+        Whether to return the true parameters of the model, by default False.
     seed : int, optional
         Seed value for random number generation, by default 0.
 
     Returns:
     --------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
-    components = _get_components_simulation(dim, rank)
-    offsets, cov, true_coef = get_simulation_offsets_cov_coef(n_samples, nb_cov, dim)
-    true_covariance = torch.matmul(components, components.T)
-    counts, _, _ = sample_pln(components, true_coef, cov, offsets, seed=seed)
+    pln_param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
+    counts = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
-        return counts, cov, offsets, true_covariance, true_coef
-    return counts, cov, offsets
+        return (
+            counts,
+            pln_param.covariates,
+            pln_param.offsets,
+            pln_param.covariance,
+            pln_param.coef,
+        )
+    return pln_param.counts, pln_param.cov, pln_param.offsets
 
 
 def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
     """
-    Get real count data.
+    Get real count data from the scMARK dataset.
 
     Parameters:
     -----------
@@ -879,47 +648,23 @@ def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
         dim = 100
     counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/Y_mark.csv")
     counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
-    # counts = pd.read_csv("./pyPLNmodels/data/scRT/Y_mark.csv").values[
-    # :n_samples, :dim
-    # ]
     print(f"Returning dataset of size {counts.shape}")
     return counts
 
 
-def _closest(lst: list[float], element: float) -> float:
-    """
-    Find the closest element in a list to a given element.
-
-    Parameters:
-    -----------
-    lst : list[float]
-        List of float values.
-    element : float
-        Element to find the closest value to.
-
-    Returns:
-    --------
-    float
-        Closest element in the list.
-    """
-    lst = np.asarray(lst)
-    idx = (np.abs(lst - element)).argmin()
-    return lst[idx]
-
-
 def load_model(path_of_directory: str) -> Dict[str, Any]:
     """
-    Load models from the given directory.
+    Load model from the given directory for future initialization.
 
     Parameters
     ----------
     path_of_directory : str
-        The path to the directory containing the models.
+        The path to the directory containing the model.
 
     Returns
     -------
     Dict[str, Any]
-        A dictionary containing the loaded models.
+        A dictionary containing the loaded model.
 
     """
     working_dir = os.getcwd()
@@ -931,9 +676,9 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
             parameter = filename[:-4]
             try:
                 data[parameter] = pd.read_csv(filename, header=None).values
-            except pd.errors.EmptyDataError as err:
+            except pd.errors.EmptyDataError:
                 print(
-                    f"Can't load {parameter} since empty. Standard initialization will be performed"
+                    f"Can't load {parameter} since empty. Standard initialization will be performed for this parameter"
                 )
     os.chdir(working_dir)
     return data
@@ -941,24 +686,13 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
 
 def load_pln(path_of_directory: str) -> Dict[str, Any]:
     """
-    Load Pln models from the given directory.
-
-    Parameters
-    ----------
-    path_of_directory : str
-        The path to the directory containing the Pln models.
-
-    Returns
-    -------
-    Dict[str, Any]
-        A dictionary containing the loaded Pln models.
-
+    Alias for :func:`~pyPLNmodels._utils.load_model`.
     """
     return load_model(path_of_directory)
 
 
 def load_plnpcacollection(
-    path_of_directory: str, ranks: Optional[list[int]] = None
+    path_of_directory: str, ranks: Optional[List[int]] = None
 ) -> Dict[int, Dict[str, Any]]:
     """
     Load PlnPCAcollection models from the given directory.
@@ -967,8 +701,8 @@ def load_plnpcacollection(
     ----------
     path_of_directory : str
         The path to the directory containing the PlnPCAcollection models.
-    ranks : list[int], optional
-        A list of ranks specifying which models to load. If None, all models in the directory will be loaded.
+    ranks : List[int], optional
+        A List of ranks specifying which models to load. If None, all models in the directory will be loaded.
 
     Returns
     -------
@@ -1025,7 +759,7 @@ def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
         )
 
 
-def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> tuple:
+def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> Tuple:
     """
     Extract data from the given formula and data dictionary.
 
@@ -1038,7 +772,7 @@ def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> tuple:
 
     Returns
     -------
-    tuple
+    Tuple
         A tuple containing the extracted counts, covariates, and offsets.
 
     """
@@ -1066,7 +800,7 @@ def _is_dict_of_dict(dictionary: Dict[Any, Any]) -> bool:
         True if the dictionary is a dictionary of dictionaries, False otherwise.
 
     """
-    return isinstance(dictionary[list(dictionary.keys())[0]], dict)
+    return isinstance(dictionary[List(dictionary.keys())[0]], dict)
 
 
 def _get_dict_initialization(
@@ -1116,118 +850,17 @@ def _to_tensor(
     if obj is None:
         return None
     if isinstance(obj, np.ndarray):
-        return torch.from_numpy(obj)
+        return torch.from_numpy(obj).to(DEVICE)
     if isinstance(obj, torch.Tensor):
-        return obj
+        return obj.to(DEVICE)
     if isinstance(obj, pd.DataFrame):
-        return torch.from_numpy(obj.values)
+        return torch.from_numpy(obj.values).to(DEVICE)
     raise TypeError(
         "Please give either an np.ndarray or torch.Tensor or pd.DataFrame or None"
     )
 
 
-class _PoissonReg:
-    """
-    Poisson regression model.
-
-    Attributes
-    ----------
-    beta : torch.Tensor
-        The learned regression coefficients.
-
-    Methods
-    -------
-    fit(Y, covariates, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False)
-        Fit the Poisson regression model to the given data.
-
-    """
-
-    def __init__(self) -> None:
-        self.beta: Optional[torch.Tensor] = None
-
-    def fit(
-        self,
-        Y: torch.Tensor,
-        covariates: torch.Tensor,
-        O: torch.Tensor,
-        Niter_max: int = 300,
-        tol: float = 0.001,
-        lr: float = 0.005,
-        verbose: bool = False,
-    ) -> None:
-        """
-        Fit the Poisson regression model to the given data.
-
-        Parameters
-        ----------
-        Y : torch.Tensor
-            The dependent variable of shape (n_samples, n_features).
-        covariates : torch.Tensor
-            The covariates of shape (n_samples, n_covariates).
-        O : torch.Tensor
-            The offset term of shape (n_samples, n_features).
-        Niter_max : int, optional
-            The maximum number of iterations (default is 300).
-        tol : float, optional
-            The tolerance for convergence (default is 0.001).
-        lr : float, optional
-            The learning rate (default is 0.005).
-        verbose : bool, optional
-            Whether to print intermediate information during fitting (default is False).
-
-        """
-        beta = torch.rand(
-            (covariates.shape[1], Y.shape[1]), device=DEVICE, requires_grad=True
-        )
-        optimizer = torch.optim.Rprop([beta], lr=lr)
-        i = 0
-        grad_norm = 2 * tol  # Criterion
-        while i < Niter_max and grad_norm > tol:
-            loss = -compute_poissreg_log_like(Y, O, covariates, beta)
-            loss.backward()
-            optimizer.step()
-            grad_norm = torch.norm(beta.grad)
-            beta.grad.zero_()
-            i += 1
-            if verbose:
-                if i % 10 == 0:
-                    print("log like : ", -loss)
-                    print("grad_norm : ", grad_norm)
-                if i < Niter_max:
-                    print("Tolerance reached in {} iterations".format(i))
-                else:
-                    print("Maximum number of iterations reached")
-        self.beta = beta
-
-
-def compute_poissreg_log_like(
-    Y: torch.Tensor, O: torch.Tensor, covariates: torch.Tensor, beta: torch.Tensor
-) -> torch.Tensor:
-    """
-    Compute the log likelihood of a Poisson regression model.
-
-    Parameters
-    ----------
-    Y : torch.Tensor
-        The dependent variable of shape (n_samples, n_features).
-    O : torch.Tensor
-        The offset term of shape (n_samples, n_features).
-    covariates : torch.Tensor
-        The covariates of shape (n_samples, n_covariates).
-    beta : torch.Tensor
-        The regression coefficients of shape (n_covariates, n_features).
-
-    Returns
-    -------
-    torch.Tensor
-        The log likelihood of the Poisson regression model.
-
-    """
-    XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
-    return torch.sum(-torch.exp(O + XB) + torch.multiply(Y, O + XB))
-
-
-def array2tensor(func):
+def _array2tensor(func):
     def setter(self, array_like):
         array_like = _to_tensor(array_like)
         func(self, array_like)

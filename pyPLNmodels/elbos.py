@@ -2,7 +2,6 @@ import torch  # pylint:disable=[C0114]
 from ._utils import _log_stirling, _trunc_log
 from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
-
 from typing import Optional
 
 
@@ -38,7 +37,7 @@ def elbo_pln(
     Returns:
     -------
     torch.Tensor
-        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
+        The ELBO (Evidence Lower Bound), of size one.
     """
     n_samples, dim = counts.shape
     s_rond_s = torch.square(latent_var)
@@ -63,10 +62,6 @@ def elbo_pln(
     return elbo / n_samples
 
 
-import torch
-from typing import Optional
-
-
 def profiled_elbo_pln(
     counts: torch.Tensor,
     covariates: torch.Tensor,
@@ -75,7 +70,9 @@ def profiled_elbo_pln(
     latent_var: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the Pln model with profiled parameters.
+    Compute the ELBO (Evidence Lower Bound) for the Pln model with profiled
+    model parameters (i.e the model parameters are derived directly from the
+    latent parameters).
 
     Parameters:
     ----------
@@ -93,7 +90,7 @@ def profiled_elbo_pln(
     Returns:
     -------
     torch.Tensor
-        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
+        The ELBO (Evidence Lower Bound) with size 1.
     """
     n_samples, _ = counts.shape
     s_squared = torch.square(latent_var)
@@ -122,7 +119,8 @@ def elbo_plnpca(
     coef: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the Pln model with PCA parametrization.
+    Compute the ELBO (Evidence Lower Bound) for the Pln model
+    with PCA parametrization.
 
     Parameters:
     ----------
@@ -135,7 +133,8 @@ def elbo_plnpca(
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
     latent_var : torch.Tensor
-        Variational parameter with size (n, p).
+        Variational parameter with size (n, p). More precisely it is the unsigned
+        square root of the variational variance.
     components : torch.Tensor
         Model parameter with size (p, q).
     coef : torch.Tensor
