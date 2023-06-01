@@ -2039,7 +2039,7 @@ class PlnPCA(_Pln):
         """
         self._rank = rank
         self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, None, take_log_offsets=False
+            counts, covariates, offsets, offsets_formula, take_log_offsets=False
         )
         _check_data_shape(self._counts, self._covariates, self._offsets)
         self._check_if_rank_is_too_high()
