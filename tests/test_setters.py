@@ -18,7 +18,7 @@ def test_data_setter_with_torch(pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_parameters_setter_with_torch(pln):
     pln.latent_mean = pln.latent_mean
-    pln.latent_var = pln.latent_var
+    pln.latent_sqrt_var = pln.latent_sqrt_var
     pln.coef = pln.coef
     if pln._NAME == "PlnPCA":
         pln.components = pln.components
@@ -43,13 +43,13 @@ def test_data_setter_with_numpy(pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_parameters_setter_with_numpy(pln):
     np_latent_mean = pln.latent_mean.numpy()
-    np_latent_var = pln.latent_var.numpy()
+    np_latent_sqrt_var = pln.latent_sqrt_var.numpy()
     if pln.coef is not None:
         np_coef = pln.coef.numpy()
     else:
         np_coef = None
     pln.latent_mean = np_latent_mean
-    pln.latent_var = np_latent_var
+    pln.latent_sqrt_var = np_latent_sqrt_var
     pln.coef = np_coef
     if pln._NAME == "PlnPCA":
         pln.components = pln.components.numpy()
@@ -74,13 +74,13 @@ def test_data_setter_with_pandas(pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_parameters_setter_with_pandas(pln):
     pd_latent_mean = pd.DataFrame(pln.latent_mean.numpy())
-    pd_latent_var = pd.DataFrame(pln.latent_var.numpy())
+    pd_latent_sqrt_var = pd.DataFrame(pln.latent_sqrt_var.numpy())
     if pln.coef is not None:
         pd_coef = pd.DataFrame(pln.coef.numpy())
     else:
         pd_coef = None
     pln.latent_mean = pd_latent_mean
-    pln.latent_var = pd_latent_var
+    pln.latent_sqrt_var = pd_latent_sqrt_var
     pln.coef = pd_coef
     if pln._NAME == "PlnPCA":
         pln.components = pd.DataFrame(pln.components.numpy())
@@ -125,10 +125,10 @@ def test_fail_parameters_setter_with_torch(pln):
         pln.latent_mean = torch.zeros(n, dim_latent + 1)
 
     with pytest.raises(ValueError):
-        pln.latent_var = torch.zeros(n + 1, dim_latent)
+        pln.latent_sqrt_var = torch.zeros(n + 1, dim_latent)
 
     with pytest.raises(ValueError):
-        pln.latent_var = torch.zeros(n, dim_latent + 1)
+        pln.latent_sqrt_var = torch.zeros(n, dim_latent + 1)
 
     if pln._NAME == "PlnPCA":
         with pytest.raises(ValueError):

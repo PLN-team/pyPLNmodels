@@ -32,10 +32,10 @@ def test_show_coef_transform_covariance_pcaprojected(any_pln):
     assert hasattr(any_pln, "coef")
     assert callable(any_pln.transform)
     assert hasattr(any_pln, "covariance")
-    assert callable(any_pln.pca_projected_latent_variables)
-    assert any_pln.pca_projected_latent_variables(n_components=None) is not None
+    assert callable(any_pln.PCA)
+    assert any_pln.PCA(n_components=None) is not None
     with pytest.raises(Exception):
-        any_pln.pca_projected_latent_variables(n_components=any_pln.dim + 1)
+        any_pln.PCA(n_components=any_pln.dim + 1)
 
 
 @pytest.mark.parametrize("sim_pln", dict_fixtures["loaded_and_fitted_pln"])
