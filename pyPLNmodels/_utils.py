@@ -267,6 +267,7 @@ def _format_model_param(
     offsets: torch.Tensor,
     offsets_formula: str,
     take_log_offsets: bool,
+    add_const: bool,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Format each of the model parameters to an array or None if None.
@@ -283,7 +284,8 @@ def _format_model_param(
         Formula for calculating offsets.
     take_log_offsets : bool
         Flag indicating whether to take the logarithm of offsets.
-
+    add_const: bool
+        Whether to add a column of one in the covariates.
     Returns
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
@@ -297,6 +299,13 @@ def _format_model_param(
     if torch.min(counts) < 0:
         raise ValueError("Counts should be only non negative values.")
     covariates = _format_data(covariates)
+    if add_const is True:
+        if covariates is None:
+            covariates = torch.ones(counts.shape[0], 1)
+        else:
+            covariates = torch.concat(
+                (covariates, torch.ones(counts.shape[0]).unsqueeze(1)), dim=1
+            )
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of counts")
@@ -620,36 +629,43 @@ def get_simulated_count_data(
     return pln_param.counts, pln_param.cov, pln_param.offsets
 
 
-def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
+def get_real_count_data(
+    n_samples: int = 469, dim: int = 200, return_labels: bool = False
+) -> np.ndarray:
     """
     Get real count data from the scMARK dataset.
 
     Parameters:
     -----------
     n_samples : int, optional
-        Number of samples, by default 270.
+        Number of samples, by default 469.
     dim : int, optional
-        Dimension, by default 100.
-
+        Dimension, by default 200.
+    return_labels: bool, optional
+        If True, will return the labels of the count data
     Returns:
     --------
     np.ndarray
-        Real count data.
+        Real count data and labels if return_labels is True.
     """
-    if n_samples > 297:
+    if n_samples > 469:
         warnings.warn(
-            f"\nTaking the whole 270 samples of the dataset. Requested:n_samples={n_samples}, returned:270"
+            f"\nTaking the whole 469 samples of the dataset. Requested:n_samples={n_samples}, returned:469"
         )
-        n_samples = 270
+        n_samples = 469
     if dim > 100:
         warnings.warn(
-            f"\nTaking the whole 100 variables. Requested:dim={dim}, returned:100"
+            f"\nTaking the whole 200 variables. Requested:dim={dim}, returned:200"
         )
-        dim = 100
-    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/Y_mark.csv")
+        dim = 200
+    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
     counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
     print(f"Returning dataset of size {counts.shape}")
-    return counts
+    if return_labels is False:
+        return counts
+    labels_stream = pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
+    labels = np.array(pd.read_csv(labels_stream).values[:n_samples].squeeze())
+    return counts, labels
 
 
 def load_model(path_of_directory: str) -> Dict[str, Any]:
@@ -866,3 +882,29 @@ def _array2tensor(func):
         func(self, array_like)
 
     return setter
+
+
+def _handle_data(
+    counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+):
+    """
+    Transforms the data to torch.Tensor and checks the shapes are ok.
+
+    Parameters
+    ----------
+    counts : torch.Tensor
+        The counts.
+    covariates : torch.Tensor, optional
+        The covariates, by default None.
+    offsets : torch.Tensor, optional
+        The offsets, by default None.
+    offsets_formula : str
+        The formula for offsets.
+    take_log_offsets : bool
+        Whether to take the logarithm of offsets.
+    """
+    counts, covariates, offsets = _format_model_param(
+        counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+    )
+    _check_data_shape(counts, covariates, offsets)
+    return counts, covariates, offsets
