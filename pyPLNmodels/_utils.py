@@ -885,26 +885,39 @@ def _array2tensor(func):
 
 
 def _handle_data(
-    counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
-):
+    counts,
+    covariates,
+    offsets,
+    offsets_formula: str,
+    take_log_offsets: bool,
+    add_const: bool,
+) -> tuple:
     """
-    Transforms the data to torch.Tensor and checks the shapes are ok.
+    Handle the input data for the model.
 
     Parameters
     ----------
-    counts : torch.Tensor
-        The counts.
-    covariates : torch.Tensor, optional
-        The covariates, by default None.
-    offsets : torch.Tensor, optional
-        The offsets, by default None.
-    offsets_formula : str
-        The formula for offsets.
-    take_log_offsets : bool
-        Whether to take the logarithm of offsets.
+        counts : The counts data. If a DataFrame is provided, the column names are stored for later use.
+        covariates : The covariates data.
+        offsets : The offsets data.
+        offsets_formula : The formula used for offsets.
+        take_log_offsets : Indicates whether to take the logarithm of the offsets.
+        add_const : Indicates whether to add a constant column to the covariates.
+
+    Returns
+    -------
+        tuple: A tuple containing the processed counts, covariates, offsets, and column counts (if available).
+
+    Raises:
+        ValueError: If the shapes of counts, covariates, and offsets do not match.
     """
+    if isinstance(counts, pd.DataFrame):
+        column_counts = counts.columns
+    else:
+        column_counts = None
+
     counts, covariates, offsets = _format_model_param(
         counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
     )
     _check_data_shape(counts, covariates, offsets)
-    return counts, covariates, offsets
+    return counts, covariates, offsets, column_counts

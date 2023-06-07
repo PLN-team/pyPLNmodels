@@ -92,8 +92,12 @@ class _Pln(ABC):
         add_const: bool, optional
             Whether to add a column of one in the covariates. Defaults to True.
         """
-
-        self._counts, self._covariates, self._offsets = _handle_data(
+        (
+            self._counts,
+            self._covariates,
+            self._offsets,
+            self.column_counts,
+        ) = _handle_data(
             counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
@@ -374,7 +378,7 @@ class _Pln(ABC):
            If the number of components asked is greater than the number of dimensions.
         """
         pca = self.sk_PCA(n_components=n_components)
-        return pca.transform(self.latent_variables.detach().cpu())
+        return pca.transform(self.latent_variables.cpu())
 
     def sk_PCA(self, n_components=None):
         """
@@ -401,7 +405,7 @@ class _Pln(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = PCA(n_components=n_components)
-        pca.fit(self.latent_variables.detach().cpu())
+        pca.fit(self.latent_variables.cpu())
         return pca
 
     def scatter_pca_matrix(self, n_components=None, color=None):
@@ -430,7 +434,7 @@ class _Pln(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = self.sk_PCA(n_components=n_components)
-        proj_variables = pca.transform(self.latent_variables.detach())
+        proj_variables = pca.transform(self.latent_variables)
         components = torch.from_numpy(pca.components_)
 
         labels = {
@@ -447,19 +451,41 @@ class _Pln(ABC):
         fig.update_traces(diagonal_visible=False)
         fig.show()
 
-    def viz_pca_var(self):
+    def viz_pca_var(self, variables_names, indices_of_variables=None):
+        if indices_of_variables is None:
+            if self.column_counts is None:
+                raise ValueError(
+                    "No names have been given to the column of "
+                    "counts. Please set the column_counts to the"
+                    "needed names or instantiate a new model with"
+                    "a pd.DataFrame with appropriate column names"
+                )
+            print("variable names", variables_names)
+            print("columns", self.column_counts)
+            indices_of_variables = []
+            for variables_name in variables_names:
+                index = self.column_counts.get_loc(variables_name)
+                indices_of_variables.append(index)
+            print("indices:", indices_of_variables)
+        else:
+            if len(indices_of_variables) != len(variables_names):
+                raise ValueError(
+                    f"Number of variables {len(indices_of_variables)} should be the same as the number of variables_names {len(variables_names)}"
+                )
+
         n_components = 2
         pca = self.sk_PCA(n_components=n_components)
-        proj_variables = pca.transform(self.latent_variables.detach())
+        variables = self.latent_variables
+        proj_variables = pca.transform(variables)
         labels = {
             str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_, 2)[i]}%"
             for i in range(n_components)
         }
         figure, correlation_matrix = plot_pca_correlation_graph(
-            self.latent_variables.detach(),
-            variables_names=[str(i) for i in range(self.dim)],
+            variables[:, indices_of_variables],
+            variables_names=variables_names,
             X_pca=proj_variables,
-            explained_variance=pca.explained_variance_,
+            explained_variance=pca.explained_variance_ratio_,
             dimensions=(1, 2),
             figure_axis_size=10,
         )
@@ -1289,7 +1315,7 @@ class Pln(_Pln):
         torch.Tensor
             The latent variables.
         """
-        return self.latent_mean
+        return self.latent_mean.detach()
 
     @property
     def number_of_parameters(self):
@@ -1388,7 +1414,12 @@ class PlnPCAcollection:
             Whether to add a column of one in the covariates. Defaults to True.
         """
         self._dict_models = {}
-        self._counts, self._covariates, self._offsets = _handle_data(
+        (
+            self._counts,
+            self._covariates,
+            self._offsets,
+            self.column_counts,
+        ) = _handle_data(
             counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
@@ -2111,14 +2142,15 @@ class PlnPCA(_Pln):
             Whether to add a column of one in the covariates. Defaults to True.
         """
         self._rank = rank
-        self._counts, self._covariates, self._offsets = _handle_data(
-            counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+        super().__init__(
+            counts=counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
         )
-        self._check_if_rank_is_too_high()
-        if dict_initialization is not None:
-            self._set_init_parameters(dict_initialization)
-        self._fitted = False
-        self._plotargs = _PlotArgs(self._WINDOW)
 
     @classmethod
     def from_formula(
@@ -2208,7 +2240,7 @@ class PlnPCA(_Pln):
         torch.Tensor
             The latent variance tensor.
         """
-        return self.latent_sqrt_var**2
+        return (self.latent_sqrt_var**2).detach()
 
     @property
     def _latent_var(self) -> torch.Tensor:
@@ -2509,7 +2541,7 @@ class PlnPCA(_Pln):
         torch.Tensor
             The latent variables of size (n_samples, dim).
         """
-        return torch.matmul(self._latent_mean, self._components.T)
+        return torch.matmul(self._latent_mean, self._components.T).detach()
 
     @property
     def projected_latent_variables(self) -> torch.Tensor:
@@ -2557,7 +2589,7 @@ class PlnPCA(_Pln):
                 f"You ask more components ({n_components}) than maximum rank ({self.rank})"
             )
         pca = PCA(n_components=n_components)
-        return pca.fit_transform(self.latent_variables.detach().cpu())
+        return pca.fit_transform(self.latent_variables.cpu())
 
     @property
     def components(self) -> torch.Tensor:
@@ -2620,7 +2652,7 @@ class PlnPCA(_Pln):
             raise RuntimeError("Can't perform visualization for rank < 2.")
         else:
             pca = self.sk_PCA(n_components=2)
-            proj_variables = pca.transform(self.latent_variables.detach())
+            proj_variables = pca.transform(self.latent_variables)
             sk_components = torch.from_numpy(pca.components_)
             C_tilde_C = sk_components @ self._components
             C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (
