@@ -52,6 +52,7 @@ dependencies = [
 "torch",
 "scikit-learn",
 "patsy",
+"mlxtend",
 ]
 [project.optional-dependencies]
 tests = ["pytest","pytest_lazy_fixture"]
