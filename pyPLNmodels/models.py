@@ -176,6 +176,48 @@ class _Pln(ABC):
         """
         return self._fitted
 
+    def viz(self, ax=None, colors=None, show_cov: bool = True):
+        """
+        Visualize the PlnPCA model.
+
+        Parameters
+        ----------
+        ax : Optional[Any], optional
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+        colors : Optional[Any], optional
+            The colors to use for plotting, by default None.
+        show_cov: bool, optional
+
+        Raises
+        ------
+        RuntimeError
+            If the rank is less than 2.
+
+        Returns
+        -------
+        Any
+            The matplotlib axis.
+        """
+        if ax is None:
+            ax = plt.gca()
+        if self._rank < 2:
+            raise RuntimeError("Can't perform visualization for rank < 2.")
+        x = proj_variables[:, 0]
+        y = proj_variables[:, 1]
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
+        if show_cov is True:
+            pca = self.sk_PCA(n_components=2)
+            proj_variables = pca.transform(self.latent_variables)
+            sk_components = torch.from_numpy(pca.components_)
+            C_tilde_C = sk_components @ self._components
+            C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (
+                self._latent_var.unsqueeze(1)
+            )
+            covariances = ((C_tilde_C_latent_var) @ (C_tilde_C.T.unsqueeze(0))).detach()
+            for i in range(covariances.shape[0]):
+                _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
+        return ax
+
     @property
     def nb_iteration_done(self) -> int:
         """
@@ -329,7 +371,7 @@ class _Pln(ABC):
 
         if self._fitted is False:
             self._init_parameters(do_smart_init)
-        else:
+        elif len(self._plotargs.running_times) > 0:
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
         self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
@@ -2617,47 +2659,6 @@ class PlnPCA(_Pln):
                 f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
             )
         self._components = components
-
-    def viz(self, ax=None, colors=None):
-        """
-        Visualize the PlnPCA model.
-
-        Parameters
-        ----------
-        ax : Optional[Any], optional
-            The matplotlib axis to use. If None, the current axis is used, by default None.
-        colors : Optional[Any], optional
-            The colors to use for plotting, by default None.
-
-        Raises
-        ------
-        RuntimeError
-            If the rank is less than 2.
-
-        Returns
-        -------
-        Any
-            The matplotlib axis.
-        """
-        if ax is None:
-            ax = plt.gca()
-        if self._rank < 2:
-            raise RuntimeError("Can't perform visualization for rank < 2.")
-        else:
-            pca = self.sk_PCA(n_components=2)
-            proj_variables = pca.transform(self.latent_variables)
-            sk_components = torch.from_numpy(pca.components_)
-            C_tilde_C = sk_components @ self._components
-            C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (
-                self._latent_var.unsqueeze(1)
-            )
-            covariances = ((C_tilde_C_latent_var) @ (C_tilde_C.T.unsqueeze(0))).detach()
-        x = proj_variables[:, 0]
-        y = proj_variables[:, 1]
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
-        for i in range(covariances.shape[0]):
-            _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
-        return ax
 
     def transform(self, project: bool = True) -> torch.Tensor:
         """
