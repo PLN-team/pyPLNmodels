@@ -303,9 +303,10 @@ def _format_model_param(
         if covariates is None:
             covariates = torch.ones(counts.shape[0], 1)
         else:
-            covariates = torch.concat(
-                (covariates, torch.ones(counts.shape[0]).unsqueeze(1)), dim=1
-            )
+            if _has_null_variance(covariates) is False:
+                covariates = torch.concat(
+                    (covariates, torch.ones(counts.shape[0]).unsqueeze(1)), dim=1
+                )
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of counts")
@@ -319,6 +320,23 @@ def _format_model_param(
         if take_log_offsets is True:
             offsets = torch.log(offsets)
     return counts, covariates, offsets
+
+
+def _has_null_variance(tensor: torch.Tensor) -> bool:
+    """
+    Check if a torch.Tensor has a dimension with null variance.
+
+    Parameters
+    ----------
+        tensor (torch.Tensor): The input tensor.
+
+    Returns
+    -------
+        bool: True if a dimension with null variance is found, False otherwise.
+    """
+    variances = torch.var(tensor, dim=0)
+    has_null_var = torch.any(variances == 0)
+    return bool(has_null_var)
 
 
 def _check_data_shape(

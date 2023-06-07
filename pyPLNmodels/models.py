@@ -162,6 +162,7 @@ class _Pln(ABC):
         for key, array in dict_initialization.items():
             array = _format_data(array)
             setattr(self, key, array)
+        self._fitted = True
 
     @property
     def fitted(self) -> bool:
@@ -408,6 +409,18 @@ class _Pln(ABC):
         pca.fit(self.latent_variables.cpu())
         return pca
 
+    @property
+    def latent_var(self) -> torch.Tensor:
+        """
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
+        """
+        return (self.latent_sqrt_var**2).detach()
+
     def scatter_pca_matrix(self, n_components=None, color=None):
         """
         Generates a scatter matrix plot based on Principal Component Analysis (PCA).
@@ -438,7 +451,7 @@ class _Pln(ABC):
         components = torch.from_numpy(pca.components_)
 
         labels = {
-            str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_, 2)[i]}%"
+            str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
             for i in range(n_components)
         }
         proj_variables
@@ -678,7 +691,7 @@ class _Pln(ABC):
         float
             The log-likelihood.
         """
-        if self._fitted is False:
+        if len(self._elbos_list) == 0:
             t0 = time.time()
             self._plotargs._elbos_list.append(self.compute_elbo().item())
             self._plotargs.running_times.append(time.time() - t0)
@@ -718,7 +731,10 @@ class _Pln(ABC):
         dict
             The dictionary of latent parameters.
         """
-        return {"latent_var": self.latent_var, "latent_mean": self.latent_mean}
+        return {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
 
     @property
     def model_parameters(self):
@@ -873,16 +889,17 @@ class _Pln(ABC):
             return attr
         return None
 
-    def save(self, path_of_directory: str = "./"):
+    def save(self, path: str = None):
         """
         Save the model parameters to disk.
 
         Parameters
         ----------
-        path_of_directory : str, optional
+        path : str, optional
             The path of the directory to save the parameters, by default "./".
         """
-        path = f"{path_of_directory}/{self._directory_name}"
+        if path is None:
+            path = f"./{self._directory_name}"
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
@@ -1016,7 +1033,7 @@ class _Pln(ABC):
             pass
         elif coef.shape != (self.nb_cov, self.dim):
             raise ValueError(
-                f"Wrong shape for the counts. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
+                f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
             )
         self._coef = coef
 
@@ -2020,7 +2037,7 @@ class PlnPCAcollection:
             ranks = self.ranks
         for model in self.values():
             if model.rank in ranks:
-                model.save(f"{self._directory_name}/{path_of_directory}")
+                model.save(f"{self._directory_name}/PlnPCA_rank_{model.rank}")
 
     @property
     def _directory_name(self) -> str:
@@ -2231,18 +2248,6 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_latent_sqrt_var")
 
     @property
-    def latent_var(self) -> torch.Tensor:
-        """
-        Property representing the latent variance.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variance tensor.
-        """
-        return (self.latent_sqrt_var**2).detach()
-
-    @property
     def _latent_var(self) -> torch.Tensor:
         """
         Property representing the latent variance.
@@ -2298,7 +2303,7 @@ class PlnPCA(_Pln):
         str
             The directory name.
         """
-        return f"{self._NAME}_rank_{self._rank}"
+        return f"{self._NAME}_nbcov_{self.nb_cov}_rank_{self._rank}"
 
     @property
     def covariates(self) -> torch.Tensor:
@@ -2327,18 +2332,6 @@ class PlnPCA(_Pln):
         self._covariates = covariates
         print("Setting coef to initialization")
         self._smart_init_coef()
-
-    @property
-    def _path_to_directory(self) -> str:
-        """
-        Property representing the path to the directory.
-
-        Returns
-        -------
-        str
-            The path to the directory.
-        """
-        return f"PlnPCAcollection_nbcov_{self.nb_cov}_dim_{self.dim}/"
 
     @property
     def rank(self) -> int:

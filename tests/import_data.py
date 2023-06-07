@@ -35,5 +35,7 @@ data_sim_2cov = {
     "covariates": covariates_sim_2cov,
     "offsets": offsets_sim_2cov,
 }
-counts_real = get_real_count_data()
+counts_real, labels_real = get_real_count_data(
+    return_labels=True, n_samples=100, dim=50
+)
 data_real = {"counts": counts_real}
