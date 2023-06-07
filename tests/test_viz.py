@@ -1,4 +1,5 @@
 import pytest
+import matplotlib.pyplot as plt
 
 from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
@@ -43,3 +44,18 @@ def test_scatter_pca_matrix_plnpca(pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_label_scatter_pca_matrix(pln):
     pln.scatter_pca_matrix(n_components=4, color=labels_real)
+
+
+@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
+@filter_models(["PlnPCAcollection"])
+def test_viz_pcacol(plnpca):
+    for model in plnpca.values():
+        _, ax = plt.subplots()
+        model.viz(ax=ax)
+        plt.show()
+        model.viz()
+        plt.show()
+        n_samples = plnpca.n_samples
+        colors = np.random.randint(low=0, high=2, size=n_samples)
+        model.viz(colors=colors)
+        plt.show()
