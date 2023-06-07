@@ -178,7 +178,7 @@ class _Pln(ABC):
 
     def viz(self, ax=None, colors=None, show_cov: bool = True):
         """
-        Visualize the PlnPCA model.
+        Visualize the latent variables with a classic PCA.
 
         Parameters
         ----------
@@ -187,7 +187,7 @@ class _Pln(ABC):
         colors : Optional[Any], optional
             The colors to use for plotting, by default None.
         show_cov: bool, optional
-
+            If True, will display ellipses with right covariances. Default is True.
         Raises
         ------
         RuntimeError
@@ -200,20 +200,16 @@ class _Pln(ABC):
         """
         if ax is None:
             ax = plt.gca()
-        if self._rank < 2:
-            raise RuntimeError("Can't perform visualization for rank < 2.")
+        if self._get_max_components() < 2:
+            raise RuntimeError("Can't perform visualization for dim < 2.")
+        pca = self.sk_PCA(n_components=2)
+        proj_variables = pca.transform(self.latent_variables)
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
-            pca = self.sk_PCA(n_components=2)
-            proj_variables = pca.transform(self.latent_variables)
             sk_components = torch.from_numpy(pca.components_)
-            C_tilde_C = sk_components @ self._components
-            C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (
-                self._latent_var.unsqueeze(1)
-            )
-            covariances = ((C_tilde_C_latent_var) @ (C_tilde_C.T.unsqueeze(0))).detach()
+            covariances = self._get_pca_low_dim_covariances(sk_components).detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
@@ -1358,6 +1354,13 @@ class Pln(_Pln):
             self.n_samples,
         )
 
+    def _get_pca_low_dim_covariances(self, sk_components):
+        components_var = (self._latent_sqrt_var**2).unsqueeze(
+            1
+        ) * sk_components.unsqueeze(0)
+        covariances = components_var @ (sk_components.T.unsqueeze(0))
+        return covariances
+
     def _pring_beginning_message(self):
         """
         Method for printing the beginning message.
@@ -2374,6 +2377,12 @@ class PlnPCA(_Pln):
         self._covariates = covariates
         print("Setting coef to initialization")
         self._smart_init_coef()
+
+    def _get_pca_low_dim_covariances(self, sk_components):
+        C_tilde_C = sk_components @ self._components
+        C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (self._latent_var.unsqueeze(1))
+        covariances = (C_tilde_C_latent_var) @ (C_tilde_C.T.unsqueeze(0))
+        return covariances
 
     @property
     def rank(self) -> int:
