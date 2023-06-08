@@ -676,9 +676,9 @@ def get_real_count_data(
     Parameters
     ----------
     n_samples : int, optional
-        Number of samples, by default 469.
+        Number of samples, by default max_samples.
     dim : int, optional
-        Dimension, by default 200.
+        Dimension, by default max_dim.
     return_labels: bool, optional
         If True, will return the labels of the count data
     Returns
@@ -686,16 +686,18 @@ def get_real_count_data(
     np.ndarray
         Real count data and labels if return_labels is True.
     """
-    if n_samples > 469:
+    max_samples = 469
+    max_dim = 200
+    if n_samples > max_samples:
         warnings.warn(
-            f"\nTaking the whole 469 samples of the dataset. Requested:n_samples={n_samples}, returned:469"
+            f"\nTaking the whole max_samples samples of the dataset. Requested:n_samples={n_samples}, returned:{max_samples}"
         )
-        n_samples = 469
-    if dim > 100:
+        n_samples = max_samples
+    if dim > max_dim:
         warnings.warn(
-            f"\nTaking the whole 200 variables. Requested:dim={dim}, returned:200"
+            f"\nTaking the whole max_dim variables. Requested:dim={dim}, returned:{max_dim}"
         )
-        dim = 200
+        dim = max_dim
     counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
     counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
     print(f"Returning dataset of size {counts.shape}")

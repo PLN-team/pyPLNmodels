@@ -696,6 +696,7 @@ class _Pln(ABC):
         """
         Abstract property representing the additional methods string.
         """
+
         pass
 
     @property
@@ -1144,7 +1145,7 @@ class _Pln(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .coef() .transform(), .sigma(), .predict(), .pca_projected_latent_variables()"
+        return ".show(), .coef() .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
 
     def sigma(self):
         """
@@ -2143,12 +2144,12 @@ class PlnPCAcollection:
         to_print += f" - Ranks considered:{self.ranks}\n"
         dict_bic = {"rank": "criterion"} | self.BIC
         to_print += f" - BIC metric:\n{_nice_string_of_dict(dict_bic)}\n"
-        dict_to_print = self.best_model(criterion="BIC")._rank
-        to_print += f"   Best model(lower BIC): {dict_to_print}\n \n"
+        rank_bic = self.best_model(criterion="BIC")._rank
+        to_print += f"   Best model(lower BIC): {rank_bic}\n \n"
         dict_aic = {"rank": "criterion"} | self.AIC
         to_print += f" - AIC metric:\n{_nice_string_of_dict(dict_aic)}\n"
-        to_print += f"   Best model(lower AIC): \
-                {self.best_model(criterion='AIC')._rank}\n"
+        rank_aic = self.best_model(criterion="AIC")._rank
+        to_print += f"   Best model(lower AIC): {rank_aic}"
         to_print += delimiter
         to_print += "* Useful properties\n"
         to_print += f"    {self._useful_properties_string}\n"
@@ -2558,7 +2559,7 @@ class PlnPCA(_Pln):
         str
             The additional methods string.
         """
-        string = "    only for rank=2: .viz()"
+        string = " .projected_latent_variables"
         return string
 
     @property
