@@ -1,10 +1,11 @@
 import sys
 import glob
 from functools import singledispatch
-
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture as lf
+import pandas as pd
+
 from pyPLNmodels import load_model, load_plnpcacollection
 from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection
 
@@ -33,6 +34,8 @@ covariates_sim_2cov = data_sim_2cov["covariates"]
 offsets_sim_2cov = data_sim_2cov["offsets"]
 
 counts_real = data_real["counts"]
+counts_real = pd.DataFrame(counts_real)
+counts_real.column = [f"var_{i}" for i in range(counts_real.shape[1])]
 
 
 def add_fixture_to_dict(my_dict, string_fixture):
