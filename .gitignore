@@ -150,3 +150,18 @@ test.py
 
 ## directories that outputs when running the tests
 tests/PLN*
+
+*.out
+*.aux
+*.bbl
+*.dvi
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.pdf
+code/__pycache__/*
+*.synctex.gz
+*.nav
+*.snm
+*.toc
