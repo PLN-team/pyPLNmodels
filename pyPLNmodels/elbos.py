@@ -10,7 +10,7 @@ def elbo_pln(
     offsets: torch.Tensor,
     covariates: Optional[torch.Tensor],
     latent_mean: torch.Tensor,
-    latent_var: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
     covariance: torch.Tensor,
     coef: torch.Tensor,
 ) -> torch.Tensor:
@@ -27,7 +27,7 @@ def elbo_pln(
         Covariates with size (n, d).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
-    latent_var : torch.Tensor
+    latent_sqrt_var : torch.Tensor
         Variational parameter with size (n, p).
     covariance : torch.Tensor
         Model parameter with size (p, p).
@@ -40,7 +40,7 @@ def elbo_pln(
         The ELBO (Evidence Lower Bound), of size one.
     """
     n_samples, dim = counts.shape
-    s_rond_s = torch.square(latent_var)
+    s_rond_s = torch.square(latent_sqrt_var)
     offsets_plus_m = offsets + latent_mean
     if covariates is None:
         XB = torch.zeros_like(counts)
@@ -67,7 +67,7 @@ def profiled_elbo_pln(
     covariates: torch.Tensor,
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
-    latent_var: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
 ) -> torch.Tensor:
     """
     Compute the ELBO (Evidence Lower Bound) for the Pln model with profiled
@@ -84,7 +84,7 @@ def profiled_elbo_pln(
         Offset with size (n, p).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
-    latent_var : torch.Tensor
+    latent_sqrt_var : torch.Tensor
         Variational parameter with size (n, p).
 
     Returns:
@@ -93,11 +93,11 @@ def profiled_elbo_pln(
         The ELBO (Evidence Lower Bound) with size 1.
     """
     n_samples, _ = counts.shape
-    s_squared = torch.square(latent_var)
+    s_squared = torch.square(latent_sqrt_var)
     offsets_plus_mean = offsets + latent_mean
     closed_coef = _closed_formula_coef(covariates, latent_mean)
     closed_covariance = _closed_formula_covariance(
-        covariates, latent_mean, latent_var, closed_coef, n_samples
+        covariates, latent_mean, latent_sqrt_var, closed_coef, n_samples
     )
     elbo = -0.5 * n_samples * torch.logdet(closed_covariance)
     elbo += torch.sum(
@@ -114,7 +114,7 @@ def elbo_plnpca(
     covariates: torch.Tensor,
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
-    latent_var: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
     components: torch.Tensor,
     coef: torch.Tensor,
 ) -> torch.Tensor:
@@ -132,7 +132,7 @@ def elbo_plnpca(
         Offset with size (n, p).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
-    latent_var : torch.Tensor
+    latent_sqrt_var : torch.Tensor
         Variational parameter with size (n, p). More precisely it is the unsigned
         square root of the variational variance.
     components : torch.Tensor
@@ -152,14 +152,14 @@ def elbo_plnpca(
     else:
         XB = covariates @ coef
     log_intensity = offsets + XB + latent_mean @ components.T
-    s_squared = torch.square(latent_var)
+    s_squared = torch.square(latent_sqrt_var)
     counts_log_intensity = torch.sum(counts * log_intensity)
     minus_intensity_plus_s_squared_cct = torch.sum(
         -torch.exp(log_intensity + 0.5 * s_squared @ (components * components).T)
     )
     minus_logs_squared = 0.5 * torch.sum(torch.log(s_squared))
     mm_plus_s_squared = -0.5 * torch.sum(
-        torch.square(latent_mean) + torch.square(latent_var)
+        torch.square(latent_mean) + torch.square(latent_sqrt_var)
     )
     log_stirling_counts = torch.sum(_log_stirling(counts))
     return (
@@ -178,7 +178,7 @@ def elbo_zi_pln(
     covariates,
     offsets,
     latent_mean,
-    latent_var,
+    latent_sqrt_var,
     pi,
     covariance,
     coef,
@@ -193,7 +193,7 @@ def elbo_zi_pln(
         0: torch.tensor. Offset, size (n,p)
         covariates: torch.tensor. Covariates, size (n,d)
         latent_mean: torch.tensor. Variational parameter with size (n,p)
-        latent_var: torch.tensor. Variational parameter with size (n,p)
+        latent_sqrt_var: torch.tensor. Variational parameter with size (n,p)
         pi: torch.tensor. Variational parameter with size (n,p)
         covariance: torch.tensor. Model parameter with size (p,p)
         coef: torch.tensor. Model parameter with size (d,p)
@@ -206,7 +206,7 @@ def elbo_zi_pln(
         return False
     n_samples = counts.shape[0]
     dim = counts.shape[1]
-    s_rond_s = torch.square(latent_var)
+    s_rond_s = torch.square(latent_sqrt_var)
     offsets_plus_m = offsets + latent_mean
     m_minus_xb = latent_mean - covariates @ coef
     x_coef_inflation = covariates @ _coef_inflation

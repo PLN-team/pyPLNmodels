@@ -10,7 +10,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-
+import plotly.express as px
+from mlxtend.plotting import plot_pca_correlation_graph
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -21,13 +22,13 @@ from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
     _PlotArgs,
     _format_data,
-    _format_model_param,
     _nice_string_of_dict,
     _plot_ellipse,
     _check_data_shape,
     _extract_data_from_formula,
     _get_dict_initialization,
     _array2tensor,
+    _handle_data,
 )
 
 from ._initialization import (
@@ -58,7 +59,7 @@ class _Pln(ABC):
     _offsets: torch.Tensor
     _coef: torch.Tensor
     _beginning_time: float
-    _latent_var: torch.Tensor
+    _latent_sqrt_var: torch.Tensor
     _latent_mean: torch.Tensor
 
     def __init__(
@@ -69,6 +70,7 @@ class _Pln(ABC):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        add_const: bool = True,
     ):
         """
         Initializes the _Pln class.
@@ -87,11 +89,17 @@ class _Pln(ABC):
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional
             Whether to take the log of offsets. Defaults to False.
+        add_const: bool, optional
+            Whether to add a column of one in the covariates. Defaults to True.
         """
-        self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, offsets_formula, take_log_offsets
+        (
+            self._counts,
+            self._covariates,
+            self._offsets,
+            self.column_counts,
+        ) = _handle_data(
+            counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
         )
-        _check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
         if dict_initialization is not None:
@@ -136,6 +144,7 @@ class _Pln(ABC):
             offsets_formula,
             dict_initialization,
             take_log_offsets,
+            add_const=False,
         )
 
     def _set_init_parameters(self, dict_initialization: dict):
@@ -153,6 +162,7 @@ class _Pln(ABC):
         for key, array in dict_initialization.items():
             array = _format_data(array)
             setattr(self, key, array)
+        self._fitted = True
 
     @property
     def fitted(self) -> bool:
@@ -165,6 +175,44 @@ class _Pln(ABC):
             True if the model is fitted, False otherwise.
         """
         return self._fitted
+
+    def viz(self, ax=None, colors=None, show_cov: bool = True):
+        """
+        Visualize the latent variables with a classic PCA.
+
+        Parameters
+        ----------
+        ax : Optional[Any], optional
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+        colors : Optional[Any], optional
+            The colors to use for plotting, by default None.
+        show_cov: bool, optional
+            If True, will display ellipses with right covariances. Default is True.
+        Raises
+        ------
+        RuntimeError
+            If the rank is less than 2.
+
+        Returns
+        -------
+        Any
+            The matplotlib axis.
+        """
+        if ax is None:
+            ax = plt.gca()
+        if self._get_max_components() < 2:
+            raise RuntimeError("Can't perform visualization for dim < 2.")
+        pca = self.sk_PCA(n_components=2)
+        proj_variables = pca.transform(self.latent_variables)
+        x = proj_variables[:, 0]
+        y = proj_variables[:, 1]
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
+        if show_cov is True:
+            sk_components = torch.from_numpy(pca.components_)
+            covariances = self._get_pca_low_dim_covariances(sk_components).detach()
+            for i in range(covariances.shape[0]):
+                _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
+        return ax
 
     @property
     def nb_iteration_done(self) -> int:
@@ -319,7 +367,7 @@ class _Pln(ABC):
 
         if self._fitted is False:
             self._init_parameters(do_smart_init)
-        else:
+        elif len(self._plotargs.running_times) > 0:
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
         self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
@@ -368,6 +416,27 @@ class _Pln(ABC):
         ValueError
            If the number of components asked is greater than the number of dimensions.
         """
+        pca = self.sk_PCA(n_components=n_components)
+        return pca.transform(self.latent_variables.cpu())
+
+    def sk_PCA(self, n_components=None):
+        """
+        Perform PCA on the latent variables.
+
+        Parameters
+        ----------
+        n_components : int, optional
+            The number of components to keep. If None, all components are kept. Defaults to None.
+
+        Returns
+        -------
+        sklearn.decomposition.PCA
+            sklearn.decomposition.PCA object with all the features from sklearn.
+        Raises
+        ------
+        ValueError
+           If the number of components asked is greater than the number of dimensions.
+        """
         if n_components is None:
             n_components = self._get_max_components()
         if n_components > self.dim:
@@ -375,7 +444,119 @@ class _Pln(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = PCA(n_components=n_components)
-        return pca.fit_transform(self.latent_variables.detach().cpu())
+        pca.fit(self.latent_variables.cpu())
+        return pca
+
+    @property
+    def latent_var(self) -> torch.Tensor:
+        """
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
+        """
+        return (self.latent_sqrt_var**2).detach()
+
+    def scatter_pca_matrix(self, n_components=None, color=None):
+        """
+        Generates a scatter matrix plot based on Principal Component Analysis (PCA).
+
+        Parameters
+        ----------
+            n_components (int, optional): The number of components to consider for plotting.
+                If not specified, the maximum number of components will be used.
+                Defaults to None.
+
+            color (str, optional): The name of the variable used for color coding the scatter plot.
+                If not specified, the scatter plot will not be color-coded.
+                Defaults to None.
+        Raises
+        ------
+            ValueError: If the number of components requested is greater than the number of variables in the dataset.
+        """
+
+        if n_components is None:
+            n_components = self._get_max_components()
+
+        if n_components > self.dim:
+            raise ValueError(
+                f"You ask more components ({n_components}) than variables ({self.dim})"
+            )
+        pca = self.sk_PCA(n_components=n_components)
+        proj_variables = pca.transform(self.latent_variables)
+        components = torch.from_numpy(pca.components_)
+
+        labels = {
+            str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
+            for i in range(n_components)
+        }
+        proj_variables
+        fig = px.scatter_matrix(
+            proj_variables,
+            dimensions=range(n_components),
+            color=color,
+            labels=labels,
+        )
+        fig.update_traces(diagonal_visible=False)
+        fig.show()
+
+    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+        """
+        Visualizes variables using PCA and plots a correlation graph.
+
+        Parameters
+        ----------
+            variables_names : List[str]
+                A list of variable names to visualize.
+            indices_of_variables : Optional[List[int]], optional
+                A list of indices corresponding to the variables.
+                If None, indices are determined based on `column_counts`, by default None
+
+        Raises
+        ------
+            ValueError
+                If `indices_of_variables` is None and `column_counts` is not set.
+            ValueError
+                If the length of `indices_of_variables` is different from the length of `variables_names`.
+
+        Returns
+        -------
+            None
+        """
+        if indices_of_variables is None:
+            if self.column_counts is None:
+                raise ValueError(
+                    "No names have been given to the column of "
+                    "counts. Please set the column_counts to the"
+                    "needed names or instantiate a new model with"
+                    "a pd.DataFrame with appropriate column names"
+                )
+            indices_of_variables = []
+            for variables_name in variables_names:
+                index = self.column_counts.get_loc(variables_name)
+                indices_of_variables.append(index)
+        else:
+            if len(indices_of_variables) != len(variables_names):
+                raise ValueError(
+                    f"Number of variables {len(indices_of_variables)} should be the same as the number of variables_names {len(variables_names)}"
+                )
+
+        n_components = 2
+        pca = self.sk_PCA(n_components=n_components)
+        variables = self.latent_variables
+        proj_variables = pca.transform(variables)
+        ## the package is not correctly printing the variance ratio
+        figure, correlation_matrix = plot_pca_correlation_graph(
+            variables[:, indices_of_variables],
+            variables_names=variables_names,
+            X_pca=proj_variables,
+            explained_variance=pca.explained_variance_ratio_,
+            dimensions=(1, 2),
+            figure_axis_size=10,
+        )
+        plt.show()
 
     @property
     @abstractmethod
@@ -493,6 +674,8 @@ class _Pln(ABC):
         str
             The string representation of the object.
         """
+        if self._fitted is False:
+            raise RuntimeError("Please fit the model before printing it.")
         delimiter = "=" * NB_CHARACTERS_FOR_NICE_PLOT
         string = f"A multivariate Poisson Lognormal with {self._description} \n"
         string += f"{delimiter}\n"
@@ -563,7 +746,7 @@ class _Pln(ABC):
         float
             The log-likelihood.
         """
-        if self._fitted is False:
+        if len(self._elbos_list) == 0:
             t0 = time.time()
             self._plotargs._elbos_list.append(self.compute_elbo().item())
             self._plotargs.running_times.append(time.time() - t0)
@@ -603,7 +786,10 @@ class _Pln(ABC):
         dict
             The dictionary of latent parameters.
         """
-        return {"latent_var": self.latent_var, "latent_mean": self.latent_mean}
+        return {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
 
     @property
     def model_parameters(self):
@@ -682,7 +868,7 @@ class _Pln(ABC):
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
-    def latent_var(self):
+    def latent_sqrt_var(self):
         """
         Property representing the latent variance.
 
@@ -691,7 +877,7 @@ class _Pln(ABC):
         torch.Tensor or None
             The latent variance or None.
         """
-        return self._cpu_attribute_or_none("_latent_var")
+        return self._cpu_attribute_or_none("_latent_sqrt_var")
 
     @latent_mean.setter
     @_array2tensor
@@ -715,15 +901,15 @@ class _Pln(ABC):
             )
         self._latent_mean = latent_mean
 
-    @latent_var.setter
+    @latent_sqrt_var.setter
     @_array2tensor
-    def latent_var(self, latent_var):
+    def latent_sqrt_var(self, latent_sqrt_var):
         """
         Setter for the latent variance property.
 
         Parameters
         ----------
-        latent_var : torch.Tensor
+        latent_sqrt_var : torch.Tensor
             The latent variance.
 
         Raises
@@ -731,11 +917,11 @@ class _Pln(ABC):
         ValueError
             If the shape of the latent variance is incorrect.
         """
-        if latent_var.shape != (self.n_samples, self.dim):
+        if latent_sqrt_var.shape != (self.n_samples, self.dim):
             raise ValueError(
-                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_var.shape}"
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
             )
-        self._latent_var = latent_var
+        self._latent_sqrt_var = latent_sqrt_var
 
     def _cpu_attribute_or_none(self, attribute_name):
         """
@@ -758,16 +944,17 @@ class _Pln(ABC):
             return attr
         return None
 
-    def save(self, path_of_directory: str = "./"):
+    def save(self, path: str = None):
         """
         Save the model parameters to disk.
 
         Parameters
         ----------
-        path_of_directory : str, optional
+        path : str, optional
             The path of the directory to save the parameters, by default "./".
         """
-        path = f"{path_of_directory}/{self._path_to_directory}{self._directory_name}"
+        if path is None:
+            path = f"./{self._directory_name}"
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
@@ -901,7 +1088,7 @@ class _Pln(ABC):
             pass
         elif coef.shape != (self.nb_cov, self.dim):
             raise ValueError(
-                f"Wrong shape for the counts. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
+                f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
             )
         self._coef = coef
 
@@ -1093,8 +1280,10 @@ class Pln(_Pln):
         """
         Method for randomly initializing the latent parameters.
         """
-        if not hasattr(self, "_latent_var"):
-            self._latent_var = 1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+            )
         if not hasattr(self, "_latent_mean"):
             self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
 
@@ -1108,7 +1297,7 @@ class Pln(_Pln):
         list
             The list of parameters needing gradient.
         """
-        return [self._latent_mean, self._latent_var]
+        return [self._latent_mean, self._latent_sqrt_var]
 
     def _get_max_components(self):
         """
@@ -1135,7 +1324,7 @@ class Pln(_Pln):
             self._covariates,
             self._offsets,
             self._latent_mean,
-            self._latent_var,
+            self._latent_sqrt_var,
         )
 
     def _smart_init_model_parameters(self):
@@ -1177,10 +1366,17 @@ class Pln(_Pln):
         return _closed_formula_covariance(
             self._covariates,
             self._latent_mean,
-            self._latent_var,
+            self._latent_sqrt_var,
             self._coef,
             self.n_samples,
         )
+
+    def _get_pca_low_dim_covariances(self, sk_components):
+        components_var = (self._latent_sqrt_var**2).unsqueeze(
+            1
+        ) * sk_components.unsqueeze(0)
+        covariances = components_var @ (sk_components.T.unsqueeze(0))
+        return covariances
 
     def _pring_beginning_message(self):
         """
@@ -1198,7 +1394,7 @@ class Pln(_Pln):
         torch.Tensor
             The latent variables.
         """
-        return self.latent_mean
+        return self.latent_mean.detach()
 
     @property
     def number_of_parameters(self):
@@ -1238,7 +1434,7 @@ class Pln(_Pln):
             for attr in [
                 "_covariates",
                 "_latent_mean",
-                "_latent_var",
+                "_latent_sqrt_var",
                 "_coef",
                 "n_samples",
             ]
@@ -1272,6 +1468,7 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        add_const: bool = True,
     ):
         """
         Constructor for PlnPCAcollection.
@@ -1292,40 +1489,20 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional
             Whether to take the logarithm of offsets, by default False.
+        add_const: bool, optional
+            Whether to add a column of one in the covariates. Defaults to True.
         """
         self._dict_models = {}
-        self._init_data(counts, covariates, offsets, offsets_formula, take_log_offsets)
-        self._init_models(ranks, dict_of_dict_initialization)
-
-    def _init_data(
-        self,
-        counts: torch.Tensor,
-        covariates: Optional[torch.Tensor],
-        offsets: Optional[torch.Tensor],
-        offsets_formula: str,
-        take_log_offsets: bool,
-    ):
-        """
-        Method for initializing the data.
-
-        Parameters
-        ----------
-        counts : torch.Tensor
-            The counts.
-        covariates : torch.Tensor, optional
-            The covariates, by default None.
-        offsets : torch.Tensor, optional
-            The offsets, by default None.
-        offsets_formula : str
-            The formula for offsets.
-        take_log_offsets : bool
-            Whether to take the logarithm of offsets.
-        """
-        self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, offsets_formula, take_log_offsets
+        (
+            self._counts,
+            self._covariates,
+            self._offsets,
+            self.column_counts,
+        ) = _handle_data(
+            counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
         )
-        _check_data_shape(self._counts, self._covariates, self._offsets)
         self._fitted = False
+        self._init_models(ranks, dict_of_dict_initialization)
 
     @classmethod
     def from_formula(
@@ -1354,7 +1531,6 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional
             Whether to take the logarithm of offsets, by default False.
-
         Returns
         -------
         PlnPCAcollection
@@ -1369,6 +1545,7 @@ class PlnPCAcollection:
             ranks,
             dict_of_dict_initialization,
             take_log_offsets,
+            add_const=False,
         )
 
     @property
@@ -1432,7 +1609,7 @@ class PlnPCAcollection:
         return {model.rank: model.latent_mean for model in self.values()}
 
     @property
-    def latent_var(self) -> Dict[int, torch.Tensor]:
+    def latent_sqrt_var(self) -> Dict[int, torch.Tensor]:
         """
         Property representing the latent variances.
 
@@ -1441,7 +1618,7 @@ class PlnPCAcollection:
         Dict[int, torch.Tensor]
             The latent variances.
         """
-        return {model.rank: model.latent_var for model in self.values()}
+        return {model.rank: model.latent_sqrt_var for model in self.values()}
 
     @counts.setter
     @_array2tensor
@@ -1922,7 +2099,7 @@ class PlnPCAcollection:
             ranks = self.ranks
         for model in self.values():
             if model.rank in ranks:
-                model.save(path_of_directory)
+                model.save(f"{self._directory_name}/PlnPCA_rank_{model.rank}")
 
     @property
     def _directory_name(self) -> str:
@@ -2018,6 +2195,8 @@ class PlnPCA(_Pln):
         offsets_formula: str = "logsum",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
     ):
         """
         Initialize the PlnPCA object.
@@ -2036,17 +2215,21 @@ class PlnPCA(_Pln):
             The rank of the approximation, by default 5.
         dict_initialization : Dict[str, torch.Tensor], optional
             The dictionary for initialization, by default None.
+        take_log_offsets : bool, optional
+            Whether to take the log of offsets. Defaults to False.
+        add_const: bool, optional
+            Whether to add a column of one in the covariates. Defaults to True.
         """
         self._rank = rank
-        self._counts, self._covariates, self._offsets = _format_model_param(
-            counts, covariates, offsets, None, take_log_offsets=False
+        super().__init__(
+            counts=counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
         )
-        _check_data_shape(self._counts, self._covariates, self._offsets)
-        self._check_if_rank_is_too_high()
-        if dict_initialization is not None:
-            self._set_init_parameters(dict_initialization)
-        self._fitted = False
-        self._plotargs = _PlotArgs(self._WINDOW)
 
     @classmethod
     def from_formula(
@@ -2080,7 +2263,13 @@ class PlnPCA(_Pln):
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
-            counts, covariates, offsets, offsets_formula, rank, dict_initialization
+            counts,
+            covariates,
+            offsets,
+            offsets_formula,
+            rank,
+            dict_initialization,
+            add_const=False,
         )
 
     def _check_if_rank_is_too_high(self):
@@ -2109,7 +2298,19 @@ class PlnPCA(_Pln):
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
-    def latent_var(self) -> torch.Tensor:
+    def latent_sqrt_var(self) -> torch.Tensor:
+        """
+        Property representing the unsigned square root of the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
+        """
+        return self._cpu_attribute_or_none("_latent_sqrt_var")
+
+    @property
+    def _latent_var(self) -> torch.Tensor:
         """
         Property representing the latent variance.
 
@@ -2118,7 +2319,7 @@ class PlnPCA(_Pln):
         torch.Tensor
             The latent variance tensor.
         """
-        return self._cpu_attribute_or_none("_latent_var")
+        return self._latent_sqrt_var**2
 
     @latent_mean.setter
     @_array2tensor
@@ -2137,22 +2338,22 @@ class PlnPCA(_Pln):
             )
         self._latent_mean = latent_mean
 
-    @latent_var.setter
+    @latent_sqrt_var.setter
     @_array2tensor
-    def latent_var(self, latent_var: torch.Tensor):
+    def latent_sqrt_var(self, latent_sqrt_var: torch.Tensor):
         """
         Setter for the latent variance.
 
         Parameters
         ----------
-        latent_var : torch.Tensor
+        latent_sqrt_var : torch.Tensor
             The latent variance tensor.
         """
-        if latent_var.shape != (self.n_samples, self.rank):
+        if latent_sqrt_var.shape != (self.n_samples, self.rank):
             raise ValueError(
-                f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_var.shape}"
+                f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_sqrt_var.shape}"
             )
-        self._latent_var = latent_var
+        self._latent_sqrt_var = latent_sqrt_var
 
     @property
     def _directory_name(self) -> str:
@@ -2164,7 +2365,7 @@ class PlnPCA(_Pln):
         str
             The directory name.
         """
-        return f"{self._NAME}_rank_{self._rank}"
+        return f"{self._NAME}_nbcov_{self.nb_cov}_rank_{self._rank}"
 
     @property
     def covariates(self) -> torch.Tensor:
@@ -2194,17 +2395,11 @@ class PlnPCA(_Pln):
         print("Setting coef to initialization")
         self._smart_init_coef()
 
-    @property
-    def _path_to_directory(self) -> str:
-        """
-        Property representing the path to the directory.
-
-        Returns
-        -------
-        str
-            The path to the directory.
-        """
-        return f"PlnPCAcollection_nbcov_{self.nb_cov}_dim_{self.dim}/"
+    def _get_pca_low_dim_covariances(self, sk_components):
+        C_tilde_C = sk_components @ self._components
+        C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (self._latent_var.unsqueeze(1))
+        covariances = (C_tilde_C_latent_var) @ (C_tilde_C.T.unsqueeze(0))
+        return covariances
 
     @property
     def rank(self) -> int:
@@ -2270,7 +2465,9 @@ class PlnPCA(_Pln):
         """
         Randomly initialize the latent parameters.
         """
-        self._latent_var = 1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+        self._latent_sqrt_var = (
+            1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+        )
         self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
 
     def _smart_init_latent_parameters(self):
@@ -2289,8 +2486,8 @@ class PlnPCA(_Pln):
                 .to(DEVICE)
                 .detach()
             )
-        if not hasattr(self, "_latent_var"):
-            self._latent_var = (
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
                 1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
             )
 
@@ -2305,8 +2502,8 @@ class PlnPCA(_Pln):
             The list of parameters needing gradient.
         """
         if self._coef is None:
-            return [self._components, self._latent_mean, self._latent_var]
-        return [self._components, self._coef, self._latent_mean, self._latent_var]
+            return [self._components, self._latent_mean, self._latent_sqrt_var]
+        return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
 
     def compute_elbo(self) -> torch.Tensor:
         """
@@ -2322,7 +2519,7 @@ class PlnPCA(_Pln):
             self._covariates,
             self._offsets,
             self._latent_mean,
-            self._latent_var,
+            self._latent_sqrt_var,
             self._components,
             self._coef,
         )
@@ -2376,7 +2573,9 @@ class PlnPCA(_Pln):
         """
         if hasattr(self, "_components"):
             cov_latent = self._latent_mean.T @ self._latent_mean
-            cov_latent += torch.diag(torch.sum(torch.square(self._latent_var), dim=0))
+            cov_latent += torch.diag(
+                torch.sum(torch.square(self._latent_sqrt_var), dim=0)
+            )
             cov_latent /= self.n_samples
             return (self._components @ cov_latent @ self._components.T).cpu().detach()
         return None
@@ -2401,9 +2600,9 @@ class PlnPCA(_Pln):
         Returns
         -------
         torch.Tensor
-            The latent variables.
+            The latent variables of size (n_samples, dim).
         """
-        return torch.matmul(self._latent_mean, self._components.T)
+        return torch.matmul(self._latent_mean, self._components.T).detach()
 
     @property
     def projected_latent_variables(self) -> torch.Tensor:
@@ -2415,8 +2614,14 @@ class PlnPCA(_Pln):
         torch.Tensor
             The projected latent variables.
         """
-        ortho_components = torch.linalg.qr(self._components, "reduced")[0]
-        return torch.mm(self.latent_variables, ortho_components).detach().cpu()
+        return torch.mm(self.latent_variables, self.ortho_components).detach().cpu()
+
+    @property
+    def ortho_components(self):
+        """
+        Orthogonal components of the model.
+        """
+        return torch.linalg.qr(self._components, "reduced")[0]
 
     def pca_projected_latent_variables(
         self, n_components: Optional[int] = None
@@ -2440,12 +2645,12 @@ class PlnPCA(_Pln):
         """
         if n_components is None:
             n_components = self._get_max_components()
-        if n_components > self.dim:
+        if n_components > self.rank:
             raise ValueError(
-                f"You ask more components ({n_components}) than variables ({self.dim})"
+                f"You ask more components ({n_components}) than maximum rank ({self.rank})"
             )
         pca = PCA(n_components=n_components)
-        return pca.fit_transform(self.projected_latent_variables.detach().cpu())
+        return pca.fit_transform(self.latent_variables.cpu())
 
     @property
     def components(self) -> torch.Tensor:
@@ -2480,43 +2685,6 @@ class PlnPCA(_Pln):
                 f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
             )
         self._components = components
-
-    def viz(self, ax=None, colors=None):
-        """
-        Visualize the PlnPCA model.
-
-        Parameters
-        ----------
-        ax : Optional[Any], optional
-            The matplotlib axis to use. If None, the current axis is used, by default None.
-        colors : Optional[Any], optional
-            The colors to use for plotting, by default None.
-
-        Raises
-        ------
-        RuntimeError
-            If the rank is less than 2.
-
-        Returns
-        -------
-        Any
-            The matplotlib axis.
-        """
-        if ax is None:
-            ax = plt.gca()
-        if self._rank < 2:
-            raise RuntimeError("Can't perform visualization for rank < 2.")
-        if self._rank > 2:
-            proj_variables = self.pca_projected_latent_variables(n_components=2)
-        if self._rank == 2:
-            proj_variables = self.projected_latent_variables.cpu().numpy()
-        x = proj_variables[:, 0]
-        y = proj_variables[:, 1]
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
-        covariances = torch.diag_embed(self._latent_var**2).detach().cpu()
-        for i in range(covariances.shape[0]):
-            _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
-        return ax
 
     def transform(self, project: bool = True) -> torch.Tensor:
         """
@@ -2566,7 +2734,7 @@ class ZIPln(Pln):
     def _random_init_latent_parameters(self):
         self._dirac = self._counts == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
-        self._latent_var = torch.randn(self.n_samples, self.dim)
+        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         self._pi = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
@@ -2578,7 +2746,7 @@ class ZIPln(Pln):
             self._covariates,
             self._offsets,
             self._latent_mean,
-            self._latent_var,
+            self._latent_sqrt_var,
             self._pi,
             self._covariance,
             self._coef,
@@ -2588,21 +2756,21 @@ class ZIPln(Pln):
 
     @property
     def _list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_var, self._coef_inflation]
+        return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
 
     def _update_closed_forms(self):
         self._coef = _closed_formula_coef(self._covariates, self._latent_mean)
         self._covariance = _closed_formula_covariance(
             self._covariates,
             self._latent_mean,
-            self._latent_var,
+            self._latent_sqrt_var,
             self._coef,
             self.n_samples,
         )
         self._pi = _closed_formula_pi(
             self._offsets,
             self._latent_mean,
-            self._latent_var,
+            self._latent_sqrt_var,
             self._dirac,
             self._covariates,
             self._coef_inflation,

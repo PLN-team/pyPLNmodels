@@ -267,6 +267,7 @@ def _format_model_param(
     offsets: torch.Tensor,
     offsets_formula: str,
     take_log_offsets: bool,
+    add_const: bool,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Format each of the model parameters to an array or None if None.
@@ -283,7 +284,8 @@ def _format_model_param(
         Formula for calculating offsets.
     take_log_offsets : bool
         Flag indicating whether to take the logarithm of offsets.
-
+    add_const: bool
+        Whether to add a column of one in the covariates.
     Returns
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
@@ -297,6 +299,14 @@ def _format_model_param(
     if torch.min(counts) < 0:
         raise ValueError("Counts should be only non negative values.")
     covariates = _format_data(covariates)
+    if add_const is True:
+        if covariates is None:
+            covariates = torch.ones(counts.shape[0], 1)
+        else:
+            if _has_null_variance(covariates) is False:
+                covariates = torch.concat(
+                    (covariates, torch.ones(counts.shape[0]).unsqueeze(1)), dim=1
+                )
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of counts")
@@ -310,6 +320,23 @@ def _format_model_param(
         if take_log_offsets is True:
             offsets = torch.log(offsets)
     return counts, covariates, offsets
+
+
+def _has_null_variance(tensor: torch.Tensor) -> bool:
+    """
+    Check if a torch.Tensor has a dimension with null variance.
+
+    Parameters
+    ----------
+        tensor (torch.Tensor): The input tensor.
+
+    Returns
+    -------
+        bool: True if a dimension with null variance is found, False otherwise.
+    """
+    variances = torch.var(tensor, dim=0)
+    has_null_var = torch.any(variances == 0)
+    return bool(has_null_var)
 
 
 def _check_data_shape(
@@ -401,15 +428,15 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
     Get the components for simulation. The resulting covariance matrix
     will be a matrix per blocks plus a little noise.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     dim : int
         Dimension of the data.
     rank : int
         Rank of the resulting covariance matrix (i.e. number of components).
 
-    Returns:
-    --------
+    Returns
+    -------
     torch.Tensor
         Components.
     """
@@ -432,8 +459,8 @@ def _get_simulation_coef_cov_offsets(
     """
     Get offsets, covariance coefficients with right shapes.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_samples : int
         Number of samples.
     nb_cov : int
@@ -441,8 +468,8 @@ def _get_simulation_coef_cov_offsets(
     dim : int
         Dimension required of the data.
 
-    Returns:
-    --------
+    Returns
+    -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing offsets, covariates, and coefficients.
     """
@@ -471,8 +498,8 @@ class PlnParameters:
         """
         Instantiate all the needed parameters to sample from the PLN model.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         components : torch.Tensor
             Components of size (p, rank)
         coef : torch.Tensor
@@ -571,6 +598,26 @@ def _check_two_dimensions_are_equal(
 def get_simulation_parameters(
     n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5
 ) -> PlnParameters:
+    """
+    Generate simulation parameters for a Poisson-lognormal model.
+
+    Parameters
+    ----------
+        n_samples : int, optional
+            The number of samples, by default 100.
+        dim : int, optional
+            The dimension of the data, by default 25.
+        nb_cov : int, optional
+            The number of covariates, by default 1.
+        rank : int, optional
+            The rank of the data components, by default 5.
+
+    Returns
+    -------
+        PlnParameters
+            The generated simulation parameters.
+
+    """
     coef, covariates, offsets = _get_simulation_coef_cov_offsets(n_samples, nb_cov, dim)
     components = _get_simulation_components(dim, rank)
     return PlnParameters(components, coef, covariates, offsets)
@@ -587,8 +634,8 @@ def get_simulated_count_data(
     """
     Get simulated count data from the PlnPCA model.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_samples : int, optional
         Number of samples, by default 100.
     dim : int, optional
@@ -602,8 +649,8 @@ def get_simulated_count_data(
     seed : int, optional
         Seed value for random number generation, by default 0.
 
-    Returns:
-    --------
+    Returns
+    -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
@@ -620,36 +667,43 @@ def get_simulated_count_data(
     return pln_param.counts, pln_param.cov, pln_param.offsets
 
 
-def get_real_count_data(n_samples: int = 270, dim: int = 100) -> np.ndarray:
+def get_real_count_data(
+    n_samples: int = 469, dim: int = 200, return_labels: bool = False
+) -> np.ndarray:
     """
     Get real count data from the scMARK dataset.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_samples : int, optional
-        Number of samples, by default 270.
+        Number of samples, by default 469.
     dim : int, optional
-        Dimension, by default 100.
-
-    Returns:
-    --------
+        Dimension, by default 200.
+    return_labels: bool, optional
+        If True, will return the labels of the count data
+    Returns
+    -------
     np.ndarray
-        Real count data.
+        Real count data and labels if return_labels is True.
     """
-    if n_samples > 297:
+    if n_samples > 469:
         warnings.warn(
-            f"\nTaking the whole 270 samples of the dataset. Requested:n_samples={n_samples}, returned:270"
+            f"\nTaking the whole 469 samples of the dataset. Requested:n_samples={n_samples}, returned:469"
         )
-        n_samples = 270
+        n_samples = 469
     if dim > 100:
         warnings.warn(
-            f"\nTaking the whole 100 variables. Requested:dim={dim}, returned:100"
+            f"\nTaking the whole 200 variables. Requested:dim={dim}, returned:200"
         )
-        dim = 100
-    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/Y_mark.csv")
+        dim = 200
+    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
     counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
     print(f"Returning dataset of size {counts.shape}")
-    return counts
+    if return_labels is False:
+        return counts
+    labels_stream = pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
+    labels = np.array(pd.read_csv(labels_stream).values[:n_samples].squeeze())
+    return counts, labels
 
 
 def load_model(path_of_directory: str) -> Dict[str, Any]:
@@ -833,16 +887,17 @@ def _to_tensor(
     """
     Convert an object to a PyTorch tensor.
 
-    Parameters:
+    Parameters
     ----------
         obj (np.ndarray or torch.Tensor or pd.DataFrame or None):
             The object to be converted.
 
-    Returns:
+    Returns
+    -------
         torch.Tensor or None:
             The converted PyTorch tensor.
 
-    Raises:
+    Raises
     ------
         TypeError:
             If the input object is not an np.ndarray, torch.Tensor, pd.DataFrame, or None.
@@ -866,3 +921,43 @@ def _array2tensor(func):
         func(self, array_like)
 
     return setter
+
+
+def _handle_data(
+    counts,
+    covariates,
+    offsets,
+    offsets_formula: str,
+    take_log_offsets: bool,
+    add_const: bool,
+) -> tuple:
+    """
+    Handle the input data for the model.
+
+    Parameters
+    ----------
+        counts : The counts data. If a DataFrame is provided, the column names are stored for later use.
+        covariates : The covariates data.
+        offsets : The offsets data.
+        offsets_formula : The formula used for offsets.
+        take_log_offsets : Indicates whether to take the logarithm of the offsets.
+        add_const : Indicates whether to add a constant column to the covariates.
+
+    Returns
+    -------
+        tuple: A tuple containing the processed counts, covariates, offsets, and column counts (if available).
+
+    Raises
+    ------
+        ValueError: If the shapes of counts, covariates, and offsets do not match.
+    """
+    if isinstance(counts, pd.DataFrame):
+        column_counts = counts.columns
+    else:
+        column_counts = None
+
+    counts, covariates, offsets = _format_model_param(
+        counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+    )
+    _check_data_shape(counts, covariates, offsets)
+    return counts, covariates, offsets, column_counts

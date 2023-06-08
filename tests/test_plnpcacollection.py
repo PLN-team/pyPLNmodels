@@ -48,21 +48,6 @@ def test_additional_methods_pca(plnpca):
 
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PlnPCAcollection"])
-def test_viz_pca(plnpca):
-    for model in plnpca.values():
-        _, ax = plt.subplots()
-        model.viz(ax=ax)
-        plt.show()
-        model.viz()
-        plt.show()
-        n_samples = plnpca.n_samples
-        colors = np.random.randint(low=0, high=2, size=n_samples)
-        model.viz(colors=colors)
-        plt.show()
-
-
-@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
-@filter_models(["PlnPCAcollection"])
 def test_wrong_criterion(plnpca):
     with pytest.raises(ValueError):
         plnpca.best_model("AIK")

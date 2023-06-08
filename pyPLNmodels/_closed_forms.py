@@ -6,7 +6,7 @@ import torch  # pylint:disable=[C0114]
 def _closed_formula_covariance(
     covariates: torch.Tensor,
     latent_mean: torch.Tensor,
-    latent_var: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
     coef: torch.Tensor,
     n_samples: int,
 ) -> torch.Tensor:
@@ -19,7 +19,7 @@ def _closed_formula_covariance(
         Covariates with size (n, d).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
-    latent_var : torch.Tensor
+    latent_sqrt_var : torch.Tensor
         Variational parameter with size (n, p).
     coef : torch.Tensor
         Model parameter with size (d, p).
@@ -37,7 +37,7 @@ def _closed_formula_covariance(
         XB = covariates @ coef
     m_minus_xb = latent_mean - XB
     closed = m_minus_xb.T @ m_minus_xb + torch.diag(
-        torch.sum(torch.square(latent_var), dim=0)
+        torch.sum(torch.square(latent_sqrt_var), dim=0)
     )
     return closed / n_samples
 
@@ -68,7 +68,7 @@ def _closed_formula_coef(
 def _closed_formula_pi(
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
-    latent_var: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
     dirac: torch.Tensor,
     covariates: torch.Tensor,
     _coef_inflation: torch.Tensor,
@@ -82,7 +82,7 @@ def _closed_formula_pi(
         Offset with size (n, p).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
-    latent_var : torch.Tensor
+    latent_sqrt_var : torch.Tensor
         Variational parameter with size (n, p).
     dirac : torch.Tensor
         Dirac tensor.
@@ -96,5 +96,5 @@ def _closed_formula_pi(
     torch.Tensor
         The closed-form pi with the same size as dirac.
     """
-    poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_var))
+    poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_sqrt_var))
     return torch._sigmoid(poiss_param + torch.mm(covariates, _coef_inflation)) * dirac

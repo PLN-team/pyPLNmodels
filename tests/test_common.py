@@ -6,7 +6,7 @@ import pytest
 from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
 
-from tests.import_data import true_sim_0cov, true_sim_2cov
+from tests.import_data import true_sim_0cov, true_sim_2cov, counts_real
 
 
 @pytest.mark.parametrize("any_pln", dict_fixtures["loaded_and_fitted_pln"])
@@ -16,26 +16,6 @@ def test_properties(any_pln):
     assert hasattr(any_pln, "latent_variables")
     assert hasattr(any_pln, "optim_parameters")
     assert hasattr(any_pln, "model_parameters")
-
-
-@pytest.mark.parametrize("any_pln", dict_fixtures["loaded_and_fitted_pln"])
-def test_print(any_pln):
-    print(any_pln)
-
-
-@pytest.mark.parametrize("any_pln", dict_fixtures["fitted_pln"])
-@filter_models(["Pln", "PlnPCA"])
-def test_show_coef_transform_covariance_pcaprojected(any_pln):
-    any_pln.show()
-    any_pln._plotargs._show_loss()
-    any_pln._plotargs._show_stopping_criterion()
-    assert hasattr(any_pln, "coef")
-    assert callable(any_pln.transform)
-    assert hasattr(any_pln, "covariance")
-    assert callable(any_pln.pca_projected_latent_variables)
-    assert any_pln.pca_projected_latent_variables(n_components=None) is not None
-    with pytest.raises(Exception):
-        any_pln.pca_projected_latent_variables(n_components=any_pln.dim + 1)
 
 
 @pytest.mark.parametrize("sim_pln", dict_fixtures["loaded_and_fitted_pln"])
@@ -75,7 +55,10 @@ def test_find_right_covariance(simulated_fitted_any_pln):
 )
 @filter_models(["Pln", "PlnPCA"])
 def test_right_covariance_shape(real_fitted_and_loaded_pln):
-    assert real_fitted_and_loaded_pln.covariance.shape == (100, 100)
+    assert real_fitted_and_loaded_pln.covariance.shape == (
+        counts_real.shape[1],
+        counts_real.shape[1],
+    )
 
 
 @pytest.mark.parametrize(

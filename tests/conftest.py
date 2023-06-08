@@ -1,10 +1,11 @@
 import sys
 import glob
 from functools import singledispatch
-
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture as lf
+import pandas as pd
+
 from pyPLNmodels import load_model, load_plnpcacollection
 from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection
 
@@ -33,6 +34,8 @@ covariates_sim_2cov = data_sim_2cov["covariates"]
 offsets_sim_2cov = data_sim_2cov["offsets"]
 
 counts_real = data_real["counts"]
+counts_real = pd.DataFrame(counts_real)
+counts_real.columns = [f"var_{i}" for i in range(counts_real.shape[1])]
 
 
 def add_fixture_to_dict(my_dict, string_fixture):
@@ -55,17 +58,16 @@ instances = []
 # dict_fixtures_models = []
 
 
-def convenient_plnpca(*args, **kwargs):
+def convenient_PlnPCA(*args, **kwargs):
     dict_init = kwargs.pop("dict_initialization", None)
     if isinstance(args[0], str):
         return PlnPCA.from_formula(
             *args, **kwargs, dict_initialization=dict_init, rank=RANK
         )
-    print("rank:", RANK)
     return PlnPCA(*args, **kwargs, dict_initialization=dict_init, rank=RANK)
 
 
-def convenientplnpca(*args, **kwargs):
+def convenient_PlnPCAcollection(*args, **kwargs):
     dict_init = kwargs.pop("dict_initialization", None)
     if isinstance(args[0], str):
         return PlnPCAcollection.from_formula(
@@ -84,6 +86,7 @@ def convenientpln(*args, **kwargs):
 
 def generate_new_model(model, *args, **kwargs):
     name_dir = model._directory_name
+    print("directory name", name_dir)
     name = model._NAME
     if name in ("Pln", "PlnPCA"):
         path = model._path_to_directory + name_dir
@@ -91,10 +94,10 @@ def generate_new_model(model, *args, **kwargs):
         if name == "Pln":
             new = convenientpln(*args, **kwargs, dict_initialization=init)
         if name == "PlnPCA":
-            new = convenient_plnpca(*args, **kwargs, dict_initialization=init)
+            new = convenient_PlnPCA(*args, **kwargs, dict_initialization=init)
     if name == "PlnPCAcollection":
         init = load_plnpcacollection(name_dir)
-        new = convenientplnpca(*args, **kwargs, dict_initialization=init)
+        new = convenient_PlnPCAcollection(*args, **kwargs, dict_initialization=init)
     return new
 
 
@@ -109,14 +112,14 @@ def cache(func):
     return new_func
 
 
-params = [convenientpln, convenient_plnpca, convenientplnpca]
+params = [convenientpln, convenient_PlnPCA, convenient_PlnPCAcollection]
 dict_fixtures = {}
 
 
 @pytest.fixture(params=params)
 def simulated_pln_0cov_array(request):
     cls = request.param
-    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
+    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov, add_const=False)
     return pln
 
 
@@ -124,7 +127,7 @@ def simulated_pln_0cov_array(request):
 @cache
 def simulated_fitted_pln_0cov_array(request):
     cls = request.param
-    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov)
+    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov, add_const=False)
     pln.fit()
     return pln
 
@@ -161,8 +164,9 @@ def simulated_loaded_pln_0cov_array(simulated_fitted_pln_0cov_array):
     return generate_new_model(
         simulated_fitted_pln_0cov_array,
         counts_sim_0cov,
-        covariates_sim_0cov,
-        offsets_sim_0cov,
+        covariates=covariates_sim_0cov,
+        offsets=offsets_sim_0cov,
+        add_const=False,
     )
 
 
@@ -203,7 +207,12 @@ dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_0cov", sim_p
 @cache
 def simulated_pln_2cov_array(request):
     cls = request.param
-    pln_full = cls(counts_sim_2cov, covariates_sim_2cov, offsets_sim_2cov)
+    pln_full = cls(
+        counts_sim_2cov,
+        covariates=covariates_sim_2cov,
+        offsets=offsets_sim_2cov,
+        add_const=False,
+    )
     return pln_full
 
 
@@ -243,8 +252,9 @@ def simulated_loaded_pln_2cov_array(simulated_fitted_pln_2cov_array):
     return generate_new_model(
         simulated_fitted_pln_2cov_array,
         counts_sim_2cov,
-        covariates_sim_2cov,
-        offsets_sim_2cov,
+        covariates=covariates_sim_2cov,
+        offsets=offsets_sim_2cov,
+        add_const=False,
     )
 
 
@@ -284,7 +294,7 @@ dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "sim_pln_2cov", sim_p
 @cache
 def real_pln_intercept_array(request):
     cls = request.param
-    pln_full = cls(counts_real, covariates=torch.ones((counts_real.shape[0], 1)))
+    pln_full = cls(counts_real, add_const=True)
     return pln_full
 
 
@@ -312,7 +322,7 @@ def real_fitted_pln_intercept_formula(real_pln_intercept_formula):
 def real_loaded_pln_intercept_formula(real_fitted_pln_intercept_formula):
     real_fitted_pln_intercept_formula.save()
     return generate_new_model(
-        real_fitted_pln_intercept_formula, "counts ~ 1", data_real
+        real_fitted_pln_intercept_formula, "counts ~ 1", data=data_real
     )
 
 
@@ -322,7 +332,7 @@ def real_loaded_pln_intercept_array(real_fitted_pln_intercept_array):
     return generate_new_model(
         real_fitted_pln_intercept_array,
         counts_real,
-        covariates=torch.ones((counts_real.shape[0], 1)),
+        add_const=True,
     )
 
 
