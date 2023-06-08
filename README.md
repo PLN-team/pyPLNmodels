@@ -9,7 +9,8 @@
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
 <!-- > comprehensive introduction. -->
 
-
+## Getting started
+The getting started can be found [here](Getting_started.ipynb). If you need just a quick view of the package, see next.
 
 ## Installation
 
