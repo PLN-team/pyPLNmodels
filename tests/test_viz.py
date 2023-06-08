@@ -62,7 +62,7 @@ def test_viz_pcacol(plnpca):
         plt.show()
 
 
-@pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_real_pln"])
+@pytest.mark.parametrize("pln", dict_fixtures["real_fitted_pln_intercept_array"])
 @filter_models(["Pln", "PlnPCA"])
 def test_plot_pca_correlation_graph_with_names_only(pln):
     pln.plot_pca_correlation_graph([f"var_{i}" for i in range(8)])

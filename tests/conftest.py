@@ -35,7 +35,7 @@ offsets_sim_2cov = data_sim_2cov["offsets"]
 
 counts_real = data_real["counts"]
 counts_real = pd.DataFrame(counts_real)
-counts_real.column = [f"var_{i}" for i in range(counts_real.shape[1])]
+counts_real.columns = [f"var_{i}" for i in range(counts_real.shape[1])]
 
 
 def add_fixture_to_dict(my_dict, string_fixture):
