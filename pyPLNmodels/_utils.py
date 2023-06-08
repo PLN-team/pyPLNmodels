@@ -428,15 +428,15 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
     Get the components for simulation. The resulting covariance matrix
     will be a matrix per blocks plus a little noise.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     dim : int
         Dimension of the data.
     rank : int
         Rank of the resulting covariance matrix (i.e. number of components).
 
-    Returns:
-    --------
+    Returns
+    -------
     torch.Tensor
         Components.
     """
@@ -459,8 +459,8 @@ def _get_simulation_coef_cov_offsets(
     """
     Get offsets, covariance coefficients with right shapes.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_samples : int
         Number of samples.
     nb_cov : int
@@ -468,8 +468,8 @@ def _get_simulation_coef_cov_offsets(
     dim : int
         Dimension required of the data.
 
-    Returns:
-    --------
+    Returns
+    -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing offsets, covariates, and coefficients.
     """
@@ -498,8 +498,8 @@ class PlnParameters:
         """
         Instantiate all the needed parameters to sample from the PLN model.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         components : torch.Tensor
             Components of size (p, rank)
         coef : torch.Tensor
@@ -598,6 +598,26 @@ def _check_two_dimensions_are_equal(
 def get_simulation_parameters(
     n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5
 ) -> PlnParameters:
+    """
+    Generate simulation parameters for a Poisson-lognormal model.
+
+    Parameters
+    ----------
+        n_samples : int, optional
+            The number of samples, by default 100.
+        dim : int, optional
+            The dimension of the data, by default 25.
+        nb_cov : int, optional
+            The number of covariates, by default 1.
+        rank : int, optional
+            The rank of the data components, by default 5.
+
+    Returns
+    -------
+        PlnParameters
+            The generated simulation parameters.
+
+    """
     coef, covariates, offsets = _get_simulation_coef_cov_offsets(n_samples, nb_cov, dim)
     components = _get_simulation_components(dim, rank)
     return PlnParameters(components, coef, covariates, offsets)
@@ -614,8 +634,8 @@ def get_simulated_count_data(
     """
     Get simulated count data from the PlnPCA model.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_samples : int, optional
         Number of samples, by default 100.
     dim : int, optional
@@ -629,8 +649,8 @@ def get_simulated_count_data(
     seed : int, optional
         Seed value for random number generation, by default 0.
 
-    Returns:
-    --------
+    Returns
+    -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
@@ -653,16 +673,16 @@ def get_real_count_data(
     """
     Get real count data from the scMARK dataset.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_samples : int, optional
         Number of samples, by default 469.
     dim : int, optional
         Dimension, by default 200.
     return_labels: bool, optional
         If True, will return the labels of the count data
-    Returns:
-    --------
+    Returns
+    -------
     np.ndarray
         Real count data and labels if return_labels is True.
     """
@@ -867,16 +887,17 @@ def _to_tensor(
     """
     Convert an object to a PyTorch tensor.
 
-    Parameters:
+    Parameters
     ----------
         obj (np.ndarray or torch.Tensor or pd.DataFrame or None):
             The object to be converted.
 
-    Returns:
+    Returns
+    -------
         torch.Tensor or None:
             The converted PyTorch tensor.
 
-    Raises:
+    Raises
     ------
         TypeError:
             If the input object is not an np.ndarray, torch.Tensor, pd.DataFrame, or None.
@@ -926,7 +947,8 @@ def _handle_data(
     -------
         tuple: A tuple containing the processed counts, covariates, offsets, and column counts (if available).
 
-    Raises:
+    Raises
+    ------
         ValueError: If the shapes of counts, covariates, and offsets do not match.
     """
     if isinstance(counts, pd.DataFrame):
