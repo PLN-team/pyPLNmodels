@@ -10,7 +10,7 @@
 <!-- > comprehensive introduction. -->
 
 ## Getting started
-The getting started can be found [here](Getting_started.ipynb). If you need just a quick view of the package, see next.
+The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/raw/dev/Getting_started.ipynb?inline=false). If you need just a quick view of the package, see next.
 
 ## Installation
 
