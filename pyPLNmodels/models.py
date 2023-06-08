@@ -176,7 +176,7 @@ class _Pln(ABC):
         """
         return self._fitted
 
-    def viz(self, ax=None, colors=None, show_cov: bool = True):
+    def viz(self, ax=None, colors=None, show_cov: bool = False):
         """
         Visualize the latent variables with a classic PCA.
 
@@ -187,7 +187,7 @@ class _Pln(ABC):
         colors : Optional[Any], optional
             The colors to use for plotting, by default None.
         show_cov: bool, optional
-            If True, will display ellipses with right covariances. Default is True.
+            If True, will display ellipses with right covariances. Default is False.
         Raises
         ------
         RuntimeError
