@@ -9,6 +9,7 @@ from ._utils import (
     load_pln,
     sample_pln,
     get_simulation_parameters,
+    PlnParameters,
 )
 
 from ._initialization import log_posterior
@@ -27,4 +28,6 @@ __all__ = (
     "load_pln",
     "sample_pln",
     "log_posterior",
+    "get_simulation_parameters",
+    "PlnParameters",
 )

@@ -112,6 +112,8 @@ def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor
     tuple[torch.Tensor, torch.Tensor, torch.Tensor] if return_latent is True
         Tuple containing counts (torch.Tensor), gaussian (torch.Tensor), and ksi (torch.Tensor)
     torch.Tensor if return_latent is False
+
+    See also :func:`~pyPLNmodels.PlnParameters`
     """
     prev_state = torch.random.get_rng_state()
     if seed is not None:
@@ -550,6 +552,9 @@ class PlnParameters:
 
     @property
     def covariance(self):
+        """
+        Covariance of the model.
+        """
         return self.components @ self.components.T
 
 

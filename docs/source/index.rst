@@ -5,7 +5,7 @@
 
 Welcome to pyPLNmodels's documentation!
 =======================================
-
+The getting started can be found  `here <Getting_started.ipynb>`.
 API documentation
 =================
 
