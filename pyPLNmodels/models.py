@@ -502,7 +502,7 @@ class _Pln(ABC):
         fig.update_traces(diagonal_visible=False)
         fig.show()
 
-    def viz_pca_var(self, variables_names, indices_of_variables=None):
+    def viz_variables(self, variables_names, indices_of_variables=None):
         if indices_of_variables is None:
             if self.column_counts is None:
                 raise ValueError(
@@ -511,13 +511,10 @@ class _Pln(ABC):
                     "needed names or instantiate a new model with"
                     "a pd.DataFrame with appropriate column names"
                 )
-            print("variable names", variables_names)
-            print("columns", self.column_counts)
             indices_of_variables = []
             for variables_name in variables_names:
                 index = self.column_counts.get_loc(variables_name)
                 indices_of_variables.append(index)
-            print("indices:", indices_of_variables)
         else:
             if len(indices_of_variables) != len(variables_names):
                 raise ValueError(
@@ -528,10 +525,7 @@ class _Pln(ABC):
         pca = self.sk_PCA(n_components=n_components)
         variables = self.latent_variables
         proj_variables = pca.transform(variables)
-        labels = {
-            str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_, 2)[i]}%"
-            for i in range(n_components)
-        }
+        ## the package is not correctly printing the variance ratio
         figure, correlation_matrix = plot_pca_correlation_graph(
             variables[:, indices_of_variables],
             variables_names=variables_names,
@@ -540,6 +534,7 @@ class _Pln(ABC):
             dimensions=(1, 2),
             figure_axis_size=10,
         )
+        plt.show()
 
     @property
     @abstractmethod
