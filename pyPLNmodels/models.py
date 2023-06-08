@@ -506,20 +506,23 @@ class _Pln(ABC):
         """
         Visualizes variables using PCA and plots a correlation graph.
 
-        Parameters:
+        Parameters
+        ----------
             variables_names : List[str]
                 A list of variable names to visualize.
             indices_of_variables : Optional[List[int]], optional
                 A list of indices corresponding to the variables.
                 If None, indices are determined based on `column_counts`, by default None
 
-        Raises:
+        Raises
+        ------
             ValueError
                 If `indices_of_variables` is None and `column_counts` is not set.
             ValueError
                 If the length of `indices_of_variables` is different from the length of `variables_names`.
 
-        Returns:
+        Returns
+        -------
             None
         """
         if indices_of_variables is None:
