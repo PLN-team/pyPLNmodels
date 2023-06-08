@@ -502,7 +502,26 @@ class _Pln(ABC):
         fig.update_traces(diagonal_visible=False)
         fig.show()
 
-    def viz_variables(self, variables_names, indices_of_variables=None):
+    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+        """
+        Visualizes variables using PCA and plots a correlation graph.
+
+        Parameters:
+            variables_names : List[str]
+                A list of variable names to visualize.
+            indices_of_variables : Optional[List[int]], optional
+                A list of indices corresponding to the variables.
+                If None, indices are determined based on `column_counts`, by default None
+
+        Raises:
+            ValueError
+                If `indices_of_variables` is None and `column_counts` is not set.
+            ValueError
+                If the length of `indices_of_variables` is different from the length of `variables_names`.
+
+        Returns:
+            None
+        """
         if indices_of_variables is None:
             if self.column_counts is None:
                 raise ValueError(

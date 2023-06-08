@@ -64,20 +64,20 @@ def test_viz_pcacol(plnpca):
 
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_real_pln"])
 @filter_models(["Pln", "PlnPCA"])
-def test_viz_variables_with_names_only(pln):
-    pln.viz_variables([f"var_{i}" for i in range(8)])
+def test_plot_pca_correlation_graph_with_names_only(pln):
+    pln.plot_pca_correlation_graph([f"var_{i}" for i in range(8)])
 
 
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_sim_pln"])
 @filter_models(["Pln", "PlnPCA"])
-def test_fail_viz_variables_without_names(pln):
+def test_fail_plot_pca_correlation_graph_without_names(pln):
     with pytest.raises(ValueError):
-        pln.viz_variables([f"var_{i}" for i in range(8)])
+        pln.plot_pca_correlation_graph([f"var_{i}" for i in range(8)])
     with pytest.raises(ValueError):
-        pln.viz_variables([f"var_{i}" for i in range(6)], [1, 2, 3])
+        pln.plot_pca_correlation_graph([f"var_{i}" for i in range(6)], [1, 2, 3])
 
 
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_sim_pln"])
 @filter_models(["Pln", "PlnPCA"])
-def test_viz_variables_without_names(pln):
-    pln.viz_variables([f"var_{i}" for i in range(3)], [0, 1, 2])
+def test_plot_pca_correlation_graph_without_names(pln):
+    pln.plot_pca_correlation_graph([f"var_{i}" for i in range(3)], [0, 1, 2])
