@@ -830,7 +830,7 @@ class _Pln(ABC):
         dict
             The dictionary representing the model.
         """
-        return self.dict_data | self._dict_parameters
+        return {**self.dict_data, **self._dict_parameters}
 
     @property
     def _dict_parameters(self):
@@ -842,7 +842,7 @@ class _Pln(ABC):
         dict
             The dictionary of parameters.
         """
-        return self.model_parameters | self.latent_parameters
+        return {**self.model_parameters, **self.latent_parameters}
 
     @property
     def coef(self):
@@ -1133,7 +1133,7 @@ class _Pln(ABC):
         str
             The string representation of the useful properties.
         """
-        return ".latent_variables, .model_parameters, .latent_parameters, .optim_parameters"
+        return ".latent_variables, .model_parameters, .latent_parameters, .optim_parameters, .coef"
 
     @property
     def _useful_methods_strings(self):
@@ -1145,7 +1145,7 @@ class _Pln(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .coef() .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
 
     def sigma(self):
         """
