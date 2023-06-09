@@ -423,6 +423,14 @@ class model(ABC):
         ------
         ValueError
            If the number of components asked is greater than the number of dimensions.
+        Examples
+        --------
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pln = Pln.from_formula("counts ~ 1", data = data)
+            >>> pln.fit()
+            >>> pca_proj = pln.pca_projected_latent_variables()
         """
         pca = self.sk_PCA(n_components=n_components)
         return pca.transform(self.latent_variables.cpu())
