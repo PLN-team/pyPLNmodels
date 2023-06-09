@@ -14,7 +14,7 @@
 \date{\today}
 \institute{Université Paris-Saclay, AgroParisTech, INRAE, UMR MIA Paris-Saclay}
 
-\title{\parbox{\linewidth}{\centering Multivariate Poisson Lognormal model: optimisation,  inference and application to high dimensional data}}
+\title{\parbox{\linewidth}{\centering pyPLNmodels: getting started.}}
 \normalsize
 \mode<presentation>{}
 \addtobeamertemplate{footline}{\insertframenumber/\inserttotalframenumber}
@@ -23,4 +23,81 @@
 \begin{frame}
     \titlepage
 \end{frame}
+
+\subsection{Modelling}
+\begin{frame}{Modelling}
+
+\begin{itemize}
+    \item Dataset:
+    \begin{itemize}
+        \item $\boldsymbol{Y}: n \times p$ count matrix
+        \item $\boldsymbol{X}: n\times d $ covariates
+    \end{itemize}
+    \item Parameter $\theta = (\beta, \Sigma) $
+    \begin{itemize}
+        \item $\beta \in \mathbb R^{d\times p} $ regression parameter
+        \item $\Sigma = CC^{\top}, C \in \mathbb R^{p\times q }$ covariance matrix.
+    \end{itemize}
+    \item Model:\vspace{-0.7cm}
+
+{\centering {\mathversion{bold}
+\Large \begin{equation*}
+    \begin{split}
+     W_{i} \sim &\mathcal{N}\left(0, I_{q}\right)\\
+     Z_{i} = & \beta^{\top} X_i + CW_i\\
+     \left(Y_{i j}  \mid  Z_{i j} \right)  \sim & \mathcal{P}\left(\exp \left( Z_{i j}\right)\right)
+    \end{split}
+\end{equation*}
+\par }\par}
+\item When $p=q$: unrestricted model: Pln class in pyPLNmodels
+\item When $p<<q$: $\Sigma$ has low rank: PlnPCA class in pyPLNmodels
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item Model:\vspace{-0.7cm}
+
+{\centering {\mathversion{bold}
+\Large \begin{equation*}
+    \begin{split}
+     W_{i} \sim &\mathcal{N}\left(0, I_{q}\right)\\
+     Z_{i} = & \beta^{\top} X_i + CW_i\\
+     \left(Y_{i j}  \mid  Z_{i j} \right)  \sim & \mathcal{P}\left(\exp \left( Z_{i j}\right)\right)
+    \end{split}
+\end{equation*}
+\par }\par}
+\item Goal of the package: retrieve back the latent representation $Z_i$:
+    \begin{itemize}
+        \item $W_i | Y_i$ is enough for PlnPCA
+        \item $Z_i | Y_i$ for Pln
+    \end{itemize}
+\item Problem: both $W_i | Y_i$ and $Z_i| Y_i$ have unknown distribution.
+\item $\implies$ gaussian variational approximation.
+    \begin{itemize}
+        \item $W_i |Y_i \sim \mathcal N \left(M_i, \operatorname{diag}(S_i)\right), M_i, S_i \in \mathbb R^q$
+        \item $W_i |Y_i \sim \mathcal N \left(M_i, \operatorname{diag}(S_i)\right), M_i, S_i \in \mathbb R^p$
+    \end{itemize}
+\end{itemize}
+\end{frame}
+\subsection{Examples}
+\begin{frame}
+\begin{figure}
+               %\centering
+               \hspace*{-2.5cm}
+               \includegraphics[width = 15 cm]{dim_2.png}
+               \label{fig:my_label}
+           \end{figure}
+\end{frame}
+
+\begin{frame}
+\begin{figure}
+               %\centering
+               \hspace*{-0.5cm}
+               \includegraphics[width = 9 cm]{latent_gaussian.png}
+               \caption{}
+               \label{fig:my_label}
+           \end{figure}
+\end{frame}
+
 \end{document}
