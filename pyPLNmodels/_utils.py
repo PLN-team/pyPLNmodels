@@ -292,10 +292,11 @@ def _format_model_param(
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Formatted model parameters.
+
     Raises
     ------
     ValueError
-        If counts has negative values.
+        If counts has negative values or offsets_formula is not None and not "logsum" or "zero"
     """
     counts = _format_data(counts)
     if torch.min(counts) < 0:
@@ -315,8 +316,13 @@ def _format_model_param(
             offsets = (
                 torch.log(_get_offsets_from_sum_of_counts(counts)).double().to(DEVICE)
             )
-        else:
+        elif offsets_formula == "zero":
+            print("Setting the offsets to zero")
             offsets = torch.zeros(counts.shape, device=DEVICE)
+        else:
+            raise ValueError(
+                'Wrong offsets_formula. Expected either "zero" or "logsum", got {offsets_formula}'
+            )
     else:
         offsets = _format_data(offsets).to(DEVICE)
         if take_log_offsets is True:

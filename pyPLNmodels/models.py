@@ -49,11 +49,12 @@ else:
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
-class model(ABC):
+class _model(ABC):
+    """
+    Base class for all the Pln models. Should be inherited.
+    """
+
     _WINDOW = 15
-    n_samples: int
-    dim: int
-    nb_cov: int
     _counts: torch.Tensor
     _covariates: torch.Tensor
     _offsets: torch.Tensor
@@ -133,8 +134,8 @@ class model(ABC):
 
         Returns
         -------
-        model
-            The initialized model instance.
+        _model
+            The initialized _model instance.
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -229,7 +230,7 @@ class model(ABC):
     @property
     def n_samples(self) -> int:
         """
-        The number of samples.
+        The number of samples, i.e. the first dimension of the counts.
 
         Returns
         -------
@@ -241,12 +242,12 @@ class model(ABC):
     @property
     def dim(self) -> int:
         """
-        The dimension.
+        The second dimension of the counts.
 
         Returns
         -------
         int
-            The dimension.
+            The second dimension of the counts.
         """
         return self._counts.shape[1]
 
@@ -1162,7 +1163,7 @@ class model(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .coef() .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
 
     def sigma(self):
         """
@@ -1240,11 +1241,38 @@ class model(ABC):
         """
         return ""
 
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        if self._fitted is None:
+            raise RuntimeError("Please fit the model before.")
+        if ax is None:
+            ax = plt.gca()
+        predictions = self._counts_predictions().ravel().detach()
+        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
+        return ax
+
 
 # need to do a good init for M and S
-class Pln(model):
+class Pln(_model):
     _NAME = "Pln"
     coef: torch.Tensor
+    """
+    Pln class.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import Pln, get_real_count_data
+    >>> counts, labels = get_real_count_data(return_labels = True)
+    >>> pln = Pln(counts,add_const = True, rank = 5])
+    >>> print(pln)
+    >>> pln.viz(colors = labels)
+
+    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
+    >>> param = get_simulation_parameters()
+    >>> counts = sample_pln(param)
+    >>> data = {}
+
+
+    """
 
     @property
     def _description(self):
@@ -1286,7 +1314,14 @@ class Pln(model):
         coef : torch.Tensor
             The coefficients.
         """
-        pass
+
+    def _counts_predictions(self):
+        return torch.exp(
+            self._offsets
+            + self._covariates @ self._coef
+            + self._latent_mean
+            + 1 / 2 * self._latent_sqrt_var**2
+        )
 
     def _smart_init_latent_parameters(self):
         """
@@ -1350,14 +1385,12 @@ class Pln(model):
         Method for smartly initializing the model parameters.
         """
         # no model parameters since we are doing a profiled ELBO
-        pass
 
     def _random_init_model_parameters(self):
         """
         Method for randomly initializing the model parameters.
         """
         # no model parameters since we are doing a profiled ELBO
-        pass
 
     @property
     def _coef(self):
@@ -2207,9 +2240,21 @@ class PlnPCAcollection:
 
 
 # Here, setting the value for each key in _dict_parameters
-class PlnPCA(model):
+class PlnPCA(_model):
     _NAME: str = "PlnPCA"
     _components: torch.Tensor
+    """
+    PlnPCA class.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnPCA, get_real_count_data
+    >>> counts, labels = get_real_count_data(return_labels = True)
+    >>> data = {"counts": counts}
+    >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5])
+    >>> print(pca)
+    >>> pca.viz(colors = labels)
+    """
 
     def __init__(
         self,
@@ -2289,7 +2334,7 @@ class PlnPCA(model):
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
             >>> counts = get_real_count_data()
             >>> data = {"counts": counts}
-            >>> pca_col = PlnPCA.from_formula("counts ~ 1", data = data, rank = [5,6])
+            >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
