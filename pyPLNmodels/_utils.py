@@ -93,19 +93,23 @@ def _sigmoid(tens: torch.Tensor) -> torch.Tensor:
     return 1 / (1 + torch.exp(-tens))
 
 
-def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor:
+def sample(
+    param, seed: int = None, return_latent=False, distrib: str = "PLN"
+) -> torch.Tensor:
     """
-    Sample from the Poisson Log-Normal (Pln) model.
+    Sample from the wanted distribution.
 
     Parameters
     ----------
-    pln_param : PlnParameters object
+    param : Parameters object
         parameters of the model, containing the coeficient, the covariates,
         the components and the offsets.
     seed : int or None, optional
         Random seed for reproducibility. Default is None.
     return_latent : bool, optional
         If True will return also the latent variables. Default is False.
+    distrib : str, optional
+        Distribution wanted. Should be either "PLN" or "BIG"
 
     Returns
     -------
@@ -113,36 +117,36 @@ def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor
         Tuple containing counts (torch.Tensor), gaussian (torch.Tensor), and ksi (torch.Tensor)
     torch.Tensor if return_latent is False
 
-    See also :func:`~pyPLNmodels.PlnParameters`
+    See also :func:`~pyPLNmodels.Parameters`
     """
     prev_state = torch.random.get_rng_state()
     if seed is not None:
         torch.random.manual_seed(seed)
 
-    n_samples = pln_param.offsets.shape[0]
-    rank = pln_param.components.shape[1]
+    n_samples = param.offsets.shape[0]
+    rank = param.components.shape[1]
 
-    if pln_param.covariates is None:
+    if param.covariates is None:
         XB = 0
     else:
-        XB = torch.matmul(pln_param.covariates, pln_param.coef)
+        XB = torch.matmul(param.covariates, param.coef)
 
     gaussian = (
-        torch.mm(torch.randn(n_samples, rank, device=DEVICE), pln_param.components.T)
-        + XB
+        torch.mm(torch.randn(n_samples, rank, device=DEVICE), param.components.T) + XB
     )
-    parameter = torch.exp(pln_param.offsets + gaussian)
-    if pln_param.coef_inflation is not None:
-        print("ZIPln is sampled")
-        zero_inflated_mean = torch.matmul(
-            pln_param.covariates, pln_param.coef_inflation
-        )
+    if param.coef_inflation is not None:
+        print("ZI is sampled")
+        zero_inflated_mean = torch.matmul(param.covariates, param.coef_inflation)
         ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
     else:
         ksi = 0
-
-    counts = (1 - ksi) * torch.poisson(parameter)
-
+    parameter = param.offsets + gaussian
+    if distrib == "PLN":
+        counts = (1 - ksi) * torch.poisson(torch.exp(parameter))
+    elif distrib == "BIG":
+        counts = torch.bernoulli(_sigmoid(parameter))
+    else:
+        print(f"Unknown distribution {distrib}")
     torch.random.set_rng_state(prev_state)
     if return_latent is True:
         return counts, gaussian, ksi
@@ -501,7 +505,7 @@ def _get_simulation_coef_cov_offsets(
     return coef, covariates, offsets
 
 
-class PlnParameters:
+class Parameters:
     def __init__(self, components, coef, covariates, offsets, coef_inflation=None):
         """
         Instantiate all the needed parameters to sample from the PLN model.
@@ -608,7 +612,7 @@ def _check_two_dimensions_are_equal(
 
 def get_simulation_parameters(
     n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5
-) -> PlnParameters:
+) -> Parameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
 
@@ -625,13 +629,13 @@ def get_simulation_parameters(
 
     Returns
     -------
-        PlnParameters
+        Parameters
             The generated simulation parameters.
 
     """
     coef, covariates, offsets = _get_simulation_coef_cov_offsets(n_samples, nb_cov, dim)
     components = _get_simulation_components(dim, rank)
-    return PlnParameters(components, coef, covariates, offsets)
+    return Parameters(components, coef, covariates, offsets)
 
 
 def get_simulated_count_data(
@@ -665,17 +669,17 @@ def get_simulated_count_data(
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
-    pln_param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
-    counts = sample_pln(pln_param, seed=seed, return_latent=False)
+    param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
+    counts = sample(param, seed=seed, return_latent=False)
     if return_true_param is True:
         return (
             counts,
-            pln_param.covariates,
-            pln_param.offsets,
-            pln_param.covariance,
-            pln_param.coef,
+            param.covariates,
+            param.offsets,
+            param.covariance,
+            param.coef,
         )
-    return pln_param.counts, pln_param.cov, pln_param.offsets
+    return param.counts, param.cov, param.offsets
 
 
 def get_real_count_data(

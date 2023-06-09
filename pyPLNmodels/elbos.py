@@ -1,5 +1,5 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import _log_stirling, _trunc_log
+from ._utils import _log_stirling, _trunc_log, _sigmoid
 from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 from typing import Optional
@@ -8,7 +8,7 @@ from typing import Optional
 def elbo_pln(
     counts: torch.Tensor,
     offsets: torch.Tensor,
-    covariates: Optional[torch.Tensor],
+    covariates: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
     covariance: torch.Tensor,
@@ -23,7 +23,7 @@ def elbo_pln(
         Counts with size (n, p).
     offsets : torch.Tensor
         Offset with size (n, p).
-    covariates : torch.Tensor, optional
+    covariates : torch.Tensor
         Covariates with size (n, d).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
@@ -59,6 +59,85 @@ def elbo_pln(
     elbo -= 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
     elbo -= torch.sum(_log_stirling(counts))
     elbo += 0.5 * n_samples * dim
+    return elbo / n_samples
+
+
+def _elbo_big(
+    counts: torch.Tensor,
+    covariates: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    covariance: torch.Tensor,
+    coef: torch.Tensor,
+    ksi: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the Pln model.
+
+    Parameters:
+    ----------
+    counts : torch.Tensor
+        Counts with size (n, p).
+    covariates : torch.Tensor
+        Covariates with size (n, d).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_var : torch.Tensor
+        Variational parameter with size (n, p).
+    covariance : torch.Tensor
+        Model parameter with size (p, p).
+    coef : torch.Tensor
+        Model parameter with size (d, p).
+
+    Returns:
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound), of size one.
+    """
+    n_samples, dim = counts.shape
+    s_rond_s = torch.square(latent_sqrt_var)
+    if covariates is None:
+        XB = torch.zeros_like(counts)
+    else:
+        XB = covariates @ coef
+    m_minus_xb = latent_mean - XB
+    d_plus_minus_xb2 = (
+        torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
+    )
+    elbo = 0
+    zeroth = torch.sum((counts - 1).unsqueeze(1) @ (latent_mean.unsqueeze(2)))
+    elbo += zeroth
+    first = n_samples * dim / 2
+    elbo += first
+    sec = torch.sum(torch.log(latent_sqrt_var**2))
+    elbo += sec
+    third = 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
+    elbo -= third
+    fourth = 0.5 * n_samples * torch.logdet(covariance)
+    elbo -= fourth
+    # elbo -= torch.sum(torch.log(1 + torch.exp(-ksi)))
+    fifth = torch.sum(torch.nn.LogSigmoid()(ksi))
+    elbo += fifth
+    sixth = 0.5 * torch.sum(latent_mean - ksi)
+    elbo += sixth
+    seventh = 0.5 * torch.sum(
+        (_sigmoid(ksi) - 0.5)
+        * 1
+        / ksi
+        * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
+    )
+    elbo -= seventh
+    other = elbo.item()
+    print("zeroth:", zeroth.item() / other)
+    print("first", first / other)
+    print("sec", sec.item() / other)
+    print("third", third.item() / other)
+    print("fourth", fourth.item() / other)
+    print("fifth", fifth.item() / other)
+    print("sixth", sixth.item() / other)
+    print("seventh", seventh.item() / other)
+    print("elbo:", elbo.item())
+    print("--------------------")
     return elbo / n_samples
 
 

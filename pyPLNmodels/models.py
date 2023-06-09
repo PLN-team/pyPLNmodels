@@ -18,7 +18,7 @@ from ._closed_forms import (
     _closed_formula_covariance,
     _closed_formula_pi,
 )
-from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
+from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln, _elbo_big
 from ._utils import (
     _PlotArgs,
     _format_data,
@@ -1266,9 +1266,9 @@ class Pln(_model):
     >>> print(pln)
     >>> pln.viz(colors = labels)
 
-    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
+    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample
     >>> param = get_simulation_parameters()
-    >>> counts = sample_pln(param)
+    >>> counts = sample(param)
     >>> data = {}
 
 
@@ -1504,6 +1504,83 @@ class Pln(_model):
             The covariance matrix.
         """
         pass
+
+
+class BIG(Pln):
+    def compute_elbo(self):
+        """
+        Method for computing the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+        return _elbo_big(
+            self._counts,
+            self._covariates,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._covariance,
+            self._coef,
+            self._ksi,
+        )
+
+    @property
+    def _coef(self):
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        torch.Tensor
+            The coefficients.
+        """
+        return _closed_formula_coef(self._covariates, self._latent_mean)
+
+    @property
+    def _covariance(self):
+        """
+        Property representing the covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The covariance matrix or None.
+        """
+        return _closed_formula_covariance(
+            self._covariates,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._coef,
+            self.n_samples,
+        )
+
+    def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
+        self._random_init_latent_parameters()
+
+    def _random_init_latent_parameters(self):
+        """
+        Method for randomly initializing the latent parameters.
+        """
+        super()._random_init_latent_parameters()
+        if not hasattr(self, "_ksi"):
+            self._ksi = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    @property
+    def _list_of_parameters_needing_gradient(self):
+        """
+        Property representing the list of parameters needing gradient.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            The list of parameters needing gradient.
+        """
+        return [self._latent_mean, self._ksi, self._latent_sqrt_var]
 
 
 class PlnPCAcollection:

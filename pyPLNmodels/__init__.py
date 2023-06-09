@@ -7,9 +7,9 @@ from ._utils import (
     load_model,
     load_plnpcacollection,
     load_pln,
-    sample_pln,
+    sample,
     get_simulation_parameters,
-    PlnParameters,
+    Parameters,
 )
 
 from ._initialization import log_posterior
@@ -26,8 +26,8 @@ __all__ = (
     "load_model",
     "load_plnpcacollection",
     "load_pln",
-    "sample_pln",
+    "sample",
     "log_posterior",
     "get_simulation_parameters",
-    "PlnParameters",
+    "Parameters",
 )
