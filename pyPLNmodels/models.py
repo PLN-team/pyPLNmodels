@@ -431,6 +431,7 @@ class model(ABC):
             >>> pln = Pln.from_formula("counts ~ 1", data = data)
             >>> pln.fit()
             >>> pca_proj = pln.pca_projected_latent_variables()
+            >>> print(pca_proj.shape)
         """
         pca = self.sk_PCA(n_components=n_components)
         return pca.transform(self.latent_variables.cpu())
