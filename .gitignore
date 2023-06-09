@@ -149,4 +149,5 @@ nohup.out
 test.py
 
 ## directories that outputs when running the tests
-tests/PLN*
+tests/Pln*
+slides/
