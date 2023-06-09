@@ -49,7 +49,7 @@ else:
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
-class _Pln(ABC):
+class model(ABC):
     _WINDOW = 15
     n_samples: int
     dim: int
@@ -73,7 +73,7 @@ class _Pln(ABC):
         add_const: bool = True,
     ):
         """
-        Initializes the _Pln class.
+        Initializes the model class.
 
         Parameters
         ----------
@@ -115,7 +115,7 @@ class _Pln(ABC):
         take_log_offsets: bool = False,
     ):
         """
-        Create a _Pln instance from a formula and data.
+        Create a model instance from a formula and data.
         See also :func:`~pyPLNmodels.PlnPCAcollection.__init__`
 
         Parameters
@@ -133,8 +133,8 @@ class _Pln(ABC):
 
         Returns
         -------
-        _Pln
-            The initialized _Pln instance.
+        model
+            The initialized model instance.
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -361,6 +361,14 @@ class _Pln(ABC):
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional
             Whether to print training progress. Defaults to False.
+        .. code-block:: python
+        Examples
+        --------
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> pln = Pln(counts,add_const = True)
+            >>> pln.fit()
+            >>> print(pln)
         """
         self._pring_beginning_message()
         self._beginning_time = time.time()
@@ -1225,7 +1233,7 @@ class _Pln(ABC):
 
 
 # need to do a good init for M and S
-class Pln(_Pln):
+class Pln(model):
     _NAME = "Pln"
     coef: torch.Tensor
 
@@ -1536,6 +1544,12 @@ class PlnPCAcollection:
         -------
         PlnPCAcollection
             The created PlnPCAcollection instance.
+        Examples
+        --------
+            >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -2184,7 +2198,7 @@ class PlnPCAcollection:
 
 
 # Here, setting the value for each key in _dict_parameters
-class PlnPCA(_Pln):
+class PlnPCA(model):
     _NAME: str = "PlnPCA"
     _components: torch.Tensor
 
@@ -2261,6 +2275,12 @@ class PlnPCA(_Pln):
         -------
         PlnPCA
             The created PlnPCA object.
+        Examples
+        --------
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pca_col = PlnPCA.from_formula("counts ~ 1", data = data, rank = [5,6])
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
