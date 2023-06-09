@@ -50,7 +50,7 @@
 \end{equation*}
 \par }\par}
 \item When $p=q$: unrestricted model: Pln class in pyPLNmodels
-\item When $p<<q$: $\Sigma$ has low rank: PlnPCA class in pyPLNmodels
+\item When $p>>q$: $\Sigma$ has low rank: PlnPCA class in pyPLNmodels
 \end{itemize}
 \end{frame}
 
@@ -75,8 +75,8 @@
 \item Problem: both $W_i | Y_i$ and $Z_i| Y_i$ have unknown distribution.
 \item $\implies$ gaussian variational approximation.
     \begin{itemize}
-        \item $W_i |Y_i \sim \mathcal N \left(M_i, \operatorname{diag}(S_i)\right), M_i, S_i \in \mathbb R^q$
-        \item $W_i |Y_i \sim \mathcal N \left(M_i, \operatorname{diag}(S_i)\right), M_i, S_i \in \mathbb R^p$
+        \item PlnPCA:$W_i |Y_i \sim \mathcal N \left(M_i, \operatorname{diag}(S_i)\right), M_i, S_i \in \mathbb R^q$
+        \item Pln:$Z_i |Y_i \sim \mathcal N \left(M_i, \operatorname{diag}(S_i)\right), M_i, S_i \in \mathbb R^p$
     \end{itemize}
 \end{itemize}
 \end{frame}
