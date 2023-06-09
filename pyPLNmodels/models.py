@@ -847,7 +847,7 @@ class model(ABC):
         dict
             The dictionary representing the model.
         """
-        return self.dict_data | self._dict_parameters
+        return {**self.dict_data, **self._dict_parameters}
 
     @property
     def _dict_parameters(self):
@@ -859,7 +859,7 @@ class model(ABC):
         dict
             The dictionary of parameters.
         """
-        return self.model_parameters | self.latent_parameters
+        return {**self.model_parameters, **self.latent_parameters}
 
     @property
     def coef(self):
