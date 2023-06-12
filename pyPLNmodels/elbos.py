@@ -1,5 +1,5 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import _log_stirling, _trunc_log, _sigmoid
+from ._utils import _log_stirling, _trunc_log
 from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 import math

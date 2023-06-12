@@ -88,11 +88,6 @@ class _PlotArgs:
         ax.set_title("Increments")
         ax.legend()
 
-
-def _sigmoid(tens: torch.Tensor) -> torch.Tensor:
-    return 1 / (1 + torch.exp(-tens))
-
-
 def sample(
     param, seed: int = None, return_latent=False, distrib: str = "PLN"
 ) -> torch.Tensor:
@@ -144,7 +139,7 @@ def sample(
     if distrib == "PLN":
         counts = (1 - ksi) * torch.poisson(torch.exp(parameter))
     elif distrib == "BIG":
-        counts = torch.bernoulli(_sigmoid(parameter))
+        counts = torch.bernoulli(torch.sigmoid(parameter))
     else:
         print(f"Unknown distribution {distrib}")
     torch.random.set_rng_state(prev_state)

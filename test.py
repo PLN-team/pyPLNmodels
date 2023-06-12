@@ -39,28 +39,9 @@ covariance = _closed_formula_covariance(
 )
 ksi = torch.ones(n, p, device=DEVICE).requires_grad_(True)
 
-optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.1)
+optim = torch.optim.Adam([latent_mean, latent_sqrt_var, ksi], lr=0.01)
 
-nb_iter = 400
-elbo = np.zeros([nb_iter])
-for i in range(nb_iter):
-    loss = -_elbo_big(
-        counts, covariates, latent_mean, latent_sqrt_var, covariance, coef, ksi
-    )
-    loss.backward()
-    optim.step()
-    optim.zero_grad()
-    coef = _closed_formula_coef(covariates, latent_mean)
-    covariance = _closed_formula_covariance(
-        covariates, latent_mean, latent_sqrt_var, coef, n
-    )
-    elbo[i] = loss.item()
-
-plt.plot(elbo)
-plt.yscale('log',base=10) 
-plt.show()
-
-nb_iter = 400
+nb_iter = 1000
 elbo = np.zeros([nb_iter])
 for i in range(nb_iter):
     loss = -profiled_elbo_big(
