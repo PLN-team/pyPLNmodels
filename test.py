@@ -1,3 +1,5 @@
+import torch  # pylint:disable=[C0114]
+
 from pyPLNmodels import (
     PlnPCA,
     Pln,
@@ -18,23 +20,29 @@ import statsmodels as sm
 import pandas as pd
 from sklearn.decomposition import PCA
 
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda")
+else:
+    DEVICE = torch.device("cpu")
+
 t = get_simulation_parameters()
-t.covariates = None
 t.offsets *= 0
 counts = sample(t, distrib="BIG")
-covariates = t.covariates
 n, p = counts.shape
-latent_mean = torch.zeros(n, p).requires_grad_(True)
-latent_sqrt_var = torch.ones(n, p).requires_grad_(True)
+t.offsets *= 0
+covariates = t.covariates
+latent_mean = torch.zeros(n, p, device=DEVICE).requires_grad_(True)
+latent_sqrt_var = torch.ones(n, p, device=DEVICE).requires_grad_(True)
 coef = _closed_formula_coef(covariates, latent_mean)
 covariance = _closed_formula_covariance(
     covariates, latent_mean, latent_sqrt_var, coef, n
 )
-ksi = torch.ones(n, p).requires_grad_(True)
+ksi = torch.ones(n, p, device=DEVICE).requires_grad_(True)
 
-optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.001)
+optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.01)
 
 nb_iter = 400
+elbo = np.zeros([nb_iter])
 for i in range(nb_iter):
     loss = -_elbo_big(
         counts, covariates, latent_mean, latent_sqrt_var, covariance, coef, ksi
@@ -46,14 +54,8 @@ for i in range(nb_iter):
     covariance = _closed_formula_covariance(
         covariates, latent_mean, latent_sqrt_var, coef, n
     )
+    elbo[i] = loss.item()
 
-sns.heatmap(covariance.detach())
+plt.plot(elbo)
+plt.yscale('log',base=10) 
 plt.show()
-
-
-# counts = sample(t, distrib = "PLN")
-# big = BIG(counts, covariates = t.covariates, offsets = t.offsets)
-# big.fit(nb_max_iteration = 1500, tol = 0)
-# big.show()
-# sns.heatmap(t.covariance)
-# plt.show()

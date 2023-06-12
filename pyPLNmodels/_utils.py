@@ -129,7 +129,7 @@ def sample(
     if param.covariates is None:
         XB = 0
     else:
-        XB = torch.matmul(param.covariates, param.coef)
+        XB = param.covariates @ param.coef
 
     gaussian = (
         torch.mm(torch.randn(n_samples, rank, device=DEVICE), param.components.T) + XB

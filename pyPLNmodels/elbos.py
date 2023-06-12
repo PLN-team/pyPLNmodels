@@ -107,7 +107,23 @@ def _elbo_big(
     d_plus_minus_xb2 = (
         torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
     )
-    elbo = 0
+
+    logPZ = (
+        -0.5
+        * n_samples
+        * (
+            torch.logdet(covariance)
+            + torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2) / n_samples
+            + dim * math.log(2 * math.pi)
+        )
+    )
+
+    entropy = (
+        n_samples / 2 * dim * math.log(2 * math.pi)
+        + n_samples * dim / 2
+        + 0.5 * torch.sum(torch.log(s_rond_s))
+    )
+
     Ymoins1M = torch.sum((counts - 1).unsqueeze(1) @ (latent_mean.unsqueeze(2)))
     esp_log_sigmoid = -torch.sum(torch.log(1 + torch.exp(-ksi)))
     esp_log_sigmoid += 0.5 * torch.sum(latent_mean - ksi)
@@ -117,14 +133,7 @@ def _elbo_big(
         * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
     )
     logPY_given_Z = Ymoins1M + esp_log_sigmoid
-    log_det = 0.5 * n_samples * torch.logdet(covariance)
-    esp_norm = 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
-    logPZ = -log_det - esp_norm - n_samples * dim / 2 * math.log(2 * math.pi)
-    entropy = (
-        n_samples / 2 * dim * math.log(2 * math.pi)
-        + n_samples * dim / 2
-        + torch.sum(torch.log(s_rond_s))
-    )
+
     print("log pygiven z", logPY_given_Z.item())
     print("log pz", logPZ.item())
     print("entropy:", entropy.item())
