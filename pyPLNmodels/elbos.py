@@ -2,6 +2,8 @@ import torch  # pylint:disable=[C0114]
 from ._utils import _log_stirling, _trunc_log, _sigmoid
 from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
+import math
+
 from typing import Optional
 
 
@@ -100,45 +102,34 @@ def _elbo_big(
         XB = torch.zeros_like(counts)
     else:
         XB = covariates @ coef
+    print("mean:", torch.mean(latent_mean))
     m_minus_xb = latent_mean - XB
     d_plus_minus_xb2 = (
         torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
     )
     elbo = 0
-    zeroth = torch.sum((counts - 1).unsqueeze(1) @ (latent_mean.unsqueeze(2)))
-    elbo += zeroth
-    first = n_samples * dim / 2
-    elbo += first
-    sec = torch.sum(torch.log(latent_sqrt_var**2))
-    elbo += sec
-    third = 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
-    elbo -= third
-    fourth = 0.5 * n_samples * torch.logdet(covariance)
-    elbo -= fourth
-    # elbo -= torch.sum(torch.log(1 + torch.exp(-ksi)))
-    fifth = torch.sum(torch.nn.LogSigmoid()(ksi))
-    elbo += fifth
-    sixth = 0.5 * torch.sum(latent_mean - ksi)
-    elbo += sixth
-    seventh = 0.5 * torch.sum(
+    Ymoins1M = torch.sum((counts - 1).unsqueeze(1) @ (latent_mean.unsqueeze(2)))
+    esp_log_sigmoid = -torch.sum(torch.log(1 + torch.exp(-ksi)))
+    esp_log_sigmoid += 0.5 * torch.sum(latent_mean - ksi)
+    esp_log_sigmoid -= 0.5 * torch.sum(
         (_sigmoid(ksi) - 0.5)
-        * 1
         / ksi
         * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
     )
-    elbo -= seventh
-    other = elbo.item()
-    print("zeroth:", zeroth.item() / other)
-    print("first", first / other)
-    print("sec", sec.item() / other)
-    print("third", third.item() / other)
-    print("fourth", fourth.item() / other)
-    print("fifth", fifth.item() / other)
-    print("sixth", sixth.item() / other)
-    print("seventh", seventh.item() / other)
-    print("elbo:", elbo.item())
-    print("--------------------")
-    return elbo / n_samples
+    logPY_given_Z = Ymoins1M + esp_log_sigmoid
+    log_det = 0.5 * n_samples * torch.logdet(covariance)
+    esp_norm = 0.5 * torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2)
+    logPZ = -log_det - esp_norm - n_samples * dim / 2 * math.log(2 * math.pi)
+    entropy = (
+        n_samples / 2 * dim * math.log(2 * math.pi)
+        + n_samples * dim / 2
+        + torch.sum(torch.log(s_rond_s))
+    )
+    print("log pygiven z", logPY_given_Z.item())
+    print("log pz", logPZ.item())
+    print("entropy:", entropy.item())
+    elbo = logPY_given_Z + logPZ + entropy
+    return elbo
 
 
 def profiled_elbo_pln(
