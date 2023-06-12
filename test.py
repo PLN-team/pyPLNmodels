@@ -11,7 +11,7 @@ from pyPLNmodels import (
 )
 from pyPLNmodels.models import BIG
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
-from pyPLNmodels.elbos import _elbo_big
+from pyPLNmodels.elbos import _elbo_big, profiled_elbo_big
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -39,7 +39,7 @@ covariance = _closed_formula_covariance(
 )
 ksi = torch.ones(n, p, device=DEVICE).requires_grad_(True)
 
-optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.01)
+optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.1)
 
 nb_iter = 400
 elbo = np.zeros([nb_iter])
@@ -59,3 +59,23 @@ for i in range(nb_iter):
 plt.plot(elbo)
 plt.yscale('log',base=10) 
 plt.show()
+
+nb_iter = 400
+elbo = np.zeros([nb_iter])
+for i in range(nb_iter):
+    loss = -profiled_elbo_big(
+        counts, covariates, latent_mean, latent_sqrt_var, ksi
+    )
+    loss.backward()
+    optim.step()
+    optim.zero_grad()
+    elbo[i] = loss.item()
+
+plt.plot(elbo)
+plt.yscale('log',base=10) 
+plt.show()
+
+coef = _closed_formula_coef(covariates, latent_mean)
+covariance = _closed_formula_covariance(
+    covariates, latent_mean, latent_sqrt_var, coef, n
+)

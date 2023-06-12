@@ -124,21 +124,17 @@ def _elbo_big(
         + 0.5 * torch.sum(torch.log(s_rond_s))
     )
 
-    Ymoins1M = torch.sum((counts - 1).unsqueeze(1) @ (latent_mean.unsqueeze(2)))
-    esp_log_sigmoid = -torch.sum(torch.log(1 + torch.exp(-ksi)))
-    esp_log_sigmoid += 0.5 * torch.sum(latent_mean - ksi)
-    esp_log_sigmoid -= 0.5 * torch.sum(
-        (_sigmoid(ksi) - 0.5)
+    logPY_given_Z = torch.sum((counts - 1) * latent_mean) + 0.5 * torch.sum(
+        2 * torch.log(torch.sigmoid(ksi))
+        + latent_mean
+        - ksi
+        + (0.5 - torch.sigmoid(ksi))
         / ksi
         * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
     )
-    logPY_given_Z = Ymoins1M + esp_log_sigmoid
 
-    print("log pygiven z", logPY_given_Z.item())
-    print("log pz", logPZ.item())
-    print("entropy:", entropy.item())
     elbo = logPY_given_Z + logPZ + entropy
-    return elbo
+    return elbo / n_samples
 
 
 def profiled_elbo_pln(
@@ -185,6 +181,65 @@ def profiled_elbo_pln(
         + 0.5 * torch.log(s_squared)
     )
     elbo -= torch.sum(_log_stirling(counts))
+    return elbo / n_samples
+
+
+def profiled_elbo_big(
+    counts: torch.Tensor,
+    covariates: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    ksi: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the Pln model with profiled
+    model parameters (i.e the model parameters are derived directly from the
+    latent parameters).
+
+    Parameters:
+    ----------
+    counts : torch.Tensor
+        Counts with size (n, p).
+    covariates : torch.Tensor
+        Covariates with size (n, d).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_var : torch.Tensor
+        Variational parameter with size (n, p).
+
+    Returns:
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1.
+    """
+    n_samples, dim = counts.shape
+    s_squared = torch.square(latent_sqrt_var)
+    closed_coef = _closed_formula_coef(covariates, latent_mean)
+    closed_covariance = _closed_formula_covariance(
+        covariates, latent_mean, latent_sqrt_var, closed_coef, n_samples
+    )
+
+    PZ_profiled = -0.5 * n_samples * torch.logdet(
+        closed_covariance
+    ) - n_samples / 2 * dim * math.log(2 * math.pi)
+
+    entropy = (
+        n_samples / 2 * dim * math.log(2 * math.pi)
+        + n_samples * dim / 2
+        + 0.5 * torch.sum(torch.log(s_squared))
+    )
+
+    logPY_given_Z = torch.sum((counts - 1) * latent_mean) + 0.5 * torch.sum(
+        2 * torch.log(torch.sigmoid(ksi))
+        + latent_mean
+        - ksi
+        + (0.5 - torch.sigmoid(ksi))
+        / ksi
+        * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
+    )
+
+    elbo = logPY_given_Z + entropy + PZ_profiled
+
     return elbo / n_samples
 
 
