@@ -1248,6 +1248,14 @@ class _model(ABC):
             ax = plt.gca()
         predictions = self._counts_predictions().ravel().detach()
         sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
+        max_y = int(torch.max(self.counts.ravel()).item())
+        y = np.linspace(0, max_y, max_y)
+        ax.plot(y, y)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_ylabel("Predicted values")
+        ax.set_xlabel("Counts")
+        ax.legend()
         return ax
 
 
@@ -1317,10 +1325,7 @@ class Pln(_model):
 
     def _counts_predictions(self):
         return torch.exp(
-            self._offsets
-            + self._covariates @ self._coef
-            + self._latent_mean
-            + 1 / 2 * self._latent_sqrt_var**2
+            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
         )
 
     def _smart_init_latent_parameters(self):
@@ -2325,12 +2330,19 @@ class PlnPCA(_model):
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCA, get_real_count_data
+    >>> from pyPLNmodels import PlnPCA, get_real_count_data, get_simulation_parameters, sample_pln
     >>> counts, labels = get_real_count_data(return_labels = True)
     >>> data = {"counts": counts}
     >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5])
     >>> print(pca)
     >>> pca.viz(colors = labels)
+
+    >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
+    >>> counts = sample_pln(plnparam)
+    >>> data = {"counts": plnparam.counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> plnpca = PlnPCA.from_formula("counts ~ 0 + cov", data = data, rank = 5)
+    >>> plnpca.fit()
+    >>> print(plnpca)
     """
 
     def __init__(
@@ -2473,6 +2485,21 @@ class PlnPCA(_model):
         """
         return self._latent_sqrt_var**2
 
+    def _counts_predictions(self):
+        # covariance_a_posteriori = self.latent_mean.unsqueeze(1)*self._components.unsqueeze(0)
+        # covariance_a_posteriori = covariance_a_posteriori @ self._components.T.unsqueeze(0)
+        covariance_a_posteriori = torch.sum(
+            (self._components**2).unsqueeze(0)
+            * (self.latent_sqrt_var**2).unsqueeze(1),
+            axis=2,
+        )
+        # print('latent_var', self.latent_variables)
+        # print('cov:', covariance_a_posteriori)
+        # x
+        return torch.exp(
+            self._offsets + self.latent_variables + 1 / 2 * covariance_a_posteriori
+        )
+
     @latent_mean.setter
     @_array2tensor
     def latent_mean(self, latent_mean: torch.Tensor):
@@ -2567,18 +2594,13 @@ class PlnPCA(_model):
 
     def _get_max_components(self) -> int:
         """
-        Get the maximum number of components.
-
-        Returns
-        -------
-        int
-            The maximum number of components.
+        Get the maximum number of components possible by the model.
         """
         return self._rank
 
     def _pring_beginning_message(self):
         """
-        Print the beginning message.
+        Print the beginning message when fitted.
         """
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
         print(f"Fitting a PlnPCAcollection model with {self._rank} components")
