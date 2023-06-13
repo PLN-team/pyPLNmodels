@@ -733,7 +733,7 @@ class _model(ABC):
         axes : numpy.ndarray, optional
             The axes to plot on. If None, a new figure will be created. Defaults to None.
         """
-        print("Likelihood:", -self.loglike)
+        print("Likelihood:", self.loglike)
         if self._fitted is False:
             nb_axes = 1
         else:
@@ -1242,15 +1242,34 @@ class _model(ABC):
         return ""
 
     def plot_expected_vs_true(self, ax=None, colors=None):
+        """
+        Plot the predicted value of the counts against the counts.
+
+        Parameters
+        ----------
+        ax : Optional[Any], optional
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+
+        colors : Optional[Any], optional
+            The colors to use for plotting, by default None.
+
+        Returns
+        -------
+        Any
+            The matplotlib axis.
+        """
         if self._fitted is None:
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
         predictions = self._counts_predictions().ravel().detach()
-        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
+        print("colors:", np.array(colors).ravel().shape)
+        print("pred", predictions.shape)
+        colors = np.repeat(np.array(colors), repeats=self.dim)
+        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors.ravel(), ax=ax)
         max_y = int(torch.max(self.counts.ravel()).item())
         y = np.linspace(0, max_y, max_y)
-        ax.plot(y, y)
+        ax.plot(y, y, c="red")
         ax.set_yscale("log")
         ax.set_xscale("log")
         ax.set_ylabel("Predicted values")
@@ -2409,18 +2428,16 @@ class PlnPCA(_model):
         return self._latent_sqrt_var**2
 
     def _counts_predictions(self):
-        # covariance_a_posteriori = self.latent_mean.unsqueeze(1)*self._components.unsqueeze(0)
-        # covariance_a_posteriori = covariance_a_posteriori @ self._components.T.unsqueeze(0)
         covariance_a_posteriori = torch.sum(
             (self._components**2).unsqueeze(0)
             * (self.latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
-        # print('latent_var', self.latent_variables)
-        # print('cov:', covariance_a_posteriori)
-        # x
         return torch.exp(
-            self._offsets + self.latent_variables + 1 / 2 * covariance_a_posteriori
+            self._offsets
+            + self.covariates @ self.coef
+            + self.latent_variables
+            + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
