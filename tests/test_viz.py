@@ -81,3 +81,9 @@ def test_fail_plot_pca_correlation_graph_without_names(pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_plot_pca_correlation_graph_without_names(pln):
     pln.plot_pca_correlation_graph([f"var_{i}" for i in range(3)], [0, 1, 2])
+
+
+@pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_sim_pln"])
+@filter_models(["Pln", "PlnPCA"])
+def test_expected_vs_true(pln):
+    pln.plot_expected_vs_true()
