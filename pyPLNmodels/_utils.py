@@ -133,7 +133,7 @@ def sample(
     if param.coef_inflation is not None:
         print("ZI is sampled")
         zero_inflated_mean = torch.matmul(param.covariates, param.coef_inflation)
-        ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
+        ksi = torch.bernoulli(torch.sigmoid(zero_inflated_mean))
     else:
         ksi = 0
     parameter = param.offsets + gaussian
@@ -465,7 +465,7 @@ def _get_simulation_coef_cov_offsets(
     n_samples: int, nb_cov: int, dim: int, add_const: bool
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Get offsets, covariance coefficients with right shapes.
+    Get offsets, covariates and regression coefficients with right shapes.
 
     Parameters
     ----------

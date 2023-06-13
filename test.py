@@ -1,5 +1,10 @@
 import torch  # pylint:disable=[C0114]
 
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda")
+else:
+    DEVICE = torch.device("cpu")
+
 from pyPLNmodels import (
     PlnPCA,
     Pln,
@@ -14,39 +19,23 @@ from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_cova
 from pyPLNmodels.elbos import _elbo_big, profiled_elbo_big
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
 import seaborn as sns
-import statsmodels as sm
-import pandas as pd
-from sklearn.decomposition import PCA
 
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-else:
-    DEVICE = torch.device("cpu")
+## Extremely favorable settings
+param = get_simulation_parameters(n_samples=1000, dim=10, nb_cov=0)
+param.offsets *= 0
 
-t = get_simulation_parameters(n_samples=200)
-t.offsets *= 0
-counts = sample(t, distrib="BIG")
+counts, gaussian, ksi = sample(param, distrib="BIG", return_latent=True)
 n, p = counts.shape
-t.offsets *= 0
-covariates = t.covariates
+
+covariates = param.covariates
 latent_mean = torch.zeros(n, p, device=DEVICE).requires_grad_(True)
 latent_sqrt_var = torch.ones(n, p, device=DEVICE).requires_grad_(True)
-coef = _closed_formula_coef(covariates, latent_mean)
-covariance = _closed_formula_covariance(
-    covariates, latent_mean, latent_sqrt_var, coef, n
-)
 ksi = torch.ones(n, p, device=DEVICE).requires_grad_(True)
 
-optim = torch.optim.Adam([latent_mean, latent_sqrt_var, ksi], lr=0.01)
+optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.1)
 
-
-pln = Pln(counts, covariates=covariates, offsets=t.offsets, add_const=False)
-pln.fit()
-covariance = pln.covariance
-sns.heatmap(covariance)
-plt.show()
+## Bernoulli Logistic Multivariate Normal
 nb_iter = 1000
 elbo = np.zeros([nb_iter])
 for i in range(nb_iter):
@@ -58,14 +47,40 @@ for i in range(nb_iter):
 
 plt.plot(elbo)
 plt.yscale("log", base=10)
+plt.xscale("log", base=10)
 plt.show()
+
 
 coef = _closed_formula_coef(covariates, latent_mean)
 covariance = _closed_formula_covariance(
     covariates, latent_mean, latent_sqrt_var, coef, n
 )
-sns.heatmap(covariance.detach())
+
+fig, axs = plt.subplots(4, 2)
+fig.suptitle('Correlation matrices (True, Latent Gaussian layer, Latent Prob., Obser. Counts)')
+axs[0,0].hist(param.covariance.cpu().numpy())
+axs[0,1].imshow(param.covariance.cpu().numpy())
+axs[1,0].hist(np.corrcoef(gaussian.T.cpu()))
+axs[1,1].imshow(np.corrcoef(gaussian.T.cpu()))
+axs[2,0].hist(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
+axs[2,1].imshow(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
+axs[3,0].hist(np.corrcoef(counts.T.cpu()))
+axs[3,1].imshow(np.corrcoef(counts.T.cpu()))
+fig.tight_layout()
 plt.show()
-sns.heatmap(t.covariance)
+
+print("mse:", torch.mean((param.covariance - covariance) ** 2)/torch.mean((param.covariance) ** 2))
+print("mse:", torch.mean((param.coef - coef) ** 2)/torch.mean((param.coef) ** 2))
+
+fig, axs = plt.subplots(4, 2)
+fig.suptitle('Correlation matrices (True, Latent Gaussian layer, Latent Prob., Obser. Counts)')
+axs[0,0].hist(latent_mean.detach().cpu().numpy())
+axs[0,1].hist(latent_sqrt_var.detach().cpu().numpy())
+axs[1,0].hist(np.corrcoef(gaussian.T.cpu()))
+axs[1,1].imshow(np.corrcoef(gaussian.T.cpu()))
+axs[2,0].hist(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
+axs[2,1].imshow(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
+axs[3,0].hist(np.corrcoef(counts.T.cpu()))
+axs[3,1].imshow(np.corrcoef(counts.T.cpu()))
+fig.tight_layout()
 plt.show()
-print("mse:", torch.mean((t.covariance - pln.covariance) ** 2))

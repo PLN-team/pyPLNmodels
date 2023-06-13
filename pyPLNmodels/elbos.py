@@ -213,23 +213,19 @@ def profiled_elbo_big(
         The ELBO (Evidence Lower Bound) with size 1.
     """
     n_samples, dim = counts.shape
-    s_squared = torch.square(latent_sqrt_var)
     closed_coef = _closed_formula_coef(covariates, latent_mean)
     closed_covariance = _closed_formula_covariance(
         covariates, latent_mean, latent_sqrt_var, closed_coef, n_samples
     )
 
-    PZ_profiled = -0.5 * n_samples * torch.logdet(
-        closed_covariance
-    ) - n_samples / 2 * dim * math.log(2 * math.pi)
+    PZ_profiled = -0.5 * n_samples * torch.logdet(closed_covariance)
 
     entropy = (
-        n_samples / 2 * dim * math.log(2 * math.pi)
-        + n_samples * dim / 2
-        + 0.5 * torch.sum(torch.log(s_squared))
+        n_samples * dim / 2
+        + 0.5 * torch.sum(torch.log(torch.square(latent_sqrt_var)))
     )
 
-    logPY_given_Z = torch.sum((counts - 1) * latent_mean) + 0.5 * torch.sum(
+    logPY_Z = torch.sum((counts - 1) * latent_mean) + 0.5 * torch.sum(
         2 * torch.log(torch.sigmoid(ksi))
         + latent_mean
         - ksi
@@ -238,7 +234,7 @@ def profiled_elbo_big(
         * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
     )
 
-    elbo = logPY_given_Z + entropy + PZ_profiled
+    elbo = logPY_Z + entropy + PZ_profiled
 
     return elbo / n_samples
 
