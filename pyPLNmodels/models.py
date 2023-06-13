@@ -1163,7 +1163,7 @@ class _model(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
 
     def sigma(self):
         """
