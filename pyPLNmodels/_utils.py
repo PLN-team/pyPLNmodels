@@ -462,7 +462,7 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
 
 
 def _get_simulation_coef_cov_offsets(
-    n_samples: int, nb_cov: int, dim: int
+    n_samples: int, nb_cov: int, dim: int, add_const: bool
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -472,9 +472,14 @@ def _get_simulation_coef_cov_offsets(
     n_samples : int
         Number of samples.
     nb_cov : int
-        Number of covariates. If 0, covariates will be None.
+        Number of covariates. If 0, covariates will be None,
+        unless add_const is True.
+        If add_const is True, then there will be nb_cov+1
+        covariates as the intercept can be seen as a covariates.
     dim : int
         Dimension required of the data.
+    add_const : bool, optional
+        If True, will add a vector of ones in the covariates.
 
     Returns
     -------
@@ -484,7 +489,10 @@ def _get_simulation_coef_cov_offsets(
     prev_state = torch.random.get_rng_state()
     torch.random.manual_seed(0)
     if nb_cov == 0:
-        covariates = None
+        if add_const is True:
+            covariates = torch.ones(n_samples, 1)
+        else:
+            covariates = None
     else:
         covariates = torch.randint(
             low=-1,
@@ -493,7 +501,12 @@ def _get_simulation_coef_cov_offsets(
             dtype=torch.float64,
             device="cpu",
         )
-    coef = torch.randn(nb_cov, dim, device="cpu")
+        if add_const is True:
+            covariates = torch.cat((covariates, torch.ones(n_samples, 1)), axis=1)
+    if covariates is None:
+        coef = None
+    else:
+        coef = torch.randn(covariates.shape[1], dim, device="cpu")
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
@@ -607,7 +620,7 @@ def _check_two_dimensions_are_equal(
 
 
 def get_simulation_parameters(
-    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5
+    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5, add_const=True
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -619,9 +632,13 @@ def get_simulation_parameters(
         dim : int, optional
             The dimension of the data, by default 25.
         nb_cov : int, optional
-            The number of covariates, by default 1.
+            The number of covariates, by default 1. If add_const is True,
+            then there will be nb_cov+1 covariates as the intercept can be seen
+            as a covariates.
         rank : int, optional
             The rank of the data components, by default 5.
+        add_const : bool, optional
+            If True, will add a vector of ones in the covariates.
 
     Returns
     -------
@@ -629,7 +646,9 @@ def get_simulation_parameters(
             The generated simulation parameters.
 
     """
-    coef, covariates, offsets = _get_simulation_coef_cov_offsets(n_samples, nb_cov, dim)
+    coef, covariates, offsets = _get_simulation_coef_cov_offsets(
+        n_samples, nb_cov, dim, add_const
+    )
     components = _get_simulation_components(dim, rank)
     return PlnParameters(components, coef, covariates, offsets)
 
