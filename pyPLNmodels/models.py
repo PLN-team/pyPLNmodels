@@ -1248,6 +1248,14 @@ class _model(ABC):
             ax = plt.gca()
         predictions = self._counts_predictions().ravel().detach()
         sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
+        max_y = int(torch.max(self.counts.ravel()).item())
+        y = np.linspace(0, max_y, max_y)
+        ax.plot(y, y)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_ylabel("Predicted values")
+        ax.set_xlabel("Counts")
+        ax.legend()
         return ax
 
 
@@ -1317,10 +1325,7 @@ class Pln(_model):
 
     def _counts_predictions(self):
         return torch.exp(
-            self._offsets
-            + self._covariates @ self._coef
-            + self._latent_mean
-            + 1 / 2 * self._latent_sqrt_var**2
+            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
         )
 
     def _smart_init_latent_parameters(self):
@@ -2402,6 +2407,21 @@ class PlnPCA(_model):
             The latent variance tensor.
         """
         return self._latent_sqrt_var**2
+
+    def _counts_predictions(self):
+        # covariance_a_posteriori = self.latent_mean.unsqueeze(1)*self._components.unsqueeze(0)
+        # covariance_a_posteriori = covariance_a_posteriori @ self._components.T.unsqueeze(0)
+        covariance_a_posteriori = torch.sum(
+            (self._components**2).unsqueeze(0)
+            * (self.latent_sqrt_var**2).unsqueeze(1),
+            axis=2,
+        )
+        # print('latent_var', self.latent_variables)
+        # print('cov:', covariance_a_posteriori)
+        # x
+        return torch.exp(
+            self._offsets + self.latent_variables + 1 / 2 * covariance_a_posteriori
+        )
 
     @latent_mean.setter
     @_array2tensor
