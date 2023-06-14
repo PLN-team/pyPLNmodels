@@ -30,10 +30,10 @@ n, p = counts.shape
 
 covariates = param.covariates
 latent_mean = torch.zeros(n, p, device=DEVICE).requires_grad_(True)
-latent_sqrt_var = torch.ones(n, p, device=DEVICE).requires_grad_(True)
+latent_sqrt_var = torch.full((n, p), 0.1, device=DEVICE).requires_grad_(True)
 ksi = torch.ones(n, p, device=DEVICE).requires_grad_(True)
 
-optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.1)
+optim = torch.optim.Rprop([latent_mean, latent_sqrt_var, ksi], lr=0.01)
 
 ## Bernoulli Logistic Multivariate Normal
 nb_iter = 1000
@@ -50,37 +50,37 @@ plt.yscale("log", base=10)
 plt.xscale("log", base=10)
 plt.show()
 
-
 coef = _closed_formula_coef(covariates, latent_mean)
 covariance = _closed_formula_covariance(
     covariates, latent_mean, latent_sqrt_var, coef, n
 )
 
 fig, axs = plt.subplots(4, 2)
-fig.suptitle('Correlation matrices (True, Latent Gaussian layer, Latent Prob., Obser. Counts)')
-axs[0,0].hist(param.covariance.cpu().numpy())
-axs[0,1].imshow(param.covariance.cpu().numpy())
-axs[1,0].hist(np.corrcoef(gaussian.T.cpu()))
-axs[1,1].imshow(np.corrcoef(gaussian.T.cpu()))
-axs[2,0].hist(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
-axs[2,1].imshow(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
-axs[3,0].hist(np.corrcoef(counts.T.cpu()))
-axs[3,1].imshow(np.corrcoef(counts.T.cpu()))
+fig.suptitle(
+    "Correlation matrices (True, Latent Gaussian layer, Latent Prob., Obser. Counts)"
+)
+axs[0, 0].hist(param.covariance.cpu().numpy())
+axs[0, 1].imshow(param.covariance.cpu().numpy())
+axs[1, 0].hist(np.corrcoef(gaussian.T.cpu()))
+axs[1, 1].imshow(np.corrcoef(gaussian.T.cpu()))
+axs[2, 0].hist(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
+axs[2, 1].imshow(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
+axs[3, 0].hist(np.corrcoef(counts.T.cpu()))
+axs[3, 1].imshow(np.corrcoef(counts.T.cpu()))
 fig.tight_layout()
 plt.show()
 
-print("mse:", torch.mean((param.covariance - covariance) ** 2)/torch.mean((param.covariance) ** 2))
-print("mse:", torch.mean((param.coef - coef) ** 2)/torch.mean((param.coef) ** 2))
+print("mse:",
+    torch.mean((param.covariance - covariance) ** 2)
+    / torch.mean((param.covariance) ** 2),
+)
+print("mse:", torch.mean((param.coef - coef) ** 2) / torch.mean((param.coef) ** 2))
 
-fig, axs = plt.subplots(4, 2)
-fig.suptitle('Correlation matrices (True, Latent Gaussian layer, Latent Prob., Obser. Counts)')
-axs[0,0].hist(latent_mean.detach().cpu().numpy())
-axs[0,1].hist(latent_sqrt_var.detach().cpu().numpy())
-axs[1,0].hist(np.corrcoef(gaussian.T.cpu()))
-axs[1,1].imshow(np.corrcoef(gaussian.T.cpu()))
-axs[2,0].hist(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
-axs[2,1].imshow(np.corrcoef(torch.sigmoid(gaussian).T.cpu()))
-axs[3,0].hist(np.corrcoef(counts.T.cpu()))
-axs[3,1].imshow(np.corrcoef(counts.T.cpu()))
+fig, axs = plt.subplots(1, 2)
+fig.suptitle(
+    "Histogram of values in variational parameters"
+)
+axs[0].hist(latent_mean.detach().cpu().numpy())
+axs[1].hist(latent_sqrt_var.detach().cpu().numpy())
 fig.tight_layout()
 plt.show()
