@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from typing import Optional, Dict, List, Type, Any, Iterable
+import textwrap
 
 import pandas as pd
 import torch
@@ -54,7 +55,7 @@ class _model(ABC):
     Base class for all the Pln models. Should be inherited.
     """
 
-    _WINDOW = 15
+    _WINDOW: int = 15
     _counts: torch.Tensor
     _covariates: torch.Tensor
     _offsets: torch.Tensor
@@ -66,6 +67,7 @@ class _model(ABC):
     def __init__(
         self,
         counts: torch.Tensor,
+        *,
         covariates: Optional[torch.Tensor] = None,
         offsets: Optional[torch.Tensor] = None,
         offsets_formula: str = "logsum",
@@ -2263,6 +2265,24 @@ class PlnPCAcollection:
         return ".BIC, .AIC, .loglikes"
 
 
+def add_doc(parent_class, *, params=None, example=None):
+    def wrapper(fun):
+        doc = getattr(parent_class, fun.__name__).__doc__
+        if doc is None:
+            doc = ""
+        doc = textwrap.dedent(doc).rstrip(" \n\r")
+        if params is not None:
+            doc += textwrap.dedent(params.rstrip(" \n\r"))
+        if example is not None:
+            doc += "\n\nExamples"
+            doc += "\n--------"
+            doc += textwrap.dedent(example)
+        fun.__doc__ = doc
+        return fun
+
+    return wrapper
+
+
 # Here, setting the value for each key in _dict_parameters
 class PlnPCA(_model):
     _NAME: str = "PlnPCA"
@@ -2287,9 +2307,20 @@ class PlnPCA(_model):
     >>> print(plnpca)
     """
 
+    @add_doc(
+        _model,
+        params="""
+            rank : int, optional
+                The rank of the approximation, by default 5.
+            """,
+        example="""
+            totopassword mange des pates.
+            """,
+    )
     def __init__(
         self,
         counts: torch.Tensor,
+        *,
         covariates: Optional[torch.Tensor] = None,
         offsets: Optional[torch.Tensor] = None,
         offsets_formula: str = "logsum",
@@ -2298,28 +2329,6 @@ class PlnPCA(_model):
         take_log_offsets: bool = False,
         add_const: bool = True,
     ):
-        """
-        Initialize the PlnPCA object.
-
-        Parameters
-        ----------
-        counts : torch.Tensor
-            The counts tensor.
-        covariates : torch.Tensor, optional
-            The covariates tensor, by default None.
-        offsets : torch.Tensor, optional
-            The offsets tensor, by default None.
-        offsets_formula : str, optional
-            The offsets formula, by default "logsum".
-        rank : int, optional
-            The rank of the approximation, by default 5.
-        dict_initialization : Dict[str, torch.Tensor], optional
-            The dictionary for initialization, by default None.
-        take_log_offsets : bool, optional
-            Whether to take the log of offsets. Defaults to False.
-        add_const: bool, optional
-            Whether to add a column of one in the covariates. Defaults to True.
-        """
         self._rank = rank
         super().__init__(
             counts=counts,
