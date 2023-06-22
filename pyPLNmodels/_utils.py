@@ -1,6 +1,10 @@
 import os
 import math
 import warnings
+import textwrap
+from typing import Optional, Dict, Any, Union, Tuple, List
+import pkg_resources
+
 import numpy as np
 import pandas as pd
 import torch
@@ -9,8 +13,6 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
-from typing import Optional, Dict, Any, Union, Tuple, List
-import pkg_resources
 
 
 torch.set_default_dtype(torch.float64)
@@ -993,3 +995,29 @@ def _handle_data(
     )
     _check_data_shape(counts, covariates, offsets)
     return counts, covariates, offsets, column_counts
+
+
+def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
+    def wrapper(fun):
+        doc = getattr(parent_class, fun.__name__).__doc__
+        if doc is None:
+            doc = ""
+        doc = textwrap.dedent(doc).rstrip(" \n\r")
+        if params is not None:
+            doc += textwrap.dedent(params.rstrip(" \n\r"))
+        if returns is not None:
+            doc += "\n\nReturns"
+            doc += "\n-------"
+            doc += textwrap.dedent(returns)
+        if see_also is not None:
+            doc += "\n\nSee also"
+            doc += "\n--------"
+            doc += textwrap.dedent(see_also)
+        if example is not None:
+            doc += "\n\nExamples"
+            doc += "\n--------"
+            doc += textwrap.dedent(example)
+        fun.__doc__ = doc
+        return fun
+
+    return wrapper

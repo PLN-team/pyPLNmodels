@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from typing import Optional, Dict, List, Type, Any, Iterable
-import textwrap
 
 import pandas as pd
 import torch
@@ -30,6 +29,7 @@ from ._utils import (
     _get_dict_initialization,
     _array2tensor,
     _handle_data,
+    _add_doc,
 )
 
 from ._initialization import (
@@ -82,17 +82,17 @@ class _model(ABC):
         ----------
         counts : torch.Tensor
             The count data.
-        covariates : torch.Tensor, optional
+        covariates : torch.Tensor, optional(keyword-only)
             The covariate data. Defaults to None.
-        offsets : torch.Tensor, optional
+        offsets : torch.Tensor, optional(keyword-only)
             The offsets data. Defaults to None.
-        offsets_formula : str, optional
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets. Defaults to "logsum".
-        dict_initialization : dict, optional
+        dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
-        add_const: bool, optional
+        add_const: bool, optional(keyword-only)
             Whether to add a column of one in the covariates. Defaults to True.
         """
         (
@@ -113,13 +113,13 @@ class _model(ABC):
         cls,
         formula: str,
         data: dict,
+        *,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
     ):
         """
         Create a model instance from a formula and data.
-        See also :func:`~pyPLNmodels.PlnPCAcollection.__init__`
 
         Parameters
         ----------
@@ -127,26 +127,21 @@ class _model(ABC):
             The formula.
         data : dict
             The data dictionary.
-        offsets_formula : str, optional
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets. Defaults to "logsum".
-        dict_initialization : dict, optional
+        dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
-
-        Returns
-        -------
-        _model
-            The initialized _model instance.
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
-            covariates,
-            offsets,
-            offsets_formula,
-            dict_initialization,
-            take_log_offsets,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
             add_const=False,
         )
 
@@ -341,6 +336,7 @@ class _model(ABC):
     def fit(
         self,
         nb_max_iteration: int = 50000,
+        *,
         lr: float = 0.01,
         class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
@@ -348,30 +344,22 @@ class _model(ABC):
         verbose: bool = False,
     ):
         """
-        Fit the model.
+        Fit the model. The lower tol, the more accurate the model.
 
         Parameters
         ----------
         nb_max_iteration : int, optional
             The maximum number of iterations. Defaults to 50000.
-        lr : float, optional
+        lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         class_optimizer : torch.optim.Optimizer, optional
             The optimizer class. Defaults to torch.optim.Rprop.
-        tol : float, optional
+        tol : float, optional(keyword-only)
             The tolerance for convergence. Defaults to 1e-3.
-        do_smart_init : bool, optional
+        do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
-        verbose : bool, optional
+        verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
-        .. code-block:: python
-        Examples
-        --------
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> pln = Pln(counts,add_const = True)
-            >>> pln.fit()
-            >>> print(pln)
         """
         self._pring_beginning_message()
         self._beginning_time = time.time()
@@ -1303,6 +1291,106 @@ class Pln(_model):
 
     """
 
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts= get_real_count_data()
+            >>> pln = Pln(counts, add_const = True)
+            >>> print(pln)
+        """,
+        returns="""
+            Pln
+        """,
+        see_also="""
+        :func:`pyPLNmodels.Pln.from_formula`
+        """,
+    )
+    def __init__(
+        self,
+        counts: torch.Tensor,
+        *,
+        covariates: Optional[torch.Tensor] = None,
+        offsets: Optional[torch.Tensor] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+    ):
+        super().__init__(
+            counts=counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
+
+    @classmethod
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        """,
+        returns="""
+            Pln
+        """,
+        see_also="""
+        :class:`pyPLNmodels.Pln`
+        :func:`pyPLNmodels.Pln.__init__`
+    """,
+    )
+    def from_formula(
+        cls,
+        formula: str,
+        data: Any,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+    ):
+        counts, covariates, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> pln = Pln(counts,add_const = True)
+        >>> pln.fit()
+        >>> print(pln)
+        """,
+    )
+    def fit(
+        self,
+        nb_max_iteration: int = 50000,
+        *,
+        lr: float = 0.01,
+        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+    ):
+        super().fit(
+            nb_max_iteration,
+            lr=lr,
+            class_optimizer=class_optimizer,
+            tol=tol,
+            do_smart_init=do_smart_init,
+            verbose=verbose,
+        )
+
     @property
     def _description(self):
         """
@@ -1539,6 +1627,7 @@ class PlnPCAcollection:
     def __init__(
         self,
         counts: torch.Tensor,
+        *,
         covariates: Optional[torch.Tensor] = None,
         offsets: Optional[torch.Tensor] = None,
         offsets_formula: str = "logsum",
@@ -1554,20 +1643,27 @@ class PlnPCAcollection:
         ----------
         counts : torch.Tensor
             The counts.
-        covariates : torch.Tensor, optional
+        covariates : torch.Tensor, optional(keyword-only)
             The covariates, by default None.
-        offsets : torch.Tensor, optional
+        offsets : torch.Tensor, optional(keyword-only)
             The offsets, by default None.
-        offsets_formula : str, optional
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets, by default "logsum".
-        ranks : Iterable[int], optional
+        ranks : Iterable[int], optional(keyword-only)
             The range of ranks, by default range(3, 5).
-        dict_of_dict_initialization : dict, optional
+        dict_of_dict_initialization : dict, optional(keyword-only)
             The dictionary of initialization, by default None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
-        add_const: bool, optional
+        add_const: bool, optional(keyword-only)
             Whether to add a column of one in the covariates. Defaults to True.
+        Returns
+        -------
+        A collection where item q corresponds to a PlnPCA object with rank q.
+        See also
+        --------
+        :class:`~pyPLNmodels.PlnPCA`
+        :func:`~pyPLNmodels.PlnPCAcollection.from_formula`
         """
         self._dict_models = {}
         (
@@ -1600,13 +1696,14 @@ class PlnPCAcollection:
             The formula.
         data : dict
             The data dictionary.
-        offsets_formula : str, optional
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets, by default "logsum".
-        ranks : Iterable[int], optional
+            Overriden if data["offsets"] is not None.
+        ranks : Iterable[int], optional(keyword-only)
             The range of ranks, by default range(3, 5).
-        dict_of_dict_initialization : dict, optional
+        dict_of_dict_initialization : dict, optional(keyword-only)
             The dictionary of initialization, by default None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
         Returns
         -------
@@ -1618,16 +1715,20 @@ class PlnPCAcollection:
             >>> counts = get_real_count_data()
             >>> data = {"counts": counts}
             >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
+        See also
+        --------
+        :class:`~pyPLNmodels.PlnPCA`
+        :func:`~pyPLNmodels.PlnPCAcollection.__init__`
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
-            covariates,
-            offsets,
-            offsets_formula,
-            ranks,
-            dict_of_dict_initialization,
-            take_log_offsets,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            ranks=ranks,
+            dict_of_dict_initialization=dict_of_dict_initialization,
+            take_log_offsets=take_log_offsets,
             add_const=False,
         )
 
@@ -1868,7 +1969,8 @@ class PlnPCAcollection:
 
     def fit(
         self,
-        nb_max_iteration: int = 100000,
+        nb_max_iteration: int = 50000,
+        *,
         lr: float = 0.01,
         class_optimizer: Type[torch.optim.Optimizer] = torch.optim.Rprop,
         tol: float = 1e-3,
@@ -1876,21 +1978,21 @@ class PlnPCAcollection:
         verbose: bool = False,
     ):
         """
-        Fit the PlnPCAcollection.
+        Fit each model in the PlnPCAcollection.
 
         Parameters
         ----------
         nb_max_iteration : int, optional
-            The maximum number of iterations, by default 100000.
-        lr : float, optional
+            The maximum number of iterations, by default 50000.
+        lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
-        class_optimizer : Type[torch.optim.Optimizer], optional
+        class_optimizer : Type[torch.optim.Optimizer], optional(keyword-only)
             The optimizer class, by default torch.optim.Rprop.
-        tol : float, optional
+        tol : float, optional(keyword-only)
             The tolerance, by default 1e-3.
-        do_smart_init : bool, optional
+        do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
-        verbose : bool, optional
+        verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
         """
         self._pring_beginning_message()
@@ -2265,30 +2367,10 @@ class PlnPCAcollection:
         return ".BIC, .AIC, .loglikes"
 
 
-def add_doc(parent_class, *, params=None, example=None):
-    def wrapper(fun):
-        doc = getattr(parent_class, fun.__name__).__doc__
-        if doc is None:
-            doc = ""
-        doc = textwrap.dedent(doc).rstrip(" \n\r")
-        if params is not None:
-            doc += textwrap.dedent(params.rstrip(" \n\r"))
-        if example is not None:
-            doc += "\n\nExamples"
-            doc += "\n--------"
-            doc += textwrap.dedent(example)
-        fun.__doc__ = doc
-        return fun
-
-    return wrapper
-
-
 # Here, setting the value for each key in _dict_parameters
 class PlnPCA(_model):
-    _NAME: str = "PlnPCA"
-    _components: torch.Tensor
     """
-    PlnPCA class.
+    PlnPCA object where the covariance has low rank.
 
     Examples
     --------
@@ -2305,17 +2387,33 @@ class PlnPCA(_model):
     >>> plnpca = PlnPCA.from_formula("counts ~ 0 + cov", data = data, rank = 5)
     >>> plnpca.fit()
     >>> print(plnpca)
+
+    See also
+    --------
+    :class:`pyPLNmodels.Pln`
     """
 
-    @add_doc(
+    _NAME: str = "PlnPCA"
+    _components: torch.Tensor
+
+    @_add_doc(
         _model,
         params="""
-            rank : int, optional
+            rank : int, optional(keyword-only)
                 The rank of the approximation, by default 5.
             """,
         example="""
-            totopassword mange des pates.
-            """,
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts= get_real_count_data()
+            >>> pca = PlnPCA(counts, add_const = True)
+            >>> print(pca)
+        """,
+        returns="""
+            PlnPCA
+        """,
+        see_also="""
+        :func:`pyPLNmodels.PlnPCA.from_formula`
+        """,
     )
     def __init__(
         self,
@@ -2341,6 +2439,26 @@ class PlnPCA(_model):
         )
 
     @classmethod
+    @_add_doc(
+        _model,
+        params="""
+            rank : int, optional(keyword-only)
+                The rank of the approximation, by default 5.
+            """,
+        example="""
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
+        """,
+        returns="""
+            PlnPCA
+        """,
+        see_also="""
+        :class:`pyPLNmodels.Pln`
+        :func:`pyPLNmodels.PlnPCA.__init__`
+    """,
+    )
     def from_formula(
         cls,
         formula: str,
@@ -2349,42 +2467,44 @@ class PlnPCA(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
-        """
-        Create a PlnPCA object from a formula.
-
-        Parameters
-        ----------
-        formula : str
-            The formula.
-        data : Any
-            The data.
-        rank : int, optional
-            The rank of the approximation, by default 5.
-        offsets_formula : str, optional
-            The offsets formula, by default "logsum".
-        dict_initialization : Dict[str, torch.Tensor], optional
-            The dictionary for initialization, by default None.
-
-        Returns
-        -------
-        PlnPCA
-            The created PlnPCA object.
-        Examples
-        --------
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
-        """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
-            covariates,
-            offsets,
-            offsets_formula,
-            rank,
-            dict_initialization,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            rank=rank,
+            dict_initialization=dict_initialization,
             add_const=False,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> plnpca = PlnPCA(counts,add_const = True, rank = 6)
+        >>> plnpca.fit()
+        >>> print(plnpca)
+        """,
+    )
+    def fit(
+        self,
+        nb_max_iteration: int = 50000,
+        *,
+        lr: float = 0.01,
+        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+    ):
+        super().fit(
+            nb_max_iteration,
+            lr=lr,
+            class_optimizer=class_optimizer,
+            tol=tol,
+            do_smart_init=do_smart_init,
+            verbose=verbose,
         )
 
     def _check_if_rank_is_too_high(self):
