@@ -964,6 +964,7 @@ class _model(ABC):
         """
         if path is None:
             path = f"./{self._directory_name}"
+        print("paht:", path)
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
@@ -1279,14 +1280,18 @@ class Pln(_model):
     --------
     >>> from pyPLNmodels import Pln, get_real_count_data
     >>> counts, labels = get_real_count_data(return_labels = True)
-    >>> pln = Pln(counts,add_const = True, rank = 5])
+    >>> pln = Pln(counts,add_const = True)
+    >>> pln.fit()
     >>> print(pln)
     >>> pln.viz(colors = labels)
 
     >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
     >>> param = get_simulation_parameters()
     >>> counts = sample_pln(param)
-    >>> data = {}
+    >>> data = {"counts": counts}
+    >>> pln = Pln.from_formula("counts ~ 1", data)
+    >>> pln.fit()
+    >>> print(pln)
 
 
     """
@@ -1348,8 +1353,10 @@ class Pln(_model):
         cls,
         formula: str,
         data: Any,
+        *,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
     ):
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -1359,7 +1366,7 @@ class Pln(_model):
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
-            add_const=add_const,
+            add_const=False,
         )
 
     @_add_doc(
@@ -1621,6 +1628,30 @@ class Pln(_model):
 
 
 class PlnPCAcollection:
+    """
+    A collection where item q corresponds to a PlnPCA object with rank q.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, get_simulation_parameters, sample_pln
+    >>> counts, labels = get_real_count_data(return_labels = True)
+    >>> data = {"counts": counts}
+    >>> pcas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12]])
+    >>> print(pcas)
+    >>> pcas.show()
+
+    >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
+    >>> counts = sample_pln(plnparam)
+    >>> data = {"counts": plnparam.counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> plnpcas = PlnPCAcollection.from_formula("counts ~ 0 + cov", data = data, ranks = [5,8,12])
+    >>> plnpcas.fit()
+    >>> print(plnpcas)
+    >>> pcas.show()
+    See also
+    --------
+    :class:`~pyPLNmodels.PlnPCA`
+    """
+
     _NAME = "PlnPCAcollection"
     _dict_models: dict
 
@@ -1659,11 +1690,11 @@ class PlnPCAcollection:
             Whether to add a column of one in the covariates. Defaults to True.
         Returns
         -------
-        A collection where item q corresponds to a PlnPCA object with rank q.
+        PlnPCAcollection
         See also
         --------
         :class:`~pyPLNmodels.PlnPCA`
-        :func:`~pyPLNmodels.PlnPCAcollection.from_formula`
+        :meth:`~pyPLNmodels.PlnPCAcollection.from_formula`
         """
         self._dict_models = {}
         (
@@ -1903,6 +1934,15 @@ class PlnPCAcollection:
                         "Please instantiate with either a list "
                         "of integers or an integer."
                     )
+            if dict_of_dict_initialization is not None:
+                if ranks != dict_of_dict_initialization["ranks"]:
+                    msg = (
+                        "The given ranks in the dict_initialization are loaded but"
+                        " you should fit the model once again or instantiate the"
+                        " model with the ranks loaded."
+                    )
+                    warnings.warn(msg)
+
         elif isinstance(ranks, (int, np.integer)):
             dict_initialization = _get_dict_initialization(
                 ranks, dict_of_dict_initialization
@@ -2000,11 +2040,11 @@ class PlnPCAcollection:
             model = self[self.ranks[i]]
             model.fit(
                 nb_max_iteration,
-                lr,
-                class_optimizer,
-                tol,
-                do_smart_init,
-                verbose,
+                lr=lr,
+                class_optimizer=class_optimizer,
+                tol=tol,
+                do_smart_init=do_smart_init,
+                verbose=verbose,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
@@ -2613,7 +2653,7 @@ class PlnPCA(_model):
         str
             The directory name.
         """
-        return f"{self._NAME}_nbcov_{self.nb_cov}_rank_{self._rank}"
+        return f"{super()._directory_name}_rank_{self._rank}"
 
     @property
     def covariates(self) -> torch.Tensor:
