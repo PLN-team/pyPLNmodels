@@ -1254,10 +1254,11 @@ class _model(ABC):
         if ax is None:
             ax = plt.gca()
         predictions = self._counts_predictions().ravel().detach()
-        print("colors:", np.array(colors).ravel().shape)
-        print("pred", predictions.shape)
-        colors = np.repeat(np.array(colors), repeats=self.dim)
-        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors.ravel(), ax=ax)
+        print("pred shpae", predictions.shape)
+        print("counts shape", self.counts.ravel().shape)
+        if colors is not None:
+            colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
+        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
         max_y = int(torch.max(self.counts.ravel()).item())
         y = np.linspace(0, max_y, max_y)
         ax.plot(y, y, c="red")
@@ -2602,11 +2603,12 @@ class PlnPCA(_model):
             * (self.latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
+        if self.covariates is not None:
+            XB = self.covariates @ self.coef
+        else:
+            XB = 0
         return torch.exp(
-            self._offsets
-            + self.covariates @ self.coef
-            + self.latent_variables
-            + 1 / 2 * covariance_a_posteriori
+            self._offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
