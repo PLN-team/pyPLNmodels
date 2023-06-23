@@ -95,7 +95,7 @@ def _sigmoid(tens: torch.Tensor) -> torch.Tensor:
     return 1 / (1 + torch.exp(-tens))
 
 
-def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor:
+def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Tensor:
     """
     Sample from the Poisson Log-Normal (Pln) model.
 
@@ -104,9 +104,9 @@ def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor
     pln_param : PlnParameters object
         parameters of the model, containing the coeficient, the covariates,
         the components and the offsets.
-    seed : int or None, optional
+    seed : int or None, optional(keyword-only)
         Random seed for reproducibility. Default is None.
-    return_latent : bool, optional
+    return_latent : bool, optional(keyword-only)
         If True will return also the latent variables. Default is False.
 
     Returns
@@ -517,21 +517,21 @@ def _get_simulation_coef_cov_offsets(
 
 
 class PlnParameters:
-    def __init__(self, components, coef, covariates, offsets, coef_inflation=None):
+    def __init__(self, *, components, coef, covariates, offsets, coef_inflation=None):
         """
         Instantiate all the needed parameters to sample from the PLN model.
 
         Parameters
         ----------
-        components : torch.Tensor
+        components : torch.Tensor(keyword-only)
             Components of size (p, rank)
-        coef : torch.Tensor
+        coef : torch.Tensor(keyword-only)
             Coefficient of size (d, p)
-        covariates : torch.Tensor or None
+        covariates : torch.Tensor or None(keyword-only)
             Covariates, size (n, d) or None
-        offsets : torch.Tensor
+        offsets : torch.Tensor(keyword-only)
             Offset, size (n, p)
-        _coef_inflation : torch.Tensor or None, optional
+        _coef_inflation : torch.Tensor or None, optional(keyword-only)
             Coefficient for zero-inflation model, size (d, p) or None. Default is None.
 
         """
@@ -540,9 +540,10 @@ class PlnParameters:
         self.covariates = _format_data(covariates)
         self.offsets = _format_data(offsets)
         self.coef_inflation = _format_data(coef_inflation)
-        _check_two_dimensions_are_equal(
-            "components", "coef", self.components.shape[0], self.coef.shape[1], 0, 1
-        )
+        if self.coef is not None:
+            _check_two_dimensions_are_equal(
+                "components", "coef", self.components.shape[0], self.coef.shape[1], 0, 1
+            )
         if self.offsets is not None:
             _check_two_dimensions_are_equal(
                 "components",
@@ -622,24 +623,29 @@ def _check_two_dimensions_are_equal(
 
 
 def get_simulation_parameters(
-    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5, add_const=True
+    *,
+    n_samples: int = 100,
+    dim: int = 25,
+    nb_cov: int = 1,
+    rank: int = 5,
+    add_const: bool = True,
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
 
     Parameters
     ----------
-        n_samples : int, optional
+        n_samples : int, optional(keyword-only)
             The number of samples, by default 100.
-        dim : int, optional
+        dim : int, optional(keyword-only)
             The dimension of the data, by default 25.
-        nb_cov : int, optional
+        nb_cov : int, optional(keyword-only)
             The number of covariates, by default 1. If add_const is True,
             then there will be nb_cov+1 covariates as the intercept can be seen
             as a covariates.
-        rank : int, optional
+        rank : int, optional(keyword-only)
             The rank of the data components, by default 5.
-        add_const : bool, optional
+        add_const : bool, optional(keyword-only)
             If True, will add a vector of ones in the covariates.
 
     Returns
@@ -652,15 +658,19 @@ def get_simulation_parameters(
         n_samples, nb_cov, dim, add_const
     )
     components = _get_simulation_components(dim, rank)
-    return PlnParameters(components, coef, covariates, offsets)
+    return PlnParameters(
+        components=components, coef=coef, covariates=covariates, offsets=offsets
+    )
 
 
 def get_simulated_count_data(
+    *,
     n_samples: int = 100,
     dim: int = 25,
     rank: int = 5,
     nb_cov: int = 1,
     return_true_param: bool = False,
+    add_const: bool = True,
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -668,17 +678,19 @@ def get_simulated_count_data(
 
     Parameters
     ----------
-    n_samples : int, optional
+    n_samples : int, optional(keyword-only)
         Number of samples, by default 100.
-    dim : int, optional
+    dim : int, optional(keyword-only)
         Dimension, by default 25.
-    rank : int, optional
+    rank : int, optional(keyword-only)
         Rank of the covariance matrix, by default 5.
-    nb_cov : int, optional
+    add_const : bool, optional(keyword-only)
+        If True, will add a vector of ones. Default is True
+    nb_cov : int, optional(keyword-only)
         Number of covariates, by default 1.
-    return_true_param : bool, optional
+    return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
-    seed : int, optional
+    seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 
     Returns
@@ -686,7 +698,9 @@ def get_simulated_count_data(
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
-    pln_param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
+    pln_param = get_simulation_parameters(
+        n_samples=n_samples, dim=dim, nb_cov=nb_cov, rank=rank, add_const=add_const
+    )
     counts = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
         return (
@@ -700,18 +714,18 @@ def get_simulated_count_data(
 
 
 def get_real_count_data(
-    n_samples: int = 469, dim: int = 200, return_labels: bool = False
+    *, n_samples: int = 469, dim: int = 200, return_labels: bool = False
 ) -> np.ndarray:
     """
     Get real count data from the scMARK dataset.
 
     Parameters
     ----------
-    n_samples : int, optional
+    n_samples : int, optional(keyword-only)
         Number of samples, by default max_samples.
-    dim : int, optional
+    dim : int, optional(keyword-only)
         Dimension, by default max_dim.
-    return_labels: bool, optional
+    return_labels: bool, optional(keyword-only)
         If True, will return the labels of the count data
     Returns
     -------

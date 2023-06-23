@@ -46,6 +46,10 @@ def test_find_right_covariance(simulated_fitted_any_pln):
         true_covariance = true_sim_0cov["Sigma"]
     elif simulated_fitted_any_pln.nb_cov == 2:
         true_covariance = true_sim_2cov["Sigma"]
+    else:
+        raise ValueError(
+            f"Not the right numbers of covariance({simulated_fitted_any_pln.nb_cov})"
+        )
     mse_covariance = MSE(simulated_fitted_any_pln.covariance - true_covariance)
     assert mse_covariance < 0.05
 
