@@ -1,3 +1,6 @@
+PlnPCAcollection
+================
+
 .. autoclass:: pyPLNmodels.PlnPCAcollection
    :members:
    :show-inheritance:
