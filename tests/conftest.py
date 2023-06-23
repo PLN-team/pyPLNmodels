@@ -53,9 +53,8 @@ def add_list_of_fixture_to_dict(
 
 
 RANK = 8
-RANKS = [2, 6]
+RANKS = [2, 6, 8]
 instances = []
-# dict_fixtures_models = []
 
 
 def convenient_PlnPCA(*args, **kwargs):
