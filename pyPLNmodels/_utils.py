@@ -742,7 +742,7 @@ def get_real_count_data(
 
 def load_model(path_of_directory: str) -> Dict[str, Any]:
     """
-    Load model from the given directory for future initialization.
+    Load Pln or PlnPCA model (that has previously been saved) from the given directory for future initialization.
 
     Parameters
     ----------
@@ -753,7 +753,26 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
     -------
     Dict[str, Any]
         A dictionary containing the loaded model.
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnPCA, Pln, get_real_count_data, load_model
+    >>> counts= get_real_count_data()
+    >>> pca = PlnPCA(counts, add_const = True)
+    >>> pca.fit()
+    >>> pca.save()
+    >>> dict_init = load_model("PlnPCA_nbcov_1_dim_200_rank_5")
+    >>> loaded_pca = PlnPCA(counts, add_const = True, dict_initialization = dict_init)
+    >>> print(loaded_pca)
 
+    >>> pln = Pln(counts, add_const = True)
+    >>> pln.fit()
+    >>> pln.save()
+    >>> dict_init = load_model("Pln_nbcov_1_dim_200")
+    >>> loaded_pln = Pln(counts, add_const = True, dict_initialization = dict_init)
+    >>> print(loaded_pln)
+    See also
+    --------
+    :func:`~pyPLNmodels.load_plnpcacollection`
     """
     working_dir = os.getcwd()
     os.chdir(path_of_directory)
@@ -773,6 +792,13 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
 
 
 def load_pln(path_of_directory: str) -> Dict[str, Any]:
+    """
+    Alias for :func:`~pyPLNmodels._utils.load_model`.
+    """
+    return load_model(path_of_directory)
+
+
+def load_plnpca(path_of_directory: str) -> Dict[str, Any]:
     """
     Alias for :func:`~pyPLNmodels._utils.load_model`.
     """
@@ -802,6 +828,20 @@ def load_plnpcacollection(
     ValueError
         If an invalid model name is encountered and the rank cannot be determined.
 
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, load_plnpcacollection
+    >>> counts = get_real_count_data()
+    >>> pcas = PlnPCAcollection(counts, add_const = True, ranks = [4,5,6])
+    >>> pcas.fit()
+    >>> pcas.save()
+    >>> dict_init = load_plnpcacollection("PlnPCAcollection_nbcov_1_dim_200")
+    >>> loaded_pcas = PlnPCAcollection(counts, add_const = True, ranks = [4,5,6], dict_of_dict_initialization = dict_init)
+    >>> print(loaded_pcas)
+
+    See also
+    --------
+    :func:`~pyPLNmodels.load_model`
     """
     working_dir = os.getcwd()
     os.chdir(path_of_directory)
@@ -819,6 +859,7 @@ def load_plnpcacollection(
     datas = {}
     for rank in ranks:
         datas[rank] = load_model(f"PlnPCA_rank_{rank}")
+    datas["ranks"] = ranks
     os.chdir(working_dir)
     return datas
 
