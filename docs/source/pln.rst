@@ -1,3 +1,6 @@
+Pln
+===
+
 .. autoclass:: pyPLNmodels.Pln
    :members:
    :inherited-members:
