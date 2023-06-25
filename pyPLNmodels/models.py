@@ -964,7 +964,6 @@ class _model(ABC):
         """
         if path is None:
             path = f"./{self._directory_name}"
-        print("paht:", path)
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
