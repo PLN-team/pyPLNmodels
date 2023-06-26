@@ -4,13 +4,11 @@ from .elbos import profiled_elbo_pln, elbo_plnpca, elbo_pln
 from ._utils import (
     get_simulated_count_data,
     get_real_count_data,
-    load_model,
-    load_plnpcacollection,
-    load_pln,
     sample_pln,
     get_simulation_parameters,
     PlnParameters,
 )
+from load import load_model, load_plnpcacollection, load_pln
 
 from ._initialization import log_posterior
 

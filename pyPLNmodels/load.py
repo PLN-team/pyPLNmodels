@@ -57,14 +57,14 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
 
 def load_pln(path_of_directory: str) -> Dict[str, Any]:
     """
-    Alias for :func:`~pyPLNmodels._utils.load_model`.
+    Alias for :func:`~pyPLNmodels.load.load_model`.
     """
     return load_model(path_of_directory)
 
 
 def load_plnpca(path_of_directory: str) -> Dict[str, Any]:
     """
-    Alias for :func:`~pyPLNmodels._utils.load_model`.
+    Alias for :func:`~pyPLNmodels.load.load_model`.
     """
     return load_model(path_of_directory)
 
