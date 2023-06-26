@@ -1635,6 +1635,7 @@ class Pln(_model):
         """
         print(f"Fitting a Pln model with {self._description}")
 
+    @property
     @_add_doc(
         _model,
         example="""
@@ -1645,7 +1646,6 @@ class Pln(_model):
         >>> print(pln.latent_variables.shape)
         """,
     )
-    @property
     def latent_variables(self):
         return self.latent_mean.detach()
 
@@ -2724,6 +2724,7 @@ class PlnPCA(_model):
             warnings.warn(warning_string)
             self._rank = self.dim
 
+    @property
     @_add_doc(
         _model,
         example="""
@@ -2735,7 +2736,6 @@ class PlnPCA(_model):
         >>> print(plnpca.latent_mean.shape)
         """,
     )
-    @property
     def latent_mean(self) -> torch.Tensor:
         return self._cpu_attribute_or_none("_latent_mean")
 
