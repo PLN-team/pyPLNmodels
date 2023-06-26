@@ -49,21 +49,6 @@ else:
 
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
-str_fit_plnpca_formula = (
-    ">>> from pyPLNmodels import PlnPCA, get_real_count_data"
-    ">>> counts = get_real_count_data()"
-    ">>> data = {'counts': counts}"
-    ">>> plnpca = PlnPCA.from_formula('counts ~ 1', data = data)"
-    ">>> plnpca.fit()"
-)
-str_fit_pln_formula = (
-    ">>> from pyPLNmodels import PlnPCA, get_real_count_data"
-    ">>> counts = get_real_count_data()"
-    ">>> data = {'counts': counts}"
-    ">>> plnpca = PlnPCA.from_formula('counts ~ 1', data = data)"
-    ">>> plnpca.fit()"
-)
-
 
 class _model(ABC):
     """
@@ -878,7 +863,7 @@ class _model(ABC):
         Returns
         -------
         torch.Tensor or None
-            The latent mean or None.
+            The latent mean or None if it has not yet been initialized.
         """
         return self._cpu_attribute_or_none("_latent_mean")
 
@@ -1297,8 +1282,6 @@ class Pln(_model):
     >>> pln = Pln.from_formula("counts ~ 1", data)
     >>> pln.fit()
     >>> print(pln)
-
-
     """
 
     @_add_doc(
@@ -1579,6 +1562,15 @@ class Pln(_model):
         -------
         torch.Tensor
             The computed ELBO.
+        Examples
+        --------
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(counts,add_const = True)
+        >>> pln.fit()
+        >>> elbo = pln.compute_elbo()
+        >>> print("elbo", elbo)
+        >>> print("loglike/n", pln.loglike/pln.n_samples)
         """
         return profiled_elbo_pln(
             self._counts,
@@ -1643,16 +1635,18 @@ class Pln(_model):
         """
         print(f"Fitting a Pln model with {self._description}")
 
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(counts,add_const = True)
+        >>> pln.fit()
+        >>> print(pln.latent_variables.shape)
+        """,
+    )
     @property
     def latent_variables(self):
-        """
-        Property representing the latent variables.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variables.
-        """
         return self.latent_mean.detach()
 
     @property
@@ -1830,10 +1824,10 @@ class PlnPCAcollection:
             The created PlnPCAcollection instance.
         Examples
         --------
-            >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
+        >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
         See also
         --------
         :class:`~pyPLNmodels.PlnPCA`
@@ -2730,16 +2724,19 @@ class PlnPCA(_model):
             warnings.warn(warning_string)
             self._rank = self.dim
 
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> print(plnpca.latent_mean.shape)
+        """,
+    )
     @property
     def latent_mean(self) -> torch.Tensor:
-        """
-        Property representing the latent mean.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent mean tensor.
-        """
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
