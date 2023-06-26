@@ -232,7 +232,9 @@ def _raise_wrong_dimension_error(
     raise ValueError(msg)
 
 
-def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
+def _format_data(
+    data: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+) -> torch.Tensor or None:
     """
     Transforms the data in a torch.tensor if the input is an array, and None if the input is None.
     Raises an error if the input is not an array or None.
@@ -266,9 +268,9 @@ def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
 
 
 def _format_model_param(
-    counts: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
+    counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+    covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+    offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     offsets_formula: str,
     take_log_offsets: bool,
     add_const: bool,
@@ -278,11 +280,11 @@ def _format_model_param(
 
     Parameters
     ----------
-    counts : torch.Tensor or None, shape (n, )
+    counts : Union[torch.Tensor, np.ndarray, pd.DataFrame], shape (n, )
         Count data.
-    covariates : torch.Tensor or None, shape (n, d) or None
+    covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, shape (n, d) or None
         Covariate data.
-    offsets : torch.Tensor or None, shape (n, ) or None
+    offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, shape (n, ) or None
         Offset data.
     offsets_formula : str
         Formula for calculating offsets.
@@ -517,21 +519,29 @@ def _get_simulation_coef_cov_offsets(
 
 
 class PlnParameters:
-    def __init__(self, *, components, coef, covariates, offsets, coef_inflation=None):
+    def __init__(
+        self,
+        *,
+        components: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        coef: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        coef_inflation=None,
+    ):
         """
         Instantiate all the needed parameters to sample from the PLN model.
 
         Parameters
         ----------
-        components : torch.Tensor(keyword-only)
+        components : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Components of size (p, rank)
-        coef : torch.Tensor(keyword-only)
+        coef : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Coefficient of size (d, p)
-        covariates : torch.Tensor or None(keyword-only)
+        covariates : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None(keyword-only)
             Covariates, size (n, d) or None
-        offsets : torch.Tensor(keyword-only)
+        offsets : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Offset, size (n, p)
-        _coef_inflation : torch.Tensor or None, optional(keyword-only)
+        _coef_inflation : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, optional(keyword-only)
             Coefficient for zero-inflation model, size (d, p) or None. Default is None.
 
         """
@@ -778,7 +788,9 @@ def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
         )
 
 
-def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> Tuple:
+def _extract_data_from_formula(
+    formula: str, data: Dict[str, : Union[torch.Tensor, np.ndarray, pd.DataFrame]]
+) -> Tuple:
     """
     Extract data from the given formula and data dictionary.
 
@@ -847,8 +859,8 @@ def _get_dict_initialization(
 
 
 def _to_tensor(
-    obj: Union[np.ndarray, torch.Tensor, pd.DataFrame, None]
-) -> Union[torch.Tensor, None]:
+    obj: Union[np.ndarray, torch.Tensor, pd.DataFrame]
+) -> Union[torch.Tensor]:
     """
     Convert an object to a PyTorch tensor.
 

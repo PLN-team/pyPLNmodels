@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from typing import Optional, Dict, List, Type, Any, Iterable
+from typing import Optional, Dict, List, Type, Any, Iterable, Union
 
 import pandas as pd
 import torch
@@ -66,10 +66,10 @@ class _model(ABC):
 
     def __init__(
         self,
-        counts: torch.Tensor,
+        counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
@@ -80,14 +80,15 @@ class _model(ABC):
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The count data.
-        covariates : torch.Tensor, optional(keyword-only)
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariate data. Defaults to None.
-        offsets : torch.Tensor, optional(keyword-only)
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets. Defaults to "logsum".
+            The formula for offsets. Defaults to "logsum". Overriden if
+            offsets is not None.
         dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
@@ -112,7 +113,7 @@ class _model(ABC):
     def from_formula(
         cls,
         formula: str,
-        data: dict,
+        data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
@@ -126,7 +127,8 @@ class _model(ABC):
         formula : str
             The formula.
         data : dict
-            The data dictionary.
+            The data dictionary. Each value can be either a torch.Tensor,
+            a np.ndarray or pd.DataFrame
         offsets_formula : str, optional(keyword-only)
             The formula for offsets. Defaults to "logsum".
         dict_initialization : dict, optional(keyword-only)
@@ -180,11 +182,11 @@ class _model(ABC):
 
         Parameters
         ----------
-        ax : Optional[Any], optional(keyword-only)
+        ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
-        colors : Optional[Any], optional(keyword-only)
+        colors : Optional[np.ndarray], optional(keyword-only)
             The colors to use for plotting, by default None.
-        show_cov: bool, optional(keyword-only)
+        show_cov: bool, Optional(keyword-only)
             If True, will display ellipses with right covariances. Default is False.
         Raises
         ------
@@ -468,8 +470,8 @@ class _model(ABC):
                 If not specified, the maximum number of components will be used.
                 Defaults to None.
 
-            color (str, optional): The name of the variable used for color coding the scatter plot.
-                If not specified, the scatter plot will not be color-coded.
+            color (str, np.ndarray): An array with one label for each
+                sample in the counts property of the object.
                 Defaults to None.
         Raises
         ------
@@ -707,7 +709,9 @@ class _model(ABC):
 
     def show(self, axes=None):
         """
-        Show plots.
+        Show 3 plots. The first one is the covariance of the model.
+        The second one is the stopping criterion with the runtime in abscisse.
+        The third one is the elbo.
 
         Parameters
         ----------
@@ -881,13 +885,13 @@ class _model(ABC):
 
     @latent_mean.setter
     @_array2tensor
-    def latent_mean(self, latent_mean):
+    def latent_mean(self, latent_mean: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the latent mean property.
 
         Parameters
         ----------
-        latent_mean : torch.Tensor
+        latent_mean : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The latent mean.
 
         Raises
@@ -903,13 +907,15 @@ class _model(ABC):
 
     @latent_sqrt_var.setter
     @_array2tensor
-    def latent_sqrt_var(self, latent_sqrt_var):
+    def latent_sqrt_var(
+        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
         """
         Setter for the latent variance property.
 
         Parameters
         ----------
-        latent_sqrt_var : torch.Tensor
+        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The latent variance.
 
         Raises
@@ -1005,13 +1011,13 @@ class _model(ABC):
 
     @counts.setter
     @_array2tensor
-    def counts(self, counts):
+    def counts(self, counts: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the counts property.
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The counts.
 
         Raises
@@ -1029,13 +1035,13 @@ class _model(ABC):
 
     @offsets.setter
     @_array2tensor
-    def offsets(self, offsets):
+    def offsets(self, offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the offsets property.
 
         Parameters
         ----------
-        offsets : torch.Tensor
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The offsets.
 
         Raises
@@ -1051,13 +1057,13 @@ class _model(ABC):
 
     @covariates.setter
     @_array2tensor
-    def covariates(self, covariates):
+    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the covariates property.
 
         Parameters
         ----------
-        covariates : torch.Tensor
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates.
 
         Raises
@@ -1070,13 +1076,13 @@ class _model(ABC):
 
     @coef.setter
     @_array2tensor
-    def coef(self, coef):
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the coef property.
 
         Parameters
         ----------
-        coef : torch.Tensor or None
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The coefficients.
 
         Raises
@@ -1157,13 +1163,13 @@ class _model(ABC):
         """
         return self.covariance
 
-    def predict(self, covariates=None):
+    def predict(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None):
         """
         Method for making predictions.
 
         Parameters
         ----------
-        covariates : torch.Tensor, optional
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional
             The covariates, by default None.
 
         Returns
@@ -1174,16 +1180,16 @@ class _model(ABC):
         Raises
         ------
         AttributeError
-            If there are no covariates in the model.
+            If there are no covariates in the model but some are provided.
         RuntimeError
             If the shape of the covariates is incorrect.
 
         Notes
         -----
         - If `covariates` is not provided and there are no covariates in the model, None is returned.
+            If there are covariates in the model, then the mean covariates @ coef is returned.
         - If `covariates` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of covariates.
         - The predicted values are obtained by multiplying the covariates by the coefficients.
-
         """
         if covariates is not None and self.nb_cov == 0:
             raise AttributeError("No covariates in the model, can't predict")
@@ -1228,7 +1234,7 @@ class _model(ABC):
 
         Parameters
         ----------
-        ax : Optional[Any], optional
+        ax : Optional[matplotlib.axes.Axes], optional
             The matplotlib axis to use. If None, the current axis is used, by default None.
 
         colors : Optional[Any], optional
@@ -1236,7 +1242,7 @@ class _model(ABC):
 
         Returns
         -------
-        Any
+        matplotlib.axes.Axes
             The matplotlib axis.
         >>>
         """
@@ -1261,8 +1267,6 @@ class _model(ABC):
 
 # need to do a good init for M and S
 class Pln(_model):
-    _NAME = "Pln"
-    coef: torch.Tensor
     """
     Pln class.
 
@@ -1284,6 +1288,9 @@ class Pln(_model):
     >>> print(pln)
     """
 
+    _NAME = "Pln"
+    coef: torch.Tensor
+
     @_add_doc(
         _model,
         example="""
@@ -1302,10 +1309,10 @@ class Pln(_model):
     )
     def __init__(
         self,
-        counts: torch.Tensor,
+        counts: Optional[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        covariates: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        offsets: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
@@ -1341,7 +1348,7 @@ class Pln(_model):
     def from_formula(
         cls,
         formula: str,
-        data: Any,
+        data: Dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
@@ -1421,7 +1428,7 @@ class Pln(_model):
             """,
     )
     def viz(self, ax=None, colors=None, show_cov: bool = False):
-        super().plot_expected_vs_true(ax=ax, colors=colors, show_cov=show_cov)
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
 
     @_add_doc(
         _model,
@@ -1499,14 +1506,14 @@ class Pln(_model):
         return None
 
     @coef.setter
-    def coef(self, coef):
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the coef property.
 
         Parameters
         ----------
-        coef : torch.Tensor
-            The coefficients.
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The regression coefficients of the gaussian latent variables.
         """
 
     def _counts_predictions(self):
@@ -1698,7 +1705,8 @@ class Pln(_model):
     @covariance.setter
     def covariance(self, covariance):
         """
-        Setter for the covariance property.
+        Setter for the covariance property. Only here for completeness, since
+        this function does nothing
 
         Parameters
         ----------
@@ -1710,7 +1718,7 @@ class Pln(_model):
 
 class PlnPCAcollection:
     """
-    A collection where item q corresponds to a PlnPCA object with rank q.
+    A collection where value q corresponds to a PlnPCA object with rank q.
 
     Examples
     --------
@@ -1739,10 +1747,10 @@ class PlnPCAcollection:
 
     def __init__(
         self,
-        counts: torch.Tensor,
+        counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets_formula: str = "logsum",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
@@ -1754,11 +1762,11 @@ class PlnPCAcollection:
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts :Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The counts.
-        covariates : torch.Tensor, optional(keyword-only)
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariates, by default None.
-        offsets : torch.Tensor, optional(keyword-only)
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets, by default None.
         offsets_formula : str, optional(keyword-only)
             The formula for offsets, by default "logsum".
@@ -1794,7 +1802,8 @@ class PlnPCAcollection:
     def from_formula(
         cls,
         formula: str,
-        data: dict,
+        data: Dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
         offsets_formula: str = "logsum",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
@@ -1808,7 +1817,8 @@ class PlnPCAcollection:
         formula : str
             The formula.
         data : dict
-            The data dictionary.
+            The data dictionary. Each value can be either
+            a torch.Tensor, np.ndarray or pd.DataFrame
         offsets_formula : str, optional(keyword-only)
             The formula for offsets, by default "logsum".
             Overriden if data["offsets"] is not None.
@@ -1919,13 +1929,13 @@ class PlnPCAcollection:
 
     @counts.setter
     @_array2tensor
-    def counts(self, counts: torch.Tensor):
+    def counts(self, counts: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the counts property.
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The counts.
         """
         for model in self.values():
@@ -1933,13 +1943,13 @@ class PlnPCAcollection:
 
     @coef.setter
     @_array2tensor
-    def coef(self, coef: torch.Tensor):
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the coef property.
 
         Parameters
         ----------
-        coef : torch.Tensor
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The coefficients.
         """
         for model in self.values():
@@ -1947,13 +1957,13 @@ class PlnPCAcollection:
 
     @covariates.setter
     @_array2tensor
-    def covariates(self, covariates: torch.Tensor):
+    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the covariates property.
 
         Parameters
         ----------
-        covariates : torch.Tensor
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates.
         """
         for model in self.values():
@@ -1973,13 +1983,13 @@ class PlnPCAcollection:
 
     @offsets.setter
     @_array2tensor
-    def offsets(self, offsets: torch.Tensor):
+    def offsets(self, offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the offsets property.
 
         Parameters
         ----------
-        offsets : torch.Tensor
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The offsets.
         """
         for model in self.values():
@@ -2474,7 +2484,7 @@ class PlnPCAcollection:
         str
             The string representation of the useful methods.
         """
-        return ".show(), .best_model()"
+        return ".show(), .best_model(), .keys(), .items(), .values()"
 
     @property
     def _useful_properties_string(self) -> str:
@@ -2540,10 +2550,10 @@ class PlnPCA(_model):
     )
     def __init__(
         self,
-        counts: torch.Tensor,
+        counts: Optional[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        covariates: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        offsets: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets_formula: str = "logsum",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
@@ -2585,7 +2595,8 @@ class PlnPCA(_model):
     def from_formula(
         cls,
         formula: str,
-        data: Any,
+        data: Dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
         rank: int = 5,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
@@ -2663,7 +2674,7 @@ class PlnPCA(_model):
             >>> plt.show()
             """,
     )
-    def viz(self, ax=None, colors=None, show_cov: bool = False):
+    def viz(self, ax: matplotlib.axes.Axes = None, colors=None, show_cov: bool = False):
         super().plot_expected_vs_true(ax=ax, colors=colors, show_cov=show_cov)
 
     @_add_doc(
@@ -2706,7 +2717,9 @@ class PlnPCA(_model):
         >>> plnpca.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
         """,
     )
-    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+    def plot_pca_correlation_graph(
+        self, variables_names: List[str], indices_of_variables=None
+    ):
         super().plot_pca_correlation_graph(
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
@@ -2837,13 +2850,13 @@ class PlnPCA(_model):
 
     @covariates.setter
     @_array2tensor
-    def covariates(self, covariates: torch.Tensor):
+    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the covariates.
 
         Parameters
         ----------
-        covariates : torch.Tensor
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates tensor.
         """
         _check_data_shape(self.counts, covariates, self.offsets)

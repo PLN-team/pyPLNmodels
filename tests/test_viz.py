@@ -87,7 +87,7 @@ def test_plot_pca_correlation_graph_without_names(pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_expected_vs_true(pln):
     pln.plot_expected_vs_true()
-    fig, ax = plt.figure()
+    fig, ax = plt.subplots()
     pln.plot_expected_vs_true(ax=ax)
 
 
