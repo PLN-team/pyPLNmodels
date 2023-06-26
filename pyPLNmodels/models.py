@@ -1247,14 +1247,13 @@ class _model(ABC):
         -------
         Any
             The matplotlib axis.
+        >>>
         """
         if self._fitted is None:
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
         predictions = self._counts_predictions().ravel().detach()
-        print("pred shpae", predictions.shape)
-        print("counts shape", self.counts.ravel().shape)
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
         sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
@@ -1302,6 +1301,7 @@ class Pln(_model):
             >>> from pyPLNmodels import Pln, get_real_count_data
             >>> counts= get_real_count_data()
             >>> pln = Pln(counts, add_const = True)
+            >>> pln.fit()
             >>> print(pln)
         """,
         returns="""
@@ -1397,6 +1397,23 @@ class Pln(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
         )
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(counts,add_const = True)
+            >>> pln.fit()
+            >>> pln.plot_expected_vs_true()
+            >>> plt.show()
+            >>> pln.plot_expected_vs_true(colors = labels)
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
 
     @property
     def _description(self):
@@ -1636,13 +1653,14 @@ class PlnPCAcollection:
     >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, get_simulation_parameters, sample_pln
     >>> counts, labels = get_real_count_data(return_labels = True)
     >>> data = {"counts": counts}
-    >>> pcas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12]])
-    >>> print(pcas)
-    >>> pcas.show()
+    >>> plncas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12])
+    >>> plncas.fit()
+    >>> print(plncas)
+    >>> plncas.show()
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
     >>> counts = sample_pln(plnparam)
-    >>> data = {"counts": plnparam.counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> data = {"counts":counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
     >>> plnpcas = PlnPCAcollection.from_formula("counts ~ 0 + cov", data = data, ranks = [5,8,12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
@@ -2417,13 +2435,14 @@ class PlnPCA(_model):
     >>> from pyPLNmodels import PlnPCA, get_real_count_data, get_simulation_parameters, sample_pln
     >>> counts, labels = get_real_count_data(return_labels = True)
     >>> data = {"counts": counts}
-    >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5])
+    >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
+    >>> pca.fit()
     >>> print(pca)
     >>> pca.viz(colors = labels)
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
     >>> counts = sample_pln(plnparam)
-    >>> data = {"counts": plnparam.counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> data = {"counts": counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
     >>> plnpca = PlnPCA.from_formula("counts ~ 0 + cov", data = data, rank = 5)
     >>> plnpca.fit()
     >>> print(plnpca)
@@ -2546,6 +2565,23 @@ class PlnPCA(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
         )
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> plnpca = Pln(counts,add_const = True)
+            >>> plnpca.fit()
+            >>> plnpca.plot_expected_vs_true()
+            >>> plt.show()
+            >>> plnpca.plot_expected_vs_true(colors = labels)
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
 
     def _check_if_rank_is_too_high(self):
         """
