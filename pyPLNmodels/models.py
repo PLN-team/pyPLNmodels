@@ -49,6 +49,21 @@ else:
 
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
+str_fit_plnpca_formula = (
+    ">>> from pyPLNmodels import PlnPCA, get_real_count_data"
+    ">>> counts = get_real_count_data()"
+    ">>> data = {'counts': counts}"
+    ">>> plnpca = PlnPCA.from_formula('counts ~ 1', data = data)"
+    ">>> plnpca.fit()"
+)
+str_fit_pln_formula = (
+    ">>> from pyPLNmodels import PlnPCA, get_real_count_data"
+    ">>> counts = get_real_count_data()"
+    ">>> data = {'counts': counts}"
+    ">>> plnpca = PlnPCA.from_formula('counts ~ 1', data = data)"
+    ">>> plnpca.fit()"
+)
+
 
 class _model(ABC):
     """
@@ -174,17 +189,17 @@ class _model(ABC):
         """
         return self._fitted
 
-    def viz(self, ax=None, colors=None, show_cov: bool = False):
+    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
         Visualize the latent variables with a classic PCA.
 
         Parameters
         ----------
-        ax : Optional[Any], optional
+        ax : Optional[Any], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
-        colors : Optional[Any], optional
+        colors : Optional[Any], optional(keyword-only)
             The colors to use for plotting, by default None.
-        show_cov: bool, optional
+        show_cov: bool, optional(keyword-only)
             If True, will display ellipses with right covariances. Default is False.
         Raises
         ------
@@ -414,15 +429,6 @@ class _model(ABC):
         ------
         ValueError
            If the number of components asked is greater than the number of dimensions.
-        Examples
-        --------
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pln = Pln.from_formula("counts ~ 1", data = data)
-            >>> pln.fit()
-            >>> pca_proj = pln.pca_projected_latent_variables()
-            >>> print(pca_proj.shape)
         """
         pca = self.sk_PCA(n_components=n_components)
         return pca.transform(self.latent_variables.cpu())
@@ -1414,6 +1420,70 @@ class Pln(_model):
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
         super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(counts,add_const = True)
+            >>> pln.fit()
+            >>> pln.viz()
+            >>> plt.show()
+            >>> pln.viz(colors = labels)
+            >>> plt.show()
+            >>> pln.viz(show_cov = True)
+            >>> plt.show()
+            """,
+    )
+    def viz(self, ax=None, colors=None, show_cov: bool = False):
+        super().plot_expected_vs_true(ax=ax, colors=colors, show_cov=show_cov)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> pln.fit()
+        >>> pca_proj = pln.pca_projected_latent_variables()
+        >>> print(pca_proj.shape)
+        """,
+    )
+    def pca_projected_latent_variables(self, n_components: Optional[int] = None):
+        super().pca_projected_latent_variables(n_components=n_components)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> pln.fit()
+        >>> pln.scatter_pca_matrix(n_components = 5)
+        """,
+    )
+    def scatter_pca_matrix(self, n_components=None, color=None):
+        super().scatter_pca_matrix(n_components=n_components, color=color)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> pln.fit()
+        >>> pln.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        """,
+    )
+    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+        super().plot_pca_correlation_graph(
+            variables_names=variables_names, indices_of_variables=indices_of_variables
+        )
 
     @property
     def _description(self):
@@ -2583,6 +2653,70 @@ class PlnPCA(_model):
     def plot_expected_vs_true(self, ax=None, colors=None):
         super().plot_expected_vs_true(ax=ax, colors=colors)
 
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> plnpca = PlnPCA(counts,add_const = True)
+            >>> plnpca.fit()
+            >>> plnpca.viz()
+            >>> plt.show()
+            >>> plnpca.viz(colors = labels)
+            >>> plt.show()
+            >>> plnpca.viz(show_cov = True)
+            >>> plt.show()
+            """,
+    )
+    def viz(self, ax=None, colors=None, show_cov: bool = False):
+        super().plot_expected_vs_true(ax=ax, colors=colors, show_cov=show_cov)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> pca_proj = plnpca.pca_projected_latent_variables()
+        >>> print(pca_proj.shape)
+        """,
+    )
+    def pca_projected_latent_variables(self, n_components: Optional[int] = None):
+        super().pca_projected_latent_variables(n_components=n_components)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> plnpca.scatter_pca_matrix(n_components = 5)
+        """,
+    )
+    def scatter_pca_matrix(self, n_components=None, color=None):
+        super().scatter_pca_matrix(n_components=n_components, color=color)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> plnpca.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        """,
+    )
+    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+        super().plot_pca_correlation_graph(
+            variables_names=variables_names, indices_of_variables=indices_of_variables
+        )
+
     def _check_if_rank_is_too_high(self):
         """
         Check if the rank is too high and issue a warning if necessary.
@@ -2942,35 +3076,6 @@ class PlnPCA(_model):
         Orthogonal components of the model.
         """
         return torch.linalg.qr(self._components, "reduced")[0]
-
-    def pca_projected_latent_variables(
-        self, n_components: Optional[int] = None
-    ) -> np.ndarray:
-        """
-        Perform PCA on projected latent variables.
-
-        Parameters
-        ----------
-        n_components : Optional[int]
-            Number of components to keep. Defaults to None.
-
-        Returns
-        -------
-        np.ndarray
-            The transformed projected latent variables.
-        Raises
-        ------
-        ValueError
-           If the number of components asked is greater than the number of dimensions.
-        """
-        if n_components is None:
-            n_components = self._get_max_components()
-        if n_components > self.rank:
-            raise ValueError(
-                f"You ask more components ({n_components}) than maximum rank ({self.rank})"
-            )
-        pca = PCA(n_components=n_components)
-        return pca.fit_transform(self.latent_variables.cpu())
 
     @property
     def components(self) -> torch.Tensor:
