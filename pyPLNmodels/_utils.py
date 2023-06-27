@@ -545,37 +545,47 @@ class PlnParameters:
             Coefficient for zero-inflation model, size (d, p) or None. Default is None.
 
         """
-        self.components = _format_data(components)
-        self.coef = _format_data(coef)
-        self.covariates = _format_data(covariates)
-        self.offsets = _format_data(offsets)
-        self.coef_inflation = _format_data(coef_inflation)
-        if self.coef is not None:
-            _check_two_dimensions_are_equal(
-                "components", "coef", self.components.shape[0], self.coef.shape[1], 0, 1
-            )
-        if self.offsets is not None:
+        self._components = _format_data(components)
+        self._coef = _format_data(coef)
+        self._covariates = _format_data(covariates)
+        self._offsets = _format_data(offsets)
+        self._coef_inflation = _format_data(coef_inflation)
+        if self._coef is not None:
             _check_two_dimensions_are_equal(
                 "components",
-                "offsets",
-                self.components.shape[0],
-                self.offsets.shape[1],
+                "coef",
+                self._components.shape[0],
+                self._coef.shape[1],
                 0,
                 1,
             )
-        if self.covariates is not None:
+        if self._offsets is not None:
+            _check_two_dimensions_are_equal(
+                "components",
+                "offsets",
+                self._components.shape[0],
+                self._offsets.shape[1],
+                0,
+                1,
+            )
+        if self._covariates is not None:
             _check_two_dimensions_are_equal(
                 "offsets",
                 "covariates",
-                self.offsets.shape[0],
-                self.covariates.shape[0],
+                self._offsets.shape[0],
+                self._covariates.shape[0],
                 0,
                 0,
             )
             _check_two_dimensions_are_equal(
-                "covariates", "coef", self.covariates.shape[1], self.coef.shape[0], 1, 0
+                "covariates",
+                "coef",
+                self._covariates.shape[1],
+                self._coef.shape[0],
+                1,
+                0,
             )
-        for array in [self.components, self.coef, self.covariates, self.offsets]:
+        for array in [self._components, self._coef, self._covariates, self._offsets]:
             if array is not None:
                 if len(array.shape) != 2:
                     raise RuntimeError(
@@ -587,7 +597,42 @@ class PlnParameters:
         """
         Covariance of the model.
         """
-        return self.components @ self.components.T
+        return self._components @ self._components.T
+
+    @property
+    def components(self):
+        """
+        Components of the model.
+        """
+        return self._components
+
+    @property
+    def offsets(self):
+        """
+        Data offsets.
+        """
+        return self._offsets
+
+    @property
+    def coef(self):
+        """
+        Coef of the model.
+        """
+        return self.coef
+
+    @property
+    def covariates(self):
+        """
+        Data covariates.
+        """
+        return self.covariates
+
+    @property
+    def coef_inflation(self):
+        """
+        Inflation coefficient of the model.
+        """
+        return self._coef_inflation
 
 
 def _check_two_dimensions_are_equal(
