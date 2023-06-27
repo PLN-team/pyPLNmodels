@@ -789,7 +789,7 @@ def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
 
 
 def _extract_data_from_formula(
-    formula: str, data: Dict[str, : Union[torch.Tensor, np.ndarray, pd.DataFrame]]
+    formula: str, data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]]
 ) -> Tuple:
     """
     Extract data from the given formula and data dictionary.

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import plotly.express as px
 from mlxtend.plotting import plot_pca_correlation_graph
+import matplotlib
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -1309,10 +1310,10 @@ class Pln(_model):
     )
     def __init__(
         self,
-        counts: Optional[torch.Tensor, np.ndarray, pd.DataFrame],
+        counts: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        covariates: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
-        offsets: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
@@ -1348,7 +1349,7 @@ class Pln(_model):
     def from_formula(
         cls,
         formula: str,
-        data: Dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
@@ -1802,7 +1803,7 @@ class PlnPCAcollection:
     def from_formula(
         cls,
         formula: str,
-        data: Dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         offsets_formula: str = "logsum",
         ranks: Iterable[int] = range(3, 5),
@@ -2550,10 +2551,10 @@ class PlnPCA(_model):
     )
     def __init__(
         self,
-        counts: Optional[torch.Tensor, np.ndarray, pd.DataFrame],
+        counts: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        covariates: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
-        offsets: Optional[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
@@ -2595,7 +2596,7 @@ class PlnPCA(_model):
     def from_formula(
         cls,
         formula: str,
-        data: Dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         rank: int = 5,
         offsets_formula: str = "logsum",
@@ -2675,7 +2676,7 @@ class PlnPCA(_model):
             """,
     )
     def viz(self, ax: matplotlib.axes.Axes = None, colors=None, show_cov: bool = False):
-        super().plot_expected_vs_true(ax=ax, colors=colors, show_cov=show_cov)
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
 
     @_add_doc(
         _model,
