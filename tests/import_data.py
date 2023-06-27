@@ -12,14 +12,14 @@ from pyPLNmodels import (
     offsets_sim_0cov,
     true_covariance_0cov,
     true_coef_0cov,
-) = get_simulated_count_data(return_true_param=True, nb_cov=0)
+) = get_simulated_count_data(return_true_param=True, nb_cov=0, add_const=False)
 (
     counts_sim_2cov,
     covariates_sim_2cov,
     offsets_sim_2cov,
     true_covariance_2cov,
     true_coef_2cov,
-) = get_simulated_count_data(return_true_param=True, nb_cov=2)
+) = get_simulated_count_data(return_true_param=True, nb_cov=2, add_const=False)
 
 data_sim_0cov = {
     "counts": counts_sim_0cov,

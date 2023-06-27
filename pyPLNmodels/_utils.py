@@ -1,6 +1,10 @@
 import os
 import math
 import warnings
+import textwrap
+from typing import Optional, Dict, Any, Union, Tuple, List
+import pkg_resources
+
 import numpy as np
 import pandas as pd
 import torch
@@ -9,8 +13,6 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
-from typing import Optional, Dict, Any, Union, Tuple, List
-import pkg_resources
 
 
 torch.set_default_dtype(torch.float64)
@@ -93,7 +95,7 @@ def _sigmoid(tens: torch.Tensor) -> torch.Tensor:
     return 1 / (1 + torch.exp(-tens))
 
 
-def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor:
+def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Tensor:
     """
     Sample from the Poisson Log-Normal (Pln) model.
 
@@ -102,9 +104,9 @@ def sample_pln(pln_param, seed: int = None, return_latent=False) -> torch.Tensor
     pln_param : PlnParameters object
         parameters of the model, containing the coeficient, the covariates,
         the components and the offsets.
-    seed : int or None, optional
+    seed : int or None, optional(keyword-only)
         Random seed for reproducibility. Default is None.
-    return_latent : bool, optional
+    return_latent : bool, optional(keyword-only)
         If True will return also the latent variables. Default is False.
 
     Returns
@@ -230,7 +232,9 @@ def _raise_wrong_dimension_error(
     raise ValueError(msg)
 
 
-def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
+def _format_data(
+    data: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+) -> torch.Tensor or None:
     """
     Transforms the data in a torch.tensor if the input is an array, and None if the input is None.
     Raises an error if the input is not an array or None.
@@ -264,9 +268,9 @@ def _format_data(data: pd.DataFrame) -> torch.Tensor or None:
 
 
 def _format_model_param(
-    counts: torch.Tensor,
-    covariates: torch.Tensor,
-    offsets: torch.Tensor,
+    counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+    covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+    offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     offsets_formula: str,
     take_log_offsets: bool,
     add_const: bool,
@@ -276,11 +280,11 @@ def _format_model_param(
 
     Parameters
     ----------
-    counts : torch.Tensor or None, shape (n, )
+    counts : Union[torch.Tensor, np.ndarray, pd.DataFrame], shape (n, )
         Count data.
-    covariates : torch.Tensor or None, shape (n, d) or None
+    covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, shape (n, d) or None
         Covariate data.
-    offsets : torch.Tensor or None, shape (n, ) or None
+    offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, shape (n, ) or None
         Offset data.
     offsets_formula : str
         Formula for calculating offsets.
@@ -292,10 +296,11 @@ def _format_model_param(
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Formatted model parameters.
+
     Raises
     ------
     ValueError
-        If counts has negative values.
+        If counts has negative values or offsets_formula is not None and not "logsum" or "zero"
     """
     counts = _format_data(counts)
     if torch.min(counts) < 0:
@@ -315,8 +320,13 @@ def _format_model_param(
             offsets = (
                 torch.log(_get_offsets_from_sum_of_counts(counts)).double().to(DEVICE)
             )
-        else:
+        elif offsets_formula == "zero":
+            print("Setting the offsets to zero")
             offsets = torch.zeros(counts.shape, device=DEVICE)
+        else:
+            raise ValueError(
+                'Wrong offsets_formula. Expected either "zero" or "logsum", got {offsets_formula}'
+            )
     else:
         offsets = _format_data(offsets).to(DEVICE)
         if take_log_offsets is True:
@@ -456,7 +466,7 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
 
 
 def _get_simulation_coef_cov_offsets(
-    n_samples: int, nb_cov: int, dim: int
+    n_samples: int, nb_cov: int, dim: int, add_const: bool
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -466,9 +476,14 @@ def _get_simulation_coef_cov_offsets(
     n_samples : int
         Number of samples.
     nb_cov : int
-        Number of covariates. If 0, covariates will be None.
+        Number of covariates. If 0, covariates will be None,
+        unless add_const is True.
+        If add_const is True, then there will be nb_cov+1
+        covariates as the intercept can be seen as a covariates.
     dim : int
         Dimension required of the data.
+    add_const : bool, optional
+        If True, will add a vector of ones in the covariates.
 
     Returns
     -------
@@ -478,7 +493,10 @@ def _get_simulation_coef_cov_offsets(
     prev_state = torch.random.get_rng_state()
     torch.random.manual_seed(0)
     if nb_cov == 0:
-        covariates = None
+        if add_const is True:
+            covariates = torch.ones(n_samples, 1)
+        else:
+            covariates = None
     else:
         covariates = torch.randint(
             low=-1,
@@ -487,7 +505,12 @@ def _get_simulation_coef_cov_offsets(
             dtype=torch.float64,
             device="cpu",
         )
-    coef = torch.randn(nb_cov, dim, device="cpu")
+        if add_const is True:
+            covariates = torch.cat((covariates, torch.ones(n_samples, 1)), axis=1)
+    if covariates is None:
+        coef = None
+    else:
+        coef = torch.randn(covariates.shape[1], dim, device="cpu")
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
@@ -496,21 +519,29 @@ def _get_simulation_coef_cov_offsets(
 
 
 class PlnParameters:
-    def __init__(self, components, coef, covariates, offsets, coef_inflation=None):
+    def __init__(
+        self,
+        *,
+        components: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        coef: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        coef_inflation=None,
+    ):
         """
         Instantiate all the needed parameters to sample from the PLN model.
 
         Parameters
         ----------
-        components : torch.Tensor
+        components : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Components of size (p, rank)
-        coef : torch.Tensor
+        coef : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Coefficient of size (d, p)
-        covariates : torch.Tensor or None
+        covariates : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None(keyword-only)
             Covariates, size (n, d) or None
-        offsets : torch.Tensor
+        offsets : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Offset, size (n, p)
-        _coef_inflation : torch.Tensor or None, optional
+        _coef_inflation : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, optional(keyword-only)
             Coefficient for zero-inflation model, size (d, p) or None. Default is None.
 
         """
@@ -519,9 +550,10 @@ class PlnParameters:
         self.covariates = _format_data(covariates)
         self.offsets = _format_data(offsets)
         self.coef_inflation = _format_data(coef_inflation)
-        _check_two_dimensions_are_equal(
-            "components", "coef", self.components.shape[0], self.coef.shape[1], 0, 1
-        )
+        if self.coef is not None:
+            _check_two_dimensions_are_equal(
+                "components", "coef", self.components.shape[0], self.coef.shape[1], 0, 1
+            )
         if self.offsets is not None:
             _check_two_dimensions_are_equal(
                 "components",
@@ -601,21 +633,30 @@ def _check_two_dimensions_are_equal(
 
 
 def get_simulation_parameters(
-    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5
+    *,
+    n_samples: int = 100,
+    dim: int = 25,
+    nb_cov: int = 1,
+    rank: int = 5,
+    add_const: bool = True,
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
 
     Parameters
     ----------
-        n_samples : int, optional
+        n_samples : int, optional(keyword-only)
             The number of samples, by default 100.
-        dim : int, optional
+        dim : int, optional(keyword-only)
             The dimension of the data, by default 25.
-        nb_cov : int, optional
-            The number of covariates, by default 1.
-        rank : int, optional
+        nb_cov : int, optional(keyword-only)
+            The number of covariates, by default 1. If add_const is True,
+            then there will be nb_cov+1 covariates as the intercept can be seen
+            as a covariates.
+        rank : int, optional(keyword-only)
             The rank of the data components, by default 5.
+        add_const : bool, optional(keyword-only)
+            If True, will add a vector of ones in the covariates.
 
     Returns
     -------
@@ -623,17 +664,23 @@ def get_simulation_parameters(
             The generated simulation parameters.
 
     """
-    coef, covariates, offsets = _get_simulation_coef_cov_offsets(n_samples, nb_cov, dim)
+    coef, covariates, offsets = _get_simulation_coef_cov_offsets(
+        n_samples, nb_cov, dim, add_const
+    )
     components = _get_simulation_components(dim, rank)
-    return PlnParameters(components, coef, covariates, offsets)
+    return PlnParameters(
+        components=components, coef=coef, covariates=covariates, offsets=offsets
+    )
 
 
 def get_simulated_count_data(
+    *,
     n_samples: int = 100,
     dim: int = 25,
     rank: int = 5,
     nb_cov: int = 1,
     return_true_param: bool = False,
+    add_const: bool = True,
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -641,17 +688,19 @@ def get_simulated_count_data(
 
     Parameters
     ----------
-    n_samples : int, optional
+    n_samples : int, optional(keyword-only)
         Number of samples, by default 100.
-    dim : int, optional
+    dim : int, optional(keyword-only)
         Dimension, by default 25.
-    rank : int, optional
+    rank : int, optional(keyword-only)
         Rank of the covariance matrix, by default 5.
-    nb_cov : int, optional
+    add_const : bool, optional(keyword-only)
+        If True, will add a vector of ones. Default is True
+    nb_cov : int, optional(keyword-only)
         Number of covariates, by default 1.
-    return_true_param : bool, optional
+    return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
-    seed : int, optional
+    seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 
     Returns
@@ -659,7 +708,9 @@ def get_simulated_count_data(
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
-    pln_param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
+    pln_param = get_simulation_parameters(
+        n_samples=n_samples, dim=dim, nb_cov=nb_cov, rank=rank, add_const=add_const
+    )
     counts = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
         return (
@@ -673,18 +724,18 @@ def get_simulated_count_data(
 
 
 def get_real_count_data(
-    n_samples: int = 469, dim: int = 200, return_labels: bool = False
+    *, n_samples: int = 469, dim: int = 200, return_labels: bool = False
 ) -> np.ndarray:
     """
     Get real count data from the scMARK dataset.
 
     Parameters
     ----------
-    n_samples : int, optional
+    n_samples : int, optional(keyword-only)
         Number of samples, by default max_samples.
-    dim : int, optional
+    dim : int, optional(keyword-only)
         Dimension, by default max_dim.
-    return_labels: bool, optional
+    return_labels: bool, optional(keyword-only)
         If True, will return the labels of the count data
     Returns
     -------
@@ -713,89 +764,6 @@ def get_real_count_data(
     return counts, labels
 
 
-def load_model(path_of_directory: str) -> Dict[str, Any]:
-    """
-    Load model from the given directory for future initialization.
-
-    Parameters
-    ----------
-    path_of_directory : str
-        The path to the directory containing the model.
-
-    Returns
-    -------
-    Dict[str, Any]
-        A dictionary containing the loaded model.
-
-    """
-    working_dir = os.getcwd()
-    os.chdir(path_of_directory)
-    all_files = os.listdir()
-    data = {}
-    for filename in all_files:
-        if filename.endswith(".csv"):
-            parameter = filename[:-4]
-            try:
-                data[parameter] = pd.read_csv(filename, header=None).values
-            except pd.errors.EmptyDataError:
-                print(
-                    f"Can't load {parameter} since empty. Standard initialization will be performed for this parameter"
-                )
-    os.chdir(working_dir)
-    return data
-
-
-def load_pln(path_of_directory: str) -> Dict[str, Any]:
-    """
-    Alias for :func:`~pyPLNmodels._utils.load_model`.
-    """
-    return load_model(path_of_directory)
-
-
-def load_plnpcacollection(
-    path_of_directory: str, ranks: Optional[List[int]] = None
-) -> Dict[int, Dict[str, Any]]:
-    """
-    Load PlnPCAcollection models from the given directory.
-
-    Parameters
-    ----------
-    path_of_directory : str
-        The path to the directory containing the PlnPCAcollection models.
-    ranks : List[int], optional
-        A List of ranks specifying which models to load. If None, all models in the directory will be loaded.
-
-    Returns
-    -------
-    Dict[int, Dict[str, Any]]
-        A dictionary containing the loaded PlnPCAcollection models, with ranks as keys.
-
-    Raises
-    ------
-    ValueError
-        If an invalid model name is encountered and the rank cannot be determined.
-
-    """
-    working_dir = os.getcwd()
-    os.chdir(path_of_directory)
-    if ranks is None:
-        dirnames = os.listdir()
-        ranks = []
-        for dirname in dirnames:
-            try:
-                rank = int(dirname[-1])
-            except ValueError:
-                raise ValueError(
-                    f"Can't load the model {dirname}. End of {dirname} should be an int"
-                )
-            ranks.append(rank)
-    datas = {}
-    for rank in ranks:
-        datas[rank] = load_model(f"PlnPCA_rank_{rank}")
-    os.chdir(working_dir)
-    return datas
-
-
 def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
     """
     Check if the rank of the given data matches the specified rank.
@@ -820,7 +788,9 @@ def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
         )
 
 
-def _extract_data_from_formula(formula: str, data: Dict[str, Any]) -> Tuple:
+def _extract_data_from_formula(
+    formula: str, data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]]
+) -> Tuple:
     """
     Extract data from the given formula and data dictionary.
 
@@ -889,8 +859,8 @@ def _get_dict_initialization(
 
 
 def _to_tensor(
-    obj: Union[np.ndarray, torch.Tensor, pd.DataFrame, None]
-) -> Union[torch.Tensor, None]:
+    obj: Union[np.ndarray, torch.Tensor, pd.DataFrame]
+) -> Union[torch.Tensor]:
     """
     Convert an object to a PyTorch tensor.
 
@@ -968,3 +938,29 @@ def _handle_data(
     )
     _check_data_shape(counts, covariates, offsets)
     return counts, covariates, offsets, column_counts
+
+
+def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
+    def wrapper(fun):
+        doc = getattr(parent_class, fun.__name__).__doc__
+        if doc is None:
+            doc = ""
+        doc = textwrap.dedent(doc).rstrip(" \n\r")
+        if params is not None:
+            doc += textwrap.dedent(params.rstrip(" \n\r"))
+        if returns is not None:
+            doc += "\n\nReturns"
+            doc += "\n-------"
+            doc += textwrap.dedent(returns)
+        if see_also is not None:
+            doc += "\n\nSee also"
+            doc += "\n--------"
+            doc += textwrap.dedent(see_also)
+        if example is not None:
+            doc += "\n\nExamples"
+            doc += "\n--------"
+            doc += textwrap.dedent(example)
+        fun.__doc__ = doc
+        return fun
+
+    return wrapper

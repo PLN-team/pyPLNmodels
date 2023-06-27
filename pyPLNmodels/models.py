@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from typing import Optional, Dict, List, Type, Any, Iterable
+from typing import Optional, Dict, List, Type, Any, Iterable, Union
 
 import pandas as pd
 import torch
@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import plotly.express as px
 from mlxtend.plotting import plot_pca_correlation_graph
+import matplotlib
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -29,6 +30,7 @@ from ._utils import (
     _get_dict_initialization,
     _array2tensor,
     _handle_data,
+    _add_doc,
 )
 
 from ._initialization import (
@@ -49,11 +51,12 @@ else:
 NB_CHARACTERS_FOR_NICE_PLOT = 70
 
 
-class model(ABC):
-    _WINDOW = 15
-    n_samples: int
-    dim: int
-    nb_cov: int
+class _model(ABC):
+    """
+    Base class for all the Pln models. Should be inherited.
+    """
+
+    _WINDOW: int = 15
     _counts: torch.Tensor
     _covariates: torch.Tensor
     _offsets: torch.Tensor
@@ -64,9 +67,10 @@ class model(ABC):
 
     def __init__(
         self,
-        counts: torch.Tensor,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        *,
+        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
@@ -77,19 +81,20 @@ class model(ABC):
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The count data.
-        covariates : torch.Tensor, optional
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariate data. Defaults to None.
-        offsets : torch.Tensor, optional
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
-        offsets_formula : str, optional
-            The formula for offsets. Defaults to "logsum".
-        dict_initialization : dict, optional
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum". Overriden if
+            offsets is not None.
+        dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
-        add_const: bool, optional
+        add_const: bool, optional(keyword-only)
             Whether to add a column of one in the covariates. Defaults to True.
         """
         (
@@ -109,41 +114,37 @@ class model(ABC):
     def from_formula(
         cls,
         formula: str,
-        data: dict,
+        data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
     ):
         """
         Create a model instance from a formula and data.
-        See also :func:`~pyPLNmodels.PlnPCAcollection.__init__`
 
         Parameters
         ----------
         formula : str
             The formula.
         data : dict
-            The data dictionary.
-        offsets_formula : str, optional
+            The data dictionary. Each value can be either a torch.Tensor,
+            a np.ndarray or pd.DataFrame
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets. Defaults to "logsum".
-        dict_initialization : dict, optional
+        dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
-
-        Returns
-        -------
-        model
-            The initialized model instance.
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
-            covariates,
-            offsets,
-            offsets_formula,
-            dict_initialization,
-            take_log_offsets,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
             add_const=False,
         )
 
@@ -176,17 +177,17 @@ class model(ABC):
         """
         return self._fitted
 
-    def viz(self, ax=None, colors=None, show_cov: bool = False):
+    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
         Visualize the latent variables with a classic PCA.
 
         Parameters
         ----------
-        ax : Optional[Any], optional
+        ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
-        colors : Optional[Any], optional
+        colors : Optional[np.ndarray], optional(keyword-only)
             The colors to use for plotting, by default None.
-        show_cov: bool, optional
+        show_cov: bool, Optional(keyword-only)
             If True, will display ellipses with right covariances. Default is False.
         Raises
         ------
@@ -229,7 +230,7 @@ class model(ABC):
     @property
     def n_samples(self) -> int:
         """
-        The number of samples.
+        The number of samples, i.e. the first dimension of the counts.
 
         Returns
         -------
@@ -241,12 +242,12 @@ class model(ABC):
     @property
     def dim(self) -> int:
         """
-        The dimension.
+        The second dimension of the counts.
 
         Returns
         -------
         int
-            The dimension.
+            The second dimension of the counts.
         """
         return self._counts.shape[1]
 
@@ -338,6 +339,7 @@ class model(ABC):
     def fit(
         self,
         nb_max_iteration: int = 50000,
+        *,
         lr: float = 0.01,
         class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
@@ -345,30 +347,22 @@ class model(ABC):
         verbose: bool = False,
     ):
         """
-        Fit the model.
+        Fit the model. The lower tol, the more accurate the model.
 
         Parameters
         ----------
         nb_max_iteration : int, optional
             The maximum number of iterations. Defaults to 50000.
-        lr : float, optional
+        lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         class_optimizer : torch.optim.Optimizer, optional
             The optimizer class. Defaults to torch.optim.Rprop.
-        tol : float, optional
+        tol : float, optional(keyword-only)
             The tolerance for convergence. Defaults to 1e-3.
-        do_smart_init : bool, optional
+        do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
-        verbose : bool, optional
+        verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
-        .. code-block:: python
-        Examples
-        --------
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> pln = Pln(counts,add_const = True)
-            >>> pln.fit()
-            >>> print(pln)
         """
         self._pring_beginning_message()
         self._beginning_time = time.time()
@@ -423,15 +417,6 @@ class model(ABC):
         ------
         ValueError
            If the number of components asked is greater than the number of dimensions.
-        Examples
-        --------
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pln = Pln.from_formula("counts ~ 1", data = data)
-            >>> pln.fit()
-            >>> pca_proj = pln.pca_projected_latent_variables()
-            >>> print(pca_proj.shape)
         """
         pca = self.sk_PCA(n_components=n_components)
         return pca.transform(self.latent_variables.cpu())
@@ -486,8 +471,8 @@ class model(ABC):
                 If not specified, the maximum number of components will be used.
                 Defaults to None.
 
-            color (str, optional): The name of the variable used for color coding the scatter plot.
-                If not specified, the scatter plot will not be color-coded.
+            color (str, np.ndarray): An array with one label for each
+                sample in the counts property of the object.
                 Defaults to None.
         Raises
         ------
@@ -725,14 +710,16 @@ class model(ABC):
 
     def show(self, axes=None):
         """
-        Show plots.
+        Show 3 plots. The first one is the covariance of the model.
+        The second one is the stopping criterion with the runtime in abscisse.
+        The third one is the elbo.
 
         Parameters
         ----------
         axes : numpy.ndarray, optional
             The axes to plot on. If None, a new figure will be created. Defaults to None.
         """
-        print("Likelihood:", -self.loglike)
+        print("Likelihood:", self.loglike)
         if self._fitted is False:
             nb_axes = 1
         else:
@@ -881,7 +868,7 @@ class model(ABC):
         Returns
         -------
         torch.Tensor or None
-            The latent mean or None.
+            The latent mean or None if it has not yet been initialized.
         """
         return self._cpu_attribute_or_none("_latent_mean")
 
@@ -899,13 +886,13 @@ class model(ABC):
 
     @latent_mean.setter
     @_array2tensor
-    def latent_mean(self, latent_mean):
+    def latent_mean(self, latent_mean: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the latent mean property.
 
         Parameters
         ----------
-        latent_mean : torch.Tensor
+        latent_mean : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The latent mean.
 
         Raises
@@ -921,13 +908,15 @@ class model(ABC):
 
     @latent_sqrt_var.setter
     @_array2tensor
-    def latent_sqrt_var(self, latent_sqrt_var):
+    def latent_sqrt_var(
+        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
         """
         Setter for the latent variance property.
 
         Parameters
         ----------
-        latent_sqrt_var : torch.Tensor
+        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The latent variance.
 
         Raises
@@ -1023,13 +1012,13 @@ class model(ABC):
 
     @counts.setter
     @_array2tensor
-    def counts(self, counts):
+    def counts(self, counts: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the counts property.
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The counts.
 
         Raises
@@ -1047,13 +1036,13 @@ class model(ABC):
 
     @offsets.setter
     @_array2tensor
-    def offsets(self, offsets):
+    def offsets(self, offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the offsets property.
 
         Parameters
         ----------
-        offsets : torch.Tensor
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The offsets.
 
         Raises
@@ -1069,13 +1058,13 @@ class model(ABC):
 
     @covariates.setter
     @_array2tensor
-    def covariates(self, covariates):
+    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the covariates property.
 
         Parameters
         ----------
-        covariates : torch.Tensor
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates.
 
         Raises
@@ -1088,13 +1077,13 @@ class model(ABC):
 
     @coef.setter
     @_array2tensor
-    def coef(self, coef):
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the coef property.
 
         Parameters
         ----------
-        coef : torch.Tensor or None
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The coefficients.
 
         Raises
@@ -1162,7 +1151,7 @@ class model(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .coef() .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
 
     def sigma(self):
         """
@@ -1175,13 +1164,13 @@ class model(ABC):
         """
         return self.covariance
 
-    def predict(self, covariates=None):
+    def predict(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None):
         """
         Method for making predictions.
 
         Parameters
         ----------
-        covariates : torch.Tensor, optional
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional
             The covariates, by default None.
 
         Returns
@@ -1192,16 +1181,16 @@ class model(ABC):
         Raises
         ------
         AttributeError
-            If there are no covariates in the model.
+            If there are no covariates in the model but some are provided.
         RuntimeError
             If the shape of the covariates is incorrect.
 
         Notes
         -----
         - If `covariates` is not provided and there are no covariates in the model, None is returned.
+            If there are covariates in the model, then the mean covariates @ coef is returned.
         - If `covariates` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of covariates.
         - The predicted values are obtained by multiplying the covariates by the coefficients.
-
         """
         if covariates is not None and self.nb_cov == 0:
             raise AttributeError("No covariates in the model, can't predict")
@@ -1240,11 +1229,252 @@ class model(ABC):
         """
         return ""
 
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        """
+        Plot the predicted value of the counts against the counts.
+
+        Parameters
+        ----------
+        ax : Optional[matplotlib.axes.Axes], optional
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+
+        colors : Optional[Any], optional
+            The colors to use for plotting, by default None.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The matplotlib axis.
+        >>>
+        """
+        if self._fitted is None:
+            raise RuntimeError("Please fit the model before.")
+        if ax is None:
+            ax = plt.gca()
+        predictions = self._counts_predictions().ravel().detach()
+        if colors is not None:
+            colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
+        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
+        max_y = int(torch.max(self.counts.ravel()).item())
+        y = np.linspace(0, max_y, max_y)
+        ax.plot(y, y, c="red")
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_ylabel("Predicted values")
+        ax.set_xlabel("Counts")
+        ax.legend()
+        return ax
+
 
 # need to do a good init for M and S
-class Pln(model):
+class Pln(_model):
+    """
+    Pln class.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import Pln, get_real_count_data
+    >>> counts, labels = get_real_count_data(return_labels = True)
+    >>> pln = Pln(counts,add_const = True)
+    >>> pln.fit()
+    >>> print(pln)
+    >>> pln.viz(colors = labels)
+
+    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
+    >>> param = get_simulation_parameters()
+    >>> counts = sample_pln(param)
+    >>> data = {"counts": counts}
+    >>> pln = Pln.from_formula("counts ~ 1", data)
+    >>> pln.fit()
+    >>> print(pln)
+    """
+
     _NAME = "Pln"
     coef: torch.Tensor
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts= get_real_count_data()
+            >>> pln = Pln(counts, add_const = True)
+            >>> pln.fit()
+            >>> print(pln)
+        """,
+        returns="""
+            Pln
+        """,
+        see_also="""
+        :func:`pyPLNmodels.Pln.from_formula`
+        """,
+    )
+    def __init__(
+        self,
+        counts: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+    ):
+        super().__init__(
+            counts=counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
+
+    @classmethod
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        """,
+        returns="""
+            Pln
+        """,
+        see_also="""
+        :class:`pyPLNmodels.Pln`
+        :func:`pyPLNmodels.Pln.__init__`
+    """,
+    )
+    def from_formula(
+        cls,
+        formula: str,
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+    ):
+        counts, covariates, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=False,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> pln = Pln(counts,add_const = True)
+        >>> pln.fit()
+        >>> print(pln)
+        """,
+    )
+    def fit(
+        self,
+        nb_max_iteration: int = 50000,
+        *,
+        lr: float = 0.01,
+        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+    ):
+        super().fit(
+            nb_max_iteration,
+            lr=lr,
+            class_optimizer=class_optimizer,
+            tol=tol,
+            do_smart_init=do_smart_init,
+            verbose=verbose,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(counts,add_const = True)
+            >>> pln.fit()
+            >>> pln.plot_expected_vs_true()
+            >>> plt.show()
+            >>> pln.plot_expected_vs_true(colors = labels)
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(counts,add_const = True)
+            >>> pln.fit()
+            >>> pln.viz()
+            >>> plt.show()
+            >>> pln.viz(colors = labels)
+            >>> plt.show()
+            >>> pln.viz(show_cov = True)
+            >>> plt.show()
+            """,
+    )
+    def viz(self, ax=None, colors=None, show_cov: bool = False):
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> pln.fit()
+        >>> pca_proj = pln.pca_projected_latent_variables()
+        >>> print(pca_proj.shape)
+        """,
+    )
+    def pca_projected_latent_variables(self, n_components: Optional[int] = None):
+        super().pca_projected_latent_variables(n_components=n_components)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> pln.fit()
+        >>> pln.scatter_pca_matrix(n_components = 5)
+        """,
+    )
+    def scatter_pca_matrix(self, n_components=None, color=None):
+        super().scatter_pca_matrix(n_components=n_components, color=color)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> pln.fit()
+        >>> pln.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        """,
+    )
+    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+        super().plot_pca_correlation_graph(
+            variables_names=variables_names, indices_of_variables=indices_of_variables
+        )
 
     @property
     def _description(self):
@@ -1277,16 +1507,20 @@ class Pln(model):
         return None
 
     @coef.setter
-    def coef(self, coef):
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the coef property.
 
         Parameters
         ----------
-        coef : torch.Tensor
-            The coefficients.
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The regression coefficients of the gaussian latent variables.
         """
-        pass
+
+    def _counts_predictions(self):
+        return torch.exp(
+            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
+        )
 
     def _smart_init_latent_parameters(self):
         """
@@ -1336,6 +1570,15 @@ class Pln(model):
         -------
         torch.Tensor
             The computed ELBO.
+        Examples
+        --------
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(counts,add_const = True)
+        >>> pln.fit()
+        >>> elbo = pln.compute_elbo()
+        >>> print("elbo", elbo)
+        >>> print("loglike/n", pln.loglike/pln.n_samples)
         """
         return profiled_elbo_pln(
             self._counts,
@@ -1350,14 +1593,12 @@ class Pln(model):
         Method for smartly initializing the model parameters.
         """
         # no model parameters since we are doing a profiled ELBO
-        pass
 
     def _random_init_model_parameters(self):
         """
         Method for randomly initializing the model parameters.
         """
         # no model parameters since we are doing a profiled ELBO
-        pass
 
     @property
     def _coef(self):
@@ -1403,15 +1644,17 @@ class Pln(model):
         print(f"Fitting a Pln model with {self._description}")
 
     @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> counts, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(counts,add_const = True)
+        >>> pln.fit()
+        >>> print(pln.latent_variables.shape)
+        """,
+    )
     def latent_variables(self):
-        """
-        Property representing the latent variables.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variables.
-        """
         return self.latent_mean.detach()
 
     @property
@@ -1463,7 +1706,8 @@ class Pln(model):
     @covariance.setter
     def covariance(self, covariance):
         """
-        Setter for the covariance property.
+        Setter for the covariance property. Only here for completeness, since
+        this function does nothing
 
         Parameters
         ----------
@@ -1474,14 +1718,40 @@ class Pln(model):
 
 
 class PlnPCAcollection:
+    """
+    A collection where value q corresponds to a PlnPCA object with rank q.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, get_simulation_parameters, sample_pln
+    >>> counts, labels = get_real_count_data(return_labels = True)
+    >>> data = {"counts": counts}
+    >>> plncas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12])
+    >>> plncas.fit()
+    >>> print(plncas)
+    >>> plncas.show()
+
+    >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
+    >>> counts = sample_pln(plnparam)
+    >>> data = {"counts":counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> plnpcas = PlnPCAcollection.from_formula("counts ~ 0 + cov", data = data, ranks = [5,8,12])
+    >>> plnpcas.fit()
+    >>> print(plnpcas)
+    >>> pcas.show()
+    See also
+    --------
+    :class:`~pyPLNmodels.PlnPCA`
+    """
+
     _NAME = "PlnPCAcollection"
     _dict_models: dict
 
     def __init__(
         self,
-        counts: torch.Tensor,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        *,
+        covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets_formula: str = "logsum",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
@@ -1493,22 +1763,29 @@ class PlnPCAcollection:
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts :Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The counts.
-        covariates : torch.Tensor, optional
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariates, by default None.
-        offsets : torch.Tensor, optional
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets, by default None.
-        offsets_formula : str, optional
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets, by default "logsum".
-        ranks : Iterable[int], optional
+        ranks : Iterable[int], optional(keyword-only)
             The range of ranks, by default range(3, 5).
-        dict_of_dict_initialization : dict, optional
+        dict_of_dict_initialization : dict, optional(keyword-only)
             The dictionary of initialization, by default None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
-        add_const: bool, optional
+        add_const: bool, optional(keyword-only)
             Whether to add a column of one in the covariates. Defaults to True.
+        Returns
+        -------
+        PlnPCAcollection
+        See also
+        --------
+        :class:`~pyPLNmodels.PlnPCA`
+        :meth:`~pyPLNmodels.PlnPCAcollection.from_formula`
         """
         self._dict_models = {}
         (
@@ -1526,7 +1803,8 @@ class PlnPCAcollection:
     def from_formula(
         cls,
         formula: str,
-        data: dict,
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
         offsets_formula: str = "logsum",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
@@ -1540,14 +1818,16 @@ class PlnPCAcollection:
         formula : str
             The formula.
         data : dict
-            The data dictionary.
-        offsets_formula : str, optional
+            The data dictionary. Each value can be either
+            a torch.Tensor, np.ndarray or pd.DataFrame
+        offsets_formula : str, optional(keyword-only)
             The formula for offsets, by default "logsum".
-        ranks : Iterable[int], optional
+            Overriden if data["offsets"] is not None.
+        ranks : Iterable[int], optional(keyword-only)
             The range of ranks, by default range(3, 5).
-        dict_of_dict_initialization : dict, optional
+        dict_of_dict_initialization : dict, optional(keyword-only)
             The dictionary of initialization, by default None.
-        take_log_offsets : bool, optional
+        take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
         Returns
         -------
@@ -1555,20 +1835,24 @@ class PlnPCAcollection:
             The created PlnPCAcollection instance.
         Examples
         --------
-            >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
+        >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
+        See also
+        --------
+        :class:`~pyPLNmodels.PlnPCA`
+        :func:`~pyPLNmodels.PlnPCAcollection.__init__`
         """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
-            covariates,
-            offsets,
-            offsets_formula,
-            ranks,
-            dict_of_dict_initialization,
-            take_log_offsets,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            ranks=ranks,
+            dict_of_dict_initialization=dict_of_dict_initialization,
+            take_log_offsets=take_log_offsets,
             add_const=False,
         )
 
@@ -1646,13 +1930,13 @@ class PlnPCAcollection:
 
     @counts.setter
     @_array2tensor
-    def counts(self, counts: torch.Tensor):
+    def counts(self, counts: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the counts property.
 
         Parameters
         ----------
-        counts : torch.Tensor
+        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The counts.
         """
         for model in self.values():
@@ -1660,13 +1944,13 @@ class PlnPCAcollection:
 
     @coef.setter
     @_array2tensor
-    def coef(self, coef: torch.Tensor):
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the coef property.
 
         Parameters
         ----------
-        coef : torch.Tensor
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The coefficients.
         """
         for model in self.values():
@@ -1674,13 +1958,13 @@ class PlnPCAcollection:
 
     @covariates.setter
     @_array2tensor
-    def covariates(self, covariates: torch.Tensor):
+    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the covariates property.
 
         Parameters
         ----------
-        covariates : torch.Tensor
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates.
         """
         for model in self.values():
@@ -1700,13 +1984,13 @@ class PlnPCAcollection:
 
     @offsets.setter
     @_array2tensor
-    def offsets(self, offsets: torch.Tensor):
+    def offsets(self, offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the offsets property.
 
         Parameters
         ----------
-        offsets : torch.Tensor
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The offsets.
         """
         for model in self.values():
@@ -1743,6 +2027,15 @@ class PlnPCAcollection:
                         "Please instantiate with either a list "
                         "of integers or an integer."
                     )
+            if dict_of_dict_initialization is not None:
+                if ranks != dict_of_dict_initialization["ranks"]:
+                    msg = (
+                        "The given ranks in the dict_initialization are loaded but"
+                        " you should fit the model once again or instantiate the"
+                        " model with the ranks loaded."
+                    )
+                    warnings.warn(msg)
+
         elif isinstance(ranks, (int, np.integer)):
             dict_initialization = _get_dict_initialization(
                 ranks, dict_of_dict_initialization
@@ -1809,7 +2102,8 @@ class PlnPCAcollection:
 
     def fit(
         self,
-        nb_max_iteration: int = 100000,
+        nb_max_iteration: int = 50000,
+        *,
         lr: float = 0.01,
         class_optimizer: Type[torch.optim.Optimizer] = torch.optim.Rprop,
         tol: float = 1e-3,
@@ -1817,21 +2111,21 @@ class PlnPCAcollection:
         verbose: bool = False,
     ):
         """
-        Fit the PlnPCAcollection.
+        Fit each model in the PlnPCAcollection.
 
         Parameters
         ----------
         nb_max_iteration : int, optional
-            The maximum number of iterations, by default 100000.
-        lr : float, optional
+            The maximum number of iterations, by default 50000.
+        lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
-        class_optimizer : Type[torch.optim.Optimizer], optional
+        class_optimizer : Type[torch.optim.Optimizer], optional(keyword-only)
             The optimizer class, by default torch.optim.Rprop.
-        tol : float, optional
+        tol : float, optional(keyword-only)
             The tolerance, by default 1e-3.
-        do_smart_init : bool, optional
+        do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
-        verbose : bool, optional
+        verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
         """
         self._pring_beginning_message()
@@ -1839,11 +2133,11 @@ class PlnPCAcollection:
             model = self[self.ranks[i]]
             model.fit(
                 nb_max_iteration,
-                lr,
-                class_optimizer,
-                tol,
-                do_smart_init,
-                verbose,
+                lr=lr,
+                class_optimizer=class_optimizer,
+                tol=tol,
+                do_smart_init=do_smart_init,
+                verbose=verbose,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
@@ -2191,7 +2485,7 @@ class PlnPCAcollection:
         str
             The string representation of the useful methods.
         """
-        return ".show(), .best_model()"
+        return ".show(), .best_model(), .keys(), .items(), .values()"
 
     @property
     def _useful_properties_string(self) -> str:
@@ -2207,43 +2501,66 @@ class PlnPCAcollection:
 
 
 # Here, setting the value for each key in _dict_parameters
-class PlnPCA(model):
+class PlnPCA(_model):
+    """
+    PlnPCA object where the covariance has low rank.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnPCA, get_real_count_data, get_simulation_parameters, sample_pln
+    >>> counts, labels = get_real_count_data(return_labels = True)
+    >>> data = {"counts": counts}
+    >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
+    >>> pca.fit()
+    >>> print(pca)
+    >>> pca.viz(colors = labels)
+
+    >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
+    >>> counts = sample_pln(plnparam)
+    >>> data = {"counts": counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> plnpca = PlnPCA.from_formula("counts ~ 0 + cov", data = data, rank = 5)
+    >>> plnpca.fit()
+    >>> print(plnpca)
+
+    See also
+    --------
+    :class:`pyPLNmodels.Pln`
+    """
+
     _NAME: str = "PlnPCA"
     _components: torch.Tensor
 
+    @_add_doc(
+        _model,
+        params="""
+            rank : int, optional(keyword-only)
+                The rank of the approximation, by default 5.
+            """,
+        example="""
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts= get_real_count_data()
+            >>> pca = PlnPCA(counts, add_const = True)
+            >>> print(pca)
+        """,
+        returns="""
+            PlnPCA
+        """,
+        see_also="""
+        :func:`pyPLNmodels.PlnPCA.from_formula`
+        """,
+    )
     def __init__(
         self,
-        counts: torch.Tensor,
-        covariates: Optional[torch.Tensor] = None,
-        offsets: Optional[torch.Tensor] = None,
+        counts: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
     ):
-        """
-        Initialize the PlnPCA object.
-
-        Parameters
-        ----------
-        counts : torch.Tensor
-            The counts tensor.
-        covariates : torch.Tensor, optional
-            The covariates tensor, by default None.
-        offsets : torch.Tensor, optional
-            The offsets tensor, by default None.
-        offsets_formula : str, optional
-            The offsets formula, by default "logsum".
-        rank : int, optional
-            The rank of the approximation, by default 5.
-        dict_initialization : Dict[str, torch.Tensor], optional
-            The dictionary for initialization, by default None.
-        take_log_offsets : bool, optional
-            Whether to take the log of offsets. Defaults to False.
-        add_const: bool, optional
-            Whether to add a column of one in the covariates. Defaults to True.
-        """
         self._rank = rank
         super().__init__(
             counts=counts,
@@ -2256,50 +2573,156 @@ class PlnPCA(model):
         )
 
     @classmethod
+    @_add_doc(
+        _model,
+        params="""
+            rank : int, optional(keyword-only)
+                The rank of the approximation, by default 5.
+            """,
+        example="""
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts = get_real_count_data()
+            >>> data = {"counts": counts}
+            >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
+        """,
+        returns="""
+            PlnPCA
+        """,
+        see_also="""
+        :class:`pyPLNmodels.Pln`
+        :func:`pyPLNmodels.PlnPCA.__init__`
+    """,
+    )
     def from_formula(
         cls,
         formula: str,
-        data: Any,
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
         rank: int = 5,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
-        """
-        Create a PlnPCA object from a formula.
-
-        Parameters
-        ----------
-        formula : str
-            The formula.
-        data : Any
-            The data.
-        rank : int, optional
-            The rank of the approximation, by default 5.
-        offsets_formula : str, optional
-            The offsets formula, by default "logsum".
-        dict_initialization : Dict[str, torch.Tensor], optional
-            The dictionary for initialization, by default None.
-
-        Returns
-        -------
-        PlnPCA
-            The created PlnPCA object.
-        Examples
-        --------
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pca_col = PlnPCA.from_formula("counts ~ 1", data = data, rank = [5,6])
-        """
         counts, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
             counts,
-            covariates,
-            offsets,
-            offsets_formula,
-            rank,
-            dict_initialization,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            rank=rank,
+            dict_initialization=dict_initialization,
             add_const=False,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> plnpca = PlnPCA(counts,add_const = True, rank = 6)
+        >>> plnpca.fit()
+        >>> print(plnpca)
+        """,
+    )
+    def fit(
+        self,
+        nb_max_iteration: int = 50000,
+        *,
+        lr: float = 0.01,
+        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+    ):
+        super().fit(
+            nb_max_iteration,
+            lr=lr,
+            class_optimizer=class_optimizer,
+            tol=tol,
+            do_smart_init=do_smart_init,
+            verbose=verbose,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> plnpca = Pln(counts,add_const = True)
+            >>> plnpca.fit()
+            >>> plnpca.plot_expected_vs_true()
+            >>> plt.show()
+            >>> plnpca.plot_expected_vs_true(colors = labels)
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts, labels = get_real_count_data(return_labels = True)
+            >>> plnpca = PlnPCA(counts,add_const = True)
+            >>> plnpca.fit()
+            >>> plnpca.viz()
+            >>> plt.show()
+            >>> plnpca.viz(colors = labels)
+            >>> plt.show()
+            >>> plnpca.viz(show_cov = True)
+            >>> plt.show()
+            """,
+    )
+    def viz(self, ax: matplotlib.axes.Axes = None, colors=None, show_cov: bool = False):
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> pca_proj = plnpca.pca_projected_latent_variables()
+        >>> print(pca_proj.shape)
+        """,
+    )
+    def pca_projected_latent_variables(self, n_components: Optional[int] = None):
+        super().pca_projected_latent_variables(n_components=n_components)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> plnpca.scatter_pca_matrix(n_components = 5)
+        """,
+    )
+    def scatter_pca_matrix(self, n_components=None, color=None):
+        super().scatter_pca_matrix(n_components=n_components, color=color)
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> plnpca.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        """,
+    )
+    def plot_pca_correlation_graph(
+        self, variables_names: List[str], indices_of_variables=None
+    ):
+        super().plot_pca_correlation_graph(
+            variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
     def _check_if_rank_is_too_high(self):
@@ -2316,15 +2739,18 @@ class PlnPCA(model):
             self._rank = self.dim
 
     @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> counts = get_real_count_data()
+        >>> data = {"counts": counts}
+        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> print(plnpca.latent_mean.shape)
+        """,
+    )
     def latent_mean(self) -> torch.Tensor:
-        """
-        Property representing the latent mean.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent mean tensor.
-        """
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
@@ -2350,6 +2776,20 @@ class PlnPCA(model):
             The latent variance tensor.
         """
         return self._latent_sqrt_var**2
+
+    def _counts_predictions(self):
+        covariance_a_posteriori = torch.sum(
+            (self._components**2).unsqueeze(0)
+            * (self.latent_sqrt_var**2).unsqueeze(1),
+            axis=2,
+        )
+        if self.covariates is not None:
+            XB = self.covariates @ self.coef
+        else:
+            XB = 0
+        return torch.exp(
+            self._offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
+        )
 
     @latent_mean.setter
     @_array2tensor
@@ -2395,7 +2835,7 @@ class PlnPCA(model):
         str
             The directory name.
         """
-        return f"{self._NAME}_nbcov_{self.nb_cov}_rank_{self._rank}"
+        return f"{super()._directory_name}_rank_{self._rank}"
 
     @property
     def covariates(self) -> torch.Tensor:
@@ -2411,13 +2851,13 @@ class PlnPCA(model):
 
     @covariates.setter
     @_array2tensor
-    def covariates(self, covariates: torch.Tensor):
+    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
         Setter for the covariates.
 
         Parameters
         ----------
-        covariates : torch.Tensor
+        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates tensor.
         """
         _check_data_shape(self.counts, covariates, self.offsets)
@@ -2445,18 +2885,13 @@ class PlnPCA(model):
 
     def _get_max_components(self) -> int:
         """
-        Get the maximum number of components.
-
-        Returns
-        -------
-        int
-            The maximum number of components.
+        Get the maximum number of components possible by the model.
         """
         return self._rank
 
     def _pring_beginning_message(self):
         """
-        Print the beginning message.
+        Print the beginning message when fitted.
         """
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
         print(f"Fitting a PlnPCAcollection model with {self._rank} components")
@@ -2652,35 +3087,6 @@ class PlnPCA(model):
         Orthogonal components of the model.
         """
         return torch.linalg.qr(self._components, "reduced")[0]
-
-    def pca_projected_latent_variables(
-        self, n_components: Optional[int] = None
-    ) -> np.ndarray:
-        """
-        Perform PCA on projected latent variables.
-
-        Parameters
-        ----------
-        n_components : Optional[int]
-            Number of components to keep. Defaults to None.
-
-        Returns
-        -------
-        np.ndarray
-            The transformed projected latent variables.
-        Raises
-        ------
-        ValueError
-           If the number of components asked is greater than the number of dimensions.
-        """
-        if n_components is None:
-            n_components = self._get_max_components()
-        if n_components > self.rank:
-            raise ValueError(
-                f"You ask more components ({n_components}) than maximum rank ({self.rank})"
-            )
-        pca = PCA(n_components=n_components)
-        return pca.fit_transform(self.latent_variables.cpu())
 
     @property
     def components(self) -> torch.Tensor:
