@@ -1,8 +1,8 @@
 
-# stages:
-#   - checks
-#   - build
-#   - publish
+stages:
+  - checks
+  - build
+  - publish
 
 # black:
 #   stage: checks
