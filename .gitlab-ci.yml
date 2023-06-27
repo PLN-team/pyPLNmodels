@@ -4,34 +4,34 @@ stages:
   - build
   - publish
 
-#
-# black:
-#   stage: checks
-#   image: registry.gitlab.com/pipeline-components/black:latest
-#   script:
-#     - black --check --verbose -- .
-#   tags:
-#     - docker
 
-# tests:
-#   stage: checks
-#   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
-#   before_script:
-#     pip install '.[tests]'
-#   script:
-#     - pip install .
-#     - cd tests
-#     - pytest
-# examples:
-#   stage: checks
-#   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
-#   before_script:
-#     pip install '.[tests]'
-#   script:
-#     - pip install .
-#     - cd tests
-#     - python create_example_files.py
-#     - ./test_examples.sh
+black:
+ stage: checks
+ image: registry.gitlab.com/pipeline-components/black:latest
+ script:
+   - black --check --verbose -- .
+ tags:
+   - docker
+
+tests:
+ stage: checks
+ image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+ before_script:
+   pip install '.[tests]'
+ script:
+   - pip install .
+   - cd tests
+   - pytest
+examples:
+ stage: checks
+ image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+ before_script:
+   pip install '.[tests]'
+ script:
+   - pip install .
+   - cd tests
+   - python create_example_files.py
+   - ./test_examples.sh
 
 
 
@@ -59,8 +59,8 @@ publish_package:
     - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
-  # only:
-  #   - tags
+  only:
+    - tags
 
 pages:
   stage: publish
