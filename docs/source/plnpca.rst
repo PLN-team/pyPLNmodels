@@ -1,3 +1,6 @@
+PlnPCA
+======
+
 .. autoclass:: pyPLNmodels.PlnPCA
    :members:
    :inherited-members:

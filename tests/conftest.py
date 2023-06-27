@@ -53,9 +53,8 @@ def add_list_of_fixture_to_dict(
 
 
 RANK = 8
-RANKS = [2, 6]
+RANKS = [2, 6, 8]
 instances = []
-# dict_fixtures_models = []
 
 
 def convenient_PlnPCA(*args, **kwargs):
@@ -119,7 +118,12 @@ dict_fixtures = {}
 @pytest.fixture(params=params)
 def simulated_pln_0cov_array(request):
     cls = request.param
-    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov, add_const=False)
+    pln = cls(
+        counts_sim_0cov,
+        covariates=covariates_sim_0cov,
+        offsets=offsets_sim_0cov,
+        add_const=False,
+    )
     return pln
 
 
@@ -127,7 +131,12 @@ def simulated_pln_0cov_array(request):
 @cache
 def simulated_fitted_pln_0cov_array(request):
     cls = request.param
-    pln = cls(counts_sim_0cov, covariates_sim_0cov, offsets_sim_0cov, add_const=False)
+    pln = cls(
+        counts_sim_0cov,
+        covariates=covariates_sim_0cov,
+        offsets=offsets_sim_0cov,
+        add_const=False,
+    )
     pln.fit()
     return pln
 
