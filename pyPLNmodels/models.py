@@ -1726,10 +1726,12 @@ class PlnPCAcollection:
     >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, get_simulation_parameters, sample_pln
     >>> counts, labels = get_real_count_data(return_labels = True)
     >>> data = {"counts": counts}
-    >>> plncas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12])
-    >>> plncas.fit()
-    >>> print(plncas)
-    >>> plncas.show()
+    >>> plnpcas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12])
+    >>> plnpcas.fit()
+    >>> print(plnpcas)
+    >>> plnpcas.show()
+    >>> print(plnpcas.best_model())
+    >>> print(plnpcas[5])
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
     >>> counts = sample_pln(plnparam)
