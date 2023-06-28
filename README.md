@@ -7,7 +7,7 @@
 > and complex multivariate count data. It has been built to scale on large datasets even
 > though it has memory limitations. Possible fields of applications include
 > - Genomics (number of times a gene is expressed in a cell)
-> - Ecology (number of individuals of some species in a specific site)
+> - Ecology (species abundances)
 > One main functionality is to normalize the count data to obtain more valuable
 > data. It also analyse the significance of each variable and their correlation as well as the weight of
 > covariates (if available).
