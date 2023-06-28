@@ -8,7 +8,9 @@
 > though it has memory limitations. Possible fields of applications include
 > - Genomics (number of times a gene is expressed in a cell)
 > - Ecology (number of individuals of some species in a specific site)
-> One main functionality is to normalize the data to obtain more valueable data.
+> One main functionality is to normalize the count data to obtain more valuable
+> data. It also analyse the significance of each variable and their correlation as well as the weight of
+> covariates (if available).
 <!-- accompanied with a set of -->
 <!-- > functions for visualization and diagnostic. See [this deck of -->
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
