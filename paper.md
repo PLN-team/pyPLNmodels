@@ -27,15 +27,16 @@ bibliography: paper.bib
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
+This package implements
+efficient algorithms extracting meaningful data from difficult to interpret
+and complex multivariate count data. It has been built to scale on large datasets even
+though it has memory limitations. Possible fields of applications include
+- Genomics (number of times a gene is expressed in a cell)
+- Ecology (species abundances)
+One main functionality is to normalize the count data to obtain more valuable
+data. It also analyse the significance of each variable and their correlation as well as the weight of
+covariates (if available).
 
 # Statement of need
 
