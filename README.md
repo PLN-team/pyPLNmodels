@@ -18,7 +18,7 @@ The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyp
 
 ## Installation
 
-**PLNmodels** is available on
+**pyPLNmodels** is available on
 [pypi](https://pypi.org/project/pyPLNmodels/). The development
 version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
 
