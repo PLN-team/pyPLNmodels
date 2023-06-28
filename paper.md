@@ -26,19 +26,20 @@ bibliography: paper.bib
 ---
 
 # Summary
-
 The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
-This package implements
+Built to scale on large datasets, this package implements
 efficient algorithms extracting meaningful data from difficult to interpret
-and complex multivariate count data. It has been built to scale on large datasets even
-though it has memory limitations. Possible fields of applications include
+and complex count data. Possible fields of applications include
 - Genomics (number of times a gene is expressed in a cell)
-- Ecology (species abundances)
-One main functionality is to normalize the count data to obtain more valuable
-data. It also analyse the significance of each variable and their correlation as well as the weight of
-covariates (if available).
+- Ecology (species abundances for a given site.)
+Its main functionalities are
+- Normalizing count data to obtain more valuable data.
+- Analyse the significance of each variable and their correlation
+- Perform regression when covariates are available.
+- Reduce the number of variables.
 
 # Statement of need
+
 
 `Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
 enables wrapping low-level languages (e.g., C) for speed without losing
