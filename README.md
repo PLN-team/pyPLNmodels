@@ -3,7 +3,9 @@
 
 > The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
 > This package implements
-> efficient algorithms to fit such models.
+> efficient algorithms extracting meaningful data from difficult to interpret
+> and complex count data. It has been built to scale on large datasets even
+> though it has memory limitations.
 <!-- accompanied with a set of -->
 <!-- > functions for visualization and diagnostic. See [this deck of -->
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
