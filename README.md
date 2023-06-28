@@ -8,6 +8,7 @@
 > though it has memory limitations. Possible fields of applications include
 > - Genomics (number of times a gene is expressed in a cell)
 > - Ecology (number of individuals of some species in a specific site)
+> One main functionality is to normalize the data to obtain more valueable data.
 <!-- accompanied with a set of -->
 <!-- > functions for visualization and diagnostic. See [this deck of -->
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
@@ -44,6 +45,7 @@ oaks = load_oaks()
 pln = Pln.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
 pln.fit()
 print(pln)
+transformed_data = pln.transform()
 ```
 
 
@@ -53,6 +55,7 @@ print(pln)
 pca =  PlnPCAcollection.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca.fit()
 print(pca)
+transformed_data = pln.transform()
 ```
 
 
