@@ -1476,6 +1476,25 @@ class Pln(_model):
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
+    @_add_doc(
+        _model,
+        returns="""
+        torch.Tensor
+            The transformed counts (latent variables of the model).
+        """,
+        example="""
+              >>> from pyPLNmodels import Pln, get_real_count_data
+              >>> counts = get_real_count_data()
+              >>> data = {"counts": counts}
+              >>> pln = Pln.from_formula("counts ~ 1", data = data)
+              >>> pln.fit()
+              >>> transformed_counts = pln.transform()
+              >>> print(transformed_counts.shape)
+              """,
+    )
+    def transform(self):
+        return super().transform()
+
     @property
     def _description(self):
         """
@@ -1671,12 +1690,7 @@ class Pln(_model):
 
     def transform(self):
         """
-        Method for transforming the model.
-
-        Returns
-        -------
-        torch.Tensor
-            The transformed model.
+        Method for transforming the counts. Can be seen as a normalization of the counts.
         """
         return self.latent_variables
 
@@ -2542,6 +2556,7 @@ class PlnPCA(_model):
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
             >>> counts= get_real_count_data()
             >>> pca = PlnPCA(counts, add_const = True)
+            >>> pca.fit()
             >>> print(pca)
         """,
         returns="""
@@ -3124,20 +3139,30 @@ class PlnPCA(_model):
             )
         self._components = components
 
-    def transform(self, project: bool = True) -> torch.Tensor:
-        """
-        Transform the model.
-
+    @_add_doc(
+        _model,
+        params="""
         Parameters
         ----------
         project : bool, optional
             Whether to project the latent variables, by default True.
-
-        Returns
-        -------
+        """,
+        returns="""
         torch.Tensor
-            The transformed model.
-        """
+            The transformed counts (latent variables of the model).
+        """,
+        example="""
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> counts= get_real_count_data()
+            >>> pca = PlnPCA(counts, add_const = True)
+            >>> pca.fit()
+            >>> transformed_counts_low_dim = pca.transform()
+            >>> transformed_counts_high_dim = pca.transform(project = False)
+            >>> print(transformed_counts_low_dim.shape)
+            >>> print(transformed_counts_high_dim.shape)
+            """,
+    )
+    def transform(self, project: bool = True) -> torch.Tensor:
         if project is True:
             return self.projected_latent_variables
         return self.latent_variables
