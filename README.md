@@ -6,8 +6,6 @@
 > efficient algorithms extracting meaningful data from difficult to interpret
 > and complex count data. It has been built to scale on large datasets even
 > though it has memory limitations. Possible fields of applications are
-> - test
-> - test bis
 <!-- accompanied with a set of -->
 <!-- > functions for visualization and diagnostic. See [this deck of -->
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
