@@ -19,15 +19,10 @@ authors:
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: 1
 affiliations:
- - name:Université Paris-Saclay, AgroParisTech, INRAE, UMR MIA Paris-Saclay
+ - name: Université Paris-Saclay, AgroParisTech, INRAE, UMR MIA Paris-Saclay
    index: 1
 date: 28 June 2023
 bibliography: paper.bib
-
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
