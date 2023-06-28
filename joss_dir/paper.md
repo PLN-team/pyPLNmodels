@@ -1,10 +1,10 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'pyPLNmodels: A Python package to analyse multivariate high-dimensional count data'
 tags:
   - Python
-  - astronomy
-  - dynamics
-  - galactic dynamics
+  - count data
+  - genomics
+  - ecology
   - milky way
 authors:
   - name: Adrian M. Price-Whelan
