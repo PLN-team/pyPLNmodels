@@ -4,8 +4,13 @@
 > The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
 > This package implements
 > efficient algorithms extracting meaningful data from difficult to interpret
-> and complex count data. It has been built to scale on large datasets even
-> though it has memory limitations.
+> and complex multivariate count data. It has been built to scale on large datasets even
+> though it has memory limitations. Possible fields of applications include
+> - Genomics (number of times a gene is expressed in a cell)
+> - Ecology (number of individuals of some species in a specific site)
+> One main functionality is to normalize the count data to obtain more valuable
+> data. It also analyse the significance of each variable and their correlation as well as the weight of
+> covariates (if available).
 <!-- accompanied with a set of -->
 <!-- > functions for visualization and diagnostic. See [this deck of -->
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
@@ -16,7 +21,7 @@ The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyp
 
 ## Installation
 
-**PLNmodels** is available on
+**pyPLNmodels** is available on
 [pypi](https://pypi.org/project/pyPLNmodels/). The development
 version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
 
@@ -42,6 +47,7 @@ oaks = load_oaks()
 pln = Pln.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
 pln.fit()
 print(pln)
+transformed_data = pln.transform()
 ```
 
 
@@ -51,6 +57,7 @@ print(pln)
 pca =  PlnPCAcollection.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca.fit()
 print(pca)
+transformed_data = pln.transform()
 ```
 
 
