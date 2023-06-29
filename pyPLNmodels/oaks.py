@@ -37,7 +37,7 @@ def load_oaks():
     offsets = pd.read_csv(offsets_stream)
     exog = pd.read_csv(exog_stream)
     oaks = {
-        "endog": endog.to_numpy(),
+        "counts": endog.to_numpy(),
         "offsets": offsets.to_numpy(),
         "tree": exog.tree.to_numpy(),
         "dist2ground": exog.distTOground.to_numpy(),
