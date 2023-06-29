@@ -13,6 +13,7 @@ from sklearn.decomposition import PCA
 import plotly.express as px
 from mlxtend.plotting import plot_pca_correlation_graph
 import matplotlib
+from scipy import stats
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -399,6 +400,21 @@ class _model(ABC):
         self.optim.step()
         self._update_closed_forms()
         return loss
+
+    def transform(self):
+        """
+        Method for transforming the counts. Can be seen as a normalization of the counts.
+        """
+        return self.latent_variables
+
+    def qq_plots(self):
+        centered_latent = self.latent_variables - torch.mean(
+            self.latent_variables, axis=0
+        )
+        chol = torch.linalg.cholesky(torch.inverse(self.covariance))
+        residus = torch.matmul(centered_latent.unsqueeze(1), chol.unsqueeze(0))
+        stats.probplot(residus.ravel(), plot=plt)
+        plt.show()
 
     def pca_projected_latent_variables(self, n_components: Optional[int] = None):
         """
@@ -1687,12 +1703,6 @@ class Pln(_model):
             The number of parameters.
         """
         return self.dim * (self.dim + self.nb_cov)
-
-    def transform(self):
-        """
-        Method for transforming the counts. Can be seen as a normalization of the counts.
-        """
-        return self.latent_variables
 
     @property
     def covariance(self):
