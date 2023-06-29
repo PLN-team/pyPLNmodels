@@ -2,8 +2,12 @@ import ast
 import os
 
 
-def get_lines(filename, filetype=".py"):
-    with open(f"../pyPLNmodels/{filename}{filetype}") as file:
+dir_docstrings = "docstrings_examples"
+dir_readme = "readme_examples"
+
+
+def get_lines(path_to_file, filename, filetype=".py"):
+    with open(f"{path_to_file}{filename}{filetype}") as file:
         lines = [line.rstrip() for line in file]
     return lines
 
@@ -26,11 +30,11 @@ def get_examples_docstring(lines):
     return examples
 
 
-def write_examples(examples, filename, dirname):
+def write_examples(examples, filename):
     for i in range(len(examples)):
         example = examples[i]
         nb_example = str(i + 1)
-        example_filename = f"{dirname}/{prefix_filename}_example_{nb_example}.py"
+        example_filename = f"test_{filename}_example_{nb_example}.py"
         try:
             os.remove(example_filename)
         except FileNotFoundError:
@@ -41,22 +45,22 @@ def write_examples(examples, filename, dirname):
 
 
 def filename_to_docstring_example_file(filename, dirname):
-    lines = get_lines(filename)
+    lines = get_lines("../pyPLNmodels/", filename)
     examples = get_examples_docstring(lines)
-    write_examples(examples, filename, dirname)
+    write_examples(examples, filename)
 
 
-def filename_to_readme_example_file(dirname):
-    lines = get_lines("README", filetype=".md")
-    examples = get_examples_docstring(lines)
+def filename_to_readme_example_file():
+    lines = get_lines("../", "README", filetype=".md")
+    examples = get_examples_readme(lines)
     write_examples(examples, "readme")
 
 
-# filename_to_example_file("models")
-os.makedirs("docstrings_examples", exist_ok=True)
-filename_to_docstring_example_file("_utils", "docstrings")
-filename_to_docstring_example_file("models", "docstrings")
-filename_to_docstring_example_file("elbos", "docstrings")
-filename_to_docstring_example_file("load", "docstrings")
+# os.makedirs(dir_readme, exist_ok=True)
+# filename_to_readme_example_file(dir_readme)
 
-filename_to_readme_example_file("docstrings")
+os.makedirs("docstrings_examples", exist_ok=True)
+filename_to_docstring_example_file("_utils", dir_docstrings)
+filename_to_docstring_example_file("models", dir_docstrings)
+filename_to_docstring_example_file("elbos", dir_docstrings)
+filename_to_docstring_example_file("load", dir_docstrings)

@@ -153,4 +153,5 @@ tests/Pln*
 slides/
 index.html
 
-tests/examples/*.py
+tests/test_models*
+tests/test_load*
