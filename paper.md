@@ -41,8 +41,8 @@ The main functionalities of the `pyPLNmodels` package are
 - Visualization of normalized data.
 
 # Statement of need
-
-`pyPLNmodels` is a python package based on Pytorch [@Pytorch] built to  analyse
+While the R-package `PLNmodels` [@PLNmodels] already implements PLN models, the python package
+`pyPLNmodels` based on Pytorch [@Pytorch] has been built to analyse
 large datasets of count data.
 `Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
 enables wrapping low-level languages (e.g., C) for speed without losing
