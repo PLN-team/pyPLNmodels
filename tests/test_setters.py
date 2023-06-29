@@ -9,7 +9,7 @@ from tests.utils import MSE, filter_models
 @pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
 def test_data_setter_with_torch(pln):
     pln.endog = pln.endog
-    pln.covariates = pln.covariates
+    pln.exog = pln.exog
     pln.offsets = pln.offsets
     pln.fit()
 
@@ -28,13 +28,13 @@ def test_parameters_setter_with_torch(pln):
 @pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
 def test_data_setter_with_numpy(pln):
     np_endog = pln.endog.numpy()
-    if pln.covariates is not None:
-        np_covariates = pln.covariates.numpy()
+    if pln.exog is not None:
+        np_exog = pln.exog.numpy()
     else:
-        np_covariates = None
+        np_exog = None
     np_offsets = pln.offsets.numpy()
     pln.endog = np_endog
-    pln.covariates = np_covariates
+    pln.exog = np_exog
     pln.offsets = np_offsets
     pln.fit()
 
@@ -59,13 +59,13 @@ def test_parameters_setter_with_numpy(pln):
 @pytest.mark.parametrize("pln", dict_fixtures["all_pln"])
 def test_data_setter_with_pandas(pln):
     pd_endog = pd.DataFrame(pln.endog.numpy())
-    if pln.covariates is not None:
-        pd_covariates = pd.DataFrame(pln.covariates.numpy())
+    if pln.exog is not None:
+        pd_exog = pd.DataFrame(pln.exog.numpy())
     else:
-        pd_covariates = None
+        pd_exog = None
     pd_offsets = pd.DataFrame(pln.offsets.numpy())
     pln.endog = pd_endog
-    pln.covariates = pd_covariates
+    pln.exog = pd_exog
     pln.offsets = pd_offsets
     pln.fit()
 
@@ -93,17 +93,17 @@ def test_fail_data_setter_with_torch(pln):
         pln.endog = pln.endog - 100
 
     n, p = pln.endog.shape
-    if pln.covariates is None:
+    if pln.exog is None:
         d = 0
     else:
-        d = pln.covariates.shape[-1]
+        d = pln.exog.shape[-1]
     with pytest.raises(ValueError):
         pln.endog = torch.zeros(n + 1, p)
     with pytest.raises(ValueError):
         pln.endog = torch.zeros(n, p + 1)
 
     with pytest.raises(ValueError):
-        pln.covariates = torch.zeros(n + 1, d)
+        pln.exog = torch.zeros(n + 1, d)
 
     with pytest.raises(ValueError):
         pln.offsets = torch.zeros(n + 1, p)
@@ -137,10 +137,10 @@ def test_fail_parameters_setter_with_torch(pln):
         with pytest.raises(ValueError):
             pln.components = torch.zeros(dim + 1, dim_latent)
 
-        if pln.covariates is None:
+        if pln.exog is None:
             d = 0
         else:
-            d = pln.covariates.shape[-1]
+            d = pln.exog.shape[-1]
         with pytest.raises(ValueError):
             pln.coef = torch.zeros(d + 1, dim)
 

@@ -12,7 +12,7 @@ def load_oaks():
     found in each sample, which depend on the technology used for either
     bacteria (16S) or fungi (ITS1).
 
-    For each sample, 3 additional covariates (tree, dist2ground, orientation) are known.
+    For each sample, 3 additional exog (tree, dist2ground, orientation) are known.
 
     The data is provided as dictionary with the following keys
         endog          a 114 x 116 np.array of integer (endog)
@@ -32,17 +32,15 @@ def load_oaks():
     """
     endog_stream = pkg_resources.resource_stream(__name__, "data/oaks/counts.csv")
     offsets_stream = pkg_resources.resource_stream(__name__, "data/oaks/offsets.csv")
-    covariates_stream = pkg_resources.resource_stream(
-        __name__, "data/oaks/covariates.csv"
-    )
+    exog_stream = pkg_resources.resource_stream(__name__, "data/oaks/covariates.csv")
     endog = pd.read_csv(endog_stream)
     offsets = pd.read_csv(offsets_stream)
-    covariates = pd.read_csv(covariates_stream)
+    exog = pd.read_csv(exog_stream)
     oaks = {
         "endog": endog.to_numpy(),
         "offsets": offsets.to_numpy(),
-        "tree": covariates.tree.to_numpy(),
-        "dist2ground": covariates.distTOground.to_numpy(),
-        "orientation": covariates.orientation.to_numpy(),
+        "tree": exog.tree.to_numpy(),
+        "dist2ground": exog.distTOground.to_numpy(),
+        "orientation": exog.orientation.to_numpy(),
     }
     return oaks
