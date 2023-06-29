@@ -71,6 +71,10 @@ design, and support for Astropy functionality in `Gala` will enable exciting
 scientific explorations of forthcoming data releases from the *Gaia* mission
 [@gaia] by students and experts alike.
 
+# Acknowledgements
+The authors would like to thank Jean-Benoist Léger for the time spent on giving
+advices to build a proper python package and programming advices. This work was
+supported by the French ANR SingleStatOmics.
 # Mathematics
 
 Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
