@@ -26,21 +26,24 @@ bibliography: paper.bib
 ---
 
 # Summary
-The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
-Built to scale on large datasets, this package implements
-efficient algorithms extracting meaningful data from difficult to interpret
-and complex count data. Possible fields of applications include
+High dimensional count data are hard to analyse as is, and normalization must
+be performed. Standard normalization does not fit to the characteristics of
+count data. The Poisson LogNormal(PLN) models is a two-sided model that
+allows both suitable normalization and analysis of multivariate count data.
+Possible fields of applications include
 - Genomics (number of times a gene is expressed in a cell)
 - Ecology (species abundances for a given site.)
-Its main functionalities are
+The main functionalities of the `pyPLNmodels` package are
 - Normalizing count data to obtain more valuable data.
 - Analyse the significance of each variable and their correlation
 - Perform regression when covariates are available.
 - Reduce the number of variables.
+- Visualization of normalized data.
 
 # Statement of need
 
-
+`pyPLNmodels` is a python package based on Pytorch [@Pytorch] built to  analyse
+large datasets of count data.
 `Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
 enables wrapping low-level languages (e.g., C) for speed without losing
 flexibility or ease-of-use in the user-interface. The API for `Gala` was
