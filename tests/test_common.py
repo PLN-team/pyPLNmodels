@@ -6,7 +6,7 @@ import pytest
 from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
 
-from tests.import_data import true_sim_0cov, true_sim_2cov, counts_real
+from tests.import_data import true_sim_0cov, true_sim_2cov, endog_real
 
 
 @pytest.mark.parametrize("any_pln", dict_fixtures["loaded_and_fitted_pln"])
@@ -60,8 +60,8 @@ def test_find_right_covariance(simulated_fitted_any_pln):
 @filter_models(["Pln", "PlnPCA"])
 def test_right_covariance_shape(real_fitted_and_loaded_pln):
     assert real_fitted_and_loaded_pln.covariance.shape == (
-        counts_real.shape[1],
-        counts_real.shape[1],
+        endog_real.shape[1],
+        endog_real.shape[1],
     )
 
 
@@ -81,9 +81,9 @@ def test_find_right_coef(simulated_fitted_any_pln):
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["Pln", "PlnPCA"])
 def test_fail_count_setter(pln):
-    wrong_counts = torch.randint(size=(10, 5), low=0, high=10)
+    wrong_endog = torch.randint(size=(10, 5), low=0, high=10)
     with pytest.raises(Exception):
-        pln.counts = wrong_counts
+        pln.endog = wrong_endog
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])

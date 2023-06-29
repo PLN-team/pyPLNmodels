@@ -152,3 +152,5 @@ test.py
 tests/Pln*
 slides/
 index.html
+
+tests/examples/*.py
