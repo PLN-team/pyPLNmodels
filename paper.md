@@ -31,8 +31,12 @@ be performed. Standard normalization does not fit to the characteristics of
 count data. The Poisson LogNormal(PLN) models is a two-sided model that
 allows both suitable normalization and analysis of multivariate count data.
 Possible fields of applications include
-- Genomics (number of times a gene is expressed in a cell, plus développer.)
-- Ecology (species abundances for a given site., plus développer.)
+- Ecology: for $n$ sites and $p$ species, where the counts represents the number of individuals of
+  each species in each site. The goal is to understand the correlation between
+  species, to know if some species depends on/compete with/hunt others, and the effect of covariates(temperature, altitude, etc.).
+- Genomics: for $n$ cells and $p$ genes, where the counts represents the number
+  of times a gene is expressed in each cell. The goal is to infer the
+  correlation between genes, and to reduce the number of variables.
 The main functionalities of the `pyPLNmodels` package are
 - Normalizing count data to obtain more valuable data.
 - Analyse the significance of each variable and their correlation
@@ -44,8 +48,8 @@ The main functionalities of the `pyPLNmodels` package are
 While the R-package `PLNmodels` [@PLNmodels] already implements PLN models, the python package
 `pyPLNmodels` based on Pytorch [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA (single-cell Ribonucleic acid)
-data. Real-world scRNA datasets typically involves thousands of cells with
-thousand of genes, resulting in a matrix of size $\approx 20000 \times 20000$.
+data. Real-world scRNA datasets typically involves thousands of cells ($n \approx 20000$) with
+thousand of genes($n \approx 20000$), resulting in a matrix of size $\approx 20000 \times 20000$.
 
 `Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
 enables wrapping low-level languages (e.g., C) for speed without losing
