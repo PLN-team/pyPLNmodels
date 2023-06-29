@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# get_ipython().system('pip install pyPLNmodels')
+
 
 # ## pyPLNmodels
 
@@ -66,7 +68,7 @@ print(pca.model_parameters["coef"].shape)
 # ### One can save the model in order to load it back after:
 
 pca.save()
-dict_init = load_model("PlnPCA_nbcov_1_rank_5")
+dict_init = load_model("PlnPCA_nbcov_1_dim_200_rank_5")
 loaded_pca = PlnPCA(counts, add_const=True, dict_initialization=dict_init)
 print(loaded_pca)
 
