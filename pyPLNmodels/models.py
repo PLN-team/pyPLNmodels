@@ -1460,7 +1460,7 @@ class Pln(_model):
         """,
     )
     def pca_projected_latent_variables(self, n_components: Optional[int] = None):
-        super().pca_projected_latent_variables(n_components=n_components)
+        return super().pca_projected_latent_variables(n_components=n_components)
 
     @_add_doc(
         _model,
@@ -1759,7 +1759,7 @@ class PlnPCAcollection:
     >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 0 + cov", data = data, ranks = [5,8,12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
-    >>> pcas.show()
+    >>> plnpcas.show()
     See also
     --------
     :class:`~pyPLNmodels.PlnPCA`
@@ -2671,7 +2671,7 @@ class PlnPCA(_model):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
             >>> endog, labels = get_real_count_data(return_labels = True)
-            >>> plnpca = Pln(endog,add_const = True)
+            >>> plnpca = PlnPCA(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.plot_expected_vs_true()
             >>> plt.show()
@@ -2714,7 +2714,7 @@ class PlnPCA(_model):
         """,
     )
     def pca_projected_latent_variables(self, n_components: Optional[int] = None):
-        super().pca_projected_latent_variables(n_components=n_components)
+        return super().pca_projected_latent_variables(n_components=n_components)
 
     @_add_doc(
         _model,
