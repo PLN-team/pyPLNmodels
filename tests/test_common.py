@@ -98,7 +98,7 @@ def test__print_end_of_fitting_message(instance):
 
 @pytest.mark.parametrize("pln", dict_fixtures["fitted_pln"])
 @filter_models(["Pln", "PlnPCA"])
-def test_fail_wrong_covariates_prediction(pln):
+def test_fail_wrong_exog_prediction(pln):
     X = torch.randn(pln.n_samples, pln.nb_cov + 1)
     with pytest.raises(Exception):
         pln.predict(X)

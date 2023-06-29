@@ -59,7 +59,7 @@ class _model(ABC):
 
     _WINDOW: int = 15
     _endog: torch.Tensor
-    _covariates: torch.Tensor
+    _exog: torch.Tensor
     _offsets: torch.Tensor
     _coef: torch.Tensor
     _beginning_time: float
@@ -70,7 +70,7 @@ class _model(ABC):
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
@@ -84,7 +84,7 @@ class _model(ABC):
         ----------
         endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The count data.
-        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariate data. Defaults to None.
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
@@ -96,15 +96,15 @@ class _model(ABC):
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
-            Whether to add a column of one in the covariates. Defaults to True.
+            Whether to add a column of one in the exog. Defaults to True.
         """
         (
             self._endog,
-            self._covariates,
+            self._exog,
             self._offsets,
             self.column_endog,
         ) = _handle_data(
-            endog, covariates, offsets, offsets_formula, take_log_offsets, add_const
+            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
@@ -138,10 +138,10 @@ class _model(ABC):
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
         """
-        endog, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
-            covariates=covariates,
+            exog=exog,
             offsets=offsets,
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
@@ -255,22 +255,22 @@ class _model(ABC):
     @property
     def nb_cov(self) -> int:
         """
-        The number of covariates.
+        The number of exog.
 
         Returns
         -------
         int
-            The number of covariates.
+            The number of exog.
         """
-        if self.covariates is None:
+        if self.exog is None:
             return 0
-        return self.covariates.shape[1]
+        return self.exog.shape[1]
 
     def _smart_init_coef(self):
         """
         Initialize coefficients smartly.
         """
-        self._coef = _init_coef(self._endog, self._covariates, self._offsets)
+        self._coef = _init_coef(self._endog, self._exog, self._offsets)
 
     def _random_init_coef(self):
         """
@@ -836,7 +836,7 @@ class _model(ABC):
         """
         return {
             "endog": self.endog,
-            "covariates": self.covariates,
+            "exog": self.exog,
             "offsets": self.offsets,
         }
 
@@ -1015,16 +1015,16 @@ class _model(ABC):
         return self._cpu_attribute_or_none("_offsets")
 
     @property
-    def covariates(self):
+    def exog(self):
         """
-        Property representing the covariates.
+        Property representing the exog.
 
         Returns
         -------
         torch.Tensor or None
-            The covariates or None.
+            The exog or None.
         """
-        return self._cpu_attribute_or_none("_covariates")
+        return self._cpu_attribute_or_none("_exog")
 
     @endog.setter
     @_array2tensor
@@ -1072,24 +1072,24 @@ class _model(ABC):
             )
         self._offsets = offsets
 
-    @covariates.setter
+    @exog.setter
     @_array2tensor
-    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+    def exog(self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
-        Setter for the covariates property.
+        Setter for the exog property.
 
         Parameters
         ----------
-        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The covariates.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The exog.
 
         Raises
         ------
         ValueError
-            If the shape of the covariates or endog is incorrect.
+            If the shape of the exog or endog is incorrect.
         """
-        _check_data_shape(self.endog, covariates, self.offsets)
-        self._covariates = covariates
+        _check_data_shape(self.endog, exog, self.offsets)
+        self._exog = exog
 
     @coef.setter
     @_array2tensor
@@ -1180,14 +1180,14 @@ class _model(ABC):
         """
         return self.covariance
 
-    def predict(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None):
+    def predict(self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None):
         """
         Method for making predictions.
 
         Parameters
         ----------
-        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional
-            The covariates, by default None.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional
+            The exog, by default None.
 
         Returns
         -------
@@ -1197,29 +1197,29 @@ class _model(ABC):
         Raises
         ------
         AttributeError
-            If there are no covariates in the model but some are provided.
+            If there are no exog in the model but some are provided.
         RuntimeError
-            If the shape of the covariates is incorrect.
+            If the shape of the exog is incorrect.
 
         Notes
         -----
-        - If `covariates` is not provided and there are no covariates in the model, None is returned.
-            If there are covariates in the model, then the mean covariates @ coef is returned.
-        - If `covariates` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of covariates.
-        - The predicted values are obtained by multiplying the covariates by the coefficients.
+        - If `exog` is not provided and there are no exog in the model, None is returned.
+            If there are exog in the model, then the mean exog @ coef is returned.
+        - If `exog` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of exog.
+        - The predicted values are obtained by multiplying the exog by the coefficients.
         """
-        if covariates is not None and self.nb_cov == 0:
-            raise AttributeError("No covariates in the model, can't predict")
-        if covariates is None:
-            if self.covariates is None:
-                print("No covariates in the model.")
+        if exog is not None and self.nb_cov == 0:
+            raise AttributeError("No exog in the model, can't predict")
+        if exog is None:
+            if self.exog is None:
+                print("No exog in the model.")
                 return None
-            return self.covariates @ self.coef
-        if covariates.shape[-1] != self.nb_cov:
-            error_string = f"X has wrong shape ({covariates.shape}). Should"
+            return self.exog @ self.coef
+        if exog.shape[-1] != self.nb_cov:
+            error_string = f"X has wrong shape ({exog.shape}). Should"
             error_string += f" be ({self.n_samples, self.nb_cov})."
             raise RuntimeError(error_string)
-        return covariates @ self.coef
+        return exog @ self.coef
 
     @property
     def _directory_name(self):
@@ -1328,7 +1328,7 @@ class Pln(_model):
         self,
         endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
@@ -1337,7 +1337,7 @@ class Pln(_model):
     ):
         super().__init__(
             endog=endog,
-            covariates=covariates,
+            exog=exog,
             offsets=offsets,
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
@@ -1371,10 +1371,10 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
     ):
-        endog, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
-            covariates=covariates,
+            exog=exog,
             offsets=offsets,
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
@@ -1533,11 +1533,7 @@ class Pln(_model):
         torch.Tensor or None
             The coefficients or None.
         """
-        if (
-            hasattr(self, "_latent_mean")
-            and hasattr(self, "_covariates")
-            and self.nb_cov > 0
-        ):
+        if hasattr(self, "_latent_mean") and hasattr(self, "_exog") and self.nb_cov > 0:
             return self._coef.detach().cpu()
         return None
 
@@ -1617,7 +1613,7 @@ class Pln(_model):
         """
         return profiled_elbo_pln(
             self._endog,
-            self._covariates,
+            self._exog,
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
@@ -1645,7 +1641,7 @@ class Pln(_model):
         torch.Tensor
             The coefficients.
         """
-        return _closed_formula_coef(self._covariates, self._latent_mean)
+        return _closed_formula_coef(self._exog, self._latent_mean)
 
     @property
     def _covariance(self):
@@ -1658,7 +1654,7 @@ class Pln(_model):
             The covariance matrix or None.
         """
         return _closed_formula_covariance(
-            self._covariates,
+            self._exog,
             self._latent_mean,
             self._latent_sqrt_var,
             self._coef,
@@ -1717,7 +1713,7 @@ class Pln(_model):
         if all(
             hasattr(self, attr)
             for attr in [
-                "_covariates",
+                "_exog",
                 "_latent_mean",
                 "_latent_sqrt_var",
                 "_coef",
@@ -1759,7 +1755,7 @@ class PlnPCAcollection:
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
     >>> endog = sample_pln(plnparam)
-    >>> data = {"endog":endog, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> data = {"endog":endog, "cov": plnparam.exog, "offsets": plnparam.offsets}
     >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 0 + cov", data = data, ranks = [5,8,12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
@@ -1776,7 +1772,7 @@ class PlnPCAcollection:
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
+        exog: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets_formula: str = "logsum",
         ranks: Iterable[int] = range(3, 5),
@@ -1791,8 +1787,8 @@ class PlnPCAcollection:
         ----------
         endog :Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The endog.
-        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
-            The covariates, by default None.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The exog, by default None.
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets, by default None.
         offsets_formula : str, optional(keyword-only)
@@ -1804,7 +1800,7 @@ class PlnPCAcollection:
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
         add_const: bool, optional(keyword-only)
-            Whether to add a column of one in the covariates. Defaults to True.
+            Whether to add a column of one in the exog. Defaults to True.
         Returns
         -------
         PlnPCAcollection
@@ -1816,11 +1812,11 @@ class PlnPCAcollection:
         self._dict_models = {}
         (
             self._endog,
-            self._covariates,
+            self._exog,
             self._offsets,
             self.column_endog,
         ) = _handle_data(
-            endog, covariates, offsets, offsets_formula, take_log_offsets, add_const
+            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
         self._init_models(ranks, dict_of_dict_initialization)
@@ -1870,10 +1866,10 @@ class PlnPCAcollection:
         :class:`~pyPLNmodels.PlnPCA`
         :func:`~pyPLNmodels.PlnPCAcollection.__init__`
         """
-        endog, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
-            covariates=covariates,
+            exog=exog,
             offsets=offsets,
             offsets_formula=offsets_formula,
             ranks=ranks,
@@ -1883,16 +1879,16 @@ class PlnPCAcollection:
         )
 
     @property
-    def covariates(self) -> torch.Tensor:
+    def exog(self) -> torch.Tensor:
         """
-        Property representing the covariates.
+        Property representing the exog.
 
         Returns
         -------
         torch.Tensor
-            The covariates.
+            The exog.
         """
-        return self[self.ranks[0]].covariates
+        return self[self.ranks[0]].exog
 
     @property
     def endog(self) -> torch.Tensor:
@@ -1982,19 +1978,19 @@ class PlnPCAcollection:
         for model in self.values():
             model.coef = coef
 
-    @covariates.setter
+    @exog.setter
     @_array2tensor
-    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+    def exog(self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
-        Setter for the covariates property.
+        Setter for the exog property.
 
         Parameters
         ----------
-        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The covariates.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The exog.
         """
         for model in self.values():
-            model.covariates = covariates
+            model.exog = exog
 
     @property
     def offsets(self) -> torch.Tensor:
@@ -2043,7 +2039,7 @@ class PlnPCAcollection:
                     )
                     self._dict_models[rank] = PlnPCA(
                         endog=self._endog,
-                        covariates=self._covariates,
+                        exog=self._exog,
                         offsets=self._offsets,
                         rank=rank,
                         dict_initialization=dict_initialization,
@@ -2068,7 +2064,7 @@ class PlnPCAcollection:
             )
             self._dict_models[rank] = PlnPCA(
                 self._endog,
-                self._covariates,
+                self._exog,
                 self._offsets,
                 ranks,
                 dict_initialization,
@@ -2117,12 +2113,12 @@ class PlnPCAcollection:
     @property
     def nb_cov(self) -> int:
         """
-        Property representing the number of covariates.
+        Property representing the number of exog.
 
         Returns
         -------
         int
-            The number of covariates.
+            The number of exog.
         """
         return self[self.ranks[0]].nb_cov
 
@@ -2543,7 +2539,7 @@ class PlnPCA(_model):
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
     >>> endog = sample_pln(plnparam)
-    >>> data = {"endog": endog, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> data = {"endog": endog, "cov": plnparam.exog, "offsets": plnparam.offsets}
     >>> plnpca = PlnPCA.from_formula("endog ~ 0 + cov", data = data, rank = 5)
     >>> plnpca.fit()
     >>> print(plnpca)
@@ -2580,7 +2576,7 @@ class PlnPCA(_model):
         self,
         endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         rank: int = 5,
@@ -2591,7 +2587,7 @@ class PlnPCA(_model):
         self._rank = rank
         super().__init__(
             endog=endog,
-            covariates=covariates,
+            exog=exog,
             offsets=offsets,
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
@@ -2629,10 +2625,10 @@ class PlnPCA(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
-        endog, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
-            covariates=covariates,
+            exog=exog,
             offsets=offsets,
             offsets_formula=offsets_formula,
             rank=rank,
@@ -2810,8 +2806,8 @@ class PlnPCA(_model):
             * (self.latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
-        if self.covariates is not None:
-            XB = self.covariates @ self.coef
+        if self.exog is not None:
+            XB = self.exog @ self.coef
         else:
             XB = 0
         return torch.exp(
@@ -2865,30 +2861,30 @@ class PlnPCA(_model):
         return f"{super()._directory_name}_rank_{self._rank}"
 
     @property
-    def covariates(self) -> torch.Tensor:
+    def exog(self) -> torch.Tensor:
         """
-        Property representing the covariates.
+        Property representing the exog.
 
         Returns
         -------
         torch.Tensor
-            The covariates tensor.
+            The exog tensor.
         """
-        return self._cpu_attribute_or_none("_covariates")
+        return self._cpu_attribute_or_none("_exog")
 
-    @covariates.setter
+    @exog.setter
     @_array2tensor
-    def covariates(self, covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+    def exog(self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
-        Setter for the covariates.
+        Setter for the exog.
 
         Parameters
         ----------
-        covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The covariates tensor.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The exog tensor.
         """
-        _check_data_shape(self.endog, covariates, self.offsets)
-        self._covariates = covariates
+        _check_data_shape(self.endog, exog, self.offsets)
+        self._exog = exog
         print("Setting coef to initialization")
         self._smart_init_coef()
 
@@ -2943,7 +2939,7 @@ class PlnPCA(_model):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
             self._components = _init_components(
-                self._endog, self._covariates, self._coef, self._rank
+                self._endog, self._exog, self._coef, self._rank
             )
 
     def _random_init_model_parameters(self):
@@ -2970,7 +2966,7 @@ class PlnPCA(_model):
             self._latent_mean = (
                 _init_latent_mean(
                     self._endog,
-                    self._covariates,
+                    self._exog,
                     self._offsets,
                     self._coef,
                     self._components,
@@ -3008,7 +3004,7 @@ class PlnPCA(_model):
         """
         return elbo_plnpca(
             self._endog,
-            self._covariates,
+            self._exog,
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
@@ -3198,9 +3194,7 @@ class ZIPln(Pln):
     def _smart_init_model_parameters(self):
         super()._smart_init_model_parameters()
         if not hasattr(self, "_covariance"):
-            self._covariance = _init_covariance(
-                self._endog, self._covariates, self._coef
-            )
+            self._covariance = _init_covariance(self._endog, self._exog, self._coef)
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
@@ -3216,7 +3210,7 @@ class ZIPln(Pln):
     def compute_elbo(self):
         return elbo_zi_pln(
             self._endog,
-            self._covariates,
+            self._exog,
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
@@ -3232,9 +3226,9 @@ class ZIPln(Pln):
         return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
 
     def _update_closed_forms(self):
-        self._coef = _closed_formula_coef(self._covariates, self._latent_mean)
+        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
         self._covariance = _closed_formula_covariance(
-            self._covariates,
+            self._exog,
             self._latent_mean,
             self._latent_sqrt_var,
             self._coef,
@@ -3245,7 +3239,7 @@ class ZIPln(Pln):
             self._latent_mean,
             self._latent_sqrt_var,
             self._dirac,
-            self._covariates,
+            self._exog,
             self._coef_inflation,
         )
 

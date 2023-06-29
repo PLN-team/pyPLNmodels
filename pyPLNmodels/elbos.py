@@ -8,7 +8,7 @@ from typing import Optional
 def elbo_pln(
     endog: torch.Tensor,
     offsets: torch.Tensor,
-    covariates: Optional[torch.Tensor],
+    exog: Optional[torch.Tensor],
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
     covariance: torch.Tensor,
@@ -23,7 +23,7 @@ def elbo_pln(
         Counts with size (n, p).
     offsets : torch.Tensor
         Offset with size (n, p).
-    covariates : torch.Tensor, optional
+    exog : torch.Tensor, optional
         Covariates with size (n, d).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
@@ -42,10 +42,10 @@ def elbo_pln(
     n_samples, dim = endog.shape
     s_rond_s = torch.square(latent_sqrt_var)
     offsets_plus_m = offsets + latent_mean
-    if covariates is None:
+    if exog is None:
         XB = torch.zeros_like(endog)
     else:
-        XB = covariates @ coef
+        XB = exog @ coef
     m_minus_xb = latent_mean - XB
     d_plus_minus_xb2 = (
         torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
@@ -64,7 +64,7 @@ def elbo_pln(
 
 def profiled_elbo_pln(
     endog: torch.Tensor,
-    covariates: torch.Tensor,
+    exog: torch.Tensor,
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
@@ -78,7 +78,7 @@ def profiled_elbo_pln(
     ----------
     endog : torch.Tensor
         Counts with size (n, p).
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates with size (n, d).
     offsets : torch.Tensor
         Offset with size (n, p).
@@ -95,9 +95,9 @@ def profiled_elbo_pln(
     n_samples, _ = endog.shape
     s_squared = torch.square(latent_sqrt_var)
     offsets_plus_mean = offsets + latent_mean
-    closed_coef = _closed_formula_coef(covariates, latent_mean)
+    closed_coef = _closed_formula_coef(exog, latent_mean)
     closed_covariance = _closed_formula_covariance(
-        covariates, latent_mean, latent_sqrt_var, closed_coef, n_samples
+        exog, latent_mean, latent_sqrt_var, closed_coef, n_samples
     )
     elbo = -0.5 * n_samples * torch.logdet(closed_covariance)
     elbo += torch.sum(
@@ -111,7 +111,7 @@ def profiled_elbo_pln(
 
 def elbo_plnpca(
     endog: torch.Tensor,
-    covariates: torch.Tensor,
+    exog: torch.Tensor,
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
@@ -126,7 +126,7 @@ def elbo_plnpca(
     ----------
     endog : torch.Tensor
         Counts with size (n, p).
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates with size (n, d).
     offsets : torch.Tensor
         Offset with size (n, p).
@@ -147,10 +147,10 @@ def elbo_plnpca(
     """
     n_samples = endog.shape[0]
     rank = components.shape[1]
-    if covariates is None:
+    if exog is None:
         XB = 0
     else:
-        XB = covariates @ coef
+        XB = exog @ coef
     log_intensity = offsets + XB + latent_mean @ components.T
     s_squared = torch.square(latent_sqrt_var)
     endog_log_intensity = torch.sum(endog * log_intensity)
@@ -175,7 +175,7 @@ def elbo_plnpca(
 ## should rename some variables so that is is clearer when we see the formula
 def elbo_zi_pln(
     endog,
-    covariates,
+    exog,
     offsets,
     latent_mean,
     latent_sqrt_var,
@@ -191,7 +191,7 @@ def elbo_zi_pln(
     Args:
         endog: torch.tensor. Counts with size (n,p)
         0: torch.tensor. Offset, size (n,p)
-        covariates: torch.tensor. Covariates, size (n,d)
+        exog: torch.tensor. Covariates, size (n,d)
         latent_mean: torch.tensor. Variational parameter with size (n,p)
         latent_sqrt_var: torch.tensor. Variational parameter with size (n,p)
         pi: torch.tensor. Variational parameter with size (n,p)
@@ -208,8 +208,8 @@ def elbo_zi_pln(
     dim = endog.shape[1]
     s_rond_s = torch.square(latent_sqrt_var)
     offsets_plus_m = offsets + latent_mean
-    m_minus_xb = latent_mean - covariates @ coef
-    x_coef_inflation = covariates @ _coef_inflation
+    m_minus_xb = latent_mean - exog @ coef
+    x_coef_inflation = exog @ _coef_inflation
     elbo = torch.sum(
         (1 - pi)
         * (

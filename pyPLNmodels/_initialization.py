@@ -10,7 +10,7 @@ else:
 
 
 def _init_covariance(
-    endog: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor
+    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor
 ) -> torch.Tensor:
     """
     Initialization for the covariance for the Pln model. Take the log of endog
@@ -23,7 +23,7 @@ def _init_covariance(
         Samples with size (n,p)
     offsets : torch.Tensor
         Offset, size (n,p)
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates, size (n,d)
     coef : torch.Tensor
         Coefficient of size (d,p)
@@ -41,7 +41,7 @@ def _init_covariance(
 
 
 def _init_components(
-    endog: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor, rank: int
+    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor, rank: int
 ) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
@@ -53,7 +53,7 @@ def _init_components(
         Samples with size (n,p)
     offsets : torch.Tensor
         Offset, size (n,p)
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates, size (n,d)
     coef : torch.Tensor
         Coefficient of size (d,p)
@@ -65,14 +65,14 @@ def _init_components(
     torch.Tensor
         Initialization of components of size (p,rank)
     """
-    sigma_hat = _init_covariance(endog, covariates, coef).detach()
+    sigma_hat = _init_covariance(endog, exog, coef).detach()
     components = _components_from_covariance(sigma_hat, rank)
     return components
 
 
 def _init_latent_mean(
     endog: torch.Tensor,
-    covariates: torch.Tensor,
+    exog: torch.Tensor,
     offsets: torch.Tensor,
     coef: torch.Tensor,
     components: torch.Tensor,
@@ -90,7 +90,7 @@ def _init_latent_mean(
         Samples with size (n,p)
     offsets : torch.Tensor
         Offset, size (n,p)
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates, size (n,d)
     coef : torch.Tensor
         Coefficient of size (d,p)
@@ -117,7 +117,7 @@ def _init_latent_mean(
     keep_condition = True
     i = 0
     while i < n_iter_max and keep_condition:
-        batch_loss = log_posterior(endog, covariates, offsets, mode, components, coef)
+        batch_loss = log_posterior(endog, exog, offsets, mode, components, coef)
         loss = -torch.mean(batch_loss)
         loss.backward()
         optimizer.step()
@@ -155,7 +155,7 @@ def _components_from_covariance(covariance: torch.Tensor, rank: int) -> torch.Te
 
 
 def _init_coef(
-    endog: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
+    endog: torch.Tensor, exog: torch.Tensor, offsets: torch.Tensor
 ) -> torch.Tensor:
     """
     Initialize the coefficient for the Pln model using Poisson regression model.
@@ -164,7 +164,7 @@ def _init_coef(
     ----------
     endog : torch.Tensor
         Samples with size (n, p)
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates, size (n, d)
     offsets : torch.Tensor
         Offset, size (n, p)
@@ -172,19 +172,19 @@ def _init_coef(
     Returns
     -------
     torch.Tensor or None
-        Coefficient of size (d, p) or None if covariates is None.
+        Coefficient of size (d, p) or None if exog is None.
     """
-    if covariates is None:
+    if exog is None:
         return None
 
     poiss_reg = _PoissonReg()
-    poiss_reg.fit(endog, covariates, offsets)
+    poiss_reg.fit(endog, exog, offsets)
     return poiss_reg.beta
 
 
 def log_posterior(
     endog: torch.Tensor,
-    covariates: torch.Tensor,
+    exog: torch.Tensor,
     offsets: torch.Tensor,
     posterior_mean: torch.Tensor,
     components: torch.Tensor,
@@ -197,7 +197,7 @@ def log_posterior(
     ----------
     endog : torch.Tensor
         Samples with size (batch_size, p)
-    covariates : torch.Tensor or None
+    exog : torch.Tensor or None
         Covariates, size (batch_size, d) or (d)
     offsets : torch.Tensor
         Offset, size (batch_size, p)
@@ -218,10 +218,10 @@ def log_posterior(
         components.unsqueeze(0), posterior_mean.unsqueeze(2)
     ).squeeze()
 
-    if covariates is None:
+    if exog is None:
         XB = 0
     else:
-        XB = torch.matmul(covariates, coef)
+        XB = torch.matmul(exog, coef)
 
     log_lambda = offsets + components_posterior_mean + XB
     first_term = (
@@ -245,7 +245,7 @@ class _PoissonReg:
 
     Methods
     -------
-    fit(Y, covariates, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False)
+    fit(Y, exog, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False)
         Fit the Poisson regression model to the given data.
 
     """
@@ -256,7 +256,7 @@ class _PoissonReg:
     def fit(
         self,
         Y: torch.Tensor,
-        covariates: torch.Tensor,
+        exog: torch.Tensor,
         offsets: torch.Tensor,
         Niter_max: int = 300,
         tol: float = 0.001,
@@ -270,8 +270,8 @@ class _PoissonReg:
         ----------
         Y : torch.Tensor
             The dependent variable of shape (n_samples, n_features).
-        covariates : torch.Tensor
-            The covariates of shape (n_samples, n_covariates).
+        exog : torch.Tensor
+            The exog of shape (n_samples, n_exog).
         offsets : torch.Tensor
             The offset term of shape (n_samples, n_features).
         Niter_max : int, optional
@@ -285,13 +285,13 @@ class _PoissonReg:
 
         """
         beta = torch.rand(
-            (covariates.shape[1], Y.shape[1]), device=DEVICE, requires_grad=True
+            (exog.shape[1], Y.shape[1]), device=DEVICE, requires_grad=True
         )
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         grad_norm = 2 * tol  # Criterion
         while i < Niter_max and grad_norm > tol:
-            loss = -compute_poissreg_log_like(Y, offsets, covariates, beta)
+            loss = -compute_poissreg_log_like(Y, offsets, exog, beta)
             loss.backward()
             optimizer.step()
             grad_norm = torch.norm(beta.grad)
@@ -309,7 +309,7 @@ class _PoissonReg:
 
 
 def compute_poissreg_log_like(
-    Y: torch.Tensor, O: torch.Tensor, covariates: torch.Tensor, beta: torch.Tensor
+    Y: torch.Tensor, O: torch.Tensor, exog: torch.Tensor, beta: torch.Tensor
 ) -> torch.Tensor:
     """
     Compute the log likelihood of a Poisson regression model.
@@ -320,10 +320,10 @@ def compute_poissreg_log_like(
         The dependent variable of shape (n_samples, n_features).
     O : torch.Tensor
         The offset term of shape (n_samples, n_features).
-    covariates : torch.Tensor
-        The covariates of shape (n_samples, n_covariates).
+    exog : torch.Tensor
+        The exog of shape (n_samples, n_exog).
     beta : torch.Tensor
-        The regression coefficients of shape (n_covariates, n_features).
+        The regression coefficients of shape (n_exog, n_features).
 
     Returns
     -------
@@ -331,5 +331,5 @@ def compute_poissreg_log_like(
         The log likelihood of the Poisson regression model.
 
     """
-    XB = torch.matmul(covariates.unsqueeze(1), beta.unsqueeze(0)).squeeze()
+    XB = torch.matmul(exog.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     return torch.sum(-torch.exp(O + XB) + torch.multiply(Y, O + XB))

@@ -26,11 +26,11 @@ from tests.import_data import (
 
 
 endog_sim_0cov = data_sim_0cov["endog"]
-covariates_sim_0cov = data_sim_0cov["covariates"]
+exog_sim_0cov = data_sim_0cov["exog"]
 offsets_sim_0cov = data_sim_0cov["offsets"]
 
 endog_sim_2cov = data_sim_2cov["endog"]
-covariates_sim_2cov = data_sim_2cov["covariates"]
+exog_sim_2cov = data_sim_2cov["exog"]
 offsets_sim_2cov = data_sim_2cov["offsets"]
 
 endog_real = data_real["endog"]
@@ -120,7 +120,7 @@ def simulated_pln_0cov_array(request):
     cls = request.param
     pln = cls(
         endog_sim_0cov,
-        covariates=covariates_sim_0cov,
+        exog=exog_sim_0cov,
         offsets=offsets_sim_0cov,
         add_const=False,
     )
@@ -133,7 +133,7 @@ def simulated_fitted_pln_0cov_array(request):
     cls = request.param
     pln = cls(
         endog_sim_0cov,
-        covariates=covariates_sim_0cov,
+        exog=exog_sim_0cov,
         offsets=offsets_sim_0cov,
         add_const=False,
     )
@@ -173,7 +173,7 @@ def simulated_loaded_pln_0cov_array(simulated_fitted_pln_0cov_array):
     return generate_new_model(
         simulated_fitted_pln_0cov_array,
         endog_sim_0cov,
-        covariates=covariates_sim_0cov,
+        exog=exog_sim_0cov,
         offsets=offsets_sim_0cov,
         add_const=False,
     )
@@ -218,7 +218,7 @@ def simulated_pln_2cov_array(request):
     cls = request.param
     pln_full = cls(
         endog_sim_2cov,
-        covariates=covariates_sim_2cov,
+        exog=exog_sim_2cov,
         offsets=offsets_sim_2cov,
         add_const=False,
     )
@@ -235,7 +235,7 @@ def simulated_fitted_pln_2cov_array(simulated_pln_2cov_array):
 @cache
 def simulated_pln_2cov_formula(request):
     cls = request.param
-    pln_full = cls("endog ~ 0 + covariates", data_sim_2cov)
+    pln_full = cls("endog ~ 0 + exog", data_sim_2cov)
     return pln_full
 
 
@@ -250,7 +250,7 @@ def simulated_loaded_pln_2cov_formula(simulated_fitted_pln_2cov_formula):
     simulated_fitted_pln_2cov_formula.save()
     return generate_new_model(
         simulated_fitted_pln_2cov_formula,
-        "endog ~0 + covariates",
+        "endog ~0 + exog",
         data_sim_2cov,
     )
 
@@ -261,7 +261,7 @@ def simulated_loaded_pln_2cov_array(simulated_fitted_pln_2cov_array):
     return generate_new_model(
         simulated_fitted_pln_2cov_array,
         endog_sim_2cov,
-        covariates=covariates_sim_2cov,
+        exog=exog_sim_2cov,
         offsets=offsets_sim_2cov,
         add_const=False,
     )
