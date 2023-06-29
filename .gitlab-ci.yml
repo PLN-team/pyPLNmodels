@@ -21,7 +21,7 @@ tests:
   script:
     - pip install .
     - cd tests
-    - python create_readme_and_docstrings_test.py
+    - python create_readme_and_docstrings_tests.py
     - pytest .
 
 
