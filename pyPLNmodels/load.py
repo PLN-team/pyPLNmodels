@@ -39,7 +39,12 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
     :func:`~pyPLNmodels.load_plnpcacollection`
     """
     working_dir = os.getcwd()
-    os.chdir(path_of_directory)
+    try:
+        os.chdir(path_of_directory)
+    except FileNotFoundError as err:
+        raise err(
+            "The model has not been saved. Please be sure you have the right name of model."
+        )
     all_files = os.listdir()
     data = {}
     for filename in all_files:
