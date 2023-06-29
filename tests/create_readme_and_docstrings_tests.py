@@ -30,8 +30,7 @@ def get_examples_docstring(lines):
     return examples
 
 
-def get_examples_readme(lines):
-    examples = []
+def get_example_readme(lines):
     example = []
     in_example = False
     for line in lines:
@@ -42,12 +41,10 @@ def get_examples_readme(lines):
                     in_example = True
                 else:
                     in_example = False
-                    examples.append(example)
-                    example = []
             elif in_example is True:
                 example.append(line)
-    examples.pop(0)  # The first is pip install pyPLNmodels which is not python code.
-    return examples
+    example.pop(0)  # The first is pip install pyPLNmodels which is not python code.
+    return [example]
 
 
 def write_examples(examples, filename):
@@ -72,7 +69,7 @@ def filename_to_docstring_example_file(filename, dirname):
 
 def filename_to_readme_example_file():
     lines = get_lines("../", "README", filetype=".md")
-    examples = get_examples_readme(lines)
+    examples = get_example_readme(lines)
     write_examples(examples, "readme")
 
 
