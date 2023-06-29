@@ -30,6 +30,26 @@ def get_examples_docstring(lines):
     return examples
 
 
+def get_examples_readme(lines):
+    examples = []
+    example = []
+    in_example = False
+    for line in lines:
+        line = line.lstrip()
+        if len(line) > 2:
+            if line[0:3] == "```":
+                if in_example is False:
+                    in_example = True
+                else:
+                    in_example = False
+                    examples.append(example)
+                    example = []
+            elif in_example is True:
+                example.append(line)
+    examples.pop(0)  # The first is pip install pyPLNmodels which is not python code.
+    return examples
+
+
 def write_examples(examples, filename):
     for i in range(len(examples)):
         example = examples[i]
@@ -56,8 +76,8 @@ def filename_to_readme_example_file():
     write_examples(examples, "readme")
 
 
-# os.makedirs(dir_readme, exist_ok=True)
-# filename_to_readme_example_file(dir_readme)
+os.makedirs(dir_readme, exist_ok=True)
+filename_to_readme_example_file()
 
 os.makedirs("docstrings_examples", exist_ok=True)
 filename_to_docstring_example_file("_utils", dir_docstrings)
