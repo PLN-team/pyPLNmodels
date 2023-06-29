@@ -58,7 +58,7 @@ class _model(ABC):
     """
 
     _WINDOW: int = 15
-    _counts: torch.Tensor
+    _endog: torch.Tensor
     _covariates: torch.Tensor
     _offsets: torch.Tensor
     _coef: torch.Tensor
@@ -68,7 +68,7 @@ class _model(ABC):
 
     def __init__(
         self,
-        counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
         covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
@@ -82,7 +82,7 @@ class _model(ABC):
 
         Parameters
         ----------
-        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The count data.
         covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariate data. Defaults to None.
@@ -99,12 +99,12 @@ class _model(ABC):
             Whether to add a column of one in the covariates. Defaults to True.
         """
         (
-            self._counts,
+            self._endog,
             self._covariates,
             self._offsets,
-            self.column_counts,
+            self.column_endog,
         ) = _handle_data(
-            counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+            endog, covariates, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
         self._plotargs = _PlotArgs(self._WINDOW)
@@ -138,9 +138,9 @@ class _model(ABC):
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
         """
-        counts, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
-            counts,
+            endog,
             covariates=covariates,
             offsets=offsets,
             offsets_formula=offsets_formula,
@@ -231,26 +231,26 @@ class _model(ABC):
     @property
     def n_samples(self) -> int:
         """
-        The number of samples, i.e. the first dimension of the counts.
+        The number of samples, i.e. the first dimension of the endog.
 
         Returns
         -------
         int
             The number of samples.
         """
-        return self._counts.shape[0]
+        return self._endog.shape[0]
 
     @property
     def dim(self) -> int:
         """
-        The second dimension of the counts.
+        The second dimension of the endog.
 
         Returns
         -------
         int
-            The second dimension of the counts.
+            The second dimension of the endog.
         """
-        return self._counts.shape[1]
+        return self._endog.shape[1]
 
     @property
     def nb_cov(self) -> int:
@@ -270,7 +270,7 @@ class _model(ABC):
         """
         Initialize coefficients smartly.
         """
-        self._coef = _init_coef(self._counts, self._covariates, self._offsets)
+        self._coef = _init_coef(self._endog, self._covariates, self._offsets)
 
     def _random_init_coef(self):
         """
@@ -403,7 +403,7 @@ class _model(ABC):
 
     def transform(self):
         """
-        Method for transforming the counts. Can be seen as a normalization of the counts.
+        Method for transforming the endog. Can be seen as a normalization of the endog.
         """
         return self.latent_variables
 
@@ -488,7 +488,7 @@ class _model(ABC):
                 Defaults to None.
 
             color (str, np.ndarray): An array with one label for each
-                sample in the counts property of the object.
+                sample in the endog property of the object.
                 Defaults to None.
         Raises
         ------
@@ -530,12 +530,12 @@ class _model(ABC):
                 A list of variable names to visualize.
             indices_of_variables : Optional[List[int]], optional
                 A list of indices corresponding to the variables.
-                If None, indices are determined based on `column_counts`, by default None
+                If None, indices are determined based on `column_endog`, by default None
 
         Raises
         ------
             ValueError
-                If `indices_of_variables` is None and `column_counts` is not set.
+                If `indices_of_variables` is None and `column_endog` is not set.
             ValueError
                 If the length of `indices_of_variables` is different from the length of `variables_names`.
 
@@ -544,16 +544,16 @@ class _model(ABC):
             None
         """
         if indices_of_variables is None:
-            if self.column_counts is None:
+            if self.column_endog is None:
                 raise ValueError(
                     "No names have been given to the column of "
-                    "counts. Please set the column_counts to the"
+                    "endog. Please set the column_endog to the"
                     "needed names or instantiate a new model with"
                     "a pd.DataFrame with appropriate column names"
                 )
             indices_of_variables = []
             for variables_name in variables_names:
-                index = self.column_counts.get_loc(variables_name)
+                index = self.column_endog.get_loc(variables_name)
                 indices_of_variables.append(index)
         else:
             if len(indices_of_variables) != len(variables_names):
@@ -835,7 +835,7 @@ class _model(ABC):
             The dictionary of data.
         """
         return {
-            "counts": self.counts,
+            "endog": self.endog,
             "covariates": self.covariates,
             "offsets": self.offsets,
         }
@@ -991,16 +991,16 @@ class _model(ABC):
                 )
 
     @property
-    def counts(self):
+    def endog(self):
         """
-        Property representing the counts.
+        Property representing the endog.
 
         Returns
         -------
         torch.Tensor or None
-            The counts or None.
+            The endog or None.
         """
-        return self._cpu_attribute_or_none("_counts")
+        return self._cpu_attribute_or_none("_endog")
 
     @property
     def offsets(self):
@@ -1026,29 +1026,29 @@ class _model(ABC):
         """
         return self._cpu_attribute_or_none("_covariates")
 
-    @counts.setter
+    @endog.setter
     @_array2tensor
-    def counts(self, counts: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+    def endog(self, endog: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
-        Setter for the counts property.
+        Setter for the endog property.
 
         Parameters
         ----------
-        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The counts.
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The endog.
 
         Raises
         ------
         ValueError
-            If the shape of the counts is incorrect or if the input is negative.
+            If the shape of the endog is incorrect or if the input is negative.
         """
-        if self.counts.shape != counts.shape:
+        if self.endog.shape != endog.shape:
             raise ValueError(
-                f"Wrong shape for the counts. Expected {self.counts.shape}, got {counts.shape}"
+                f"Wrong shape for the endog. Expected {self.endog.shape}, got {endog.shape}"
             )
-        if torch.min(counts) < 0:
+        if torch.min(endog) < 0:
             raise ValueError("Input should be non-negative only.")
-        self._counts = counts
+        self._endog = endog
 
     @offsets.setter
     @_array2tensor
@@ -1086,9 +1086,9 @@ class _model(ABC):
         Raises
         ------
         ValueError
-            If the shape of the covariates or counts is incorrect.
+            If the shape of the covariates or endog is incorrect.
         """
-        _check_data_shape(self.counts, covariates, self.offsets)
+        _check_data_shape(self.endog, covariates, self.offsets)
         self._covariates = covariates
 
     @coef.setter
@@ -1247,7 +1247,7 @@ class _model(ABC):
 
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
-        Plot the predicted value of the counts against the counts.
+        Plot the predicted value of the endog against the endog.
 
         Parameters
         ----------
@@ -1267,11 +1267,11 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
-        predictions = self._counts_predictions().ravel().detach()
+        predictions = self._endog_predictions().ravel().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
-        sns.scatterplot(x=self.counts.ravel(), y=predictions, hue=colors, ax=ax)
-        max_y = int(torch.max(self.counts.ravel()).item())
+        sns.scatterplot(x=self.endog.ravel(), y=predictions, hue=colors, ax=ax)
+        max_y = int(torch.max(self.endog.ravel()).item())
         y = np.linspace(0, max_y, max_y)
         ax.plot(y, y, c="red")
         ax.set_yscale("log")
@@ -1290,17 +1290,17 @@ class Pln(_model):
     Examples
     --------
     >>> from pyPLNmodels import Pln, get_real_count_data
-    >>> counts, labels = get_real_count_data(return_labels = True)
-    >>> pln = Pln(counts,add_const = True)
+    >>> endog, labels = get_real_count_data(return_labels = True)
+    >>> pln = Pln(endog,add_const = True)
     >>> pln.fit()
     >>> print(pln)
     >>> pln.viz(colors = labels)
 
     >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
     >>> param = get_simulation_parameters()
-    >>> counts = sample_pln(param)
-    >>> data = {"counts": counts}
-    >>> pln = Pln.from_formula("counts ~ 1", data)
+    >>> endog = sample_pln(param)
+    >>> data = {"endog": endog}
+    >>> pln = Pln.from_formula("endog ~ 1", data)
     >>> pln.fit()
     >>> print(pln)
     """
@@ -1312,8 +1312,8 @@ class Pln(_model):
         _model,
         example="""
             >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts= get_real_count_data()
-            >>> pln = Pln(counts, add_const = True)
+            >>> endog= get_real_count_data()
+            >>> pln = Pln(endog, add_const = True)
             >>> pln.fit()
             >>> print(pln)
         """,
@@ -1326,7 +1326,7 @@ class Pln(_model):
     )
     def __init__(
         self,
-        counts: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
@@ -1336,7 +1336,7 @@ class Pln(_model):
         add_const: bool = True,
     ):
         super().__init__(
-            counts=counts,
+            endog=endog,
             covariates=covariates,
             offsets=offsets,
             offsets_formula=offsets_formula,
@@ -1350,9 +1350,9 @@ class Pln(_model):
         _model,
         example="""
             >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pln = Pln.from_formula("counts ~ 1", data = data)
+            >>> endog = get_real_count_data()
+            >>> data = {"endog": endog}
+            >>> pln = Pln.from_formula("endog ~ 1", data = data)
         """,
         returns="""
             Pln
@@ -1371,9 +1371,9 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
     ):
-        counts, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
-            counts,
+            endog,
             covariates=covariates,
             offsets=offsets,
             offsets_formula=offsets_formula,
@@ -1386,8 +1386,8 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> pln = Pln(counts,add_const = True)
+        >>> endog = get_real_count_data()
+        >>> pln = Pln(endog,add_const = True)
         >>> pln.fit()
         >>> print(pln)
         """,
@@ -1416,8 +1416,8 @@ class Pln(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts, labels = get_real_count_data(return_labels = True)
-            >>> pln = Pln(counts,add_const = True)
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(endog,add_const = True)
             >>> pln.fit()
             >>> pln.plot_expected_vs_true()
             >>> plt.show()
@@ -1433,8 +1433,8 @@ class Pln(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> counts, labels = get_real_count_data(return_labels = True)
-            >>> pln = Pln(counts,add_const = True)
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(endog,add_const = True)
             >>> pln.fit()
             >>> pln.viz()
             >>> plt.show()
@@ -1451,9 +1451,9 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pca_proj = pln.pca_projected_latent_variables()
         >>> print(pca_proj.shape)
@@ -1466,9 +1466,9 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.scatter_pca_matrix(n_components = 5)
         """,
@@ -1480,9 +1480,9 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> pln = Pln.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
         """,
@@ -1496,16 +1496,16 @@ class Pln(_model):
         _model,
         returns="""
         torch.Tensor
-            The transformed counts (latent variables of the model).
+            The transformed endog (latent variables of the model).
         """,
         example="""
               >>> from pyPLNmodels import Pln, get_real_count_data
-              >>> counts = get_real_count_data()
-              >>> data = {"counts": counts}
-              >>> pln = Pln.from_formula("counts ~ 1", data = data)
+              >>> endog = get_real_count_data()
+              >>> data = {"endog": endog}
+              >>> pln = Pln.from_formula("endog ~ 1", data = data)
               >>> pln.fit()
-              >>> transformed_counts = pln.transform()
-              >>> print(transformed_counts.shape)
+              >>> transformed_endog = pln.transform()
+              >>> print(transformed_endog.shape)
               """,
     )
     def transform(self):
@@ -1552,7 +1552,7 @@ class Pln(_model):
             The regression coefficients of the gaussian latent variables.
         """
 
-    def _counts_predictions(self):
+    def _endog_predictions(self):
         return torch.exp(
             self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
         )
@@ -1608,15 +1608,15 @@ class Pln(_model):
         Examples
         --------
         >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> counts, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(counts,add_const = True)
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(endog,add_const = True)
         >>> pln.fit()
         >>> elbo = pln.compute_elbo()
         >>> print("elbo", elbo)
         >>> print("loglike/n", pln.loglike/pln.n_samples)
         """
         return profiled_elbo_pln(
-            self._counts,
+            self._endog,
             self._covariates,
             self._offsets,
             self._latent_mean,
@@ -1683,8 +1683,8 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> counts, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(counts,add_const = True)
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(endog,add_const = True)
         >>> pln.fit()
         >>> print(pln.latent_variables.shape)
         """,
@@ -1748,9 +1748,9 @@ class PlnPCAcollection:
     Examples
     --------
     >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, get_simulation_parameters, sample_pln
-    >>> counts, labels = get_real_count_data(return_labels = True)
-    >>> data = {"counts": counts}
-    >>> plnpcas = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,8, 12])
+    >>> endog, labels = get_real_count_data(return_labels = True)
+    >>> data = {"endog": endog}
+    >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,8, 12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
     >>> plnpcas.show()
@@ -1758,9 +1758,9 @@ class PlnPCAcollection:
     >>> print(plnpcas[5])
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
-    >>> counts = sample_pln(plnparam)
-    >>> data = {"counts":counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
-    >>> plnpcas = PlnPCAcollection.from_formula("counts ~ 0 + cov", data = data, ranks = [5,8,12])
+    >>> endog = sample_pln(plnparam)
+    >>> data = {"endog":endog, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 0 + cov", data = data, ranks = [5,8,12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
     >>> pcas.show()
@@ -1774,7 +1774,7 @@ class PlnPCAcollection:
 
     def __init__(
         self,
-        counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
         covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
@@ -1789,8 +1789,8 @@ class PlnPCAcollection:
 
         Parameters
         ----------
-        counts :Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The counts.
+        endog :Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The endog.
         covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariates, by default None.
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
@@ -1815,12 +1815,12 @@ class PlnPCAcollection:
         """
         self._dict_models = {}
         (
-            self._counts,
+            self._endog,
             self._covariates,
             self._offsets,
-            self.column_counts,
+            self.column_endog,
         ) = _handle_data(
-            counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+            endog, covariates, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
         self._init_models(ranks, dict_of_dict_initialization)
@@ -1862,17 +1862,17 @@ class PlnPCAcollection:
         Examples
         --------
         >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> pca_col = PlnPCAcollection.from_formula("counts ~ 1", data = data, ranks = [5,6])
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> pca_col = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,6])
         See also
         --------
         :class:`~pyPLNmodels.PlnPCA`
         :func:`~pyPLNmodels.PlnPCAcollection.__init__`
         """
-        counts, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
-            counts,
+            endog,
             covariates=covariates,
             offsets=offsets,
             offsets_formula=offsets_formula,
@@ -1895,16 +1895,16 @@ class PlnPCAcollection:
         return self[self.ranks[0]].covariates
 
     @property
-    def counts(self) -> torch.Tensor:
+    def endog(self) -> torch.Tensor:
         """
-        Property representing the counts.
+        Property representing the endog.
 
         Returns
         -------
         torch.Tensor
-            The counts.
+            The endog.
         """
-        return self[self.ranks[0]].counts
+        return self[self.ranks[0]].endog
 
     @property
     def coef(self) -> Dict[int, torch.Tensor]:
@@ -1954,19 +1954,19 @@ class PlnPCAcollection:
         """
         return {model.rank: model.latent_sqrt_var for model in self.values()}
 
-    @counts.setter
+    @endog.setter
     @_array2tensor
-    def counts(self, counts: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+    def endog(self, endog: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
-        Setter for the counts property.
+        Setter for the endog property.
 
         Parameters
         ----------
-        counts : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The counts.
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The endog.
         """
         for model in self.values():
-            model.counts = counts
+            model.endog = endog
 
     @coef.setter
     @_array2tensor
@@ -2042,7 +2042,7 @@ class PlnPCAcollection:
                         rank, dict_of_dict_initialization
                     )
                     self._dict_models[rank] = PlnPCA(
-                        counts=self._counts,
+                        endog=self._endog,
                         covariates=self._covariates,
                         offsets=self._offsets,
                         rank=rank,
@@ -2067,7 +2067,7 @@ class PlnPCAcollection:
                 ranks, dict_of_dict_initialization
             )
             self._dict_models[rank] = PlnPCA(
-                self._counts,
+                self._endog,
                 self._covariates,
                 self._offsets,
                 ranks,
@@ -2534,17 +2534,17 @@ class PlnPCA(_model):
     Examples
     --------
     >>> from pyPLNmodels import PlnPCA, get_real_count_data, get_simulation_parameters, sample_pln
-    >>> counts, labels = get_real_count_data(return_labels = True)
-    >>> data = {"counts": counts}
-    >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
+    >>> endog, labels = get_real_count_data(return_labels = True)
+    >>> data = {"endog": endog}
+    >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
     >>> pca.fit()
     >>> print(pca)
     >>> pca.viz(colors = labels)
 
     >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
-    >>> counts = sample_pln(plnparam)
-    >>> data = {"counts": counts, "cov": plnparam.covariates, "offsets": plnparam.offsets}
-    >>> plnpca = PlnPCA.from_formula("counts ~ 0 + cov", data = data, rank = 5)
+    >>> endog = sample_pln(plnparam)
+    >>> data = {"endog": endog, "cov": plnparam.covariates, "offsets": plnparam.offsets}
+    >>> plnpca = PlnPCA.from_formula("endog ~ 0 + cov", data = data, rank = 5)
     >>> plnpca.fit()
     >>> print(plnpca)
 
@@ -2564,8 +2564,8 @@ class PlnPCA(_model):
             """,
         example="""
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts= get_real_count_data()
-            >>> pca = PlnPCA(counts, add_const = True)
+            >>> endog= get_real_count_data()
+            >>> pca = PlnPCA(endog, add_const = True)
             >>> pca.fit()
             >>> print(pca)
         """,
@@ -2578,7 +2578,7 @@ class PlnPCA(_model):
     )
     def __init__(
         self,
-        counts: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         covariates: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
@@ -2590,7 +2590,7 @@ class PlnPCA(_model):
     ):
         self._rank = rank
         super().__init__(
-            counts=counts,
+            endog=endog,
             covariates=covariates,
             offsets=offsets,
             offsets_formula=offsets_formula,
@@ -2608,9 +2608,9 @@ class PlnPCA(_model):
             """,
         example="""
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts = get_real_count_data()
-            >>> data = {"counts": counts}
-            >>> pca = PlnPCA.from_formula("counts ~ 1", data = data, rank = 5)
+            >>> endog = get_real_count_data()
+            >>> data = {"endog": endog}
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
         """,
         returns="""
             PlnPCA
@@ -2629,9 +2629,9 @@ class PlnPCA(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
-        counts, covariates, offsets = _extract_data_from_formula(formula, data)
+        endog, covariates, offsets = _extract_data_from_formula(formula, data)
         return cls(
-            counts,
+            endog,
             covariates=covariates,
             offsets=offsets,
             offsets_formula=offsets_formula,
@@ -2644,8 +2644,8 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> plnpca = PlnPCA(counts,add_const = True, rank = 6)
+        >>> endog = get_real_count_data()
+        >>> plnpca = PlnPCA(endog,add_const = True, rank = 6)
         >>> plnpca.fit()
         >>> print(plnpca)
         """,
@@ -2674,8 +2674,8 @@ class PlnPCA(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts, labels = get_real_count_data(return_labels = True)
-            >>> plnpca = Pln(counts,add_const = True)
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> plnpca = Pln(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.plot_expected_vs_true()
             >>> plt.show()
@@ -2691,8 +2691,8 @@ class PlnPCA(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts, labels = get_real_count_data(return_labels = True)
-            >>> plnpca = PlnPCA(counts,add_const = True)
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> plnpca = PlnPCA(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.viz()
             >>> plt.show()
@@ -2709,9 +2709,9 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> pca_proj = plnpca.pca_projected_latent_variables()
         >>> print(pca_proj.shape)
@@ -2724,9 +2724,9 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> plnpca.scatter_pca_matrix(n_components = 5)
         """,
@@ -2738,9 +2738,9 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> plnpca.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
         """,
@@ -2770,9 +2770,9 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> counts = get_real_count_data()
-        >>> data = {"counts": counts}
-        >>> plnpca = PlnPCA.from_formula("counts ~ 1", data = data)
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> print(plnpca.latent_mean.shape)
         """,
@@ -2804,7 +2804,7 @@ class PlnPCA(_model):
         """
         return self._latent_sqrt_var**2
 
-    def _counts_predictions(self):
+    def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
             (self._components**2).unsqueeze(0)
             * (self.latent_sqrt_var**2).unsqueeze(1),
@@ -2887,7 +2887,7 @@ class PlnPCA(_model):
         covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The covariates tensor.
         """
-        _check_data_shape(self.counts, covariates, self.offsets)
+        _check_data_shape(self.endog, covariates, self.offsets)
         self._covariates = covariates
         print("Setting coef to initialization")
         self._smart_init_coef()
@@ -2943,7 +2943,7 @@ class PlnPCA(_model):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
             self._components = _init_components(
-                self._counts, self._covariates, self._coef, self._rank
+                self._endog, self._covariates, self._coef, self._rank
             )
 
     def _random_init_model_parameters(self):
@@ -2969,7 +2969,7 @@ class PlnPCA(_model):
         if not hasattr(self, "_latent_mean"):
             self._latent_mean = (
                 _init_latent_mean(
-                    self._counts,
+                    self._endog,
                     self._covariates,
                     self._offsets,
                     self._coef,
@@ -3007,7 +3007,7 @@ class PlnPCA(_model):
             The ELBO value.
         """
         return elbo_plnpca(
-            self._counts,
+            self._endog,
             self._covariates,
             self._offsets,
             self._latent_mean,
@@ -3159,17 +3159,17 @@ class PlnPCA(_model):
         """,
         returns="""
         torch.Tensor
-            The transformed counts (latent variables of the model).
+            The transformed endog (latent variables of the model).
         """,
         example="""
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> counts= get_real_count_data()
-            >>> pca = PlnPCA(counts, add_const = True)
+            >>> endog= get_real_count_data()
+            >>> pca = PlnPCA(endog, add_const = True)
             >>> pca.fit()
-            >>> transformed_counts_low_dim = pca.transform()
-            >>> transformed_counts_high_dim = pca.transform(project = False)
-            >>> print(transformed_counts_low_dim.shape)
-            >>> print(transformed_counts_high_dim.shape)
+            >>> transformed_endog_low_dim = pca.transform()
+            >>> transformed_endog_high_dim = pca.transform(project = False)
+            >>> print(transformed_endog_low_dim.shape)
+            >>> print(transformed_endog_high_dim.shape)
             """,
     )
     def transform(self, project: bool = True) -> torch.Tensor:
@@ -3199,13 +3199,13 @@ class ZIPln(Pln):
         super()._smart_init_model_parameters()
         if not hasattr(self, "_covariance"):
             self._covariance = _init_covariance(
-                self._counts, self._covariates, self._coef
+                self._endog, self._covariates, self._coef
             )
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
     def _random_init_latent_parameters(self):
-        self._dirac = self._counts == 0
+        self._dirac = self._endog == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         self._pi = (
@@ -3215,7 +3215,7 @@ class ZIPln(Pln):
 
     def compute_elbo(self):
         return elbo_zi_pln(
-            self._counts,
+            self._endog,
             self._covariates,
             self._offsets,
             self._latent_mean,

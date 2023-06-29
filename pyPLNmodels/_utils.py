@@ -112,7 +112,7 @@ def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Ten
     Returns
     -------
     tuple[torch.Tensor, torch.Tensor, torch.Tensor] if return_latent is True
-        Tuple containing counts (torch.Tensor), gaussian (torch.Tensor), and ksi (torch.Tensor)
+        Tuple containing endog (torch.Tensor), gaussian (torch.Tensor), and ksi (torch.Tensor)
     torch.Tensor if return_latent is False
 
     See also :func:`~pyPLNmodels.PlnParameters`
@@ -143,12 +143,12 @@ def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Ten
     else:
         ksi = 0
 
-    counts = (1 - ksi) * torch.poisson(parameter)
+    endog = (1 - ksi) * torch.poisson(parameter)
 
     torch.random.set_rng_state(prev_state)
     if return_latent is True:
-        return counts, gaussian, ksi
-    return counts
+        return endog, gaussian, ksi
+    return endog
 
 
 def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
@@ -176,13 +176,13 @@ def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
     return torch.log(integer)
 
 
-def _get_offsets_from_sum_of_counts(counts: torch.Tensor) -> torch.Tensor:
+def _get_offsets_from_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
     """
-    Compute offsets from the sum of counts.
+    Compute offsets from the sum of endog.
 
     Parameters
     ----------
-    counts : torch.Tensor
+    endog : torch.Tensor
         Samples with size (n, p)
 
     Returns
@@ -190,8 +190,8 @@ def _get_offsets_from_sum_of_counts(counts: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Offsets of size (n, p)
     """
-    sum_of_counts = torch.sum(counts, axis=1)
-    return sum_of_counts.repeat((counts.shape[1], 1)).T
+    sum_of_endog = torch.sum(endog, axis=1)
+    return sum_of_endog.repeat((endog.shape[1], 1)).T
 
 
 def _raise_wrong_dimension_error(
@@ -268,7 +268,7 @@ def _format_data(
 
 
 def _format_model_param(
-    counts: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+    endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     covariates: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     offsets_formula: str,
@@ -280,7 +280,7 @@ def _format_model_param(
 
     Parameters
     ----------
-    counts : Union[torch.Tensor, np.ndarray, pd.DataFrame], shape (n, )
+    endog : Union[torch.Tensor, np.ndarray, pd.DataFrame], shape (n, )
         Count data.
     covariates : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, shape (n, d) or None
         Covariate data.
@@ -300,29 +300,29 @@ def _format_model_param(
     Raises
     ------
     ValueError
-        If counts has negative values or offsets_formula is not None and not "logsum" or "zero"
+        If endog has negative values or offsets_formula is not None and not "logsum" or "zero"
     """
-    counts = _format_data(counts)
-    if torch.min(counts) < 0:
+    endog = _format_data(endog)
+    if torch.min(endog) < 0:
         raise ValueError("Counts should be only non negative values.")
     covariates = _format_data(covariates)
     if add_const is True:
         if covariates is None:
-            covariates = torch.ones(counts.shape[0], 1)
+            covariates = torch.ones(endog.shape[0], 1)
         else:
             if _has_null_variance(covariates) is False:
                 covariates = torch.concat(
-                    (covariates, torch.ones(counts.shape[0]).unsqueeze(1)), dim=1
+                    (covariates, torch.ones(endog.shape[0]).unsqueeze(1)), dim=1
                 )
     if offsets is None:
         if offsets_formula == "logsum":
-            print("Setting the offsets as the log of the sum of counts")
+            print("Setting the offsets as the log of the sum of endog")
             offsets = (
-                torch.log(_get_offsets_from_sum_of_counts(counts)).double().to(DEVICE)
+                torch.log(_get_offsets_from_sum_of_endog(endog)).double().to(DEVICE)
             )
         elif offsets_formula == "zero":
             print("Setting the offsets to zero")
-            offsets = torch.zeros(counts.shape, device=DEVICE)
+            offsets = torch.zeros(endog.shape, device=DEVICE)
         else:
             raise ValueError(
                 'Wrong offsets_formula. Expected either "zero" or "logsum", got {offsets_formula}'
@@ -331,7 +331,7 @@ def _format_model_param(
         offsets = _format_data(offsets).to(DEVICE)
         if take_log_offsets is True:
             offsets = torch.log(offsets)
-    return counts, covariates, offsets
+    return endog, covariates, offsets
 
 
 def _has_null_variance(tensor: torch.Tensor) -> bool:
@@ -352,27 +352,27 @@ def _has_null_variance(tensor: torch.Tensor) -> bool:
 
 
 def _check_data_shape(
-    counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
+    endog: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> None:
     """
     Check if the shape of the input data is valid.
 
     Parameters
     ----------
-    counts : torch.Tensor, shape (n, p)
+    endog : torch.Tensor, shape (n, p)
         Count data.
     covariates : torch.Tensor or None, shape (n, d) or None
         Covariate data.
     offsets : torch.Tensor or None, shape (n, p) or None
         Offset data.
     """
-    n_counts, p_counts = counts.shape
+    n_endog, p_endog = endog.shape
     n_offsets, p_offsets = offsets.shape
-    _check_two_dimensions_are_equal("counts", "offsets", n_counts, n_offsets, 0, 0)
+    _check_two_dimensions_are_equal("endog", "offsets", n_endog, n_offsets, 0, 0)
     if covariates is not None:
         n_cov, _ = covariates.shape
-        _check_two_dimensions_are_equal("counts", "covariates", n_counts, n_cov, 0, 0)
-    _check_two_dimensions_are_equal("counts", "offsets", p_counts, p_offsets, 1, 1)
+        _check_two_dimensions_are_equal("endog", "covariates", n_endog, n_cov, 0, 0)
+    _check_two_dimensions_are_equal("endog", "offsets", p_endog, p_offsets, 1, 1)
 
 
 def _nice_string_of_dict(dictionnary: dict) -> str:
@@ -751,21 +751,21 @@ def get_simulated_count_data(
     Returns
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        Tuple containing counts, covariates, and offsets.
+        Tuple containing endog, covariates, and offsets.
     """
     pln_param = get_simulation_parameters(
         n_samples=n_samples, dim=dim, nb_cov=nb_cov, rank=rank, add_const=add_const
     )
-    counts = sample_pln(pln_param, seed=seed, return_latent=False)
+    endog = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
         return (
-            counts,
+            endog,
             pln_param.covariates,
             pln_param.offsets,
             pln_param.covariance,
             pln_param.coef,
         )
-    return pln_param.counts, pln_param.cov, pln_param.offsets
+    return pln_param.endog, pln_param.cov, pln_param.offsets
 
 
 def get_real_count_data(
@@ -799,14 +799,14 @@ def get_real_count_data(
             f"\nTaking the whole max_dim variables. Requested:dim={dim}, returned:{max_dim}"
         )
         dim = max_dim
-    counts_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
-    counts = pd.read_csv(counts_stream).values[:n_samples, :dim]
-    print(f"Returning dataset of size {counts.shape}")
+    endog_stream = pkg_resources.resource_stream(__name__, "data/scRT/endog.csv")
+    endog = pd.read_csv(endog_stream).values[:n_samples, :dim]
+    print(f"Returning dataset of size {endog.shape}")
     if return_labels is False:
-        return counts
+        return endog
     labels_stream = pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
     labels = np.array(pd.read_csv(labels_stream).values[:n_samples].squeeze())
-    return counts, labels
+    return endog, labels
 
 
 def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
@@ -849,16 +849,16 @@ def _extract_data_from_formula(
     Returns
     -------
     Tuple
-        A tuple containing the extracted counts, covariates, and offsets.
+        A tuple containing the extracted endog, covariates, and offsets.
 
     """
     dmatrix = dmatrices(formula, data=data)
-    counts = dmatrix[0]
+    endog = dmatrix[0]
     covariates = dmatrix[1]
     if covariates.size == 0:
         covariates = None
     offsets = data.get("offsets", None)
-    return counts, covariates, offsets
+    return endog, covariates, offsets
 
 
 def _is_dict_of_dict(dictionary: Dict[Any, Any]) -> bool:
@@ -946,7 +946,7 @@ def _array2tensor(func):
 
 
 def _handle_data(
-    counts,
+    endog,
     covariates,
     offsets,
     offsets_formula: str,
@@ -958,7 +958,7 @@ def _handle_data(
 
     Parameters
     ----------
-        counts : The counts data. If a DataFrame is provided, the column names are stored for later use.
+        endog : The endog data. If a DataFrame is provided, the column names are stored for later use.
         covariates : The covariates data.
         offsets : The offsets data.
         offsets_formula : The formula used for offsets.
@@ -967,22 +967,22 @@ def _handle_data(
 
     Returns
     -------
-        tuple: A tuple containing the processed counts, covariates, offsets, and column counts (if available).
+        tuple: A tuple containing the processed endog, covariates, offsets, and column endog (if available).
 
     Raises
     ------
-        ValueError: If the shapes of counts, covariates, and offsets do not match.
+        ValueError: If the shapes of endog, covariates, and offsets do not match.
     """
-    if isinstance(counts, pd.DataFrame):
-        column_counts = counts.columns
+    if isinstance(endog, pd.DataFrame):
+        column_endog = endog.columns
     else:
-        column_counts = None
+        column_endog = None
 
-    counts, covariates, offsets = _format_model_param(
-        counts, covariates, offsets, offsets_formula, take_log_offsets, add_const
+    endog, covariates, offsets = _format_model_param(
+        endog, covariates, offsets, offsets_formula, take_log_offsets, add_const
     )
-    _check_data_shape(counts, covariates, offsets)
-    return counts, covariates, offsets, column_counts
+    _check_data_shape(endog, covariates, offsets)
+    return endog, covariates, offsets, column_endog
 
 
 def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):

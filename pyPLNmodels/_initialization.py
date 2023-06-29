@@ -10,16 +10,16 @@ else:
 
 
 def _init_covariance(
-    counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor
+    endog: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor
 ) -> torch.Tensor:
     """
-    Initialization for the covariance for the Pln model. Take the log of counts
-    (careful when counts=0), and computes the Maximum Likelihood
+    Initialization for the covariance for the Pln model. Take the log of endog
+    (careful when endog=0), and computes the Maximum Likelihood
     Estimator in the gaussian case.
 
     Parameters
     ----------
-    counts : torch.Tensor
+    endog : torch.Tensor
         Samples with size (n,p)
     offsets : torch.Tensor
         Offset, size (n,p)
@@ -33,15 +33,15 @@ def _init_covariance(
     torch.Tensor
         Covariance matrix of size (p,p)
     """
-    log_y = torch.log(counts + (counts == 0) * math.exp(-2))
+    log_y = torch.log(endog + (endog == 0) * math.exp(-2))
     log_y_centered = log_y - torch.mean(log_y, axis=0)
-    n_samples = counts.shape[0]
+    n_samples = endog.shape[0]
     sigma_hat = 1 / (n_samples - 1) * (log_y_centered.T) @ log_y_centered
     return sigma_hat
 
 
 def _init_components(
-    counts: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor, rank: int
+    endog: torch.Tensor, covariates: torch.Tensor, coef: torch.Tensor, rank: int
 ) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
@@ -49,7 +49,7 @@ def _init_components(
 
     Parameters
     ----------
-    counts : torch.Tensor
+    endog : torch.Tensor
         Samples with size (n,p)
     offsets : torch.Tensor
         Offset, size (n,p)
@@ -65,13 +65,13 @@ def _init_components(
     torch.Tensor
         Initialization of components of size (p,rank)
     """
-    sigma_hat = _init_covariance(counts, covariates, coef).detach()
+    sigma_hat = _init_covariance(endog, covariates, coef).detach()
     components = _components_from_covariance(sigma_hat, rank)
     return components
 
 
 def _init_latent_mean(
-    counts: torch.Tensor,
+    endog: torch.Tensor,
     covariates: torch.Tensor,
     offsets: torch.Tensor,
     coef: torch.Tensor,
@@ -86,7 +86,7 @@ def _init_latent_mean(
 
     Parameters
     ----------
-    counts : torch.Tensor
+    endog : torch.Tensor
         Samples with size (n,p)
     offsets : torch.Tensor
         Offset, size (n,p)
@@ -109,7 +109,7 @@ def _init_latent_mean(
     torch.Tensor
         The initialized latent mean with size (n,rank)
     """
-    mode = torch.randn(counts.shape[0], components.shape[1], device=DEVICE)
+    mode = torch.randn(endog.shape[0], components.shape[1], device=DEVICE)
     mode.requires_grad_(True)
     optimizer = torch.optim.Rprop([mode], lr=lr)
     crit = 2 * eps
@@ -117,7 +117,7 @@ def _init_latent_mean(
     keep_condition = True
     i = 0
     while i < n_iter_max and keep_condition:
-        batch_loss = log_posterior(counts, covariates, offsets, mode, components, coef)
+        batch_loss = log_posterior(endog, covariates, offsets, mode, components, coef)
         loss = -torch.mean(batch_loss)
         loss.backward()
         optimizer.step()
@@ -155,14 +155,14 @@ def _components_from_covariance(covariance: torch.Tensor, rank: int) -> torch.Te
 
 
 def _init_coef(
-    counts: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
+    endog: torch.Tensor, covariates: torch.Tensor, offsets: torch.Tensor
 ) -> torch.Tensor:
     """
     Initialize the coefficient for the Pln model using Poisson regression model.
 
     Parameters
     ----------
-    counts : torch.Tensor
+    endog : torch.Tensor
         Samples with size (n, p)
     covariates : torch.Tensor
         Covariates, size (n, d)
@@ -178,12 +178,12 @@ def _init_coef(
         return None
 
     poiss_reg = _PoissonReg()
-    poiss_reg.fit(counts, covariates, offsets)
+    poiss_reg.fit(endog, covariates, offsets)
     return poiss_reg.beta
 
 
 def log_posterior(
-    counts: torch.Tensor,
+    endog: torch.Tensor,
     covariates: torch.Tensor,
     offsets: torch.Tensor,
     posterior_mean: torch.Tensor,
@@ -195,7 +195,7 @@ def log_posterior(
 
     Parameters
     ----------
-    counts : torch.Tensor
+    endog : torch.Tensor
         Samples with size (batch_size, p)
     covariates : torch.Tensor or None
         Covariates, size (batch_size, d) or (d)
@@ -229,7 +229,7 @@ def log_posterior(
         - 1 / 2 * torch.norm(posterior_mean, dim=-1) ** 2
     )
     second_term = torch.sum(
-        -torch.exp(log_lambda) + log_lambda * counts - _log_stirling(counts), axis=-1
+        -torch.exp(log_lambda) + log_lambda * endog - _log_stirling(endog), axis=-1
     )
     return first_term + second_term
 
