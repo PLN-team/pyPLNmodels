@@ -964,3 +964,7 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
         return fun
 
     return wrapper
+
+
+def MSE(t):
+    return torch.mean(t**2)

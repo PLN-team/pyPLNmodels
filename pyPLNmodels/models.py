@@ -31,6 +31,7 @@ from ._utils import (
     _array2tensor,
     _handle_data,
     _add_doc,
+    MSE,
 )
 
 from ._initialization import (
@@ -381,6 +382,12 @@ class _model(ABC):
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
                 self._print_stats()
+            try:
+                self.mse_beta_list.append(MSE(self.coef - self.true_beta))
+                self.mse_Sigma_list.append(MSE(self.covariance - self.true_Sigma))
+            except:
+                print("marche pas")
+                pass
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -1318,6 +1325,8 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        true_Sigma=None,
+        true_beta=None,
     ):
         super().__init__(
             counts=counts,
@@ -2559,7 +2568,9 @@ class PlnPCA(_model):
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        add_const: bool = True,
+        add_const: bool = False,
+        true_beta=None,
+        true_Sigma=None,
     ):
         self._rank = rank
         super().__init__(
@@ -2571,6 +2582,10 @@ class PlnPCA(_model):
             take_log_offsets=take_log_offsets,
             add_const=add_const,
         )
+        self.true_beta = true_beta
+        self.true_Sigma = true_Sigma
+        self.mse_beta_list = []
+        self.mse_Sigma_list = []
 
     @classmethod
     @_add_doc(
