@@ -2,13 +2,13 @@ import ast
 import os
 
 
-def get_lines(filename):
-    with open(f"../pyPLNmodels/{filename}.py") as file:
+def get_lines(filename, filetype=".py"):
+    with open(f"../pyPLNmodels/{filename}{filetype}") as file:
         lines = [line.rstrip() for line in file]
     return lines
 
 
-def get_examples(lines):
+def get_examples_docstring(lines):
     examples = []
     in_example = False
     example = []
@@ -26,11 +26,11 @@ def get_examples(lines):
     return examples
 
 
-def write_examples(examples, prefix_filename):
+def write_examples(examples, filename, dirname):
     for i in range(len(examples)):
         example = examples[i]
         nb_example = str(i + 1)
-        example_filename = f"examples/{prefix_filename}_example_{nb_example}.py"
+        example_filename = f"{dirname}/{prefix_filename}_example_{nb_example}.py"
         try:
             os.remove(example_filename)
         except FileNotFoundError:
@@ -40,15 +40,23 @@ def write_examples(examples, prefix_filename):
                 the_file.write(line + "\n")
 
 
-def filename_to_example_file(filename):
+def filename_to_docstring_example_file(filename, dirname):
     lines = get_lines(filename)
-    examples = get_examples(lines)
-    write_examples(examples, filename)
+    examples = get_examples_docstring(lines)
+    write_examples(examples, filename, dirname)
+
+
+def filename_to_readme_example_file(dirname):
+    lines = get_lines("README", filetype=".md")
+    examples = get_examples_docstring(lines)
+    write_examples(examples, "readme")
 
 
 # filename_to_example_file("models")
-os.makedirs("examples", exist_ok=True)
-filename_to_example_file("_utils")
-filename_to_example_file("models")
-filename_to_example_file("elbos")
-filename_to_example_file("load")
+os.makedirs("docstrings_examples", exist_ok=True)
+filename_to_docstring_example_file("_utils", "docstrings")
+filename_to_docstring_example_file("models", "docstrings")
+filename_to_docstring_example_file("elbos", "docstrings")
+filename_to_docstring_example_file("load", "docstrings")
+
+filename_to_readme_example_file("docstrings")
