@@ -14,4 +14,4 @@ def test_number_of_iterations_pln_full(fitted_pln):
 @pytest.mark.parametrize("pln", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["Pln"])
 def test_latent_var_full(pln):
-    assert pln.transform().shape == pln.counts.shape
+    assert pln.transform().shape == pln.endog.shape

@@ -60,6 +60,8 @@ def test_viz_pcacol(plnpca):
         colors = np.random.randint(low=0, high=2, size=n_samples)
         model.viz(colors=colors)
         plt.show()
+        model.viz(show_cov=True)
+        plt.show()
 
 
 @pytest.mark.parametrize("pln", dict_fixtures["real_fitted_pln_intercept_array"])

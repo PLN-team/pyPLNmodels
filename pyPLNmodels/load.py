@@ -20,26 +20,31 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
     Examples
     --------
     >>> from pyPLNmodels import PlnPCA, Pln, get_real_count_data, load_model
-    >>> counts= get_real_count_data()
-    >>> pca = PlnPCA(counts, add_const = True)
+    >>> endog= get_real_count_data()
+    >>> pca = PlnPCA(endog, add_const = True)
     >>> pca.fit()
     >>> pca.save()
     >>> dict_init = load_model("PlnPCA_nbcov_1_dim_200_rank_5")
-    >>> loaded_pca = PlnPCA(counts, add_const = True, dict_initialization = dict_init)
+    >>> loaded_pca = PlnPCA(endog, add_const = True, dict_initialization = dict_init)
     >>> print(loaded_pca)
 
-    >>> pln = Pln(counts, add_const = True)
+    >>> pln = Pln(endog, add_const = True)
     >>> pln.fit()
     >>> pln.save()
     >>> dict_init = load_model("Pln_nbcov_1_dim_200")
-    >>> loaded_pln = Pln(counts, add_const = True, dict_initialization = dict_init)
+    >>> loaded_pln = Pln(endog, add_const = True, dict_initialization = dict_init)
     >>> print(loaded_pln)
     See also
     --------
     :func:`~pyPLNmodels.load_plnpcacollection`
     """
     working_dir = os.getcwd()
-    os.chdir(path_of_directory)
+    try:
+        os.chdir(path_of_directory)
+    except FileNotFoundError as err:
+        raise err(
+            "The model has not been saved. Please be sure you have the right name of model."
+        )
     all_files = os.listdir()
     data = {}
     for filename in all_files:
@@ -95,12 +100,12 @@ def load_plnpcacollection(
     Examples
     --------
     >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, load_plnpcacollection
-    >>> counts = get_real_count_data()
-    >>> pcas = PlnPCAcollection(counts, add_const = True, ranks = [4,5,6])
+    >>> endog = get_real_count_data()
+    >>> pcas = PlnPCAcollection(endog, add_const = True, ranks = [4,5,6])
     >>> pcas.fit()
     >>> pcas.save()
     >>> dict_init = load_plnpcacollection("PlnPCAcollection_nbcov_1_dim_200")
-    >>> loaded_pcas = PlnPCAcollection(counts, add_const = True, ranks = [4,5,6], dict_of_dict_initialization = dict_init)
+    >>> loaded_pcas = PlnPCAcollection(endog, add_const = True, ranks = [4,5,6], dict_of_dict_initialization = dict_init)
     >>> print(loaded_pcas)
 
     See also

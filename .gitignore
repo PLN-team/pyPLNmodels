@@ -151,3 +151,8 @@ test.py
 ## directories that outputs when running the tests
 tests/Pln*
 slides/
+index.html
+
+tests/test_models*
+tests/test_load*
+tests/test_readme*
