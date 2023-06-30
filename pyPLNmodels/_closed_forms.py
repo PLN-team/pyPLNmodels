@@ -4,7 +4,7 @@ import torch  # pylint:disable=[C0114]
 
 
 def _closed_formula_covariance(
-    covariates: torch.Tensor,
+    exog: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
     coef: torch.Tensor,
@@ -15,7 +15,7 @@ def _closed_formula_covariance(
 
     Parameters:
     ----------
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates with size (n, d).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
@@ -31,10 +31,10 @@ def _closed_formula_covariance(
     torch.Tensor
         The closed-form covariance with size (p, p).
     """
-    if covariates is None:
+    if exog is None:
         XB = 0
     else:
-        XB = covariates @ coef
+        XB = exog @ coef
     m_minus_xb = latent_mean - XB
     closed = m_minus_xb.T @ m_minus_xb + torch.diag(
         torch.sum(torch.square(latent_sqrt_var), dim=0)
@@ -43,14 +43,14 @@ def _closed_formula_covariance(
 
 
 def _closed_formula_coef(
-    covariates: torch.Tensor, latent_mean: torch.Tensor
+    exog: torch.Tensor, latent_mean: torch.Tensor
 ) -> Optional[torch.Tensor]:
     """
     Compute the closed-form coef for the M step of the Pln model.
 
     Parameters:
     ----------
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates with size (n, d).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
@@ -58,11 +58,11 @@ def _closed_formula_coef(
     Returns:
     -------
     Optional[torch.Tensor]
-        The closed-form coef with size (d, p) or None if covariates is None.
+        The closed-form coef with size (d, p) or None if exog is None.
     """
-    if covariates is None:
+    if exog is None:
         return None
-    return torch.inverse(covariates.T @ covariates) @ covariates.T @ latent_mean
+    return torch.inverse(exog.T @ exog) @ exog.T @ latent_mean
 
 
 def _closed_formula_pi(
@@ -70,7 +70,7 @@ def _closed_formula_pi(
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
     dirac: torch.Tensor,
-    covariates: torch.Tensor,
+    exog: torch.Tensor,
     _coef_inflation: torch.Tensor,
 ) -> torch.Tensor:
     """
@@ -86,7 +86,7 @@ def _closed_formula_pi(
         Variational parameter with size (n, p).
     dirac : torch.Tensor
         Dirac tensor.
-    covariates : torch.Tensor
+    exog : torch.Tensor
         Covariates with size (n, d).
     _coef_inflation : torch.Tensor
         Inflation coefficient tensor.
@@ -97,4 +97,4 @@ def _closed_formula_pi(
         The closed-form pi with the same size as dirac.
     """
     poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_sqrt_var))
-    return torch._sigmoid(poiss_param + torch.mm(covariates, _coef_inflation)) * dirac
+    return torch._sigmoid(poiss_param + torch.mm(exog, _coef_inflation)) * dirac
