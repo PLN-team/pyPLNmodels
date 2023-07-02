@@ -384,8 +384,10 @@ class _model(ABC):
             if verbose and self.nb_iteration_done % 50 == 0:
                 self._print_stats()
             try:
-                self.mse_beta_list.append(MSE(self.coef - self.true_beta))
-                self.mse_Sigma_list.append(MSE(self.covariance - self.true_Sigma))
+                self.mse_beta_list.append(MSE(self.coef - self.true_beta).item())
+                self.mse_Sigma_list.append(
+                    MSE(self.covariance - self.true_Sigma).item()
+                )
             except:
                 print("marche pas")
                 pass
@@ -3065,14 +3067,14 @@ class PlnPCA(_model):
         return string
 
     @property
-    def covariance(self) -> Optional[torch.Tensor]:
+    def covariance_a_posteriori(self) -> Optional[torch.Tensor]:
         """
         Property representing the covariance.
 
         Returns
         -------
         Optional[torch.Tensor]
-            The covariance tensor or None if components are not present.
+            The covariance a posteriori or None if components are not present.
         """
         if hasattr(self, "_components"):
             cov_latent = self._latent_mean.T @ self._latent_mean
@@ -3106,6 +3108,18 @@ class PlnPCA(_model):
             The latent variables of size (n_samples, dim).
         """
         return torch.matmul(self._latent_mean, self._components.T).detach()
+
+    @property
+    def covariance(self):
+        """
+        Property representing the low rank covariance.
+
+        Returns
+        -------
+        torch.Tensor
+            The low rank covariance estimated of size (dim, dim).
+        """
+        return self.components @ (self.components.T)
 
     @property
     def projected_latent_variables(self) -> torch.Tensor:
