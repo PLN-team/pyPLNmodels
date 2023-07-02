@@ -384,8 +384,18 @@ class _model(ABC):
             if verbose and self.nb_iteration_done % 50 == 0:
                 self._print_stats()
             try:
-                self.mse_beta_list.append(MSE(self.coef - self.true_beta))
-                self.mse_Sigma_list.append(MSE(self.covariance - self.true_Sigma))
+                self.mse_beta_list.append(
+                    MSE(self.coef.to(DEVICE) - self.true_beta.to(DEVICE))
+                    .detach()
+                    .cpu()
+                    .item()
+                )
+                self.mse_Sigma_list.append(
+                    MSE(self.covariance.to(DEVICE) - self.true_Sigma.to(DEVICE))
+                    .detach()
+                    .cpu()
+                    .item()
+                )
             except:
                 print("marche pas")
                 pass
