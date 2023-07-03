@@ -411,7 +411,7 @@ class _model(ABC):
         centered_latent = self.latent_variables - torch.mean(
             self.latent_variables, axis=0
         )
-        chol = torch.linalg.cholesky(torch.inverse(self.covariance))
+        chol = torch.linalg.cholesky(torch.inverse(self.covariance_a_posteriori))
         residus = torch.matmul(centered_latent.unsqueeze(1), chol.unsqueeze(0))
         stats.probplot(residus.ravel(), plot=plt)
         plt.show()
@@ -3050,9 +3050,23 @@ class PlnPCA(_model):
         return string
 
     @property
-    def covariance(self) -> Optional[torch.Tensor]:
+    def covariance(self) -> torch.Tensor:
         """
-        Property representing the covariance.
+        Property representing the covariance a posteriori of the latent variables.
+
+        Returns
+        -------
+        Optional[torch.Tensor]
+            The covariance tensor or None if components are not present.
+        """
+        if hasattr(self, "_components"):
+            return self._components @ (self._components.T)
+        return None
+
+    @property
+    def covariance_a_posteriori(self) -> Optional[torch.Tensor]:
+        """
+        Property representing the covariance a posteriori of the latent variables.
 
         Returns
         -------
