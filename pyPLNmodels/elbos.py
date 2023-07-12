@@ -214,7 +214,7 @@ def elbo_zi_pln(
     # a = b = c = d = e = f = 0
     A = torch.exp(o_plus_m + s_rond_s / 2)
     inside_a = torch.multiply(
-        1 - latent_prob, torch.multiply(counts, o_plus_m) - A - log_stirling(counts)
+        1 - latent_prob, torch.multiply(counts, o_plus_m) - A - _log_stirling(counts)
     )
     a = torch.sum(inside_a)
 
@@ -241,8 +241,8 @@ def elbo_zi_pln(
     ) + torch.matmul(latent_prob / 2, Diag_log_diag)
     d = n_samples * dim / 2 + torch.sum(inside_d)
 
-    inside_e = torch.multiply(latent_prob, trunc_log(latent_prob)) + torch.multiply(
-        1 - latent_prob, trunc_log(1 - latent_prob)
+    inside_e = torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(
+        1 - latent_prob, _trunc_log(1 - latent_prob)
     )
     e = -torch.sum(inside_e)
 
@@ -259,13 +259,13 @@ def elbo_zi_pln(
     #         1 - latent_prob,
     #         torch.multiply(counts, o_plus_m)
     #         - torch.exp(o_plus_m + s_rond_s / 2)
-    #         - log_stirling(counts),
+    #         - _log_stirling(counts),
     #     )
     #     + latent_prob
     # )
     # # print('O:', O)
     # elbo -= torch.sum(
-    #     torch.multiply(latent_prob, trunc_log(latent_prob)) + torch.multiply(1 - latent_prob, trunc_log(1 - latent_prob))
+    #     torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(1 - latent_prob, _trunc_log(1 - latent_prob))
     # )
     # elbo -= (
     #     1

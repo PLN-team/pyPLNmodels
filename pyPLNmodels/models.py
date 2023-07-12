@@ -3251,8 +3251,10 @@ class ZIPln(_model):
     def _smart_init_model_parameters(self):
         if not hasattr(self, "_coef"):
             self._coef = _init_coef(self._endog, self._exog, self._offsets)
-        if not hasattr(self, "_covariance"):
-            self._covariance = _init_covariance(self._endog, self._exog, self._coef)
+        if not hasattr(self, "_components"):
+            self._components = _init_components(
+                self._endog, self._exog, self._coef, self.dim
+            )
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
@@ -3260,7 +3262,7 @@ class ZIPln(_model):
         self._dirac = self._endog == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
-        self._pi = (
+        self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
         )
@@ -3279,7 +3281,7 @@ class ZIPln(_model):
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
-            self._pi,
+            self._latent_prob,
             self._covariance,
             self._coef,
             self._coef_inflation,
@@ -3287,26 +3289,42 @@ class ZIPln(_model):
         )
 
     @property
+    def _covariance(self):
+        return self._components @ self._components.T
+
+    @property
     def _list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
+        return [
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._coef_inflation,
+            self._coef,
+            self._coef_inflation,
+            self._components,
+        ]
+
+    @property
+    def covariance(self):
+        return self._covariance.detach().cpu()
 
     def _update_closed_forms(self):
-        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
-        self._covariance = _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._coef,
-            self.n_samples,
-        )
-        self._pi = _closed_formula_pi(
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._dirac,
-            self._exog,
-            self._coef_inflation,
-        )
+        pass
+        # self._coef = _closed_formula_coef(self._exog, self._latent_mean)
+        # self._covariance = _closed_formula_covariance(
+        # self._exog,
+        # self._latent_mean,
+        # self._latent_sqrt_var,
+        # self._coef,
+        # self.n_samples,
+        # )
+        # self._pi = _closed_formula_pi(
+        # self._offsets,
+        # self._latent_mean,
+        # self._latent_sqrt_var,
+        # self._dirac,
+        # self._exog,
+        # self._coef_inflation,
+        # )
 
     @property
     def number_of_parameters(self):
