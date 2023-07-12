@@ -365,7 +365,7 @@ class _model(ABC):
         verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         self._beginning_time = time.time()
 
         if self._fitted is False:
@@ -3065,8 +3065,8 @@ class PlnPCA(_model):
         Optional[torch.Tensor]
             The covariance tensor or None if components are not present.
         """
-        if hasattr(self, "_components"):
-            return self._components @ (self._components.T)
+        if hasattr(self, "components"):
+            return self.components @ (self.components.T)
         return None
 
     @property
@@ -3194,15 +3194,36 @@ class PlnPCA(_model):
         return self.latent_variables
 
 
-class ZIPln(Pln):
+class ZIPln(_model):
     _NAME = "ZIPln"
 
     _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
 
-    def __init__(self, true_covariance, true_coef, true_infla):
-        super().__init__()
+    def __init__(
+        self,
+        endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        *,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[dict] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+        true_covariance=None,
+        true_coef=None,
+        true_infla=None,
+    ):
+        super().__init__(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
         self.true_covariance = true_covariance
         self.true_coef = true_coef
         self.true_infla = true_infla
@@ -3223,9 +3244,13 @@ class ZIPln(Pln):
         self._components = torch.randn(int(self.dim * (self.dim + 1) / 2))
         # self._components = torch.randn(self.dim, self.dim)
 
+    def _print_beginning_message(self):
+        print("Fitting a ZIPLN model")
+
     # should change the good initialization, especially for _coef_inflation
     def _smart_init_model_parameters(self):
-        super()._smart_init_model_parameters()
+        if not hasattr(self, "_coef"):
+            self._coef = _init_coef(self._endog, self._exog, self._offsets)
         if not hasattr(self, "_covariance"):
             self._covariance = _init_covariance(self._endog, self._exog, self._coef)
         if not hasattr(self, "_coef_inflation"):
@@ -3240,11 +3265,8 @@ class ZIPln(Pln):
             * self._dirac
         )
 
-    def smart_init_latent_parameters(self):
-        self.random_init_latent_parameters()
-
-    def print_beginning_message(self):
-        print("Training a zero inflated PLN")
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_parameters()
 
     @property
     def latent_variables(self):

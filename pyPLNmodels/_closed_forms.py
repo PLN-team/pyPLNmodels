@@ -97,4 +97,4 @@ def _closed_formula_pi(
         The closed-form pi with the same size as dirac.
     """
     poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_sqrt_var))
-    return torch._sigmoid(poiss_param + torch.mm(exog, _coef_inflation)) * dirac
+    return torch.nn.Sigmoid()(poiss_param + torch.mm(exog, _coef_inflation)) * dirac

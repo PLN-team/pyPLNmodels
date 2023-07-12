@@ -463,8 +463,8 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
     return components.to("cpu")
 
 
-def _get_simulation_coef_cov_offsets(
-    n_samples: int, nb_cov: int, dim: int, add_const: bool
+def _get_simulation_coef_cov_offsets_coefzi(
+    n_samples: int, nb_cov: int, dim: int, add_const: bool, zero_inflated: bool
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -480,8 +480,10 @@ def _get_simulation_coef_cov_offsets(
         exog as the intercept can be seen as a exog.
     dim : int
         Dimension required of the data.
-    add_const : bool, optional
+    add_const : bool
         If True, will add a vector of ones in the exog.
+    zero_inflated : bool
+        If True, will return a zero_inflated coefficient.
 
     Returns
     -------
@@ -507,13 +509,18 @@ def _get_simulation_coef_cov_offsets(
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         coef = None
+        coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
+        if zero_inflated is True:
+            coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
+        else:
+            coef_inflation = None
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
     torch.random.set_rng_state(prev_state)
-    return coef, exog, offsets
+    return coef, exog, offsets, coef_inflation
 
 
 class PlnParameters:
@@ -682,6 +689,7 @@ def get_simulation_parameters(
     nb_cov: int = 1,
     rank: int = 5,
     add_const: bool = True,
+    zero_inflated: bool = False,
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -700,6 +708,8 @@ def get_simulation_parameters(
             The rank of the data components, by default 5.
         add_const : bool, optional(keyword-only)
             If True, will add a vector of ones in the exog.
+        zero_inflated : bool, optional(keyword-only)
+            If True, the model will be zero inflated
 
     Returns
     -------
@@ -707,11 +717,21 @@ def get_simulation_parameters(
             The generated simulation parameters.
 
     """
-    coef, exog, offsets = _get_simulation_coef_cov_offsets(
-        n_samples, nb_cov, dim, add_const
+    coef, exog, offsets, coef_inflation = _get_simulation_coef_cov_offsets_coefzi(
+        n_samples,
+        nb_cov,
+        dim,
+        add_const,
+        zero_inflated,
     )
     components = _get_simulation_components(dim, rank)
-    return PlnParameters(components=components, coef=coef, exog=exog, offsets=offsets)
+    return PlnParameters(
+        components=components,
+        coef=coef,
+        exog=exog,
+        offsets=offsets,
+        coef_inflation=coef_inflation,
+    )
 
 
 def get_simulated_count_data(
@@ -722,6 +742,7 @@ def get_simulated_count_data(
     nb_cov: int = 1,
     return_true_param: bool = False,
     add_const: bool = True,
+    zero_inflated=False,
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -741,19 +762,40 @@ def get_simulated_count_data(
         Number of exog, by default 1.
     return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
+    zero_inflated: bool, optional(keyword-only)
+        Whether to use a zero inflated model or not.
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 
     Returns
     -------
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        Tuple containing endog, exog, and offsets.
+    if return_true_param is False:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            Tuple containing endog, exog, and offsets.
+    else:
+        if zero_inflated is True:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+                Tuple containing endog, exog, and offsets. TODO (need to return a plnparam object)
     """
     pln_param = get_simulation_parameters(
-        n_samples=n_samples, dim=dim, nb_cov=nb_cov, rank=rank, add_const=add_const
+        n_samples=n_samples,
+        dim=dim,
+        nb_cov=nb_cov,
+        rank=rank,
+        add_const=add_const,
+        zero_inflated=zero_inflated,
     )
     endog = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
+        if zero_inflated is True:
+            return (
+                endog,
+                pln_param.exog,
+                pln_param.offsets,
+                pln_param.covariance,
+                pln_param.coef,
+                pln_param.coef_inflation,
+            )
         return (
             endog,
             pln_param.exog,

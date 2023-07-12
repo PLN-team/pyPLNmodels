@@ -180,7 +180,7 @@ def elbo_zi_pln(
     offsets,
     latent_mean,
     latent_sqrt_var,
-    pi,
+    latent_prob,
     covariance,
     coef,
     _coef_inflation,
@@ -211,21 +211,25 @@ def elbo_zi_pln(
     offsets_plus_m = offsets + latent_mean
     m_minus_xb = latent_mean - exog @ coef
     x_coef_inflation = exog @ _coef_inflation
+    un_moins_latent_prob = 1 - latent_prob
     elbo = torch.sum(
-        (1 - pi)
-        * (
-            endog @ offsets_plus_m
+        torch.multiply(
+            un_moins_latent_prob,
+            endog * offsets_plus_m
             - torch.exp(offsets_plus_m + s_rond_s / 2)
             - _log_stirling(endog),
         )
-        + pi
+        + latent_prob
     )
 
-    elbo -= torch.sum(pi * _trunc_log(pi) + (1 - pi) * _trunc_log(1 - pi))
-    elbo += torch.sum(
-        pi * x_coef_inflation - torch.log(1 + torch.exp(x_coef_inflation))
+    elbo -= torch.sum(
+        latent_prob * _trunc_log(latent_prob)
+        + (1 - latent_prob) * _trunc_log(1 - latent_prob)
     )
-    a = torch.sum(inside_a)
+    elbo += torch.sum(
+        latent_prob * x_coef_inflation - torch.log(1 + torch.exp(x_coef_inflation))
+    )
+    # a = torch.sum(inside_a)
 
     elbo -= 0.5 * torch.trace(
         torch.mm(
