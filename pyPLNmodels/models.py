@@ -389,7 +389,6 @@ class _model(ABC):
                     MSE(self.covariance - self.true_Sigma).item()
                 )
             except:
-                print("marche pas")
                 pass
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
