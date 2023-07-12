@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from importlib.metadata import version
 
 sys.path.insert(0, os.path.abspath("../../"))
 # -- Project information -----------------------------------------------------
@@ -21,8 +22,8 @@ copyright = "2023, Bastien Batardière, Julien Chiquet, Joon Kwon"
 author = "Bastien Batardière, Julien Chiquet, Joon Kwon"
 
 # The full version, including alpha/beta/rc tags
-release = "0.0.15"
-
+release = version(project)
+version = release
 
 # -- General configuration ---------------------------------------------------
 
@@ -67,3 +68,4 @@ exclude_patterns = []
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_title = "pyPLNmodels"
