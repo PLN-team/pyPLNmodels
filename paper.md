@@ -51,6 +51,14 @@ large datasets of count data, such as scRNA (single-cell Ribonucleic acid)
 data. Real-world scRNA datasets typically involves thousands of cells ($n \approx 20000$) with
 thousand of genes($n \approx 20000$), resulting in a matrix of size $\approx 20000 \times 20000$.
 
+
+The `statsmodels` [@statsmodels] python package allows to deal with count data
+thanks to the Generalized Liner Models `PoissonBayesMixedGLM` and
+`BinomialBayesMixedGLM`. However, both models models do not handle covariance
+between variables,
+Unlike the `statsmodels`  python package, `pyPLNmodels` manage to
+infer correlation between variables and perform an adequate Principal Component
+Analysis to count data (`PlnPCA`).
 `Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
 enables wrapping low-level languages (e.g., C) for speed without losing
 flexibility or ease-of-use in the user-interface. The API for `Gala` was
