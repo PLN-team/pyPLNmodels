@@ -384,12 +384,13 @@ class _model(ABC):
             if verbose and self.nb_iteration_done % 50 == 0:
                 self._print_stats()
             try:
-                self.mse_beta_list.append(MSE(self.coef - self.true_beta).item())
+                self.mse_beta_list.append(
+                    MSE(self.coef.cpu() - self.true_beta.cpu()).item()
+                )
                 self.mse_Sigma_list.append(
-                    MSE(self.covariance - self.true_Sigma).item()
+                    MSE(self.covariance.cpu() - self.true_Sigma.cpu()).item()
                 )
             except:
-                print("marche pas")
                 pass
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
