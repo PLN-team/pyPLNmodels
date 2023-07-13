@@ -3060,7 +3060,7 @@ class PlnPCA(_model):
             The covariance tensor or None if components are not present.
         """
         if hasattr(self, "_components"):
-            return self._components @ (self._components.T)
+            return self.components @ (self.components.T)
         return None
 
     @property
