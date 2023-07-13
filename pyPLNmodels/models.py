@@ -399,6 +399,8 @@ class _model(ABC):
         loss.backward()
         # print("norm latent grad ", self._latent_prob.grad)
         print("elbo:", -loss / self.n_samples)
+        ### problem with M
+        print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -3341,3 +3343,27 @@ class ZIPln(_model):
         axes[0].legend()
         axes[1].plot(absc, self.elbos_list[-nb_to_plot:])
         plt.show()
+
+    def grad_M(self):
+        un_moins_prob = 1 - self._latent_prob
+        first = un_moins_prob * (
+            self._endog
+            - torch.exp(
+                self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2
+            )
+        )
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        second = (
+            MmoinsXB
+            @ (un_moins_prob.T)
+            @ un_moins_prob
+            @ torch.inverse(self._covariance)
+        )
+        return 0 * first + second
+
+    def grad_S(self):
+        un_moins_prob = 1 - self._latent_prob
+        first = un_moins_prob * torch.exp(
+            self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
+        )
+        sec = un_moins_prob * 1 / self._latent_sqrt_var

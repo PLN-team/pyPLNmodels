@@ -281,4 +281,4 @@ def elbo_zi_pln(
     # elbo += n_samples / 2 * torch.log(torch.det(covariance))
     # elbo += n_samples * dim / 2
     # elbo += torch.sum(1 / 2 * torch.log(s_rond_s))
-    return a + b + c + d + e + f
+    return 0 * a + b  # + c + d + e + f
