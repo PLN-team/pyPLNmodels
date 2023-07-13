@@ -55,7 +55,7 @@ thousand of genes($n \approx 20000$), resulting in a matrix of size $\approx 200
 The `statsmodels` [@statsmodels] python package allows to deal with count data
 thanks to the Generalized Liner Models `PoissonBayesMixedGLM` and
 `BinomialBayesMixedGLM`. However, both models models do not handle covariance
-between variables,
+between variables, unlike us.
 Unlike the `statsmodels`  python package, `pyPLNmodels` manage to
 infer correlation between variables and perform an adequate Principal Component
 Analysis to count data (`PlnPCA`).
