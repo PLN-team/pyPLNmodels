@@ -27,21 +27,58 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     return Y, GT, list(GT_name.values.__array__())
 
 
-n = 500
-ps = [200, 400]
-pln_running_times = []
-plnpca_running_times = []
-tol = 0.01
+def append_running_times_pln_plnpca(Y):
+    pln = Pln(Y)
+    plnpca = PlnPCA(Y, rank=rank)
+    pln.fit(tol=sharp_tol)
+    plnpca.fit(tol=sharp_tol)
+
+    rough_running_times_pln = pln._plotargs.running_times[
+        next(i for i, v in enumerate(pln._plotargs.criterions) if v < rough_tol)
+    ]
+    rough_running_times_plnpca = plnpca._plotargs.running_times[
+        next(i for i, v in enumerate(plnpca._plotargs.criterions) if v < rough_tol)
+    ]
+
+    pln_running_times_sharp_conv.append(pln._plotargs.running_times[-1])
+    plnpca_running_times_sharp_conv.append(plnpca._plotargs.running_times[-1])
+    pln_running_times_rough_conv.append(rough_running_times_pln)
+    plnpca_running_times_rough_conv.append(rough_running_times_plnpca)
+
+
+n = 50
+ps = range(50, 1000, 10)
+pln_running_times_sharp_conv = []
+plnpca_running_times_sharp_conv = []
+pln_running_times_rough_conv = []
+plnpca_running_times_rough_conv = []
+sharp_tol = 0.001
+rough_tol = 0.01
+if sharp_tol > rough_tol:
+    raise ValueError("tols in the wrong order")
+
 rank = 30
 
 for p in ps:
     Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
-    pln = Pln(Y)
-    plnpca = PlnPCA(Y, rank=rank)
-    pln.fit(tol=tol)
-    plnpca.fit(tol=tol)
-    pln_running_times.append(pln._plotargs.running_times[-1])
-    plnpca_running_times.append(plnpca._plotargs.running_times[-1])
+    append_running_times_pln_plnpca(Y)
 
-print("pln_running_times", pln_running_times)
-print("plnpca_running_times", plnpca_running_times)
+
+plt.plot(ps, pln_running_times_sharp_conv, color="blue", label="Pln sharp")
+plt.plot(ps, plnpca_running_times_sharp_conv, color="orange", label="PlnPCA sharp")
+plt.plot(
+    ps,
+    pln_running_times_rough_conv,
+    color="blue",
+    label="Pln rough",
+    linestyle="dotted",
+)
+plt.plot(
+    ps,
+    plnpca_running_times_rough_conv,
+    color="orange",
+    label="PlnPCA rough",
+    linestyle="dotted",
+)
+plt.legend()
+plt.show()
