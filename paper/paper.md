@@ -62,6 +62,14 @@ thanks to the Generalized Linear Models `PoissonBayesMixedGLM` and
 `BinomialBayesMixedGLM`. We stand out from this package by allowing covariance
 between variables and performing Principal Component Analysis adequate to count data (`PlnPCA`).
 
+
+# Benchmark
+We fit `Pln` and `PlnPCA` models on the `scMARK` dataset [@scMark]. We plot the
+running times required to fit such models when the number of variables (i.e.
+genes) grows in FIG. A tolerance must be set as stopping criterion, the default
+is plot in solid lines and a relaxed tolerance is plot in dotted lines.  Note
+that the default tolerance ensures the model parameters have reached
+convergence but the relaxed one gives satisfying model parameters, while being much faster.
 <!-- flexibility or ease-of-use in the user-interface. The API for `Gala` was -->
 <!-- designed to provide a class-based and user-friendly interface to fast (C or -->
 <!-- Cython-optimized) implementations of common operations such as gravitational -->
