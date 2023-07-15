@@ -33,7 +33,7 @@ def test_number_of_iterations_plnpca(fitted_pln):
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_pln"])
 @filter_models(["PlnPCA"])
 def test_latent_var_pca(plnpca):
-    assert plnpca.transform(project=False).shape == plnpca.counts.shape
+    assert plnpca.transform(project=False).shape == plnpca.endog.shape
     assert plnpca.transform().shape == (plnpca.n_samples, plnpca.rank)
 
 
