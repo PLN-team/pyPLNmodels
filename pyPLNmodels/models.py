@@ -365,7 +365,7 @@ class _model(ABC):
         verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         self._beginning_time = time.time()
 
         if self._fitted is False:
@@ -1668,7 +1668,7 @@ class Pln(_model):
         covariances = components_var @ (sk_components.T.unsqueeze(0))
         return covariances
 
-    def _pring_beginning_message(self):
+    def _print_beginning_message(self):
         """
         Method for printing the beginning message.
         """
@@ -2087,7 +2087,7 @@ class PlnPCAcollection:
         """
         return [model.rank for model in self.values()]
 
-    def _pring_beginning_message(self) -> str:
+    def _print_beginning_message(self) -> str:
         """
         Method for printing the beginning message.
 
@@ -2150,7 +2150,7 @@ class PlnPCAcollection:
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         for i in range(len(self.values())):
             model = self[self.ranks[i]]
             model.fit(
@@ -2912,12 +2912,12 @@ class PlnPCA(_model):
         """
         return self._rank
 
-    def _pring_beginning_message(self):
+    def _print_beginning_message(self):
         """
         Print the beginning message when fitted.
         """
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
-        print(f"Fitting a PlnPCAcollection model with {self._rank} components")
+        print(f"Fitting a PlnPCA model with {self._rank} components")
 
     @property
     def model_parameters(self) -> Dict[str, torch.Tensor]:
