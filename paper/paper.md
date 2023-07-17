@@ -28,7 +28,7 @@ bibliography: paper.bib
 # Summary
 High dimensional count data are hard to analyse as is, and normalization must
 be performed but standard normalization does not fit to the characteristics of
-count data. The Poisson LogNormal(PLN) models is a two-sided model that
+count data. The Poisson LogNormal(PLN)  model [@PLN] is a two-sided model that
 allows both suitable normalization and analysis of multivariate count data.
 Possible fields of applications include
 \begin{itemize}
@@ -39,15 +39,20 @@ Possible fields of applications include
   of times a gene is expressed in each cell. The goal is to infer the
   correlation between genes and to reduce the number of variables.
 \end{itemize}
-The main functionalities of the `pyPLNmodels` package are
+The model can deal with offsets when needed. The main functionalities of the `pyPLNmodels` package are
 \begin{itemize}
-\item Normalizing count data to obtain more valuable data.
+\item Normalize count data to obtain more valuable data.
 \item Analyse the significance of each variable and their correlation
 \item Perform regression when covariates are available.
 \item Reduce the number of variables.
-\item Visualization of normalized data.
+\item Visualize the normalized data.
 \end{itemize}
+To illustrate the main model's effect, we display below a Principal
+Component Analysis (PCA) with the `PlnPCA` class from `pyPLNmodels` on the left and  PCA on
+the log normalized data on the right.  The data considered is the `scMARK` benchmark [@scMark] described in the
+benchmark section. We kept NBPOINTS samples for illustration purposes.
 
+FIG
 
 # Statement of need
 While the R-package `PLNmodels` [@PLNmodels] already implements PLN models, the python package
@@ -55,7 +60,7 @@ While the R-package `PLNmodels` [@PLNmodels] already implements PLN models, the 
 large datasets of count data, such as scRNA (single-cell Ribonucleic acid)
 data. Real-world scRNA datasets typically involves thousands of cells ($n \approx 20000$) with
 thousand of genes($n \approx 20000$), resulting in a matrix of size $\approx
-20000 \times 20000$. The package has GPU support.
+20000 \times 20000$. The package has GPU support for a better scalability.
 
 The `statsmodels` [@statsmodels] python package allows to deal with count data
 thanks to the Generalized Linear Models `PoissonBayesMixedGLM` and
@@ -64,29 +69,55 @@ between variables and performing Principal Component Analysis adequate to count 
 
 
 # Benchmark
-We fit `Pln` and `PlnPCA` models on the `scMARK` dataset [@scMark]. We plot the
+We fit `Pln` and `PlnPCA` models on the `scMARK` dataset , a benchmark
+for scRNA (sincle-cell Ribnonucleic acid ) data with
+$n=19998$ samples (cells) and 14059 features (gene expression). The dataset gives access to the cell type of each sample, taking 28 different values. We plot the
 running times required to fit such models when the number of variables (i.e.
-genes) grows in FIG. A tolerance must be set as stopping criterion, the default
-is plot in solid lines and a relaxed tolerance is plot in dotted lines.  Note
+genes) grows in FIG. A tolerance must be set as stopping criterion when fitting each model, the running
+time required when the default value is used is plot in solid line and a
+relaxed tolerance is plot in dotted lines. Note
 that the default tolerance ensures the model parameters have reached
-convergence but the relaxed one gives satisfying model parameters, while being much faster.
-<!-- flexibility or ease-of-use in the user-interface. The API for `Gala` was -->
-<!-- designed to provide a class-based and user-friendly interface to fast (C or -->
-<!-- Cython-optimized) implementations of common operations such as gravitational -->
-<!-- potential and force evaluation, orbit integration, dynamical transformations, -->
-<!-- and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and -->
-<!-- interfaces well with the implementations of physical units and astronomical -->
-<!-- coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and -->
-<!-- `astropy.coordinates`). -->
+convergence but the relaxed one gives satisfying model parameters, while being
+much faster. We used nb_PC when fitting the PlnPCA model.
 
-<!-- `Gala` was designed to be used by both astronomical researchers and by -->
-<!-- students in courses on gravitational dynamics or astronomy. It has already been -->
-<!-- used in a number of scientific publications [@Pearson:2017] and has also been -->
-<!-- used in graduate courses on Galactic dynamics to, e.g., provide interactive -->
-<!-- visualizations of textbook material [@Binney:2008]. The combination of speed, -->
-<!-- design, and support for Astropy functionality in `Gala` will enable exciting -->
-<!-- scientific explorations of forthcoming data releases from the *Gaia* mission -->
-<!-- [@gaia] by students and experts alike. -->
+
+FIG
+
+<!-- # Mathematical details -->
+<!--  We introduce here the Poisson lognormal (PLN)  model PLNcite. Let $n,p,d,q \in \mathbb N_{\star}^4$. We consider: -->
+<!-- \begin{itemize} -->
+<!-- \item $n$ cells $(i=1,\ldots,n)$ -->
+
+<!-- \item $p$ genes $(j=1,\ldots,p)$ -->
+
+<!-- \item $n$ measures $X_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ : -->
+<!-- $X_{i h}=$ given descriptor (covariate) for cell $i$. -->
+
+<!-- \item $n$  measures $Y_i = (Y_{i j})_{1\leq j \leq p}$ : $Y_{ij}$ corresponds to the number of times the gene $j$ is expressed in cell $i$. -->
+
+<!-- \end{itemize} -->
+<!-- We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i -->
+<!-- j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable -->
+<!-- $Z_{i} \in \mathbb R^{p} $ such that: -->
+
+
+<!-- \renewcommand{\arraystretch}{1.5}   % stretching -->
+<!-- \begin{equation}\label{model} -->
+<!-- \begin{array}{c} -->
+<!-- W_{i}  \sim \mathcal{N}\left(0, I_{q}\right) \\ -->
+<!-- Z_{i} = \beta^{\top}X_i + CW_i  \\ -->
+<!--  \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right) \\ -->
+<!-- \end{array} -->
+<!-- \end{equation} -->
+<!-- \renewcommand{\arraystretch}{1} -->
+<!-- where $O = (o_{ij})_{1\leq i\leq n, 1\leq j\leq p}$ are known offsets, $\beta = (\beta _{kj})_{1 \leq k \leq d, 1 \leq j \leq p}$ is an unknown regression parameter and $C \in \mathbb R ^ {p\times q}$ (unknown) sends the latent variable $W_i$ from a space of dimension $q$ to a space of dimension $p$. For $ i_0 \neq i_1 $, we assume $W_{i_0} \independent W_{i_1}$ so that   $ Y_{i_0} \independent Y_{i_1} $. We denote $ Y \in \mathbb R ^ {n\times p}$ (resp. $X\in \mathbb R ^ {n\times d},Z \in \mathbb R ^ {n\times p}$) the matrix obtained by stacking the $Y_i$'s (resp. $X_i, Z_i$) in line. -->
+
+<!-- Note that mulitplying $C$ by an orthogonal matrix does not modify the model, so that $C$ is not identifiable. The unknown (and identifiable) parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ is the covariance matrix of each $Z_i$. The dimension $q\leq p$ is a hyperparameter that also needs to be tuned. We will consider two very different cases : -->
+<!-- \begin{itemize} -->
+<!-- \item p=q -->
+<!-- \item q<p -->
+<!-- \end{itemize} -->
+
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent on giving

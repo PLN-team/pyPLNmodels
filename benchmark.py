@@ -46,39 +46,41 @@ def append_running_times_pln_plnpca(Y):
     plnpca_running_times_rough_conv.append(rough_running_times_plnpca)
 
 
-n = 50
-ps = range(50, 1000, 10)
-pln_running_times_sharp_conv = []
-plnpca_running_times_sharp_conv = []
-pln_running_times_rough_conv = []
-plnpca_running_times_rough_conv = []
-sharp_tol = 0.001
-rough_tol = 0.01
-if sharp_tol > rough_tol:
-    raise ValueError("tols in the wrong order")
+if __name__ == "__main__":
+    n = 50
+    ps = range(50, 150, 10)
+    pln_running_times_sharp_conv = []
+    plnpca_running_times_sharp_conv = []
+    pln_running_times_rough_conv = []
+    plnpca_running_times_rough_conv = []
+    sharp_tol = 0.001
+    rough_tol = 0.01
+    if sharp_tol > rough_tol:
+        raise ValueError("tols in the wrong order")
 
-rank = 30
+    rank = 30
 
-for p in ps:
-    Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
-    append_running_times_pln_plnpca(Y)
+    for p in ps:
+        Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
+        append_running_times_pln_plnpca(Y)
 
-
-plt.plot(ps, pln_running_times_sharp_conv, color="blue", label="Pln sharp")
-plt.plot(ps, plnpca_running_times_sharp_conv, color="orange", label="PlnPCA sharp")
-plt.plot(
-    ps,
-    pln_running_times_rough_conv,
-    color="blue",
-    label="Pln rough",
-    linestyle="dotted",
-)
-plt.plot(
-    ps,
-    plnpca_running_times_rough_conv,
-    color="orange",
-    label="PlnPCA rough",
-    linestyle="dotted",
-)
-plt.legend()
-plt.show()
+    plt.plot(ps, pln_running_times_sharp_conv, color="blue", label="Pln default tol")
+    plt.plot(
+        ps, plnpca_running_times_sharp_conv, color="orange", label="PlnPCA default tol"
+    )
+    plt.plot(
+        ps,
+        pln_running_times_rough_conv,
+        color="blue",
+        label="Pln tol=0.01",
+        linestyle="dotted",
+    )
+    plt.plot(
+        ps,
+        plnpca_running_times_rough_conv,
+        color="orange",
+        label="PlnPCA tol=0.01",
+        linestyle="dotted",
+    )
+    plt.legend()
+    plt.show()
