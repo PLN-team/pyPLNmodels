@@ -77,7 +77,8 @@ if __name__ == "__main__":
     pn = 14059
     ecart = 300
     rank = 60
-    ps = range(p0, pn, ecart)
+    ps = np.arange(100, 500, 50)
+    ps = np.concatenate((ps, np.arange(p0, pn, ecart)))
     pln_running_times_sharp_conv = []
     plnpca_running_times_sharp_conv = []
     pln_running_times_rough_conv = []
@@ -94,7 +95,7 @@ if __name__ == "__main__":
     if sharp_tol > rough_tol:
         raise ValueError("tols in the wrong order")
 
-    if True:
+    if False:
         for p in tqdm(ps):
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_pln_plnpca(Y)
