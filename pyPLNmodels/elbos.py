@@ -234,7 +234,11 @@ def profiled_elbo_big(
         * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
     )
 
-    elbo = logPY_Z + entropy + PZ_profiled
+    ## force unitary diagonal to get correlation matrix
+    norm_diag = torch.sum((latent_mean - covariates @ closed_coef)**2, 0) + torch.sum(latent_sqrt_var**2, 0)
+    reg = torch.sum((norm_diag - n_samples)**2)
+
+    elbo = logPY_Z + entropy + PZ_profiled - reg
 
     return elbo / n_samples
 
