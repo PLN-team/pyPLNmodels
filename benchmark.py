@@ -7,6 +7,7 @@ import torch
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import pickle
+from tqdm import tqdm
 
 
 def get_sc_mark_data(max_class=28, max_n=200, dim=100):
@@ -71,11 +72,11 @@ def plot_dict(dict_rt):
 
 
 if __name__ == "__main__":
-    n = 50
-    p0 = 50
-    pn = 100
-    ecart = 10
-    rank = 30
+    n = 19998
+    p0 = 500
+    pn = 14059
+    ecart = 300
+    rank = 60
     ps = range(p0, pn, ecart)
     pln_running_times_sharp_conv = []
     plnpca_running_times_sharp_conv = []
@@ -93,8 +94,8 @@ if __name__ == "__main__":
     if sharp_tol > rough_tol:
         raise ValueError("tols in the wrong order")
 
-    if False:
-        for p in ps:
+    if True:
+        for p in tqdm(ps):
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_pln_plnpca(Y)
     else:
