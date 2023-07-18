@@ -8,7 +8,7 @@ import numpy as np
 fig, axes = plt.subplots(1, 2, figsize=(20, 10))
 
 n = 1000
-p = 4000
+p = 14059
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
 
 
