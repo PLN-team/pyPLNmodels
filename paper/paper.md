@@ -27,14 +27,14 @@ bibliography: paper.bib
 High dimensional count data are hard to analyse as is, and normalization must
 be performed but standard normalization does not fit to the characteristics of
 count data. The Poisson LogNormal(PLN)  [@PLN] and PLN-PCA [@PLNPCA] are two-sided models allowing both suitable
-normalization and analysis of multivariate count data. They are both implemented in the `pyPLNmodels` package introduced here.
+normalization and analysis of multivariate count data. Each model is implemented in the `pyPLNmodels` package introduced here.
 Possible fields of applications include
 \begin{itemize}
 \item Ecology: for $n$ sites and $p$ species, the counts represents the number of individuals of
   each species in each site. The PLN models aims to understand the correlation between
   species, specifically to establish potential dependencies, competitive
-  interactions, and predatory dynamics. Additionally, the PLN model seeks to
-  explain the impact of covariates, such as temperature, altitude, and other
+  interactions, and predatory dynamics. Additionally, the PLN models seek to
+  explain the impact of covariates (when available), such as temperature, altitude, and other
   relevant factors, on the observed abundances.
 \item Genomics: for $n$ cells and $p$ genes, the counts represents the number
   of times a gene is expressed in each cell. The objective is to estimate the
@@ -48,12 +48,12 @@ The models can deal with offsets when needed. The main functionalities of the `p
 \item Reduce the number of variables with the PLN-PCA model
 \item Visualize the normalized data
 \end{itemize}
-To illustrate the main model's effect, we display below a visualization of the first two principal components when Principal
-Component Analysis (PCA) is performed with the PLN-PCA model on the left and standard PCA on
-the log normalized data on the right.  The data considered is the `scMARK` benchmark [@scMark] described in the
+To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
+Component Analysis (PCA) is performed with the PLN-PCA model(on the left) and standard PCA on
+the log normalized data(on the right).  The data considered is the `scMARK` benchmark [@scMark] described in the
 benchmark section. We kept 1000 samples for illustration purposes.
 
-![PLN-PCA on the left and standard PCA on the right.](plnpca_vs_pca.png)
+![PLN-PCA (left) and standard PCA (right).](plnpca_vs_pca.png)
 
 # Statement of need
 While the R-package `PLNmodels` [@PLNmodels] implements PLN models, the python package
@@ -71,10 +71,10 @@ between variables and performing Principal Component Analysis adequate to count 
 # Benchmark
 We fit PLN and PLN-PCA models with the `pyPLNmodels` package on the `scMARK` dataset, a benchmark
 for scRNA (sincle-cell Ribnonucleic acid ) data with
-$n=19998$ samples (cells) and 14059 features (gene expression). The dataset gives access to the cell type of each sample, taking 28 different values. We plot below the
+$n=19998$ samples (cells) and 14059 features (gene expression). We plot below the
 running times required to fit such models when the number of variables (i.e.
-genes) grows in FIG. We used 60 Principal Components when fitting the PLN-PCA model. A tolerance must be set as stopping criterion when fitting each model. The running
-time required with the default is plot in solid line and a dotted line is plot with a relaxed tolerance. Note
+genes) grows. We used 60 Principal Components when fitting the PLN-PCA model. A tolerance must be set as stopping criterion when fitting each model. The running
+time required with the default tolerance is plot in solid line and a dotted line is plot with a relaxed tolerance. Note
 that the default tolerance ensures the model parameters have reached
 convergence but the relaxed one gives satisfying model parameters, while being
 much faster.
