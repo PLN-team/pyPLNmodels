@@ -12,9 +12,9 @@ authors:
     orcid: 0009-0001-3960-7120
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: 1
-  - name: Julien Chiquet
-    affiliation: 1
   - name: Joon Kwon
+    affiliation: 1
+  - name: Julien Chiquet
     affiliation: 1
 affiliations:
  - name: Université Paris-Saclay, AgroParisTech, INRAE, UMR MIA Paris-Saclay
