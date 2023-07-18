@@ -49,6 +49,7 @@ def append_running_times_pln_plnpca(Y):
 
 
 def plot_dict(dict_rt):
+    fig = plt.figure(figsize=(20, 10))
     plt.plot(ps, dict_rt["pln_sharp"], color="blue", label="Pln default tol")
     plt.plot(ps, dict_rt["plnpca_sharp"], color="orange", label="PlnPCA default tol")
     plt.plot(
@@ -66,6 +67,9 @@ def plot_dict(dict_rt):
         linestyle="dotted",
     )
     plt.legend()
+    plt.xlabel(r"Number of variables $p$")
+    plt.ylabel("Running times")
+    plt.savefig(f"paper/illustration.png", format="png")
     plt.show()
     with open(name_file, "wb") as fp:
         pickle.dump(dict_rt, fp)
@@ -95,7 +99,7 @@ if __name__ == "__main__":
     if sharp_tol > rough_tol:
         raise ValueError("tols in the wrong order")
 
-    if True:
+    if False:
         for p in tqdm(ps):
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_pln_plnpca(Y)
