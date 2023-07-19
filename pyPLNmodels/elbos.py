@@ -172,6 +172,11 @@ def elbo_plnpca(
     ) / n_samples
 
 
+def log1pexp(x):
+    # more stable version of log(1 + exp(x))
+    return torch.where(x < 50, torch.log1p(torch.exp(x)), x)
+
+
 ## pb with trunc_log
 ## should rename some variables so that is is clearer when we see the formula
 def elbo_zi_pln(
@@ -222,11 +227,7 @@ def elbo_zi_pln(
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
     un_moins_rho = 1 - latent_prob
     un_moins_rho_outer = torch.mm(un_moins_rho.T, un_moins_rho)
-    inside_b = (
-        -1
-        / 2
-        * torch.multiply(Omega, torch.multiply(un_moins_rho_outer, m_moins_xb_outer))
-    )
+    inside_b = -1 / 2 * Omega * un_moins_rho_outer * m_moins_xb_outer
     b = n_samples / 2 * torch.logdet(Omega) + torch.sum(inside_b)
 
     inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
@@ -280,5 +281,5 @@ def elbo_zi_pln(
     # )
     # elbo += n_samples / 2 * torch.log(torch.det(covariance))
     # elbo += n_samples * dim / 2
-    # elbo += torch.sum(1 / 2 * torch.log(s_rond_s))
-    return 0 * a + b  # + c + d + e + f
+    return c
+    return a + b + c + d + e + f

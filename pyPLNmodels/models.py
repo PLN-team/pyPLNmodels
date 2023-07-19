@@ -400,7 +400,7 @@ class _model(ABC):
         # print("norm latent grad ", self._latent_prob.grad)
         print("elbo:", -loss / self.n_samples)
         ### problem with M
-        print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
+        # print("diff theta_0:", torch.norm(self.grad_theta_0() + self._coef_inflation.grad))
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -1672,7 +1672,7 @@ class Pln(_model):
         covariances = components_var @ (sk_components.T.unsqueeze(0))
         return covariances
 
-    def _pring_beginning_message(self):
+    def _print_beginning_message(self):
         """
         Method for printing the beginning message.
         """
@@ -2091,7 +2091,7 @@ class PlnPCAcollection:
         """
         return [model.rank for model in self.values()]
 
-    def _pring_beginning_message(self) -> str:
+    def _print_beginning_message(self) -> str:
         """
         Method for printing the beginning message.
 
@@ -2154,7 +2154,7 @@ class PlnPCAcollection:
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         for i in range(len(self.values())):
             model = self[self.ranks[i]]
             model.fit(
@@ -2920,7 +2920,7 @@ class PlnPCA(_model):
         """
         return self._rank
 
-    def _pring_beginning_message(self):
+    def _print_beginning_message(self):
         """
         Print the beginning message when fitted.
         """
@@ -3353,13 +3353,10 @@ class ZIPln(_model):
             )
         )
         MmoinsXB = self._latent_mean - self._exog @ self._coef
-        second = (
-            MmoinsXB
-            @ (un_moins_prob.T)
-            @ un_moins_prob
-            @ torch.inverse(self._covariance)
+        second = MmoinsXB @ (
+            ((un_moins_prob.T) @ un_moins_prob) * torch.inverse(self._covariance)
         )
-        return 0 * first + second
+        return first - second
 
     def grad_S(self):
         un_moins_prob = 1 - self._latent_prob
@@ -3367,3 +3364,17 @@ class ZIPln(_model):
             self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
         )
         sec = un_moins_prob * 1 / self._latent_sqrt_var
+
+    def grad_theta(self):
+        un_moins_prob = 1 - self._latent_prob
+        return (
+            -self._exog.T
+            @ (self._exog @ self._coef - self._latent_mean)
+            @ (torch.inverse(self._covariance) * (un_moins_prob.T @ un_moins_prob))
+        )
+
+    def grad_theta_0(self):
+        return self._exog.T @ self._latent_prob - self._exog.T @ (
+            torch.exp(self._exog @ self._coef_inflation)
+            / (1 + torch.exp(self._exog @ self._coef_inflation))
+        )

@@ -4,6 +4,7 @@ from pyPLNmodels import get_real_count_data, get_simulated_count_data
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import torch
 
 os.chdir("./pyPLNmodels/")
 
@@ -17,6 +18,8 @@ os.chdir("./pyPLNmodels/")
     true_infla,
 ) = get_simulated_count_data(return_true_param=True, n_samples=200, zero_inflated=True)
 
+
+print("percentage zeros:", torch.sum(endog == 0) / (endog.shape[0] * endog.shape[1]))
 # pln = ZIPLN(true_infla=true_infla, true_covariance=true_Sigma, true_coef=true_beta)
 # pln.fit(counts, covariates, offsets, nb_max_iteration=250)
 # pln.print_mse()
