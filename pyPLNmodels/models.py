@@ -154,7 +154,7 @@ class _PLN(ABC):
         nb_max_iteration=50000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-6,
+        tol=1e-3,
         do_smart_init=True,
         verbose=False,
         keep_going=False,
@@ -178,6 +178,8 @@ class _PLN(ABC):
 
         self.mse_Sigma_list = []
         self.mse_beta_list = []
+        self.norm_list_C = []
+        self.norm_list_beta = []
         self.print_beginning_message()
         self.beginnning_time = time.time()
 
@@ -196,11 +198,17 @@ class _PLN(ABC):
                 self.print_stats()
             try:
                 self.mse_beta_list.append(
-                    error_loss(self.true_beta.cpu() - self._coef).detach().item()
+                    error_loss(self.true_beta.cpu() - self._coef.detach().cpu())
+                    .detach()
+                    .item()
                 )
                 self.mse_Sigma_list.append(
-                    error_loss(self.true_Sigma.cpu() - self.covariance).detach().item()
+                    error_loss(self.true_Sigma.cpu() - self.covariance.detach().cpu())
+                    .detach()
+                    .item()
                 )
+                self.norm_list_C.append(error_loss(self.components).item())
+                self.norm_list_beta.append(error_loss(self.coef).item())
             except:
                 self.mse_beta_list = [None]
                 self.mse_Sigma_list = [None]
@@ -681,7 +689,7 @@ class PLNPCA:
         nb_max_iteration=100000,
         lr=0.01,
         class_optimizer=torch.optim.Rprop,
-        tol=1e-6,
+        tol=1e-3,
         do_smart_init=True,
         verbose=False,
         keep_going=False,
