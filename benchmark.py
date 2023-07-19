@@ -77,11 +77,11 @@ def plot_dict(dict_rt):
 
 if __name__ == "__main__":
     n = 200
-    p0 = 500
-    pn = 800
+    p0 = 2000
+    pn = 2300
     ecart = 300
     rank = 60
-    ps = np.arange(100, 500, 50)
+    ps = np.arange(100, 500, 400)
     ps = np.concatenate((ps, np.arange(p0, pn, ecart)))
     pln_running_times_sharp_conv = []
     plnpca_running_times_sharp_conv = []
@@ -99,8 +99,9 @@ if __name__ == "__main__":
     if sharp_tol > rough_tol:
         raise ValueError("tols in the wrong order")
 
-    if False:
+    if True:
         for p in tqdm(ps):
+            print("dim:", p)
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_pln_plnpca(Y)
     else:
