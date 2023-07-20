@@ -205,7 +205,7 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
-        proj_variables = pca.transform(self.latent_variables)
+        proj_variables = pca.transform(self.latent_variables.detach().cpu())
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
@@ -380,7 +380,7 @@ class _model(ABC):
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose and self.nb_iteration_done % 50 == 0:
+            if verbose and self.nb_iteration_done % 50 == 1:
                 self._print_stats()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -2938,9 +2938,7 @@ class PlnPCA(_model):
         if not hasattr(self, "_coef"):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
-            self._components = _init_components(
-                self._endog, self._exog, self._coef, self._rank
-            )
+            self._components = _init_components(self._endog, self._exog, self._rank)
 
     def _random_init_model_parameters(self):
         """
