@@ -306,12 +306,12 @@ def _format_model_param(
     exog = _format_data(exog)
     if add_const is True:
         if exog is None:
-            exog = torch.ones(endog.shape[0], 1)
+            exog = torch.ones(endog.shape[0], 1).to(DEVICE)
         else:
             if _has_null_variance(exog) is False:
                 exog = torch.concat(
                     (exog, torch.ones(endog.shape[0]).unsqueeze(1)), dim=1
-                )
+                ).to(DEVICE)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of endog")
