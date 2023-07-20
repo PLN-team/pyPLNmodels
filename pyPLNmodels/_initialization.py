@@ -2,6 +2,11 @@ import torch
 import math
 from typing import Optional
 from ._utils import _log_stirling
+import time
+from sklearn.decomposition import PCA
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
 
 if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
@@ -41,7 +46,7 @@ def _init_covariance(
 
 
 def _init_components(
-    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor, rank: int
+    endog: torch.Tensor, exog: torch.Tensor, rank: int
 ) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
@@ -51,12 +56,6 @@ def _init_components(
     ----------
     endog : torch.Tensor
         Samples with size (n,p)
-    offsets : torch.Tensor
-        Offset, size (n,p)
-    exog : torch.Tensor
-        Covariates, size (n,d)
-    coef : torch.Tensor
-        Coefficient of size (d,p)
     rank : int
         The dimension of the latent space, i.e. the reduced dimension.
 
@@ -65,9 +64,11 @@ def _init_components(
     torch.Tensor
         Initialization of components of size (p,rank)
     """
-    sigma_hat = _init_covariance(endog, exog, coef).detach()
-    components = _components_from_covariance(sigma_hat, rank)
-    return components
+    log_y = torch.log(endog + (endog == 0) * math.exp(-2))
+    pca = PCA(n_components=rank)
+    pca.fit(log_y)
+    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
+    return torch.from_numpy(pca_comp).to(DEVICE)
 
 
 def _init_latent_mean(
@@ -102,13 +103,14 @@ def _init_latent_mean(
         The learning rate of the optimizer. Default is 0.01.
     eps : float, optional
         The tolerance. The algorithm will stop as soon as the criterion is lower than the tolerance.
-        Default is 7e-3.
+        Default is 7e-1.
 
     Returns
     -------
     torch.Tensor
         The initialized latent mean with size (n,rank)
     """
+    t = time.time()
     mode = torch.randn(endog.shape[0], components.shape[1], device=DEVICE)
     mode.requires_grad_(True)
     optimizer = torch.optim.Rprop([mode], lr=lr)
@@ -127,6 +129,7 @@ def _init_latent_mean(
             keep_condition = False
         old_mode = torch.clone(mode)
         i += 1
+    print("time mean", time.time() - t)
     return mode
 
 
