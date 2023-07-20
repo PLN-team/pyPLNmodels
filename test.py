@@ -33,16 +33,16 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 
 
 def plot_n_or_dim(n, dim):
-    counts, _, _ = get_sc_mark_data(dim=dim, max_n=n)
+    counts, _, GT = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
     covariates = None
     offsets = None
     pln = PLN(counts, covariates, offsets)
-    pln.fit(verbose=True)
+    pln.fit(verbose=True, GT=GT)
     true_beta = pln.coef
     true_Sigma = pln.covariance
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
-    ranks = [3, 4, 5, 7, 9, 12, 15, 20, 30, 40]
+    ranks = [3, 4]  # , 5, 7, 9, 12, 15, 20, 30, 40, 80, 120, 180, 250, 500]
     pca = PLNPCA(
         counts,
         covariates,
@@ -50,10 +50,11 @@ def plot_n_or_dim(n, dim):
         ranks=ranks,
         true_Sigma=true_Sigma,
         true_beta=true_beta,
+        GT=GT,
     )
     nb_max_iter = 200
     pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
-    fig, axes = plt.subplots(5)
+    fig, axes = plt.subplots(6)
     colors = np.linspace(0, 200, len(pca.ranks))
     colors /= 235
     colors = colors.reshape(-1, 1)
@@ -77,26 +78,33 @@ def plot_n_or_dim(n, dim):
             linestyle="--",
             color=colors[i],
         )
-        axes[1].plot(
-            absc, model.mse_Sigma_list, label=f"{model.rank}  Sigma", color=colors[i]
-        )
-        axes[2].plot(
-            absc, model.norm_list_C, label=f"{model.rank}  norm C", color=colors[i]
-        )
-        axes[3].plot(
-            absc, model.norm_list_C, label=f"{model.rank}  norm beta", color=colors[i]
-        )
+        axes[1].plot(absc, model.mse_Sigma_list, color=colors[i])
+        axes[2].plot(absc, model.norm_list_C, color=colors[i])
+        axes[3].plot(absc, model.norm_list_C, color=colors[i])
+        axes[4].plot(absc, model.norm_list_Sigma, color=colors[i])
         tols.append(model.plotargs.criterions[-1])
         # for i in range(nb_tols):
         # plt.axvline(firsts[i], label = tols[i], linestyle = '--')
     axes[0].legend()
+    axes[1].legend()
+    axes[2].legend()
+    axes[3].legend()
+    axes[4].legend()
+    axes[5].legend()
     axes[0].set_yscale("log")
+    axes[0].set_xlabel(r"$\hat \beta - beta$")
+    axes[1].set_yscale("log")
+    axes[1].set_xlabel(r"$\hat \Sigma - \Sigma$")
     axes[2].set_yscale("log")
-    axes[2].set_yscale("log")
+    axes[2].set_xlabel(r"$\|\Sigma\|$")
     axes[3].set_yscale("log")
-    axes[4].plot(ranks, tols, label="Criterion at last iteration")
+    axes[3].set_xlabel(r"$\|\beta\|$")
     axes[4].set_yscale("log")
+    axes[4].set_xlabel(r"$\|\Sigma\|$")
+    axes[5].plot(ranks, tols, label="Criterion at last iteration")
+    axes[5].set_xlabel(r"tolerance at last iteration")
+    axes[5].set_yscale("log")
     plt.show()
 
 
-plot_n_or_dim(500, 2000)
+plot_n_or_dim(500, 100)

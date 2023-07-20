@@ -4,6 +4,8 @@ import pickle
 import warnings
 import os
 from functools import singledispatchmethod
+import xgboost as xgb
+from sklearn.model_selection import cross_val_score
 
 import pandas as pd
 import torch
@@ -158,6 +160,7 @@ class _PLN(ABC):
         do_smart_init=True,
         verbose=False,
         keep_going=False,
+        GT=None,
     ):
         """
         Main function of the class. Fit a PLN to the data.
@@ -180,8 +183,12 @@ class _PLN(ABC):
         self.mse_beta_list = []
         self.norm_list_C = []
         self.norm_list_beta = []
+        self.norm_list_Sigma = []
+        self.scores_xgboost = []
+        self.scores_svm = []
         self.print_beginning_message()
         self.beginnning_time = time.time()
+        self.GT = GT
 
         if keep_going is False:
             self.init_parameters(do_smart_init)
@@ -196,6 +203,11 @@ class _PLN(ABC):
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 0:
                 self.print_stats()
+            xgb_predictor = xgb.XGBClassifier()
+            print(
+                "cross val score",
+                cross_val_score(xgb_predictor, X=self.latent_variables, y=self.GT),
+            )
             try:
                 self.mse_beta_list.append(
                     error_loss(self.true_beta.cpu() - self._coef.detach().cpu())
@@ -209,6 +221,7 @@ class _PLN(ABC):
                 )
                 self.norm_list_C.append(error_loss(self.components).item())
                 self.norm_list_beta.append(error_loss(self.coef).item())
+                self.norm_list_Sigma.append(error_loss(self.covariance).item())
             except:
                 self.mse_beta_list = [None]
                 self.mse_Sigma_list = [None]
@@ -222,6 +235,9 @@ class _PLN(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
+        # if self.nb_iteration_done > 100 and self.NAME != "PLN":
+        #     self._latent_mean.grad *= 0
+        #     self._latent_mean.grad *= 0
         self.optim.step()
         self.update_closed_forms()
         return loss
