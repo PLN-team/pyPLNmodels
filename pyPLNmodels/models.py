@@ -76,6 +76,7 @@ class _model(ABC):
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         """
         Initializes the model class.
@@ -97,6 +98,13 @@ class _model(ABC):
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
         """
         (
             self._endog,
@@ -107,6 +115,7 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
+        self._batch_size = self._handle_batch_size(batch_size)
         self._plotargs = _PlotArgs(self._WINDOW)
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
@@ -120,6 +129,7 @@ class _model(ABC):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ):
         """
         Create a model instance from a formula and data.
@@ -137,6 +147,9 @@ class _model(ABC):
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -147,6 +160,7 @@ class _model(ABC):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
+            batch_size=batch_size,
         )
 
     def _set_init_parameters(self, dict_initialization: dict):
@@ -165,6 +179,24 @@ class _model(ABC):
             array = _format_data(array)
             setattr(self, key, array)
         self._fitted = True
+
+    @property
+    def batch_size(self) -> int:
+        """
+        The batch size of the model. Should not be greater than the number of samples.
+        """
+        return self._batch_size
+
+    @property
+    def _current_batch_size(self) -> int:
+        return self._exog_b.shape[0]
+
+    @batch_size.setter
+    def batch_size(self, batch_size: int):
+        """
+        Setter for the batch size. Should be an integer not greater than the number of samples.
+        """
+        self._batch_size = self._handle_batch_size(batch_size)
 
     @property
     def fitted(self) -> bool:
@@ -215,6 +247,17 @@ class _model(ABC):
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
+
+    def _handle_batch_size(self, batch_size):
+        if batch_size is None:
+            batch_size = self.n_samples
+        if batch_size > self.n_samples:
+            raise ValueError(
+                f"batch_size ({batch_size}) can not be greater than the number of samples ({self.n_samples})"
+            )
+        elif isinstance(batch_size, int) is False:
+            raise ValueError(f"batch_size should be int, got {type(batch_size)}")
+        return batch_size
 
     @property
     def nb_iteration_done(self) -> int:
@@ -385,21 +428,65 @@ class _model(ABC):
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
+    def _get_batch(self, batch_size, shuffle=False):
+        """Get the batches required to do a  minibatch gradient ascent.
+
+        Args:
+            batch_size: int. The batch size. Should be lower than n.
+
+        Returns: A generator. Will generate n//batch_size + 1 batches of
+            size batch_size (except the last one since the rest of the
+            division is not always 0)
+        """
+        indices = np.arange(self.n_samples)
+        if shuffle:
+            np.random.shuffle(indices)
+        nb_full_batch, last_batch_size = (
+            self.n_samples // batch_size,
+            self.n_samples % batch_size,
+        )
+        self.nb_batches = nb_full_batch + (last_batch_size > 0)
+        for i in range(nb_full_batch):
+            yield self._return_batch(indices, i * batch_size, (i + 1) * batch_size)
+        # Last batch
+        if last_batch_size != 0:
+            yield self._return_batch(indices, -last_batch_size, self.n_samples)
+
+    def _return_batch(self, indices, beginning, end):
+        return (
+            self._endog[indices[beginning:end]],
+            self._exog[beginning:end],
+            self._offsets[indices[beginning:end]],
+            self._latent_mean[beginning:end],
+            self._latent_sqrt_var[beginning:end],
+        )
+
     def _trainstep(self):
         """
-        Perform a single training step.
+        Perform a single pass of the data.
 
         Returns
         -------
         torch.Tensor
             The loss value.
         """
-        self.optim.zero_grad()
-        loss = -self.compute_elbo()
-        loss.backward()
-        self.optim.step()
-        self._update_closed_forms()
-        return loss
+        elbo = 0
+        for batch in self._get_batch(self._batch_size):
+            self._extract_batch(batch)
+            self.optim.zero_grad()
+            loss = -self._compute_elbo_b()
+            loss.backward()
+            elbo += loss.item()
+            self.optim.step()
+            self._update_closed_forms()
+        return elbo / self.nb_batches
+
+    def _extract_batch(self, batch):
+        self._endog_b = batch[0]
+        self._exog_b = batch[1]
+        self._offsets_b = batch[2]
+        self._latent_mean_b = batch[3]
+        self._latent_sqrt_var_b = batch[4]
 
     def transform(self):
         """
@@ -633,7 +720,7 @@ class _model(ABC):
         float
             The computed criterion.
         """
-        self._plotargs._elbos_list.append(-loss.item())
+        self._plotargs._elbos_list.append(-loss)
         self._plotargs.running_times.append(time.time() - self._beginning_time)
         if self._plotargs.iteration_number > self._WINDOW:
             criterion = abs(
@@ -1334,6 +1421,7 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         super().__init__(
             endog=endog,
@@ -1343,6 +1431,7 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
+            batch_size=batch_size,
         )
 
     @classmethod
@@ -1370,6 +1459,7 @@ class Pln(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -1380,6 +1470,7 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1619,6 +1710,23 @@ class Pln(_model):
             self._latent_sqrt_var,
         )
 
+    def _compute_elbo_b(self):
+        """
+        Method for computing the evidence lower bound (ELBO) on the current batch.
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO on the current batch.
+        """
+        return profiled_elbo_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+        )
+
     def _smart_init_model_parameters(self):
         """
         Method for smartly initializing the model parameters.
@@ -1779,6 +1887,7 @@ class PlnPCAcollection:
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         """
         Constructor for PlnPCAcollection.
@@ -1801,6 +1910,9 @@ class PlnPCAcollection:
             Whether to take the logarithm of offsets, by default False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Returns
         -------
         PlnPCAcollection
@@ -1831,6 +1943,7 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ) -> "PlnPCAcollection":
         """
         Create an instance of PlnPCAcollection from a formula.
@@ -1851,6 +1964,10 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
+
         Returns
         -------
         PlnPCAcollection
@@ -2583,6 +2700,7 @@ class PlnPCA(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         self._rank = rank
         super().__init__(
@@ -2593,6 +2711,7 @@ class PlnPCA(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
+            batch_size=batch_size,
         )
 
     @classmethod
@@ -2624,6 +2743,7 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -2634,6 +2754,7 @@ class PlnPCA(_model):
             rank=rank,
             dict_initialization=dict_initialization,
             add_const=False,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -2990,6 +3111,25 @@ class PlnPCA(_model):
         if self._coef is None:
             return [self._components, self._latent_mean, self._latent_sqrt_var]
         return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
+
+    def _compute_elbo_b(self) -> torch.Tensor:
+        """
+        Compute the evidence lower bound (ELBO) with the current batch.
+
+        Returns
+        -------
+        torch.Tensor
+            The ELBO value on the current batch.
+        """
+        return elbo_plnpca(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            self._components,
+            self._coef,
+        )
 
     def compute_elbo(self) -> torch.Tensor:
         """
