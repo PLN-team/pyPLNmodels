@@ -1,7 +1,9 @@
 
 stages:
   - checks
+  - build
   - publish
+
 
 black:
   stage: checks
@@ -14,31 +16,49 @@ black:
 tests:
   stage: checks
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  before_script:
+    pip install '.[tests]'
   script:
-    - pip install -r requirements.txt
+    - pip install .
     - cd tests
-    - pip install -r requirements.txt
-    - pytest
+    - python create_readme_and_docstrings_tests.py
+    - pytest .
+
+
+build_package:
+  stage: build
+  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  before_script:
+    - pip install build
+  script:
+    - rm -rf dist/
+    - python -m build
+  artifacts:
+    untracked: true
+    expire_in: 1 week
+  tags:
+    - docker
 
 publish_package:
   stage: publish
   image: "python:3.9"
-  script:
+  before_script:
     - pip install twine
-    - python setup.py bdist_wheel
-    - TWINE_PASSWORD=${TWINE_PASSWORD} TWINE_USERNAME=${TWINE_USERNAME} python -m twine upload dist/*
+  script:
+    - echo ${pypln_token}
+    - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
   only:
-    - main
-  # only:
-  #   - tags
+    - tags
 
 pages:
   stage: publish
   image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  before_script:
+    - pip install '.[build-doc]'
   script:
-    - pip install -r requirements.txt
+    - pip install .
     - make -C docs html
     - rm -rf public/
     - cp -r docs/build/html public
@@ -48,4 +68,4 @@ pages:
   tags:
     - docker
   only:
-    - main
+    - tags

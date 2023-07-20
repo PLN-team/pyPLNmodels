@@ -1,4 +1,4 @@
-from pyPLNmodels.models import PLNPCA, _PLNPCA, PLN
+from pyPLNmodels.models import PlnPCA, PlnPCAcollection, Pln
 from pyPLNmodels import get_real_count_data, get_simulated_count_data
 import matplotlib.pyplot as plt
 import os
@@ -33,34 +33,38 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 
 
 def plot_n_or_dim(n, dim):
-    counts, _, GT = get_sc_mark_data(dim=dim, max_n=n)
+    counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
     covariates = None
     offsets = None
-    pln = PLN(counts, covariates, offsets)
-    pln.fit(verbose=True, GT=GT)
+    pln = Pln(counts, exog=covariates, offsets=offsets, GT=GT)
+    pln.fit(verbose=True)
     true_beta = pln.coef
     true_Sigma = pln.covariance
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
-    ranks = [3, 4]  # , 5, 7, 9, 12, 15, 20, 30, 40, 80, 120, 180, 250, 500]
-    pca = PLNPCA(
+    ranks = [3, 4, 5, 7, 9]  # , 12, 15, 20, 30, 40, 80, 120, 180, 250, 500]
+    pca = PlnPCAcollection(
         counts,
-        covariates,
-        offsets,
+        exog=covariates,
+        offsets=offsets,
         ranks=ranks,
         true_Sigma=true_Sigma,
         true_beta=true_beta,
         GT=GT,
     )
-    nb_max_iter = 200
+    nb_max_iter = 500
     pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
-    fig, axes = plt.subplots(6)
+    fig, mp_axes = plt.subplots(2, 4)
     colors = np.linspace(0, 200, len(pca.ranks))
+    axes = {}
+    for i in range(4):
+        axes[i] = mp_axes[0, i]
+        axes[4 + i] = mp_axes[1, i]
     colors /= 235
     colors = colors.reshape(-1, 1)
     colors = np.repeat(colors, 3, axis=1)
     tols = []
-    for i, model in enumerate(pca.models):
+    for i, model in enumerate(pca.values()):
         # plt.plot(1/np.array(model.plotargs.criterions[50:]),model.mse_beta_list[50:], label = f"{model.rank} beta", linestyle = '--')
         # plt.plot(1/np.array(model.plotargs.criterions[50:]),model.mse_Sigma_list[50:], label = f"{model.rank}  Sigma")
         # nb_tols = 7
@@ -71,6 +75,8 @@ def plot_n_or_dim(n, dim):
         # print("criterion:", model.plotargs.criterions)
         # print('first :', firsts)
         absc = np.arange(len(model.mse_beta_list))
+        print("absc", absc)
+        print("mse:", model.mse_beta_list)
         axes[0].plot(
             absc,
             model.mse_beta_list,
@@ -79,10 +85,14 @@ def plot_n_or_dim(n, dim):
             color=colors[i],
         )
         axes[1].plot(absc, model.mse_Sigma_list, color=colors[i])
-        axes[2].plot(absc, model.norm_list_C, color=colors[i])
+        axes[2].plot(absc, model.norm_list_beta, color=colors[i])
         axes[3].plot(absc, model.norm_list_C, color=colors[i])
         axes[4].plot(absc, model.norm_list_Sigma, color=colors[i])
-        tols.append(model.plotargs.criterions[-1])
+        axes[6].plot(
+            np.arange(len(model.scores_xgboost)), model.scores_xgboost, color=colors[i]
+        )
+        print("scores xgboost", model.scores_xgboost)
+        tols.append(model._plotargs.criterions[-1])
         # for i in range(nb_tols):
         # plt.axvline(firsts[i], label = tols[i], linestyle = '--')
     axes[0].legend()
@@ -92,18 +102,19 @@ def plot_n_or_dim(n, dim):
     axes[4].legend()
     axes[5].legend()
     axes[0].set_yscale("log")
-    axes[0].set_xlabel(r"$\hat \beta - beta$")
+    axes[0].set_title(r"$\hat \beta - beta$")
     axes[1].set_yscale("log")
-    axes[1].set_xlabel(r"$\hat \Sigma - \Sigma$")
+    axes[1].set_title(r"$\hat \Sigma - \Sigma$")
     axes[2].set_yscale("log")
-    axes[2].set_xlabel(r"$\|\Sigma\|$")
+    axes[2].set_title(r"$\|\Sigma\|$")
     axes[3].set_yscale("log")
-    axes[3].set_xlabel(r"$\|\beta\|$")
+    axes[3].set_title(r"$\|\beta\|$")
     axes[4].set_yscale("log")
-    axes[4].set_xlabel(r"$\|\Sigma\|$")
+    axes[4].set_title(r"$\|\Sigma\|$")
     axes[5].plot(ranks, tols, label="Criterion at last iteration")
-    axes[5].set_xlabel(r"tolerance at last iteration")
+    axes[5].set_title(r"tolerance at last iteration")
     axes[5].set_yscale("log")
+    axes[6].set_title("Scores predictor")
     plt.show()
 
 
