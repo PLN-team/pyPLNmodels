@@ -761,7 +761,7 @@ def get_simulated_count_data(
             pln_param.covariance,
             pln_param.coef,
         )
-    return pln_param.endog, pln_param.cov, pln_param.offsets
+    return endog, pln_param.exog, pln_param.offsets
 
 
 def get_real_count_data(
