@@ -76,7 +76,6 @@ class _model(ABC):
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        batch_size: int = None,
     ):
         """
         Initializes the model class.
@@ -98,9 +97,6 @@ class _model(ABC):
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Raises
         ------
         ValueError
@@ -115,7 +111,6 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._batch_size = self._handle_batch_size(batch_size)
         self._plotargs = _PlotArgs(self._WINDOW)
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
@@ -129,7 +124,6 @@ class _model(ABC):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
-        batch_size: int = None,
     ):
         """
         Create a model instance from a formula and data.
@@ -147,9 +141,6 @@ class _model(ABC):
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -160,7 +151,6 @@ class _model(ABC):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
-            batch_size=batch_size,
         )
 
     def _set_init_parameters(self, dict_initialization: dict):
@@ -385,10 +375,10 @@ class _model(ABC):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size=None,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -399,26 +389,25 @@ class _model(ABC):
             The maximum number of iterations. Defaults to 50000.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
-        class_optimizer : str, optional
-            The optimizer class. Defaults to "Rprop". If the
-            batch_size is lower than the number of samples, the Rprop
-            algorithm should not be used. A warning will be sent.
         tol : float, optional(keyword-only)
             The tolerance for convergence. Defaults to 1e-3.
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         self._print_beginning_message()
         self._beginning_time = time.time()
-
+        self._batch_size = self._handle_batch_size(batch_size)
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._plotargs.running_times) > 0:
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
-        self._handle_optimizer(class_optimizer, lr)
+        self._handle_optimizer(lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
@@ -430,39 +419,14 @@ class _model(ABC):
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
-    def _handle_optimizer(self, class_optimizer, lr):
-        if class_optimizer == "Rprop":
-            if self.batch_size < self.n_samples:
-                optimizer_is_set = False
-                while optimizer_is_set is False:
-                    msg = (
-                        f"The Rprop optimizer should not be used when mini batch are used"
-                        f"(i.e. batch_size ({self.batch_size}) < n_samples = {self.n_samples}). "
-                        f"Do you wish to turn to the Adam Optimizer? (y/n) "
-                    )
-                    print(msg)
-                    turn = str(input())
-                    if turn == "y":
-                        self.optim = torch.optim.Adam(
-                            self._list_of_parameters_needing_gradient, lr=lr
-                        )
-                        optimizer_is_set = True
-                    elif turn == "n":
-                        self.optim = torch.optim.Rprop(
-                            self._list_of_parameters_needing_gradient, lr=lr
-                        )
-                        optimizer_is_set = True
-            else:
-                self.optim = torch.optim.Rprop(
-                    self._list_of_parameters_needing_gradient, lr=lr
-                )
-        elif class_optimizer == "Adam":
+    def _handle_optimizer(self, lr):
+        if self.batch_size < self.n_samples:
             self.optim = torch.optim.Adam(
                 self._list_of_parameters_needing_gradient, lr=lr
             )
         else:
-            raise ValueError(
-                f"Optimizer should be either 'Adam' or 'Rprop', got {class_optimizer}"
+            self.optim = torch.optim.Rprop(
+                self._list_of_parameters_needing_gradient, lr=lr
             )
 
     def _get_batch(self, batch_size, shuffle=False):
@@ -508,8 +472,9 @@ class _model(ABC):
             The loss value.
         """
         elbo = 0
-        for batch in self._get_batch(self._batch_size):
+        for batch in self._get_batch(self._batch_size, shuffle=False):
             self._extract_batch(batch)
+            # print('current bach', self._current_batch_size)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             loss.backward()
@@ -1458,7 +1423,6 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        batch_size: int = None,
     ):
         super().__init__(
             endog=endog,
@@ -1468,7 +1432,6 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
-            batch_size=batch_size,
         )
 
     @classmethod
@@ -1496,7 +1459,6 @@ class Pln(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -1507,7 +1469,6 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
-            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1525,18 +1486,18 @@ class Pln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size: int = None,
     ):
         super().fit(
             nb_max_iteration,
             lr=lr,
-            class_optimizer=class_optimizer,
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1924,7 +1885,6 @@ class PlnPCAcollection:
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        batch_size: int = None,
     ):
         """
         Constructor for PlnPCAcollection.
@@ -1980,7 +1940,6 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
-        batch_size: int = None,
     ) -> "PlnPCAcollection":
         """
         Create an instance of PlnPCAcollection from a formula.
@@ -2001,9 +1960,6 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
 
         Returns
         -------
@@ -2281,10 +2237,10 @@ class PlnPCAcollection:
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size: int = None,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2295,14 +2251,15 @@ class PlnPCAcollection:
             The maximum number of iterations, by default 50000.
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
-        class_optimizer : Type[torch.optim.Optimizer], optional(keyword-only)
-            The optimizer class, by default torch.optim.Rprop.
         tol : float, optional(keyword-only)
             The tolerance, by default 1e-3.
         do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         self._print_beginning_message()
         for i in range(len(self.values())):
@@ -2310,7 +2267,6 @@ class PlnPCAcollection:
             model.fit(
                 nb_max_iteration,
                 lr=lr,
-                class_optimizer=class_optimizer,
                 tol=tol,
                 do_smart_init=do_smart_init,
                 verbose=verbose,
@@ -2737,7 +2693,6 @@ class PlnPCA(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        batch_size: int = None,
     ):
         self._rank = rank
         super().__init__(
@@ -2748,7 +2703,6 @@ class PlnPCA(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
-            batch_size=batch_size,
         )
 
     @classmethod
@@ -2780,7 +2734,6 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
-        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -2791,7 +2744,6 @@ class PlnPCA(_model):
             rank=rank,
             dict_initialization=dict_initialization,
             add_const=False,
-            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -2809,18 +2761,18 @@ class PlnPCA(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size=None,
     ):
         super().fit(
             nb_max_iteration,
             lr=lr,
-            class_optimizer=class_optimizer,
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            batch_size=batch_size,
         )
 
     @_add_doc(
