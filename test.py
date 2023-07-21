@@ -32,6 +32,24 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     return Y, GT, list(GT_name.values.__array__())
 
 
+def plot_collection(col, axes, colors, tol_list, linestyle):
+    for i, model in enumerate(col.values()):
+        absc = model._plotargs.running_times
+        axes[0].plot(
+            absc,
+            model.mse_beta_list,
+            label=f"{model.rank} beta",
+            color=colors[i],
+            linestyle=linestyle,
+        )
+        axes[1].plot(absc, model.mse_Sigma_list, color=colors[i], linestyle=linestyle)
+        axes[2].plot(absc, model.norm_list_beta, color=colors[i], linestyle=linestyle)
+        axes[3].plot(absc, model.norm_list_C, color=colors[i], linestyle=linestyle)
+        axes[4].plot(absc, model.norm_list_Sigma, color=colors[i], linestyle=linestyle)
+        axes[6].plot(absc, model.scores_xgboost, color=colors[i], linestyle=linestyle)
+        tol_list.append(model._plotargs.criterions[-1])
+
+
 def plot_n_or_dim(n, dim):
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
@@ -52,8 +70,21 @@ def plot_n_or_dim(n, dim):
         true_beta=true_beta,
         GT=GT,
     )
+    pca_batch = PlnPCAcollection(
+        counts,
+        exog=covariates,
+        offsets=offsets,
+        ranks=ranks,
+        true_Sigma=true_Sigma,
+        true_beta=true_beta,
+        GT=GT,
+        batch_size=20,
+    )
     nb_max_iter = 500
     pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
+    pca_batch.fit(
+        tol=0, nb_max_iteration=nb_max_iter, verbose=True, class_optimizer="Adam"
+    )
     fig, mp_axes = plt.subplots(2, 4)
     colors = np.linspace(0, 200, len(pca.ranks))
     axes = {}
@@ -64,37 +95,9 @@ def plot_n_or_dim(n, dim):
     colors = colors.reshape(-1, 1)
     colors = np.repeat(colors, 3, axis=1)
     tols = []
-    for i, model in enumerate(pca.values()):
-        # plt.plot(1/np.array(model.plotargs.criterions[50:]),model.mse_beta_list[50:], label = f"{model.rank} beta", linestyle = '--')
-        # plt.plot(1/np.array(model.plotargs.criterions[50:]),model.mse_Sigma_list[50:], label = f"{model.rank}  Sigma")
-        # nb_tols = 7
-        # nb_iter = 600
-        # print("current_tol", model.plotargs.criterions[nb_iter])
-        # tols = np.logspace(-7, 1, nb_tols)
-        # firsts = [np.argmin(model.plotargs.criterions > tol) for tol in tols]
-        # print("criterion:", model.plotargs.criterions)
-        # print('first :', firsts)
-        absc = np.arange(len(model.mse_beta_list))
-        print("absc", absc)
-        print("mse:", model.mse_beta_list)
-        axes[0].plot(
-            absc,
-            model.mse_beta_list,
-            label=f"{model.rank} beta",
-            linestyle="--",
-            color=colors[i],
-        )
-        axes[1].plot(absc, model.mse_Sigma_list, color=colors[i])
-        axes[2].plot(absc, model.norm_list_beta, color=colors[i])
-        axes[3].plot(absc, model.norm_list_C, color=colors[i])
-        axes[4].plot(absc, model.norm_list_Sigma, color=colors[i])
-        axes[6].plot(
-            np.arange(len(model.scores_xgboost)), model.scores_xgboost, color=colors[i]
-        )
-        print("scores xgboost", model.scores_xgboost)
-        tols.append(model._plotargs.criterions[-1])
-        # for i in range(nb_tols):
-        # plt.axvline(firsts[i], label = tols[i], linestyle = '--')
+    tols_batch = []
+    plot_collection(pca, axes, colors, tols, linestyle="-")
+    plot_collection(pca_batch, axes, colors, tols_batch, linestyle="--")
     axes[0].legend()
     axes[1].legend()
     axes[2].legend()
@@ -102,9 +105,9 @@ def plot_n_or_dim(n, dim):
     axes[4].legend()
     axes[5].legend()
     axes[0].set_yscale("log")
-    axes[0].set_title(r"$\hat \beta - beta$")
+    axes[0].set_title(r"$\hat \beta - \beta^{\star}$")
     axes[1].set_yscale("log")
-    axes[1].set_title(r"$\hat \Sigma - \Sigma$")
+    axes[1].set_title(r"$\hat \Sigma - \Sigma^{\star}$")
     axes[2].set_yscale("log")
     axes[2].set_title(r"$\|\Sigma\|$")
     axes[3].set_yscale("log")
@@ -112,10 +115,11 @@ def plot_n_or_dim(n, dim):
     axes[4].set_yscale("log")
     axes[4].set_title(r"$\|\Sigma\|$")
     axes[5].plot(ranks, tols, label="Criterion at last iteration")
+    axes[5].plot(ranks, tols_batch, label="Criterion at last iteration", linestyle="--")
     axes[5].set_title(r"tolerance at last iteration")
     axes[5].set_yscale("log")
     axes[6].set_title("Scores predictor")
     plt.show()
 
 
-plot_n_or_dim(500, 100)
+plot_n_or_dim(4000, 400)
