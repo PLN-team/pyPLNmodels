@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from typing import Optional, Dict, List, Type, Any, Iterable, Union
+from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
 
 import pandas as pd
 import torch
@@ -385,7 +385,7 @@ class _model(ABC):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
@@ -399,8 +399,10 @@ class _model(ABC):
             The maximum number of iterations. Defaults to 50000.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
-        class_optimizer : torch.optim.Optimizer, optional
-            The optimizer class. Defaults to torch.optim.Rprop.
+        class_optimizer : str, optional
+            The optimizer class. Defaults to "Rprop". If the
+            batch_size is lower than the number of samples, the Rprop
+            algorithm should not be used. A warning will be sent.
         tol : float, optional(keyword-only)
             The tolerance for convergence. Defaults to 1e-3.
         do_smart_init : bool, optional(keyword-only)
@@ -416,7 +418,7 @@ class _model(ABC):
         elif len(self._plotargs.running_times) > 0:
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
-        self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
+        self._handle_optimizer(class_optimizer, lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
@@ -427,6 +429,41 @@ class _model(ABC):
                 self._print_stats()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
+
+    def _handle_optimizer(self, class_optimizer, lr):
+        if class_optimizer == "Rprop":
+            if self.batch_size < self.n_samples:
+                optimizer_is_set = False
+                while optimizer_is_set is False:
+                    msg = (
+                        f"The Rprop optimizer should not be used when mini batch are used"
+                        f"(i.e. batch_size ({self.batch_size}) < n_samples = {self.n_samples}). "
+                        f"Do you wish to turn to the Adam Optimizer? (y/n) "
+                    )
+                    print(msg)
+                    turn = str(input())
+                    if turn == "y":
+                        self.optim = torch.optim.Adam(
+                            self._list_of_parameters_needing_gradient, lr=lr
+                        )
+                        optimizer_is_set = True
+                    elif turn == "n":
+                        self.optim = torch.optim.Rprop(
+                            self._list_of_parameters_needing_gradient, lr=lr
+                        )
+                        optimizer_is_set = True
+            else:
+                self.optim = torch.optim.Rprop(
+                    self._list_of_parameters_needing_gradient, lr=lr
+                )
+        elif class_optimizer == "Adam":
+            self.optim = torch.optim.Adam(
+                self._list_of_parameters_needing_gradient, lr=lr
+            )
+        else:
+            raise ValueError(
+                f"Optimizer should be either 'Adam' or 'Rprop', got {class_optimizer}"
+            )
 
     def _get_batch(self, batch_size, shuffle=False):
         """Get the batches required to do a  minibatch gradient ascent.
@@ -1488,7 +1525,7 @@ class Pln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
@@ -2244,7 +2281,7 @@ class PlnPCAcollection:
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Type[torch.optim.Optimizer] = torch.optim.Rprop,
+        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
@@ -2772,7 +2809,7 @@ class PlnPCA(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
+        class_optimizer: Literal["Rprop", "Adam"] = "Rprop",
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
