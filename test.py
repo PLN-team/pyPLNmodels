@@ -82,9 +82,7 @@ def plot_n_or_dim(n, dim):
     )
     nb_max_iter = 500
     pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
-    pca_batch.fit(
-        tol=0, nb_max_iteration=nb_max_iter, verbose=True, class_optimizer="Adam"
-    )
+    pca_batch.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
     fig, mp_axes = plt.subplots(2, 4)
     colors = np.linspace(0, 200, len(pca.ranks))
     axes = {}
@@ -122,4 +120,4 @@ def plot_n_or_dim(n, dim):
     plt.show()
 
 
-plot_n_or_dim(4000, 400)
+plot_n_or_dim(200, 50)
