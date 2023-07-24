@@ -454,12 +454,13 @@ class _model(ABC):
             yield self._return_batch(indices, -last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
+        to_take = torch.tensor(indices[beginning:end])
         return (
-            self._endog[indices[beginning:end]],
-            self._exog[beginning:end],
-            self._offsets[indices[beginning:end]],
-            self._latent_mean[beginning:end],
-            self._latent_sqrt_var[beginning:end],
+            torch.index_select(self._endog, 0, to_take),
+            torch.index_select(self._exog, 0, to_take),
+            torch.index_select(self._offsets, 0, to_take),
+            torch.index_select(self._latent_mean, 0, to_take),
+            torch.index_select(self._latent_sqrt_var, 0, to_take),
         )
 
     def _trainstep(self):
@@ -472,9 +473,8 @@ class _model(ABC):
             The loss value.
         """
         elbo = 0
-        for batch in self._get_batch(self._batch_size, shuffle=False):
+        for batch in self._get_batch(self._batch_size, shuffle=True):
             self._extract_batch(batch)
-            # print('current bach', self._current_batch_size)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             loss.backward()
