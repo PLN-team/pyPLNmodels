@@ -110,7 +110,6 @@ def _init_latent_mean(
     torch.Tensor
         The initialized latent mean with size (n,rank)
     """
-    t = time.time()
     mode = torch.randn(endog.shape[0], components.shape[1], device=DEVICE)
     mode.requires_grad_(True)
     optimizer = torch.optim.Rprop([mode], lr=lr)
@@ -129,7 +128,6 @@ def _init_latent_mean(
             keep_condition = False
         old_mode = torch.clone(mode)
         i += 1
-    print("time mean", time.time() - t)
     return mode
 
 
