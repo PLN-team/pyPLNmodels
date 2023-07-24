@@ -2270,6 +2270,7 @@ class PlnPCAcollection:
                 tol=tol,
                 do_smart_init=do_smart_init,
                 verbose=verbose,
+                batch_size=batch_size,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
