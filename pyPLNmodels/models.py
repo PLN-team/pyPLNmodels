@@ -84,7 +84,6 @@ class _model(ABC):
         add_const: bool = True,
         true_beta=None,
         true_Sigma=None,
-        batch_size: int = None,
     ):
         """
         Initializes the model class.
@@ -106,13 +105,8 @@ class _model(ABC):
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Raises
         ------
-        ValueError
-            If the batch_size is greater than the number of samples, or not int.
         """
         (
             self._endog,
@@ -123,7 +117,6 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._batch_size = self._handle_batch_size(batch_size)
         self._plotargs = _PlotArgs(self._WINDOW)
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
@@ -137,7 +130,6 @@ class _model(ABC):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
-        batch_size: int = None,
     ):
         """
         Create a model instance from a formula and data.
@@ -155,9 +147,6 @@ class _model(ABC):
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -168,7 +157,6 @@ class _model(ABC):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
-            batch_size=batch_size,
         )
 
     def _set_init_parameters(self, dict_initialization: dict):
@@ -426,7 +414,6 @@ class _model(ABC):
         self.scores_xgboost = []
         self.scores_svm = []
         self._print_beginning_message()
-        self.beginnning_time = time.time()
         self._beginning_time = time.time()
         if self._fitted is False:
             self._init_parameters(do_smart_init)
@@ -434,6 +421,7 @@ class _model(ABC):
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
         self._handle_optimizer(lr)
+        self._batch_size = self._handle_batch_size(batch_size)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
@@ -1951,7 +1939,6 @@ class PlnPCAcollection:
         true_Sigma=None,
         true_beta=None,
         GT=None,
-        batch_size: int = None,
     ):
         """
         Constructor for PlnPCAcollection.
@@ -2010,7 +1997,6 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
-        batch_size: int = None,
     ) -> "PlnPCAcollection":
         """
         Create an instance of PlnPCAcollection from a formula.
@@ -2031,9 +2017,6 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
 
         Returns
         -------
@@ -2347,6 +2330,7 @@ class PlnPCAcollection:
                 tol=tol,
                 do_smart_init=do_smart_init,
                 verbose=verbose,
+                batch_size=batch_size,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
@@ -2773,7 +2757,6 @@ class PlnPCA(_model):
         true_beta=None,
         true_Sigma=None,
         GT=None,
-        batch_size: int = None,
     ):
         self._rank = rank
         self.GT = GT
@@ -2785,7 +2768,6 @@ class PlnPCA(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
-            batch_size=batch_size,
         )
         self.true_beta = true_beta
         self.true_Sigma = true_Sigma
@@ -2819,7 +2801,6 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
-        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -2830,7 +2811,6 @@ class PlnPCA(_model):
             rank=rank,
             dict_initialization=dict_initialization,
             add_const=False,
-            batch_size=batch_size,
         )
 
     @_add_doc(
