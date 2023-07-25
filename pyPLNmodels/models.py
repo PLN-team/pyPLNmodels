@@ -250,7 +250,7 @@ class _model(ABC):
         return batch_size
 
     @property
-    def nb_iteration_done(self) -> int:
+    def _nb_iteration_done(self) -> int:
         """
         The number of iterations done.
 
@@ -259,7 +259,7 @@ class _model(ABC):
         int
             The number of iterations done.
         """
-        return len(self._plotargs._elbos_list)
+        return len(self._plotargs._elbos_list) * self._nb_batches
 
     @property
     def n_samples(self) -> int:
@@ -429,7 +429,7 @@ class _model(ABC):
                 self._list_of_parameters_needing_gradient, lr=lr
             )
 
-    def _get_batch(self, batch_size, shuffle=False):
+    def _get_batch(self, shuffle=False):
         """Get the batches required to do a  minibatch gradient ascent.
 
         Args:
@@ -442,19 +442,17 @@ class _model(ABC):
         indices = np.arange(self.n_samples)
         if shuffle:
             np.random.shuffle(indices)
-        nb_full_batch, last_batch_size = (
-            self.n_samples // batch_size,
-            self.n_samples % batch_size,
-        )
-        self.nb_batches = nb_full_batch + (last_batch_size > 0)
-        for i in range(nb_full_batch):
-            yield self._return_batch(indices, i * batch_size, (i + 1) * batch_size)
+
+        for i in range(self._nb_full_batch):
+            yield self._return_batch(
+                indices, i * self._batch_size, (i + 1) * self._batch_size
+            )
         # Last batch
-        if last_batch_size != 0:
-            yield self._return_batch(indices, -last_batch_size, self.n_samples)
+        if self._last_batch_size != 0:
+            yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
-        to_take = torch.tensor(indices[beginning:end])
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
         return (
             torch.index_select(self._endog, 0, to_take),
             torch.index_select(self._exog, 0, to_take),
@@ -462,6 +460,18 @@ class _model(ABC):
             torch.index_select(self._latent_mean, 0, to_take),
             torch.index_select(self._latent_sqrt_var, 0, to_take),
         )
+
+    @property
+    def _nb_full_batch(self):
+        return self.n_samples // self._batch_size
+
+    @property
+    def _last_batch_size(self):
+        return self.n_samples % self._batch_size
+
+    @property
+    def _nb_batches(self):
+        return self._nb_full_batch + (self._last_batch_size > 0)
 
     def _trainstep(self):
         """
@@ -473,7 +483,7 @@ class _model(ABC):
             The loss value.
         """
         elbo = 0
-        for batch in self._get_batch(self._batch_size, shuffle=True):
+        for batch in self._get_batch(shuffle=True):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
@@ -481,7 +491,7 @@ class _model(ABC):
             elbo += loss.item()
             self.optim.step()
             self._update_closed_forms()
-        return elbo / self.nb_batches
+        return elbo / self._nb_batches
 
     def _extract_batch(self, batch):
         self._endog_b = batch[0]
@@ -1232,7 +1242,7 @@ class _model(ABC):
         dict
             The dictionary of optimization parameters.
         """
-        return {"Number of iterations done": self.nb_iteration_done}
+        return {"Number of iterations done": self._nb_iteration_done}
 
     @property
     def _useful_properties_string(self):
