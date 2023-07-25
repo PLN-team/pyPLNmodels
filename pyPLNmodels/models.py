@@ -256,7 +256,7 @@ class _model(ABC):
         return batch_size
 
     @property
-    def nb_iteration_done(self) -> int:
+    def _nb_iteration_done(self) -> int:
         """
         The number of iterations done.
 
@@ -265,7 +265,7 @@ class _model(ABC):
         int
             The number of iterations done.
         """
-        return len(self._plotargs._elbos_list)
+        return len(self._plotargs._elbos_list) * self._nb_batches
 
     @property
     def n_samples(self) -> int:
@@ -420,16 +420,10 @@ class _model(ABC):
         elif len(self._plotargs.running_times) > 0:
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
-        self._handle_optimizer(lr)
         self._batch_size = self._handle_batch_size(batch_size)
+        self._handle_optimizer(lr)
         stop_condition = False
-        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
-            loss = self._trainstep()
-            criterion = self._compute_criterion_and_update_plotargs(loss, tol)
-            if abs(criterion) < tol:
-                stop_condition = True
-
-            # try:
+        while self._nb_iteration_done < nb_max_iteration and not stop_condition:
             self.mse_beta_list.append(
                 error_loss(self.true_beta.cpu() - self._coef.detach().cpu())
                 .detach()
@@ -444,20 +438,29 @@ class _model(ABC):
                 self.norm_list_C.append(error_loss(self.components).item())
                 self.norm_list_beta.append(error_loss(self.coef).item())
             self.norm_list_Sigma.append(error_loss(self.covariance).item())
-            if self.nb_iteration_done % 50 == 1:
+            if self._nb_iteration_done / self._nb_batches % 50 == 0:
                 xgb_predictor = xgb.XGBClassifier()
+                t = time.time()
                 self.score = cross_val_score(
                     xgb_predictor, X=self.latent_variables, y=self.GT, cv=10
                 ).mean()
+                time_spent = time.time() - t
+                self._beginning_time += time_spent
             self.scores_xgboost.append(self.score),
+            loss = self._trainstep()
+            criterion = self._compute_criterion_and_update_plotargs(loss, tol)
+            if abs(criterion) < tol:
+                stop_condition = True
+
+            # try:
             # except:
             #     print('marche pas')
-            #     if self.nb_iteration_done %50 == 1:
+            #     if self._nb_iteration_done %50 == 1:
             #         xgb_predictor = xgb.XGBClassifier()
             #         self.scores_xgboost.append(cross_val_score(xgb_predictor, X=self.latent_variables, y=self.GT).mean()),
             #     self.mse_beta_list = [None]
             #     self.mse_Sigma_list = [None]
-            if verbose and self.nb_iteration_done % 50 == 1:
+            if verbose and self._nb_iteration_done % 250 == 1:
                 self._print_stats()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -472,7 +475,7 @@ class _model(ABC):
                 self._list_of_parameters_needing_gradient, lr=lr
             )
 
-    def _get_batch(self, batch_size, shuffle=False):
+    def _get_batch(self, shuffle=False):
         """Get the batches required to do a  minibatch gradient ascent.
 
         Args:
@@ -485,16 +488,14 @@ class _model(ABC):
         indices = np.arange(self.n_samples)
         if shuffle:
             np.random.shuffle(indices)
-        nb_full_batch, last_batch_size = (
-            self.n_samples // batch_size,
-            self.n_samples % batch_size,
-        )
-        self.nb_batches = nb_full_batch + (last_batch_size > 0)
-        for i in range(nb_full_batch):
-            yield self._return_batch(indices, i * batch_size, (i + 1) * batch_size)
+
+        for i in range(self._nb_full_batch):
+            yield self._return_batch(
+                indices, i * self._batch_size, (i + 1) * self._batch_size
+            )
         # Last batch
-        if last_batch_size != 0:
-            yield self._return_batch(indices, -last_batch_size, self.n_samples)
+        if self._last_batch_size != 0:
+            yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
         to_take = torch.tensor(indices[beginning:end])
@@ -506,6 +507,18 @@ class _model(ABC):
             torch.index_select(self._latent_sqrt_var, 0, to_take),
         )
 
+    @property
+    def _nb_full_batch(self):
+        return self.n_samples // self._batch_size
+
+    @property
+    def _last_batch_size(self):
+        return self.n_samples % self._batch_size
+
+    @property
+    def _nb_batches(self):
+        return self._nb_full_batch + (self._last_batch_size > 0)
+
     def _trainstep(self):
         """
         Perform a single pass of the data.
@@ -516,7 +529,7 @@ class _model(ABC):
             The loss value.
         """
         elbo = 0
-        for batch in self._get_batch(self._batch_size, shuffle=True):
+        for batch in self._get_batch(shuffle=True):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
@@ -524,7 +537,7 @@ class _model(ABC):
             elbo += loss.item()
             self.optim.step()
             self._update_closed_forms()
-        return elbo / self.nb_batches
+        return elbo / self._nb_batches
 
     def _extract_batch(self, batch):
         self._endog_b = batch[0]
@@ -1275,7 +1288,7 @@ class _model(ABC):
         dict
             The dictionary of optimization parameters.
         """
-        return {"Number of iterations done": self.nb_iteration_done}
+        return {"Number of iterations done": self._nb_iteration_done}
 
     @property
     def _useful_properties_string(self):
@@ -1467,7 +1480,6 @@ class Pln(_model):
         take_log_offsets: bool = False,
         add_const: bool = True,
         GT=None,
-        batch_size: int = None,
     ):
         self.GT = GT
         self.true_beta = torch.tensor([0])
@@ -1480,7 +1492,6 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
-            batch_size=batch_size,
         )
 
     @classmethod
@@ -1508,7 +1519,6 @@ class Pln(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -1519,7 +1529,6 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
-            batch_size=batch_size,
         )
 
     @_add_doc(
