@@ -38,14 +38,14 @@ Possible fields of applications include
   relevant factors, on the observed abundances.
 \item Genomics: for $n$ cells and $p$ genes, the counts represents the number
   of times a gene is expressed in each cell. The objective is to estimate the
-  correlation between genes and reduce the number of variables.
+  correlation between genes and reduce the number of features.
 \end{itemize}
 The models can deal with offsets when needed. The main functionalities of the `pyPLNmodels` package are
 \begin{itemize}
 \item Normalize count data to obtain more valuable data
 \item Analyse the significance of each variable and their correlation
 \item Perform regression when covariates are available
-\item Reduce the number of variables with the PLN-PCA model
+\item Reduce the number of features with the PLN-PCA model
 \item Visualize the normalized data
 \end{itemize}
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
@@ -66,13 +66,13 @@ thousand of genes($p \approx 20000$), resulting in a matrix of size $\approx
 The `statsmodels` [@statsmodels] python package allows to deal with count data
 thanks to the Generalized Linear Models `PoissonBayesMixedGLM` and
 `BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
-between variables and performing Principal Component Analysis adequate to count data.
+between features and performing Principal Component Analysis adequate to count data.
 
 # Benchmark
 We fit PLN and PLN-PCA models with the `pyPLNmodels` package on the `scMARK` dataset, a benchmark
 for scRNA (sincle-cell Ribnonucleic acid ) data with
 $n=19998$ samples (cells) and 14059 features (gene expression). We plot below the
-running times required to fit such models when the number of variables (i.e.
+running times required to fit such models when the number of features (i.e.
 genes) grows. We used 60 Principal Components when fitting the PLN-PCA model. A tolerance must be set as stopping criterion when fitting each model. The running
 time required with the default tolerance is plot in solid line and a dotted line is plot with a relaxed tolerance. Note
 that the default tolerance ensures the model parameters have reached
@@ -83,8 +83,45 @@ much faster.
 
 ![Running time analysis on the scMARK benchmark.](illustration.png)
 
+# Mathematical description
 
+## Models
 
+ We introduce formally  the PLN [@PLN] and PLN-PCA [@PLNPCA] models. Let $n,p,d,q \in \mathbb N_{\star}^4$. We consider:
+\begin{itemize}
+\item $n$ samples $(i=1,\ldots,n)$
+\item $p$ features $(j=1,\ldots,p)$
+\item $n$ measures $X_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ :
+$X_{i h}=$ given covariate for sample $i$
+\item $n$  counts $Y_i = (Y_{i j})_{1\leq j \leq p}$
+\item $n$ offsets $O_i = (o_{ij})_{1\leq j\leq p}$
+
+\end{itemize}
+We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i
+j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable
+$Z_{i} \in \mathbb R^{p}$ such that:
+
+$$ \begin{array}{ccc}
+\end{array} $$
+<!-- $ -->
+\begin{equation}\label{model}
+\begin{array}{c}
+W_{i}  \sim \mathcal{N}\left(0, I_{q}\right) \\
+Z_{i} = \beta^{\top}X_i + CW_i  \\
+ \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right), \\
+\end{array}
+\end{equation}
+where $\beta \in \mathbb R^{d\times p}$ is an unknown
+regression parameter, $C \in \mathbb R ^ {p\times q}$ (unknown) and $q\leq p$ is a
+hyperparameter. The unknown (and identifiable)
+parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ is the
+covariance matrix of each $Z_i$. For $q<p$, we get the PLN-PCA model, while we recover the PLN model when $q=p$.
+
+## Inference
+
+We infer the parameter $\theta$ by maximizing the Evidence Lower BOund(ELBO):
+$$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$
+where $p_{\theta}$ is the likelihood of the model and $q=\left(q_i\right)_{1\leq i\leq n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$.
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent on giving
@@ -131,37 +168,4 @@ supported by the French ANR SingleStatOmics.
 <!-- ![Caption for example figure.](figure.png){ width=20% } -->
 
 <!-- # Mathematical details -->
-<!--  We introduce here the Poisson lognormal (PLN)  model PLNcite. Let $n,p,d,q \in \mathbb N_{\star}^4$. We consider: -->
-<!-- \begin{itemize} -->
-<!-- \item $n$ cells $(i=1,\ldots,n)$ -->
-
-<!-- \item $p$ genes $(j=1,\ldots,p)$ -->
-
-<!-- \item $n$ measures $X_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ : -->
-<!-- $X_{i h}=$ given descriptor (covariate) for cell $i$. -->
-
-<!-- \item $n$  measures $Y_i = (Y_{i j})_{1\leq j \leq p}$ : $Y_{ij}$ corresponds to the number of times the gene $j$ is expressed in cell $i$. -->
-
-<!-- \end{itemize} -->
-<!-- We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i -->
-<!-- j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable -->
-<!-- $Z_{i} \in \mathbb R^{p} $ such that: -->
-
-
-<!-- \renewcommand{\arraystretch}{1.5}   % stretching -->
-<!-- \begin{equation}\label{model} -->
-<!-- \begin{array}{c} -->
-<!-- W_{i}  \sim \mathcal{N}\left(0, I_{q}\right) \\ -->
-<!-- Z_{i} = \beta^{\top}X_i + CW_i  \\ -->
-<!--  \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right) \\ -->
-<!-- \end{array} -->
-<!-- \end{equation} -->
-<!-- \renewcommand{\arraystretch}{1} -->
-<!-- where $O = (o_{ij})_{1\leq i\leq n, 1\leq j\leq p}$ are known offsets, $\beta = (\beta _{kj})_{1 \leq k \leq d, 1 \leq j \leq p}$ is an unknown regression parameter and $C \in \mathbb R ^ {p\times q}$ (unknown) sends the latent variable $W_i$ from a space of dimension $q$ to a space of dimension $p$. For $ i_0 \neq i_1 $, we assume $W_{i_0} \independent W_{i_1}$ so that   $ Y_{i_0} \independent Y_{i_1} $. We denote $ Y \in \mathbb R ^ {n\times p}$ (resp. $X\in \mathbb R ^ {n\times d},Z \in \mathbb R ^ {n\times p}$) the matrix obtained by stacking the $Y_i$'s (resp. $X_i, Z_i$) in line. -->
-
-<!-- Note that mulitplying $C$ by an orthogonal matrix does not modify the model, so that $C$ is not identifiable. The unknown (and identifiable) parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ is the covariance matrix of each $Z_i$. The dimension $q\leq p$ is a hyperparameter that also needs to be tuned. We will consider two very different cases : -->
-<!-- \begin{itemize} -->
-<!-- \item p=q -->
-<!-- \item q<p -->
-<!-- \end{itemize} -->
 # References
