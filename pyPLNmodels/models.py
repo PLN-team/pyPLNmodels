@@ -409,7 +409,7 @@ class _model(ABC):
         self._put_parameters_to_device()
         self._handle_optimizer(lr)
         stop_condition = False
-        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
+        while self._nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
