@@ -38,7 +38,7 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
         axes[0].plot(
             absc,
             model.mse_beta_list,
-            label=f"{model.rank} beta",
+            label=f"rank {model.rank}",
             color=colors[i],
             linestyle=linestyle,
         )
@@ -60,7 +60,7 @@ def plot_n_or_dim(n, dim):
     true_beta = pln.coef
     true_Sigma = pln.covariance
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
-    ranks = [3, 4, 5, 7, 9]  # , 12, 15, 20, 30, 40, 80, 120, 180, 250, 500]
+    ranks = [3, 4]  # , 12, 15, 20, 30, 40, 80, 120, 180, 250, 500]
     pca = PlnPCAcollection(
         counts,
         exog=covariates,
@@ -78,12 +78,11 @@ def plot_n_or_dim(n, dim):
         true_Sigma=true_Sigma,
         true_beta=true_beta,
         GT=GT,
-        batch_size=20,
     )
-    nb_max_iter = 500
+    nb_max_iter = 8000
     pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
-    pca_batch.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
-    fig, mp_axes = plt.subplots(2, 4)
+    pca_batch.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, batch_size=30)
+    fig, mp_axes = plt.subplots(2, 4, figsize=(20, 20))
     colors = np.linspace(0, 200, len(pca.ranks))
     axes = {}
     for i in range(4):
@@ -107,17 +106,24 @@ def plot_n_or_dim(n, dim):
     axes[1].set_yscale("log")
     axes[1].set_title(r"$\hat \Sigma - \Sigma^{\star}$")
     axes[2].set_yscale("log")
-    axes[2].set_title(r"$\|\Sigma\|$")
+    axes[2].set_title(r"$\|\beta\|$")
     axes[3].set_yscale("log")
-    axes[3].set_title(r"$\|\beta\|$")
+    axes[3].set_title(r"$\|C\|$")
     axes[4].set_yscale("log")
     axes[4].set_title(r"$\|\Sigma\|$")
-    axes[5].plot(ranks, tols, label="Criterion at last iteration")
-    axes[5].plot(ranks, tols_batch, label="Criterion at last iteration", linestyle="--")
+    axes[5].plot(ranks, tols, label="Criterion at last iteration", color="black")
+    axes[5].plot(
+        ranks,
+        tols_batch,
+        label="Criterion at last iteration",
+        linestyle="--",
+        color="black",
+    )
     axes[5].set_title(r"tolerance at last iteration")
     axes[5].set_yscale("log")
     axes[6].set_title("Scores predictor")
+    plt.savefig(f"n_{n}_p_{dim}_ranks_{ranks}.pdf", format="pdf")
     plt.show()
 
 
-plot_n_or_dim(200, 50)
+plot_n_or_dim(3000, 2000)
