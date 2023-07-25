@@ -44,13 +44,18 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
         )
         axes[1].plot(absc, model.mse_Sigma_list, color=colors[i], linestyle=linestyle)
         axes[2].plot(absc, model.norm_list_beta, color=colors[i], linestyle=linestyle)
-        axes[3].plot(absc, model.norm_list_C, color=colors[i], linestyle=linestyle)
+        axes[3].plot(
+            absc, -np.array(model._elbos_list), color=colors[i], linestyle=linestyle
+        )
         axes[4].plot(absc, model.norm_list_Sigma, color=colors[i], linestyle=linestyle)
         axes[6].plot(absc, model.scores_xgboost, color=colors[i], linestyle=linestyle)
+        axes[7].plot(
+            absc, model._plotargs.criterions, color=colors[i], linestyle=linestyle
+        )
         tol_list.append(model._plotargs.criterions[-1])
 
 
-def plot_n_or_dim(n, dim):
+def plot_n_or_dim(n, dim, max_rt):
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
     covariates = None
@@ -60,7 +65,7 @@ def plot_n_or_dim(n, dim):
     true_beta = pln.coef
     true_Sigma = pln.covariance
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
-    ranks = [3, 4]  # , 12, 15, 20, 30, 40, 80, 120, 180, 250, 500]
+    ranks = [3, 4, 12, 30]  # , 40, 80, 120, 180, 250, 500]
     pca = PlnPCAcollection(
         counts,
         exog=covariates,
@@ -79,9 +84,11 @@ def plot_n_or_dim(n, dim):
         true_beta=true_beta,
         GT=GT,
     )
-    nb_max_iter = 8000
-    pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True)
-    pca_batch.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, batch_size=30)
+    nb_max_iter = 30000
+    pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, max_rt=max_rt)
+    pca_batch.fit(
+        tol=0, nb_max_iteration=nb_max_iter, verbose=True, batch_size=300, max_rt=max_rt
+    )
     fig, mp_axes = plt.subplots(2, 4, figsize=(20, 20))
     colors = np.linspace(0, 200, len(pca.ranks))
     axes = {}
@@ -108,7 +115,7 @@ def plot_n_or_dim(n, dim):
     axes[2].set_yscale("log")
     axes[2].set_title(r"$\|\beta\|$")
     axes[3].set_yscale("log")
-    axes[3].set_title(r"$\|C\|$")
+    axes[3].set_title(r"log(ELBO)")
     axes[4].set_yscale("log")
     axes[4].set_title(r"$\|\Sigma\|$")
     axes[5].plot(ranks, tols, label="Criterion at last iteration", color="black")
@@ -122,8 +129,9 @@ def plot_n_or_dim(n, dim):
     axes[5].set_title(r"tolerance at last iteration")
     axes[5].set_yscale("log")
     axes[6].set_title("Scores predictor")
+    axes[7].set_yscale("log")
     plt.savefig(f"n_{n}_p_{dim}_ranks_{ranks}.pdf", format="pdf")
     plt.show()
 
 
-plot_n_or_dim(3000, 2000)
+plot_n_or_dim(10000, 2000, 180)
