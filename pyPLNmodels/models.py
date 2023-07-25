@@ -63,7 +63,7 @@ class _model(ABC):
     Base class for all the Pln models. Should be inherited.
     """
 
-    _WINDOW: int = 15
+    _WINDOW: int = 2
     _endog: torch.Tensor
     _exog: torch.Tensor
     _offsets: torch.Tensor
@@ -386,6 +386,7 @@ class _model(ABC):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
+        max_rt=200000,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -438,18 +439,23 @@ class _model(ABC):
                 self.norm_list_C.append(error_loss(self.components).item())
                 self.norm_list_beta.append(error_loss(self.coef).item())
             self.norm_list_Sigma.append(error_loss(self.covariance).item())
-            if self._nb_iteration_done / self._nb_batches % 50 == 0:
+            if self._nb_iteration_done / self._nb_batches % 200 == 0:
                 xgb_predictor = xgb.XGBClassifier()
+                # self.score = 0
                 t = time.time()
                 self.score = cross_val_score(
-                    xgb_predictor, X=self.latent_variables, y=self.GT, cv=10
+                    xgb_predictor,
+                    X=self.latent_variables.detach().cpu(),
+                    y=self.GT,
+                    cv=10,
+                    scoring="balanced_accuracy",
                 ).mean()
                 time_spent = time.time() - t
                 self._beginning_time += time_spent
             self.scores_xgboost.append(self.score),
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
-            if abs(criterion) < tol:
+            if abs(criterion) < tol or max_rt < self._plotargs.running_times[-1]:
                 stop_condition = True
 
             # try:
@@ -498,7 +504,7 @@ class _model(ABC):
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
-        to_take = torch.tensor(indices[beginning:end])
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
         return (
             torch.index_select(self._endog, 0, to_take),
             torch.index_select(self._exog, 0, to_take),
@@ -1550,6 +1556,7 @@ class Pln(_model):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
+        max_rt=200000,
     ):
         super().fit(
             nb_max_iteration,
@@ -1558,6 +1565,7 @@ class Pln(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
             batch_size=batch_size,
+            max_rt=max_rt,
         )
 
     @_add_doc(
@@ -2310,6 +2318,7 @@ class PlnPCAcollection:
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
+        max_rt=200000,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2340,10 +2349,11 @@ class PlnPCAcollection:
                 do_smart_init=do_smart_init,
                 verbose=verbose,
                 batch_size=batch_size,
+                max_rt=max_rt,
             )
-            if i < len(self.values()) - 1:
-                next_model = self[self.ranks[i + 1]]
-                self._init_next_model_with_current_model(next_model, model)
+            # if i < len(self.values()) - 1:
+            #     next_model = self[self.ranks[i + 1]]
+            #     self._init_next_model_with_current_model(next_model, model)
         self._print_ending_message()
 
     def _init_next_model_with_current_model(self, next_model: Any, current_model: Any):
@@ -2841,6 +2851,7 @@ class PlnPCA(_model):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
+        max_rt=200000,
     ):
         super().fit(
             nb_max_iteration,
@@ -2849,6 +2860,7 @@ class PlnPCA(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
             batch_size=batch_size,
+            max_rt=max_rt,
         )
 
     @_add_doc(
