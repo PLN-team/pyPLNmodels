@@ -8,14 +8,14 @@ import time
 
 fig, axes = plt.subplots(1, 2, figsize=(20, 10))
 
-n = 100
-p = 14000
+n = 1000
+p = 14059
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
 
 
-plnpca = PlnPCA(Y, rank=80)
+plnpca = PlnPCA(Y, rank=280)
 t = time.time()
-plnpca.fit(tol=0.05, verbose=True)
+plnpca.fit(tol=0.15, verbose=True)
 print("time took:", (time.time() - t) / 60)
 
 
