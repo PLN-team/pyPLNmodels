@@ -1686,7 +1686,7 @@ class Pln(_model):
         """,
     )
     def latent_variables(self):
-        return self.latent_mean.detach()
+        return self.latent_mean.detach().cpu()
 
     @property
     def number_of_parameters(self):
@@ -3104,7 +3104,7 @@ class PlnPCA(_model):
         torch.Tensor
             The latent variables of size (n_samples, dim).
         """
-        return torch.matmul(self._latent_mean, self._components.T).detach()
+        return torch.matmul(self._latent_mean, self._components.T).detach().cpu()
 
     @property
     def projected_latent_variables(self) -> torch.Tensor:
