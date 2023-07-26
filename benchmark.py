@@ -29,70 +29,68 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     return Y, GT, list(GT_name.values.__array__())
 
 
-def append_running_times_pln_plnpca(Y):
-    pln = Pln(Y)
-    plnpca = PlnPCA(Y, rank=rank)
-    pln.fit(tol=sharp_tol)
-    plnpca.fit(tol=sharp_tol)
+def append_running_times_model(Y, model_str):
+    if model_str == "pln":
+        model = Pln(Y)
+        model.fit(tol=sharp_tol)
+    else:
+        model = PlnPCA(Y, rank=rank)
+        model.fit(tol=sharp_tol)
 
-    rough_running_times_pln = pln._plotargs.running_times[
-        next(i for i, v in enumerate(pln._plotargs.criterions) if v < rough_tol)
+    rough_running_times = model._plotargs.running_times[
+        next(i for i, v in enumerate(model._plotargs.criterions) if v < rough_tol)
     ]
-    rough_running_times_plnpca = plnpca._plotargs.running_times[
-        next(i for i, v in enumerate(plnpca._plotargs.criterions) if v < rough_tol)
-    ]
 
-    dict_rt["pln_sharp"].append(pln._plotargs.running_times[-1])
-    dict_rt["plnpca_sharp"].append(plnpca._plotargs.running_times[-1])
-    dict_rt["pln_rough"].append(rough_running_times_pln)
-    dict_rt["plnpca_rough"].append(rough_running_times_plnpca)
+    dict_rt[model_str]["rough"].append(rough_running_times)
+    dict_rt[model_str]["sharp"].append(model._plotargs.running_times[-1])
 
 
-def plot_dict(dict_rt):
-    fig = plt.figure(figsize=(20, 10))
-    plt.plot(ps, dict_rt["pln_sharp"], color="blue", label="Pln default tol")
-    plt.plot(ps, dict_rt["plnpca_sharp"], color="orange", label="PlnPCA default tol")
+def plot_dict(dict_rt, model_str):
+    dict_rt_model = dict_rt[model_str]
+    if model_str == "pln":
+        ps = ps_pln
+        color = "blue"
+    else:
+        ps = ps_plnpca
+        color = "orange"
+    print("ps_pln:", ps_pln)
+    print("dict model ", dict_rt_model["sharp"])
+    plt.plot(ps, dict_rt_model["sharp"], color=color, label=f"{model_str} default tol")
     plt.plot(
         ps,
-        dict_rt["pln_rough"],
-        color="blue",
-        label="Pln tol=0.01",
-        linestyle="dotted",
-    )
-    plt.plot(
-        ps,
-        dict_rt["plnpca_rough"],
-        color="orange",
-        label="PlnPCA tol=0.01",
+        dict_rt_model["rough"],
+        color=color,
+        label=f"{model_str} tol=0.01",
         linestyle="dotted",
     )
     plt.legend()
     plt.xlabel(r"Number of variables $p$")
     plt.ylabel("Running times")
-    plt.savefig(f"paper/illustration.png", format="png")
-    plt.show()
-    with open(name_file, "wb") as fp:
-        pickle.dump(dict_rt, fp)
 
 
 if __name__ == "__main__":
     n = 200
-    p0 = 2000
-    pn = 2300
+    p0 = 2500
+    pn = 14059
     ecart = 300
-    rank = 60
-    ps = np.arange(100, 500, 400)
-    ps = np.concatenate((ps, np.arange(p0, pn, ecart)))
+    fig = plt.figure(figsize=(20, 10))
+    rank = 80
+    ps_pln = np.arange(100, p0, 100)
+    ps_plnpca = np.concatenate((ps_pln, np.arange(p0, pn, ecart)))
     pln_running_times_sharp_conv = []
     plnpca_running_times_sharp_conv = []
     pln_running_times_rough_conv = []
     plnpca_running_times_rough_conv = []
-    name_file = f"n_{n}_nbps_{len(ps)}_p0_{p0}_pn_{pn}_ecart_{ecart}_rank_{rank}"
+    name_file = f"n_{n}_nbps_{len(ps_plnpca)}_p0_{p0}_pn_{pn}_ecart_{ecart}_rank_{rank}"
     dict_rt = {
-        "pln_sharp": pln_running_times_sharp_conv,
-        "pln_rough": pln_running_times_rough_conv,
-        "plnpca_sharp": plnpca_running_times_sharp_conv,
-        "plnpca_rough": plnpca_running_times_rough_conv,
+        "pln": {
+            "sharp": pln_running_times_sharp_conv,
+            "rough": pln_running_times_rough_conv,
+        },
+        "plnpca": {
+            "sharp": plnpca_running_times_sharp_conv,
+            "rough": plnpca_running_times_rough_conv,
+        },
     }
     sharp_tol = 0.001
     rough_tol = 0.01
@@ -100,12 +98,19 @@ if __name__ == "__main__":
         raise ValueError("tols in the wrong order")
 
     if True:
-        for p in tqdm(ps):
+        for p in tqdm(ps_plnpca):
             print("dim:", p)
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
-            append_running_times_pln_plnpca(Y)
+            append_running_times_model(Y, "plnpca")
+            if p < p0:
+                append_running_times_model(Y, "pln")
     else:
         with open(name_file, "rb") as fp:
             dict_rt = pickle.load(fp)
 
-    plot_dict(dict_rt)
+    plot_dict(dict_rt, "pln")
+    plot_dict(dict_rt, "plnpca")
+    plt.savefig(f"paper/illustration.png", format="png")
+    plt.show()
+    with open(name_file, "wb") as fp:
+        pickle.dump(dict_rt, fp)
