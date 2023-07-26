@@ -51,7 +51,7 @@ The models can deal with offsets when needed. The main functionalities of the `p
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
 Component Analysis (PCA) is performed with the PLN-PCA model(on the left) and standard PCA on
 the log normalized data(on the right).  The data considered is the `scMARK` benchmark [@scMark] described in the
-benchmark section. We kept 1000 samples for illustration purposes.
+benchmark section. We kept 1000 samples and 9 cell types for illustration purposes.
 
 ![PLN-PCA (left) and standard PCA (right).](plnpca_vs_pca.png)
 
@@ -71,7 +71,7 @@ between features and performing Principal Component Analysis adequate to count d
 # Benchmark
 We fit PLN and PLN-PCA models with the `pyPLNmodels` package on the `scMARK` dataset, a benchmark
 for scRNA (sincle-cell Ribnonucleic acid ) data with
-$n=19998$ samples (cells) and 14059 features (gene expression). We plot below the
+$n=19998$ samples (cells) and 14059 features (gene expression). The cell type is given for each cell and can take 28 different values. We plot below the
 running times required to fit such models when the number of features (i.e.
 genes) grows. We used 60 Principal Components when fitting the PLN-PCA model. A tolerance must be set as stopping criterion when fitting each model. The running
 time required with the default tolerance is plot in solid line and a dotted line is plot with a relaxed tolerance. Note
@@ -119,9 +119,9 @@ covariance matrix of each $Z_i$. For $q<p$, we get the PLN-PCA model, while we r
 
 ## Inference
 
-We infer the parameter $\theta$ by maximizing the Evidence Lower BOund(ELBO):
+We infer the parameter $\theta$ by maximizing the bi-concave Evidence Lower BOund(ELBO):
 $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$
-where $p_{\theta}$ is the likelihood of the model and $q=\left(q_i\right)_{1\leq i\leq n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$.
+where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$.
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent on giving
