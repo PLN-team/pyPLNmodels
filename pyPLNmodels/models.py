@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from typing import Optional, Dict, List, Type, Any, Iterable, Union
+from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
 
 import pandas as pd
 import torch
@@ -98,6 +98,10 @@ class _model(ABC):
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
         """
         (
             self._endog,
@@ -168,6 +172,24 @@ class _model(ABC):
         self._fitted = True
 
     @property
+    def batch_size(self) -> int:
+        """
+        The batch size of the model. Should not be greater than the number of samples.
+        """
+        return self._batch_size
+
+    @property
+    def _current_batch_size(self) -> int:
+        return self._exog_b.shape[0]
+
+    @batch_size.setter
+    def batch_size(self, batch_size: int):
+        """
+        Setter for the batch size. Should be an integer not greater than the number of samples.
+        """
+        self._batch_size = self._handle_batch_size(batch_size)
+
+    @property
     def fitted(self) -> bool:
         """
         Whether the model is fitted.
@@ -206,7 +228,7 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
-        proj_variables = pca.transform(self.latent_variables)
+        proj_variables = pca.transform(self.latent_variables.detach().cpu())
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
@@ -217,8 +239,19 @@ class _model(ABC):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
 
+    def _handle_batch_size(self, batch_size):
+        if batch_size is None:
+            batch_size = self.n_samples
+        if batch_size > self.n_samples:
+            raise ValueError(
+                f"batch_size ({batch_size}) can not be greater than the number of samples ({self.n_samples})"
+            )
+        elif isinstance(batch_size, int) is False:
+            raise ValueError(f"batch_size should be int, got {type(batch_size)}")
+        return batch_size
+
     @property
-    def nb_iteration_done(self) -> int:
+    def _nb_iteration_done(self) -> int:
         """
         The number of iterations done.
 
@@ -227,7 +260,7 @@ class _model(ABC):
         int
             The number of iterations done.
         """
-        return len(self._plotargs._elbos_list)
+        return len(self._plotargs._elbos_list) * self._nb_batches
 
     @property
     def n_samples(self) -> int:
@@ -343,10 +376,10 @@ class _model(ABC):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size=None,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -357,57 +390,125 @@ class _model(ABC):
             The maximum number of iterations. Defaults to 50000.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
-        class_optimizer : torch.optim.Optimizer, optional
-            The optimizer class. Defaults to torch.optim.Rprop.
         tol : float, optional(keyword-only)
             The tolerance for convergence. Defaults to 1e-3.
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         self._beginning_time = time.time()
-
+        self._batch_size = self._handle_batch_size(batch_size)
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._plotargs.running_times) > 0:
             self._beginning_time -= self._plotargs.running_times[-1]
         self._put_parameters_to_device()
-        self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
+        self._handle_optimizer(lr)
         stop_condition = False
-        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
+        while self._nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose and self.nb_iteration_done % 50 == 0:
+            if verbose and self.nb_iteration_done % 50 == 1:
                 self._print_stats()
             try:
-                self.mse_beta_list.append(MSE(self.coef - self.true_beta).item())
+                self.mse_beta_list.append(
+                    MSE(self.coef.cpu() - self.true_beta.cpu()).item()
+                )
                 self.mse_Sigma_list.append(
-                    MSE(self.covariance - self.true_Sigma).item()
+                    MSE(self.covariance.cpu() - self.true_Sigma.cpu()).item()
                 )
             except:
                 pass
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
+    def _handle_optimizer(self, lr):
+        if self.batch_size < self.n_samples:
+            self.optim = torch.optim.Adam(
+                self._list_of_parameters_needing_gradient, lr=lr
+            )
+        else:
+            self.optim = torch.optim.Rprop(
+                self._list_of_parameters_needing_gradient, lr=lr
+            )
+
+    def _get_batch(self, shuffle=False):
+        """Get the batches required to do a  minibatch gradient ascent.
+
+        Args:
+            batch_size: int. The batch size. Should be lower than n.
+
+        Returns: A generator. Will generate n//batch_size + 1 batches of
+            size batch_size (except the last one since the rest of the
+            division is not always 0)
+        """
+        indices = np.arange(self.n_samples)
+        if shuffle:
+            np.random.shuffle(indices)
+
+        for i in range(self._nb_full_batch):
+            yield self._return_batch(
+                indices, i * self._batch_size, (i + 1) * self._batch_size
+            )
+        # Last batch
+        if self._last_batch_size != 0:
+            yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
+
+    def _return_batch(self, indices, beginning, end):
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        return (
+            torch.index_select(self._endog, 0, to_take),
+            torch.index_select(self._exog, 0, to_take),
+            torch.index_select(self._offsets, 0, to_take),
+            torch.index_select(self._latent_mean, 0, to_take),
+            torch.index_select(self._latent_sqrt_var, 0, to_take),
+        )
+
+    @property
+    def _nb_full_batch(self):
+        return self.n_samples // self._batch_size
+
+    @property
+    def _last_batch_size(self):
+        return self.n_samples % self._batch_size
+
+    @property
+    def _nb_batches(self):
+        return self._nb_full_batch + (self._last_batch_size > 0)
+
     def _trainstep(self):
         """
-        Perform a single training step.
+        Perform a single pass of the data.
 
         Returns
         -------
         torch.Tensor
             The loss value.
         """
-        self.optim.zero_grad()
-        loss = -self.compute_elbo()
-        loss.backward()
-        self.optim.step()
-        self._update_closed_forms()
-        return loss
+        elbo = 0
+        for batch in self._get_batch(shuffle=True):
+            self._extract_batch(batch)
+            self.optim.zero_grad()
+            loss = -self._compute_elbo_b()
+            loss.backward()
+            elbo += loss.item()
+            self.optim.step()
+            self._update_closed_forms()
+        return elbo / self._nb_batches
+
+    def _extract_batch(self, batch):
+        self._endog_b = batch[0]
+        self._exog_b = batch[1]
+        self._offsets_b = batch[2]
+        self._latent_mean_b = batch[3]
+        self._latent_sqrt_var_b = batch[4]
 
     def transform(self):
         """
@@ -419,7 +520,7 @@ class _model(ABC):
         centered_latent = self.latent_variables - torch.mean(
             self.latent_variables, axis=0
         )
-        chol = torch.linalg.cholesky(torch.inverse(self.covariance))
+        chol = torch.linalg.cholesky(torch.inverse(self.covariance_a_posteriori))
         residus = torch.matmul(centered_latent.unsqueeze(1), chol.unsqueeze(0))
         stats.probplot(residus.ravel(), plot=plt)
         plt.show()
@@ -641,7 +742,7 @@ class _model(ABC):
         float
             The computed criterion.
         """
-        self._plotargs._elbos_list.append(-loss.item())
+        self._plotargs._elbos_list.append(-loss)
         self._plotargs.running_times.append(time.time() - self._beginning_time)
         if self._plotargs.iteration_number > self._WINDOW:
             criterion = abs(
@@ -1151,7 +1252,7 @@ class _model(ABC):
         dict
             The dictionary of optimization parameters.
         """
-        return {"Number of iterations done": self.nb_iteration_done}
+        return {"Number of iterations done": self._nb_iteration_done}
 
     @property
     def _useful_properties_string(self):
@@ -1269,7 +1370,6 @@ class _model(ABC):
         -------
         matplotlib.axes.Axes
             The matplotlib axis.
-        >>>
         """
         if self._fitted is None:
             raise RuntimeError("Please fit the model before.")
@@ -1407,18 +1507,18 @@ class Pln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size: int = None,
     ):
         super().fit(
             nb_max_iteration,
             lr=lr,
-            class_optimizer=class_optimizer,
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1629,6 +1729,23 @@ class Pln(_model):
             self._latent_sqrt_var,
         )
 
+    def _compute_elbo_b(self):
+        """
+        Method for computing the evidence lower bound (ELBO) on the current batch.
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO on the current batch.
+        """
+        return profiled_elbo_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+        )
+
     def _smart_init_model_parameters(self):
         """
         Method for smartly initializing the model parameters.
@@ -1678,7 +1795,7 @@ class Pln(_model):
         covariances = components_var @ (sk_components.T.unsqueeze(0))
         return covariances
 
-    def _pring_beginning_message(self):
+    def _print_beginning_message(self):
         """
         Method for printing the beginning message.
         """
@@ -1811,6 +1928,9 @@ class PlnPCAcollection:
             Whether to take the logarithm of offsets, by default False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Returns
         -------
         PlnPCAcollection
@@ -1861,6 +1981,7 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
+
         Returns
         -------
         PlnPCAcollection
@@ -2097,7 +2218,7 @@ class PlnPCAcollection:
         """
         return [model.rank for model in self.values()]
 
-    def _pring_beginning_message(self) -> str:
+    def _print_beginning_message(self) -> str:
         """
         Method for printing the beginning message.
 
@@ -2137,10 +2258,10 @@ class PlnPCAcollection:
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Type[torch.optim.Optimizer] = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size: int = None,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2151,25 +2272,26 @@ class PlnPCAcollection:
             The maximum number of iterations, by default 50000.
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
-        class_optimizer : Type[torch.optim.Optimizer], optional(keyword-only)
-            The optimizer class, by default torch.optim.Rprop.
         tol : float, optional(keyword-only)
             The tolerance, by default 1e-3.
         do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         for i in range(len(self.values())):
             model = self[self.ranks[i]]
             model.fit(
                 nb_max_iteration,
                 lr=lr,
-                class_optimizer=class_optimizer,
                 tol=tol,
                 do_smart_init=do_smart_init,
                 verbose=verbose,
+                batch_size=batch_size,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
@@ -2667,18 +2789,18 @@ class PlnPCA(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size=None,
     ):
         super().fit(
             nb_max_iteration,
             lr=lr,
-            class_optimizer=class_optimizer,
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -2928,12 +3050,12 @@ class PlnPCA(_model):
         """
         return self._rank
 
-    def _pring_beginning_message(self):
+    def _print_beginning_message(self):
         """
         Print the beginning message when fitted.
         """
         print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
-        print(f"Fitting a PlnPCAcollection model with {self._rank} components")
+        print(f"Fitting a PlnPCA model with {self._rank} components")
 
     @property
     def model_parameters(self) -> Dict[str, torch.Tensor]:
@@ -2954,9 +3076,7 @@ class PlnPCA(_model):
         if not hasattr(self, "_coef"):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
-            self._components = _init_components(
-                self._endog, self._exog, self._coef, self._rank
-            )
+            self._components = _init_components(self._endog, self._exog, self._rank)
 
     def _random_init_model_parameters(self):
         """
@@ -3008,6 +3128,25 @@ class PlnPCA(_model):
         if self._coef is None:
             return [self._components, self._latent_mean, self._latent_sqrt_var]
         return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
+
+    def _compute_elbo_b(self) -> torch.Tensor:
+        """
+        Compute the evidence lower bound (ELBO) with the current batch.
+
+        Returns
+        -------
+        torch.Tensor
+            The ELBO value on the current batch.
+        """
+        return elbo_plnpca(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            self._components,
+            self._coef,
+        )
 
     def compute_elbo(self) -> torch.Tensor:
         """
@@ -3066,9 +3205,23 @@ class PlnPCA(_model):
         return string
 
     @property
+    def covariance(self) -> torch.Tensor:
+        """
+        Property representing the covariance a posteriori of the latent variables.
+
+        Returns
+        -------
+        Optional[torch.Tensor]
+            The covariance tensor or None if components are not present.
+        """
+        if hasattr(self, "_components"):
+            return self.components @ (self.components.T)
+        return None
+
+    @property
     def covariance_a_posteriori(self) -> Optional[torch.Tensor]:
         """
-        Property representing the covariance.
+        Property representing the covariance a posteriori of the latent variables.
 
         Returns
         -------
