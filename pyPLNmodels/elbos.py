@@ -186,7 +186,7 @@ def elbo_zi_pln(
     latent_mean,
     latent_var,
     latent_prob,
-    covariance,
+    components,
     coef,
     _coef_inflation,
     dirac,
@@ -207,6 +207,7 @@ def elbo_zi_pln(
     Returns:
         torch.tensor of size 1 with a gradient.
     """
+    covariance = components @ (components.T)
     if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
         print("Bug")
         raise RuntimeError("rho error")
@@ -216,7 +217,6 @@ def elbo_zi_pln(
     m_minus_xb = latent_mean - torch.mm(covariates, coef)
     x_coef_inflation = torch.mm(covariates, _coef_inflation)
 
-    # a = b = c = d = e = f = 0
     A = torch.exp(o_plus_m + s_rond_s / 2)
     inside_a = torch.multiply(
         1 - latent_prob, torch.multiply(counts, o_plus_m) - A - _log_stirling(counts)
@@ -224,11 +224,12 @@ def elbo_zi_pln(
     a = torch.sum(inside_a)
 
     Omega = torch.inverse(covariance)
+
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
     un_moins_rho = 1 - latent_prob
     un_moins_rho_outer = torch.mm(un_moins_rho.T, un_moins_rho)
     inside_b = -1 / 2 * Omega * un_moins_rho_outer * m_moins_xb_outer
-    b = n_samples / 2 * torch.logdet(Omega) + torch.sum(inside_b)
+    b = -n_samples / 2 * torch.log(torch.det(covariance)) + torch.sum(inside_b)
 
     inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
         1 + torch.exp(x_coef_inflation)
@@ -236,10 +237,13 @@ def elbo_zi_pln(
     c = torch.sum(inside_c)
 
     log_diag = torch.log(torch.diag(covariance))
-    Diag_log_diag = torch.diag_embed(log_diag)
-    inside_d = torch.multiply(
-        1 - latent_prob, torch.log(torch.abs(latent_var))
-    ) + torch.matmul(latent_prob / 2, Diag_log_diag)
+    log_S_term = torch.sum(
+        torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_var))), axis=0
+    )
+    y = torch.sum(latent_prob, axis=0)
+    covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
+    inside_d = covariance_term + log_S_term
+    ## pb with d, should be multiplied by rho or no ?
     d = n_samples * dim / 2 + torch.sum(inside_d)
 
     inside_e = torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(
@@ -251,35 +255,9 @@ def elbo_zi_pln(
     diag_sig_sum_rho = torch.multiply(
         torch.diag(covariance), torch.sum(latent_prob, axis=0)
     )
-    inside_f = torch.multiply(torch.diag(Omega), sum_un_moins_rho_s2 + diag_sig_sum_rho)
+    K = sum_un_moins_rho_s2 + diag_sig_sum_rho
+    inside_f = torch.diag(Omega) * K
     f = -1 / 2 * torch.sum(inside_f)
-
-    # f = 0
-    # elbo = torch.sum(
-    #     torch.multiply(
-    #         1 - latent_prob,
-    #         torch.multiply(counts, o_plus_m)
-    #         - torch.exp(o_plus_m + s_rond_s / 2)
-    #         - _log_stirling(counts),
-    #     )
-    #     + latent_prob
-    # )
-    # # print('O:', O)
-    # elbo -= torch.sum(
-    #     torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(1 - latent_prob, _trunc_log(1 - latent_prob))
-    # )
-    # elbo -= (
-    #     1
-    #     / 2
-    #     * torch.trace(
-    #         torch.mm(
-    #             torch.inverse(covariance),
-    #             torch.diag(torch.sum(s_rond_s, dim=0))
-    #             + torch.mm(m_minus_xb.T, m_minus_xb),
-    #         )
-    #     )
-    # )
-    # elbo += n_samples / 2 * torch.log(torch.det(covariance))
-    # elbo += n_samples * dim / 2
-    return c
+    # return c
+    # return a + b
     return a + b + c + d + e + f

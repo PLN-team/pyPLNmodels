@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from typing import Optional, Dict, List, Type, Any, Iterable, Union
+from ._utils import _log_stirling
 
 import pandas as pd
 import torch
@@ -335,7 +336,6 @@ class _model(ABC):
         List[torch.Tensor]
             List of parameters needing gradient.
         """
-        ...
 
     def fit(
         self,
@@ -397,10 +397,13 @@ class _model(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
-        # print("norm latent grad ", self._latent_prob.grad)
         print("elbo:", -loss / self.n_samples)
-        ### problem with M
+        # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
         # print("diff theta_0:", torch.norm(self.grad_theta_0() + self._coef_inflation.grad))
+        # print("diff C:", torch.norm(self.grad_C() + self._components.grad))
+        # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
+        # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
+        print("diff rho:", torch.norm(self.grad_rho() + self._latent_prob.grad))
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -3284,7 +3287,7 @@ class ZIPln(_model):
             self._latent_mean,
             self._latent_sqrt_var,
             self._latent_prob,
-            self._covariance,
+            self._components,
             self._coef,
             self._coef_inflation,
             self._dirac,
@@ -3303,6 +3306,7 @@ class ZIPln(_model):
             self._coef,
             self._coef_inflation,
             self._components,
+            self._latent_prob,
         ]
 
     @property
@@ -3310,7 +3314,14 @@ class ZIPln(_model):
         return self._covariance.detach().cpu()
 
     def _update_closed_forms(self):
-        pass
+        # print('latent_prob grad before updating', self._latent_prob.grad)
+        with torch.no_grad():
+            # self._latent_prob = self._latent_prob
+            self._latent_prob = torch.maximum(self._latent_prob, torch.tensor([0]))
+            self._latent_prob = torch.minimum(self._latent_prob, torch.tensor([1]))
+            self._latent_prob = self._dirac * self._latent_prob
+        self._latent_prob.requires_grad_(True)
+        # print('latent_prob grad after updating', self._latent_prob.grad)
         # self._coef = _closed_formula_coef(self._exog, self._latent_mean)
         # self._covariance = _closed_formula_covariance(
         # self._exog,
@@ -3353,17 +3364,26 @@ class ZIPln(_model):
             )
         )
         MmoinsXB = self._latent_mean - self._exog @ self._coef
-        second = MmoinsXB @ (
+        second = -MmoinsXB @ (
             ((un_moins_prob.T) @ un_moins_prob) * torch.inverse(self._covariance)
         )
-        return first - second
+        return first + second
 
     def grad_S(self):
+        Omega = torch.inverse(self.covariance)
         un_moins_prob = 1 - self._latent_prob
         first = un_moins_prob * torch.exp(
             self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
         )
+        first = -torch.multiply(first, self._latent_sqrt_var)
         sec = un_moins_prob * 1 / self._latent_sqrt_var
+        K = un_moins_prob * (
+            torch.multiply(
+                torch.full((self.n_samples, 1), 1.0), torch.diag(Omega).unsqueeze(0)
+            )
+        )
+        third = -self._latent_sqrt_var * K
+        return first + sec + third
 
     def grad_theta(self):
         un_moins_prob = 1 - self._latent_prob
@@ -3378,3 +3398,60 @@ class ZIPln(_model):
             torch.exp(self._exog @ self._coef_inflation)
             / (1 + torch.exp(self._exog @ self._coef_inflation))
         )
+
+    def grad_C(self):
+        omega = torch.inverse(self._covariance)
+        m_minus_xb = self._latent_mean - torch.mm(self._exog, self._coef)
+        m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+
+        un_moins_rho = 1 - self._latent_prob
+        un_moins_rho_outer = torch.mm(un_moins_rho.T, un_moins_rho)
+        deter = (
+            -self.n_samples
+            * torch.inverse(self._components @ (self._components.T))
+            @ self._components
+        )
+        b_grad = (
+            deter
+            + omega @ (un_moins_rho_outer * m_moins_xb_outer) @ omega @ self._components
+        )
+
+        diag = torch.diag(self.covariance)
+        rho_t_unn = torch.sum(self._latent_prob, axis=0)
+        omega_unp = torch.sum(omega, axis=0)
+        K = torch.sum(un_moins_rho * self._latent_sqrt_var**2, axis=0) + diag * (
+            rho_t_unn
+        )
+        # K = torch.full((self.dim,),1.)
+        first_part_grad = omega @ torch.diag_embed(K) @ omega @ self._components
+        x = torch.diag(omega) * rho_t_unn
+        second_part_grad = -torch.diag_embed(x) @ self._components
+        y = rho_t_unn
+        # y = torch.full((self.dim,),1.)
+        first = torch.multiply(y, 1 / torch.diag(self.covariance)).unsqueeze(1)
+        second = torch.full((1, self.dim), 1.0)
+        Diag = (first * second) * torch.eye(self.dim)
+        last_grad = Diag @ self._components
+        return b_grad + first_part_grad + second_part_grad + last_grad
+
+    def grad_rho(self):
+        s_rond_s = self._latent_sqrt_var * self._latent_sqrt_var
+        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+        first = (
+            -self._endog * (self._offsets + self._latent_mean)
+            + A
+            + _log_stirling(self._endog)
+        )
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        un_moins_prob = 1 - self._latent_prob
+        second = un_moins_prob @ (
+            ((MmoinsXB.T) @ MmoinsXB) * torch.inverse(self._covariance)
+        )
+        third = self._exog @ self._coef_inflation
+        fourth_first = torch.log(torch.abs(self._latent_sqrt_var))
+        fourth_second = torch.multiply(
+            torch.full((self.n_samples, 1), 1.0),
+            torch.log(torch.diag(self.covariance)).unsqueeze(0),
+        )
+        fourth = fourth_first + fourth_second
+        return 0 * first + 0 * second + 0 * third + fourth
