@@ -55,7 +55,7 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
         tol_list.append(model._plotargs.criterions[-1])
 
 
-def plot_n_or_dim(n, dim, max_rt):
+def plot_n_or_dim(n, dim, nb_fitting):
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
     covariates = None
@@ -85,9 +85,13 @@ def plot_n_or_dim(n, dim, max_rt):
         GT=GT,
     )
     nb_max_iter = 30000
-    pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, max_rt=max_rt)
+    pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, nb_fitting=nb_fitting)
     pca_batch.fit(
-        tol=0, nb_max_iteration=nb_max_iter, verbose=True, batch_size=300, max_rt=max_rt
+        tol=0,
+        nb_max_iteration=nb_max_iter,
+        verbose=True,
+        batch_size=300,
+        nb_fitting=nb_fitting,
     )
     fig, mp_axes = plt.subplots(2, 4, figsize=(20, 20))
     colors = np.linspace(0, 200, len(pca.ranks))
@@ -134,4 +138,4 @@ def plot_n_or_dim(n, dim, max_rt):
     plt.show()
 
 
-plot_n_or_dim(10000, 2000, 180)
+plot_n_or_dim(20000, 1000, 1000)
