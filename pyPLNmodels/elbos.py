@@ -243,7 +243,6 @@ def elbo_zi_pln(
     y = torch.sum(latent_prob, axis=0)
     covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
     inside_d = covariance_term + log_S_term
-    ## pb with d, should be multiplied by rho or no ?
     d = n_samples * dim / 2 + torch.sum(inside_d)
 
     inside_e = torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(
@@ -258,6 +257,4 @@ def elbo_zi_pln(
     K = sum_un_moins_rho_s2 + diag_sig_sum_rho
     inside_f = torch.diag(Omega) * K
     f = -1 / 2 * torch.sum(inside_f)
-    # return c
-    # return a + b
     return a + b + c + d + e + f
