@@ -8,7 +8,6 @@ import torch
 
 os.chdir("./pyPLNmodels/")
 
-
 (
     endog,
     exog,
@@ -20,6 +19,8 @@ os.chdir("./pyPLNmodels/")
 
 
 print("percentage zeros:", torch.sum(endog == 0) / (endog.shape[0] * endog.shape[1]))
+# sns.heatmap(true_Sigma)
+# plt.show()
 # pln = ZIPLN(true_infla=true_infla, true_covariance=true_Sigma, true_coef=true_beta)
 # pln.fit(counts, covariates, offsets, nb_max_iteration=250)
 # pln.print_mse()
@@ -28,6 +29,13 @@ print("percentage zeros:", torch.sum(endog == 0) / (endog.shape[0] * endog.shape
 # sns.heatmap(true_Sigma)
 # plt.show()
 full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-full.fit(nb_max_iteration=10)
+full.fit(nb_max_iteration=200)
+
+
+def MSE(t):
+    return torch.mean(t**2)
+
+
+print("mse:", MSE(true_beta - full._coef))
 # print(full)
-full.show()
+# full.show()
