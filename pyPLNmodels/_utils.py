@@ -90,7 +90,11 @@ class _PlotArgs:
 
 
 def sample(
-    param, seed: int = None, return_latent=False, distrib: str = "PLN"
+    param,
+    seed: int = None,
+    return_latent=False,
+    distrib: str = "PLN",
+    N_param: int = 1,
 ) -> torch.Tensor:
     """
     Sample from the wanted distribution.
@@ -106,6 +110,9 @@ def sample(
         If True will return also the latent variables. Default is False.
     distrib : str, optional
         Distribution wanted. Should be either "PLN" or "BIG"
+    N_param : int, optional
+        The parameters of the Binomial distribution.
+        Used only if distrib == "BIGN"
 
     Returns
     -------
@@ -141,6 +148,11 @@ def sample(
         counts = (1 - ksi) * torch.poisson(torch.exp(parameter))
     elif distrib == "BIG":
         counts = torch.bernoulli(torch.sigmoid(parameter))
+    elif distrib == "BIGN":
+        distrib = torch.distributions.binomial.Binomial(
+            N_param, torch.sigmoid(parameter)
+        )
+        counts = distrib.sample()
     else:
         print(f"Unknown distribution {distrib}")
     torch.random.set_rng_state(prev_state)
@@ -660,6 +672,8 @@ def get_simulated_count_data(
     nb_cov: int = 1,
     return_true_param: bool = False,
     seed: int = 0,
+    distrib: str = "PLN",
+    N_param: int = 1,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
@@ -678,6 +692,7 @@ def get_simulated_count_data(
         Whether to return the true parameters of the model, by default False.
     seed : int, optional
         Seed value for random number generation, by default 0.
+    distrib
 
     Returns
     -------
@@ -685,7 +700,9 @@ def get_simulated_count_data(
         Tuple containing counts, covariates, and offsets.
     """
     param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
-    counts = sample(param, seed=seed, return_latent=False)
+    counts = sample(
+        param, seed=seed, return_latent=False, distrib=distrib, N_param=N_param
+    )
     if return_true_param is True:
         return (
             counts,
@@ -694,7 +711,7 @@ def get_simulated_count_data(
             param.covariance,
             param.coef,
         )
-    return param.counts, param.cov, param.offsets
+    return counts, param.cov, param.offsets
 
 
 def get_real_count_data(

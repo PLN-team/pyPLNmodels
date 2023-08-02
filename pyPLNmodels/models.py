@@ -18,7 +18,7 @@ from ._closed_forms import (
     _closed_formula_covariance,
     _closed_formula_pi,
 )
-from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln, _elbo_big
+from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln, _elbo_big, _elbo_big_n
 from ._utils import (
     _PlotArgs,
     _format_data,
@@ -1586,6 +1586,50 @@ class BIG(Pln):
             The list of parameters needing gradient.
         """
         return [self._latent_mean, self._ksi, self._latent_sqrt_var]
+
+
+class BIGN(BIG):
+    def __init__(
+        self,
+        counts: torch.Tensor,
+        N_param,
+        covariates: Optional[torch.Tensor] = None,
+        offsets: Optional[torch.Tensor] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[dict] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+    ):
+        self._N_param = N_param
+        super().__init__(
+            counts,
+            covariates=covariates,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
+
+    def compute_elbo(self):
+        """
+        Method for computing the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+        return _elbo_big_n(
+            self._counts,
+            self._covariates,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._covariance,
+            self._coef,
+            self._ksi,
+            self._N_param,
+        )
 
 
 class PlnPCAcollection:
