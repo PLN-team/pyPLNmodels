@@ -33,6 +33,7 @@ from ._utils import (
     _array2tensor,
     _handle_data,
     _add_doc,
+    _trunc_log,
 )
 
 from ._initialization import (
@@ -397,13 +398,17 @@ class _model(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
-        print("elbo:", -loss / self.n_samples)
-        # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
-        # print("diff theta_0:", torch.norm(self.grad_theta_0() + self._coef_inflation.grad))
-        # print("diff C:", torch.norm(self.grad_C() + self._components.grad))
-        # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
-        # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
-        print("diff rho:", torch.norm(self.grad_rho() + self._latent_prob.grad))
+        if self._NAME == "ZIPln":
+            print("elbo:", -loss / self.n_samples)
+            print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
+            print(
+                "diff theta_0:",
+                torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
+            )
+            print("diff C:", torch.norm(self.grad_C() + self._components.grad))
+            print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
+            print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
+            print("diff rho:", torch.norm(self.grad_rho() + self._latent_prob.grad))
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -683,7 +688,7 @@ class _model(ABC):
             sigma = sigma[:400, :400]
             sns.heatmap(self.covariance[:400, :400].cpu(), ax=ax)
         else:
-            sns.heatmap(self.covariance.cpu(), ax=ax)
+            sns.heatmap(self.covariance.cpu() * (torch.eye(self.dim) == 0), ax=ax)
         ax.set_title("Covariance Matrix")
         plt.legend()
         if savefig:
@@ -3435,6 +3440,7 @@ class ZIPln(_model):
         return b_grad + first_part_grad + second_part_grad + last_grad
 
     def grad_rho(self):
+        omega = torch.inverse(self._covariance)
         s_rond_s = self._latent_sqrt_var * self._latent_sqrt_var
         A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
         first = (
@@ -3448,10 +3454,32 @@ class ZIPln(_model):
             ((MmoinsXB.T) @ MmoinsXB) * torch.inverse(self._covariance)
         )
         third = self._exog @ self._coef_inflation
-        fourth_first = torch.log(torch.abs(self._latent_sqrt_var))
-        fourth_second = torch.multiply(
-            torch.full((self.n_samples, 1), 1.0),
-            torch.log(torch.diag(self.covariance)).unsqueeze(0),
+        fourth_first = -torch.log(torch.abs(self._latent_sqrt_var))
+        fourth_second = (
+            1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0),
+                torch.log(torch.diag(self.covariance)).unsqueeze(0),
+            )
         )
         fourth = fourth_first + fourth_second
-        return 0 * first + 0 * second + 0 * third + fourth
+        fifth = _trunc_log(un_moins_prob) - _trunc_log(self._latent_prob)
+        sixth_first = (
+            1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0), torch.diag(omega).unsqueeze(0)
+            )
+            * s_rond_s
+        )
+        sixth_second = (
+            -1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0),
+                (torch.diag(omega) * torch.diag(self._covariance)).unsqueeze(0),
+            )
+        )
+        sixth = sixth_first + sixth_second
+        return first + second + third + fourth + fifth + sixth
