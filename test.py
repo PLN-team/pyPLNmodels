@@ -36,10 +36,14 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 def plot_collection(col, axes, colors, tol_list, linestyle):
     for i, model in enumerate(col.values()):
         absc = model._plotargs.running_times
+        if linestyle == "--":
+            label = f"rank {model.rank} mini-batch"
+        else:
+            label = f"rank {model.rank} full-batch"
         axes[0].plot(
             absc,
             model.mse_beta_list,
-            label=f"rank {model.rank}",
+            label=label,
             color=colors[i],
             linestyle=linestyle,
         )
@@ -49,7 +53,7 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
             absc, -np.array(model._elbos_list), color=colors[i], linestyle=linestyle
         )
         axes[4].plot(absc, model.norm_list_Sigma, color=colors[i], linestyle=linestyle)
-        axes[6].plot(absc, model.scores_xgboost, color=colors[i], linestyle=linestyle)
+        axes[6].plot(absc, model.scores_predictor, color=colors[i], linestyle=linestyle)
         axes[7].plot(
             absc, model._plotargs.criterions, color=colors[i], linestyle=linestyle
         )
@@ -166,8 +170,9 @@ def plot_n_or_dim(n, dim, max_rt):
     axes[5].set_yscale("log")
     axes[6].set_title("Scores predictor")
     axes[7].set_yscale("log")
+    axes[7].set_title("tolerance")
     plt.savefig(f"n_{n}_p_{dim}_ranks_{ranks}.pdf", format="pdf")
     plt.show()
 
 
-plot_n_or_dim(10000, 2000, 180)
+plot_n_or_dim(1000, 150, 10)

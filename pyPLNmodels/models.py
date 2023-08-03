@@ -2,10 +2,12 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-import xgboost as xgb
 from sklearn.model_selection import cross_val_score
 from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
 
+
+import xgboost as xgb
+from sklearn.svm import SVC
 import pandas as pd
 import torch
 import numpy as np
@@ -16,6 +18,7 @@ import plotly.express as px
 from mlxtend.plotting import plot_pca_correlation_graph
 import matplotlib
 from scipy import stats
+from tqdm import tqdm
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -386,7 +389,7 @@ class _model(ABC):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
-        max_rt=200000,
+        nb_fitting=200000,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -412,10 +415,11 @@ class _model(ABC):
         self.norm_list_C = []
         self.norm_list_beta = []
         self.norm_list_Sigma = []
-        self.scores_xgboost = []
+        self.scores_predictor = []
         self.scores_svm = []
         self._print_beginning_message()
         self._beginning_time = time.time()
+        self.nb_predictor_fit = 0
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._plotargs.running_times) > 0:
@@ -440,22 +444,27 @@ class _model(ABC):
                 self.norm_list_beta.append(error_loss(self.coef).item())
             self.norm_list_Sigma.append(error_loss(self.covariance).item())
             if self._nb_iteration_done / self._nb_batches % 200 == 0:
-                xgb_predictor = xgb.XGBClassifier()
+                # predictor = xgb.XGBClassifier()
+                predictor = SVC()
                 # self.score = 0
                 t = time.time()
-                self.score = cross_val_score(
-                    xgb_predictor,
-                    X=self.latent_variables.detach().cpu(),
-                    y=self.GT,
-                    cv=10,
-                    scoring="balanced_accuracy",
-                ).mean()
+                if self._NAME == "PlnPCA":
+                    self.score = cross_val_score(
+                        predictor,
+                        X=self.latent_variables.detach().cpu(),
+                        y=self.GT,
+                        cv=5,
+                        scoring="balanced_accuracy",
+                    ).mean()
+                else:
+                    self.score = 0
                 time_spent = time.time() - t
                 self._beginning_time += time_spent
-            self.scores_xgboost.append(self.score),
+                self.nb_predictor_fit += 1
+            self.scores_predictor.append(self.score),
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
-            if abs(criterion) < tol or max_rt < self._plotargs.running_times[-1]:
+            if abs(criterion) < tol or nb_fitting < self.nb_predictor_fit:
                 stop_condition = True
 
             # try:
@@ -1556,7 +1565,7 @@ class Pln(_model):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
-        max_rt=200000,
+        nb_fitting=200000,
     ):
         super().fit(
             nb_max_iteration,
@@ -1565,7 +1574,7 @@ class Pln(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
             batch_size=batch_size,
-            max_rt=max_rt,
+            nb_fitting=nb_fitting,
         )
 
     @_add_doc(
@@ -2318,7 +2327,7 @@ class PlnPCAcollection:
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
-        max_rt=200000,
+        nb_fitting=200000,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2340,7 +2349,7 @@ class PlnPCAcollection:
             batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         self._print_beginning_message()
-        for i in range(len(self.values())):
+        for i in tqdm(range(len(self.values()))):
             model = self[self.ranks[i]]
             model.fit(
                 nb_max_iteration,
@@ -2349,7 +2358,7 @@ class PlnPCAcollection:
                 do_smart_init=do_smart_init,
                 verbose=verbose,
                 batch_size=batch_size,
-                max_rt=max_rt,
+                nb_fitting=nb_fitting,
             )
             # if i < len(self.values()) - 1:
             #     next_model = self[self.ranks[i + 1]]
@@ -2851,7 +2860,7 @@ class PlnPCA(_model):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
-        max_rt=200000,
+        nb_fitting=200000,
     ):
         super().fit(
             nb_max_iteration,
@@ -2860,7 +2869,7 @@ class PlnPCA(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
             batch_size=batch_size,
-            max_rt=max_rt,
+            nb_fitting=nb_fitting,
         )
 
     @_add_doc(
