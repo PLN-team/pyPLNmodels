@@ -1005,3 +1005,19 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
         return fun
 
     return wrapper
+
+
+def lissage(Lx, Ly, p):
+    """Fonction qui débruite une courbe par une moyenne glissante
+    sur 2P+1 points"""
+    Lxout = []
+    Lyout = []
+    for i in range(p, len(Lx) - p):
+        Lxout.append(Lx[i])
+    for i in range(p, len(Ly) - p):
+        val = 0
+        for k in range(2 * p):
+            val += Ly[i - p + k]
+        Lyout.append(val / 2 / p)
+
+    return Lxout, Lyout

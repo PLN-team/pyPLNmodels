@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import scanpy
 from sklearn.preprocessing import LabelEncoder
+import pickle
+from pyPLNmodels._utils import lissage
 
 
 def get_sc_mark_data(max_class=28, max_n=200, dim=100):
@@ -54,10 +56,22 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
         )
         axes[4].plot(absc, model.norm_list_Sigma, color=colors[i], linestyle=linestyle)
         axes[6].plot(absc, model.scores_predictor, color=colors[i], linestyle=linestyle)
-        axes[7].plot(
-            absc, model._plotargs.criterions, color=colors[i], linestyle=linestyle
-        )
-        tol_list.append(model._plotargs.criterions[-1])
+        crit = model._plotargs.criterions
+        absc_crit, crit = lissage(absc, crit, 15)
+
+        axes[7].plot(absc_crit, crit, color=colors[i], linestyle=linestyle)
+        tol_list.append(crit[-1])
+
+
+class mimick_col:
+    def __init__(self, col):
+        self.col = {}
+        self.ranks = col.ranks
+        for rank in col.ranks:
+            self.col[rank] = mimick_pca(col[rank])
+
+    def values(self):
+        return self.col.values()
 
 
 class mimick_pca:
@@ -69,34 +83,40 @@ class mimick_pca:
         self.norm_list_beta = pca.norm_list_beta
         self.norm_list_Sigma = pca.norm_list_Sigma
         self._elbos_list = pca._elbos_list
-        self.scores_xgboost = pca.scores_xgboost
+        self.scores_predictor = pca.scores_predictor
 
 
-def save_pca(pca):
-    col = {rank: {} for rank in pca.ranks}
-
-    for rank in pca.ranks:
-        current_model = col[rank]
-        current_model
-        col[rank]
+def mimick_col_from_file(name_file):
+    with open(name_file, "rb") as fp:
+        col = pickle.load(fp)
+    return col
 
 
-def plot_n_or_dim(n, dim, max_rt):
+def save_col(col, name):
+    saveable_col = mimick_col(col)
+    with open(name, "wb") as fp:
+        pickle.dump(saveable_col, fp)
+
+
+def plot_n_or_dim(n, dim, nb_fitting):
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
     covariates = None
     offsets = None
-    pln = Pln(counts, exog=covariates, offsets=offsets, GT=GT)
-    pln.fit(verbose=True)
-    true_beta = pln.coef
-    true_Sigma = pln.covariance
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
-    ranks = [3, 4, 12, 30]  # , 40, 80, 120, 180, 250, 500]
-    name_no_batch = f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_maxrt_{max_rt}"
-    name_batch = f"results/batch_ranks_{ranks}_n_{n}_dim_{dim}_maxrt_{max_rt}"
+    ranks = [4, 12, 30]  # , 40, 80, 120, 180, 250, 500]
+    name_no_batch = (
+        f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}"
+    )
+    name_batch = f"results/batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}"
     nb_max_iter = 30000
+    if (exists(name_no_batch) is False) and (exists(name_batch) is False):
+        pln = Pln(counts, GT=GT)
+        pln.fit(verbose=True)
+        true_beta = pln.coef
+        true_Sigma = pln.covariance
     if exists(name_no_batch) is False:
-        pca = PlnPCAcollection(
+        col = PlnPCAcollection(
             counts,
             exog=covariates,
             offsets=offsets,
@@ -105,12 +125,14 @@ def plot_n_or_dim(n, dim, max_rt):
             true_beta=true_beta,
             GT=GT,
         )
-        pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, max_rt=max_rt)
-        save_pca(pca)
+        col.fit(
+            tol=0, nb_max_iteration=nb_max_iter, verbose=True, nb_fitting=nb_fitting
+        )
+        save_col(col, name_no_batch)
     else:
-        pca = mimick_col(name_no_batch)
+        col = mimick_col_from_file(name_no_batch)
     if exists(name_batch) is False:
-        pca_batch = PlnPCAcollection(
+        col_batch = PlnPCAcollection(
             counts,
             exog=covariates,
             offsets=offsets,
@@ -119,18 +141,18 @@ def plot_n_or_dim(n, dim, max_rt):
             true_beta=true_beta,
             GT=GT,
         )
-        pca_batch.fit(
+        col_batch.fit(
             tol=0,
             nb_max_iteration=nb_max_iter,
             verbose=True,
             batch_size=300,
-            max_rt=max_rt,
+            nb_fitting=nb_fitting,
         )
-        save_pca(pca_batch)
+        save_col(col_batch, name_batch)
     else:
-        pca_batch = mimick_col(name_batch)
+        col_batch = mimick_col_from_file(name_batch)
     fig, mp_axes = plt.subplots(2, 4, figsize=(20, 20))
-    colors = np.linspace(0, 200, len(pca.ranks))
+    colors = np.linspace(0, 200, len(col.ranks))
     axes = {}
     for i in range(4):
         axes[i] = mp_axes[0, i]
@@ -140,8 +162,8 @@ def plot_n_or_dim(n, dim, max_rt):
     colors = np.repeat(colors, 3, axis=1)
     tols = []
     tols_batch = []
-    plot_collection(pca, axes, colors, tols, linestyle="-")
-    plot_collection(pca_batch, axes, colors, tols_batch, linestyle="--")
+    plot_collection(col, axes, colors, tols, linestyle="-")
+    plot_collection(col_batch, axes, colors, tols_batch, linestyle="--")
     axes[0].legend()
     axes[1].legend()
     axes[2].legend()
@@ -175,4 +197,4 @@ def plot_n_or_dim(n, dim, max_rt):
     plt.show()
 
 
-plot_n_or_dim(1000, 150, 10)
+plot_n_or_dim(600, 100, 200)
