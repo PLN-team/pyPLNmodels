@@ -2,10 +2,12 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-import xgboost as xgb
 from sklearn.model_selection import cross_val_score
 from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
 
+
+import xgboost as xgb
+from sklearn.svm import SVC
 import pandas as pd
 import torch
 import numpy as np
@@ -413,11 +415,11 @@ class _model(ABC):
         self.norm_list_C = []
         self.norm_list_beta = []
         self.norm_list_Sigma = []
-        self.scores_xgboost = []
+        self.scores_predictor = []
         self.scores_svm = []
         self._print_beginning_message()
         self._beginning_time = time.time()
-        self.nb_xg_boost_fit = 0
+        self.nb_predictor_fit = 0
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._plotargs.running_times) > 0:
@@ -442,12 +444,13 @@ class _model(ABC):
                 self.norm_list_beta.append(error_loss(self.coef).item())
             self.norm_list_Sigma.append(error_loss(self.covariance).item())
             if self._nb_iteration_done / self._nb_batches % 200 == 0:
-                xgb_predictor = xgb.XGBClassifier()
+                # predictor = xgb.XGBClassifier()
+                predictor = SVC()
                 # self.score = 0
                 t = time.time()
-                if self._NAME == "PlnPNCA":
+                if self._NAME == "PlnPCA":
                     self.score = cross_val_score(
-                        xgb_predictor,
+                        predictor,
                         X=self.latent_variables.detach().cpu(),
                         y=self.GT,
                         cv=5,
@@ -457,11 +460,11 @@ class _model(ABC):
                     self.score = 0
                 time_spent = time.time() - t
                 self._beginning_time += time_spent
-                self.nb_xg_boost_fit += 1
-            self.scores_xgboost.append(self.score),
+                self.nb_predictor_fit += 1
+            self.scores_predictor.append(self.score),
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
-            if abs(criterion) < tol or nb_fitting < self.nb_xg_boost_fit:
+            if abs(criterion) < tol or nb_fitting < self.nb_predictor_fit:
                 stop_condition = True
 
             # try:
