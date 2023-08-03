@@ -2,6 +2,7 @@ from pyPLNmodels.models import PlnPCA, PlnPCAcollection, Pln
 from pyPLNmodels import get_real_count_data, get_simulated_count_data
 import matplotlib.pyplot as plt
 import os
+from os.path import exists
 import pandas as pd
 import numpy as np
 import scanpy
@@ -55,6 +56,27 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
         tol_list.append(model._plotargs.criterions[-1])
 
 
+class mimick_pca:
+    def __init__(self, pca):
+        self._plotargs = pca._plotargs
+        self.mse_beta_list = pca.mse_beta_list
+        self.rank = pca.rank
+        self.mse_Sigma_list = pca.mse_Sigma_list
+        self.norm_list_beta = pca.norm_list_beta
+        self.norm_list_Sigma = pca.norm_list_Sigma
+        self._elbos_list = pca._elbos_list
+        self.scores_xgboost = pca.scores_xgboost
+
+
+def save_pca(pca):
+    col = {rank: {} for rank in pca.ranks}
+
+    for rank in pca.ranks:
+        current_model = col[rank]
+        current_model
+        col[rank]
+
+
 def plot_n_or_dim(n, dim, max_rt):
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
@@ -66,29 +88,43 @@ def plot_n_or_dim(n, dim, max_rt):
     true_Sigma = pln.covariance
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
     ranks = [3, 4, 12, 30]  # , 40, 80, 120, 180, 250, 500]
-    pca = PlnPCAcollection(
-        counts,
-        exog=covariates,
-        offsets=offsets,
-        ranks=ranks,
-        true_Sigma=true_Sigma,
-        true_beta=true_beta,
-        GT=GT,
-    )
-    pca_batch = PlnPCAcollection(
-        counts,
-        exog=covariates,
-        offsets=offsets,
-        ranks=ranks,
-        true_Sigma=true_Sigma,
-        true_beta=true_beta,
-        GT=GT,
-    )
+    name_no_batch = f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_maxrt_{max_rt}"
+    name_batch = f"results/batch_ranks_{ranks}_n_{n}_dim_{dim}_maxrt_{max_rt}"
     nb_max_iter = 30000
-    pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, max_rt=max_rt)
-    pca_batch.fit(
-        tol=0, nb_max_iteration=nb_max_iter, verbose=True, batch_size=300, max_rt=max_rt
-    )
+    if exists(name_no_batch) is False:
+        pca = PlnPCAcollection(
+            counts,
+            exog=covariates,
+            offsets=offsets,
+            ranks=ranks,
+            true_Sigma=true_Sigma,
+            true_beta=true_beta,
+            GT=GT,
+        )
+        pca.fit(tol=0, nb_max_iteration=nb_max_iter, verbose=True, max_rt=max_rt)
+        save_pca(pca)
+    else:
+        pca = mimick_col(name_no_batch)
+    if exists(name_batch) is False:
+        pca_batch = PlnPCAcollection(
+            counts,
+            exog=covariates,
+            offsets=offsets,
+            ranks=ranks,
+            true_Sigma=true_Sigma,
+            true_beta=true_beta,
+            GT=GT,
+        )
+        pca_batch.fit(
+            tol=0,
+            nb_max_iteration=nb_max_iter,
+            verbose=True,
+            batch_size=300,
+            max_rt=max_rt,
+        )
+        save_pca(pca_batch)
+    else:
+        pca_batch = mimick_col(name_batch)
     fig, mp_axes = plt.subplots(2, 4, figsize=(20, 20))
     colors = np.linspace(0, 200, len(pca.ranks))
     axes = {}
