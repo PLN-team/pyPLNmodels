@@ -66,7 +66,7 @@ class _model(ABC):
     Base class for all the Pln models. Should be inherited.
     """
 
-    _WINDOW: int = 2
+    _WINDOW: int = 15
     _endog: torch.Tensor
     _exog: torch.Tensor
     _offsets: torch.Tensor
