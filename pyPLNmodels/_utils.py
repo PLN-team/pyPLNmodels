@@ -1010,3 +1010,12 @@ def _handle_data(
     )
     _check_data_shape(counts, covariates, offsets)
     return counts, covariates, offsets, column_counts
+
+
+def derivative_ksi(x, m, s):
+    sig = torch.sigmoid(x)
+    first = 1 - sig
+    a = m**2 + s**2
+    sec = -a / 2 * (-1 / (x**2) * (sig - 1 / 2) + sig * (1 - sig) / x)
+    third = 1 / 2 * (sig - 1 / 2) + x * sig * (1 - sig) / 2
+    return first + sec + third

@@ -11,13 +11,18 @@ from pyPLNmodels import (
     BIGN,
 )
 
-N = 1000
+N = 1
+nb_max = 20
 counts, cov, offsets, cov, coef = get_simulated_count_data(
     distrib="BIGN", N_param=N, return_true_param=True
 )
-print("N:", N)
-sns.heatmap(cov)
-plt.show()
+# sns.heatmap(cov)
+# plt.show()
 bign = BIGN(counts, N_param=N)
-bign.fit(nb_max_iteration=1500, tol=0)
+bign.fit(nb_max_iteration=nb_max, tol=0)
 bign.show()
+# print(bign)
+# big = BIG(counts)
+# big.fit(nb_max_iteration=nb_max, tol=0)
+# big.show()
+# print(big)

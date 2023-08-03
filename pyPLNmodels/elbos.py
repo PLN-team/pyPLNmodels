@@ -102,7 +102,6 @@ def _elbo_big(
         XB = torch.zeros_like(counts)
     else:
         XB = covariates @ coef
-    print("mean:", torch.mean(latent_mean))
     m_minus_xb = latent_mean - XB
     d_plus_minus_xb2 = (
         torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
@@ -211,7 +210,7 @@ def _elbo_big_n(
         - torch.sum(_log_stirling(N - counts))
     )
     elbo = logPY_given_Z + logPZ + entropy + log_constant
-    return elbo / n_samples
+    return elbo  # / n_samples
 
 
 def profiled_elbo_pln(

@@ -29,6 +29,7 @@ from ._utils import (
     _get_dict_initialization,
     _array2tensor,
     _handle_data,
+    derivative_ksi,
 )
 
 from ._initialization import (
@@ -403,6 +404,11 @@ class _model(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
+        # print('diff S ', torch.norm(self.gradient_S() + self._latent_sqrt_var.grad))
+        # print('diff M ', torch.norm(self.gradient_M() + self._latent_mean.grad))
+        # print('diff beta ', torch.norm(self.gradient_beta() + self.free_coef.grad))
+        # print('diff C', torch.norm(self.gradient_C() + self._components.grad))
+        # print('diff ksi', torch.norm(self.gradient_ksi() + self._ksi.grad))
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -1585,7 +1591,17 @@ class BIG(Pln):
         List[torch.Tensor]
             The list of parameters needing gradient.
         """
-        return [self._latent_mean, self._ksi, self._latent_sqrt_var]
+        return [
+            self._components,
+            self._ksi,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self.free_coef,
+        ]
+
+    def _smart_init_model_parameters(self):
+        self._components = torch.randn(self.dim, self.dim).to(DEVICE)
+        self.free_coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
 
 
 class BIGN(BIG):
@@ -1611,6 +1627,10 @@ class BIGN(BIG):
             add_const=add_const,
         )
 
+    @property
+    def free_covariance(self):
+        return self._components @ (self._components.T)
+
     def compute_elbo(self):
         """
         Method for computing the evidence lower bound (ELBO).
@@ -1625,10 +1645,56 @@ class BIGN(BIG):
             self._covariates,
             self._latent_mean,
             self._latent_sqrt_var,
-            self._covariance,
-            self._coef,
+            self.free_covariance,
+            self.free_coef,
             self._ksi,
             self._N_param,
+        )
+
+    def gradient_M(self):
+        first = self._counts - self._N_param
+        MmoinsXB = self._latent_mean - self._covariates @ self.free_coef
+        second = -MmoinsXB @ (torch.inverse(self.free_covariance))
+        third = self._N_param / 2
+        f_ksi = -1 / (2 * self._ksi) * (torch.sigmoid(self._ksi) - 1 / 2)
+        fourth = self._N_param * 2 * f_ksi * self._latent_mean
+        return first + second + third + fourth
+
+    def gradient_S(self):
+        first = 1 / self._latent_sqrt_var
+        K = torch.multiply(
+            torch.full((self.n_samples, 1), 1.0),
+            torch.diag(torch.inverse(self.free_covariance)).unsqueeze(0),
+        )
+        sec = -self._latent_sqrt_var * K
+        f_ksi = -1 / (2 * self._ksi) * (torch.sigmoid(self._ksi) - 1 / 2)
+        third = self._N_param * 2 * f_ksi * self._latent_sqrt_var
+        return first + sec + third
+
+    def gradient_beta(self):
+        return (
+            -self._covariates.T
+            @ (self._covariates @ self.free_coef - self._latent_mean)
+            @ (torch.inverse(self.free_covariance))
+        )
+
+    def gradient_C(self):
+        deter = (
+            -self.n_samples
+            * torch.inverse(self._components @ (self._components.T))
+            @ self._components
+        )
+        omega = torch.inverse(self.free_covariance)
+        K = torch.sum(self._latent_sqrt_var**2, axis=0)
+        grad = omega @ torch.diag_embed(K) @ omega @ self._components
+        m_minus_xb = self._latent_mean - torch.mm(self._covariates, self.free_coef)
+        m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+        last = omega @ (m_moins_xb_outer) @ omega @ self._components
+        return deter + grad + last
+
+    def gradient_ksi(self):
+        return self._N_param * (
+            -1 / 2 + derivative_ksi(self._ksi, self._latent_mean, self._latent_sqrt_var)
         )
 
 
