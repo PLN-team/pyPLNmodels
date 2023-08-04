@@ -13,6 +13,7 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
+from scipy.special import lambertw
 
 
 torch.set_default_dtype(torch.float64)
@@ -1047,3 +1048,52 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
         return fun
 
     return wrapper
+
+
+class lambert(torch.autograd.Function):
+    """
+    We can implement our own custom autograd Functions by subclassing
+    torch.autograd.Function and implementing the forward and backward passes
+    which operate on Tensors.
+    """
+
+    @staticmethod
+    def forward(ctx, input):
+        """
+        In the forward pass we receive a Tensor containing the input and return
+        a Tensor containing the output. ctx is a context object that can be used
+        to stash information for backward computation. You can cache arbitrary
+        objects for use in the backward pass using the ctx.save_for_backward method.
+        """
+        ctx.save_for_backward(input)
+        arr = input.numpy()
+        return torch.from_numpy(lambertw(arr).real)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        In the backward pass we receive a Tensor containing the gradient of the loss
+        with respect to the output, and we need to compute the gradient of the loss
+        with respect to the input.
+        """
+        (input,) = ctx.saved_tensors
+        arr = input.numpy()
+        lamb = lambertw(arr).real
+        out = lamb / (input * (1 + lamb))
+        return grad_output * out
+
+
+def phi(mu, sigma):
+    lamb = lambert.apply
+    y = sigma**2 * torch.exp(mu)
+    lamby = lamb(y)
+    log_num = -1 / (2 * sigma**2) * (lamby**2 + 2 * lamby)
+    return torch.exp(log_num) / torch.sqrt(1 + lamby)
+
+
+def closed_form_latent_prob(exog, coef, cov, dirac):
+    XB = exog @ coef
+    pi = torch.sigmoid(XB)
+    diag = torch.diag(cov)
+    full_diag = diag.expand(exog.shape[0], -1)
+    return (pi / (phi(XB, full_diag) * (1 - pi) + pi)) * dirac
