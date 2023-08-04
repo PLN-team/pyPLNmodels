@@ -406,14 +406,14 @@ class _model(ABC):
         loss.backward()
         if self._NAME == "ZIPln":
             print("elbo:", -loss / self.n_samples)
-            # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
-            # print(
-            # "diff theta_0:",
-            # torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
-            # )
-            # print("diff C:", torch.norm(self.grad_C() + self._components.grad))
-            # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
-            # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
+            print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
+            print(
+                "diff theta_0:",
+                torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
+            )
+            print("diff C:", torch.norm(self.grad_C() + self._components.grad))
+            print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
+            print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
             print("diff rho:", torch.norm(self.grad_rho() + self._latent_prob.grad))
         self.optim.step()
         self._update_closed_forms()
@@ -3399,6 +3399,9 @@ class ZIPln(_model):
                 self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2
             )
         )
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        second = -un_moins_prob * A
         return first + second
 
     def grad_S(self):
@@ -3436,14 +3439,18 @@ class ZIPln(_model):
         m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
 
         un_moins_rho = 1 - self._latent_prob
-        un_moins_rho_outer = torch.mm(un_moins_rho.T, un_moins_rho)
+
+        un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
+        un_moins_rho_m_moins_xb_outer = (
+            un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
+        )
         deter = (
             -self.n_samples
             * torch.inverse(self._components @ (self._components.T))
             @ self._components
         )
         sec_part_b_grad = (
-            omega @ (un_moins_rho_outer * m_moins_xb_outer) @ omega @ self._components
+            omega @ (un_moins_rho_m_moins_xb_outer) @ omega @ self._components
         )
         b_grad = deter + sec_part_b_grad
 
