@@ -205,7 +205,7 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
-        proj_variables = pca.transform(self.latent_variables)
+        proj_variables = pca.transform(self.latent_variables.cpu())
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
@@ -503,7 +503,7 @@ class _model(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = self.sk_PCA(n_components=n_components)
-        proj_variables = pca.transform(self.latent_variables)
+        proj_variables = pca.transform(self.latent_variables.cpu())
         components = torch.from_numpy(pca.components_)
 
         labels = {
@@ -563,7 +563,7 @@ class _model(ABC):
 
         n_components = 2
         pca = self.sk_PCA(n_components=n_components)
-        variables = self.latent_variables
+        variables = self.latent_variables.cpu()
         proj_variables = pca.transform(variables)
         ## the package is not correctly printing the variance ratio
         figure, correlation_matrix = plot_pca_correlation_graph(
