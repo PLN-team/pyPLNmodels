@@ -5,75 +5,6 @@ from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 from typing import Optional
 
 
-def elbo_pln(
-    endog: torch.Tensor,
-    exog: Optional[torch.Tensor],
-    offsets: torch.Tensor,
-    latent_mean: torch.Tensor,
-    latent_sqrt_var: torch.Tensor,
-    covariance: torch.Tensor,
-    coef: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Compute the ELBO (Evidence Lower Bound) for the Pln model.
-
-    Parameters:
-    ----------
-    endog : torch.Tensor
-        Counts with size (n, p).
-    offsets : torch.Tensor
-        Offset with size (n, p).
-    exog : torch.Tensor, optional
-        Covariates with size (n, d).
-    latent_mean : torch.Tensor
-        Variational parameter with size (n, p).
-    latent_sqrt_var : torch.Tensor
-        Variational parameter with size (n, p).
-    covariance : torch.Tensor
-        Model parameter with size (p, p).
-    coef : torch.Tensor
-        Model parameter with size (d, p).
-
-    Returns:
-    -------
-    torch.Tensor
-        The ELBO (Evidence Lower Bound), of size one.
-    """
-    n_samples, dim = endog.shape
-    s_rond_s = torch.square(latent_sqrt_var)
-    offsets_plus_m = offsets + latent_mean
-    Omega = torch.inverse(covariance)
-    if exog is None:
-        XB = torch.zeros_like(endog)
-    else:
-        XB = exog @ coef
-    # print('XB:', XB)
-    m_minus_xb = latent_mean - XB
-    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-    A = torch.exp(offsets_plus_m + s_rond_s / 2)
-    first_a = torch.sum(endog * offsets_plus_m)
-    sec_a = -torch.sum(A)
-    third_a = -torch.sum(_log_stirling(endog))
-    a = first_a + sec_a + third_a
-    diag = torch.diag(torch.sum(s_rond_s, dim=0))
-    elbo = torch.clone(a)
-    b = -0.5 * n_samples * torch.logdet(covariance) + torch.sum(
-        -1 / 2 * Omega * m_moins_xb_outer
-    )
-    # print('true b:', true_b)
-    # other_b =
-    elbo += b
-    d = n_samples * dim / 2 + torch.sum(+0.5 * torch.log(s_rond_s))
-    elbo += d
-    f = -0.5 * torch.trace(torch.inverse(covariance) @ diag)
-    elbo += f
-    print("a pln", a)
-    print("b pln", b)
-    print("d pln", d)
-    print("f pln", f)
-    return elbo  # / n_samples
-
-
 def profiled_elbo_pln(
     endog: torch.Tensor,
     exog: torch.Tensor,
@@ -189,6 +120,73 @@ def log1pexp(x):
     return torch.where(x < 50, torch.log1p(torch.exp(x)), x)
 
 
+def elbo_pln(
+    endog: torch.Tensor,
+    exog: Optional[torch.Tensor],
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    covariance: torch.Tensor,
+    coef: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the Pln model.
+
+    Parameters:
+    ----------
+    endog : torch.Tensor
+        Counts with size (n, p).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    exog : torch.Tensor, optional
+        Covariates with size (n, d).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_var : torch.Tensor
+        Variational parameter with size (n, p).
+    covariance : torch.Tensor
+        Model parameter with size (p, p).
+    coef : torch.Tensor
+        Model parameter with size (d, p).
+
+    Returns:
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound), of size one.
+    """
+    n_samples, dim = endog.shape
+    s_rond_s = torch.square(latent_sqrt_var)
+    offsets_plus_m = offsets + latent_mean
+    Omega = torch.inverse(covariance)
+    if exog is None:
+        XB = torch.zeros_like(endog)
+    else:
+        XB = exog @ coef
+    # print('XB:', XB)
+    m_minus_xb = latent_mean - XB
+    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+    A = torch.exp(offsets_plus_m + s_rond_s / 2)
+    first_a = torch.sum(endog * offsets_plus_m)
+    sec_a = -torch.sum(A)
+    third_a = -torch.sum(_log_stirling(endog))
+    a = first_a + sec_a + third_a
+    diag = torch.diag(torch.sum(s_rond_s, dim=0))
+    elbo = torch.clone(a)
+    b = -0.5 * n_samples * torch.logdet(covariance) + torch.sum(
+        -1 / 2 * Omega * m_moins_xb_outer
+    )
+    elbo += b
+    d = n_samples * dim / 2 + torch.sum(+0.5 * torch.log(s_rond_s))
+    elbo += d
+    f = -0.5 * torch.trace(torch.inverse(covariance) @ diag)
+    elbo += f
+    # print("a pln", a)
+    # print("b pln", b)
+    # print("d pln", d)
+    # print("f pln", f)
+    return elbo  # / n_samples
+
+
 ## pb with trunc_log
 ## should rename some variables so that is is clearer when we see the formula
 def elbo_zi_pln(
@@ -262,6 +260,7 @@ def elbo_zi_pln(
     y = torch.sum(latent_prob, axis=0)
     covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
     inside_d = covariance_term + log_S_term
+
     d = n_samples * dim / 2 + torch.sum(inside_d)
 
     inside_e = torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(
@@ -272,7 +271,8 @@ def elbo_zi_pln(
     diag_sig_sum_rho = torch.multiply(
         torch.diag(covariance), torch.sum(latent_prob, axis=0)
     )
-    K = sum_un_moins_rho_s2 + diag_sig_sum_rho
+    new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
+    K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
     inside_f = torch.diag(Omega) * K
     f = -1 / 2 * torch.sum(inside_f)
     elbo = a + b + c + d + e + f
@@ -355,7 +355,8 @@ def full_elbo_zi_pln(
     diag_sig_sum_rho = torch.multiply(
         torch.diag(covariance), torch.sum(latent_prob, axis=0)
     )
-    K = sum_un_moins_rho_s2 + diag_sig_sum_rho
+    new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
+    K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
     inside_f = torch.diag(Omega) * K
     f = -1 / 2 * torch.sum(inside_f)
     return a + b + c + d + e + f

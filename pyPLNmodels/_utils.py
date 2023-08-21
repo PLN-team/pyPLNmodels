@@ -513,10 +513,12 @@ def _get_simulation_coef_cov_offsets_coefzi(
         coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
+        coef += 0
         if zero_inflated is True:
             coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
         else:
             coef_inflation = None
+        # coef_inflation += 2
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
@@ -745,6 +747,7 @@ def get_simulated_count_data(
     add_const: bool = True,
     zero_inflated=False,
     seed: int = 0,
+    return_latent_variables=False,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
@@ -786,11 +789,14 @@ def get_simulated_count_data(
         add_const=add_const,
         zero_inflated=zero_inflated,
     )
-    endog = sample_pln(pln_param, seed=seed, return_latent=False)
+    if return_latent_variables is True:
+        returned_simu = sample_pln(
+            pln_param, seed=seed, return_latent=return_latent_variables
+        )
     if return_true_param is True:
         if zero_inflated is True:
             return (
-                endog,
+                returned_simu,
                 pln_param.exog,
                 pln_param.offsets,
                 pln_param.covariance,
@@ -798,13 +804,13 @@ def get_simulated_count_data(
                 pln_param.coef_inflation,
             )
         return (
-            endog,
+            returned_simu,
             pln_param.exog,
             pln_param.offsets,
             pln_param.covariance,
             pln_param.coef,
         )
-    return pln_param.endog, pln_param.cov, pln_param.offsets
+    return returned_simu, pln_param.cov, pln_param.offsets
 
 
 def get_real_count_data(
@@ -1078,8 +1084,11 @@ class lambert(torch.autograd.Function):
         """
         (input,) = ctx.saved_tensors
         arr = input.numpy()
+        print("sum 0 ", np.sum(np.abs(arr) < 1e-12))
         lamb = lambertw(arr).real
         out = lamb / (input * (1 + lamb))
+        print("sum 1 + lamb", np.sum((1 + lamb) == 0))
+        print("out:", torch.norm(out))
         return grad_output * out
 
 
