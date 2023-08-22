@@ -40,6 +40,7 @@ from ._utils import (
     _handle_data,
     _add_doc,
     _trunc_log,
+    closed_form_latent_prob,
 )
 
 from ._initialization import (
@@ -48,6 +49,9 @@ from ._initialization import (
     _init_coef,
     _init_latent_mean,
 )
+
+
+NB_BEFORE_SHIFTING = 6000
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
@@ -392,6 +396,30 @@ class _model(ABC):
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
+    def print_mses(self):
+        print("mse cov:", torch.mean((self.true_covariance - self._covariance) ** 2))
+        print("mse infla:", torch.mean((self.true_infla - self._coef_inflation) ** 2))
+        print("mse beta:", torch.mean((self.true_coef - self._coef) ** 2))
+        print("mse latent_prob:", torch.mean((self._latent_prob - self.ksi) ** 2))
+
+    def save_mse(self):
+        self.mse_cov_list.append(
+            torch.mean((self.true_covariance - self._covariance) ** 2).detach()
+        )
+        self.mse_infla_list.append(
+            torch.mean((self.true_infla - self._coef_inflation) ** 2).detach()
+        )
+        self.mse_beta_list.append(
+            torch.mean((self.true_coef - self._coef) ** 2).detach()
+        )
+        if self.use_closed_form_prob is True:
+            latent_prob = closed_form_latent_prob(
+                self._exog, self._coef, self._covariance, self._dirac
+            )
+        else:
+            latent_prob = self._latent_prob
+        self.mse_ksi_list.append(torch.mean((latent_prob - self.ksi) ** 2).detach())
+
     def _trainstep(self):
         """
         Perform a single training step.
@@ -406,6 +434,24 @@ class _model(ABC):
         loss.backward()
         if self._NAME == "ZIPln":
             print("elbo:", -loss / self.n_samples)
+            if self.nb_iteration_done == NB_BEFORE_SHIFTING + 1:
+                print("removing gradients")
+                self.print_mses()
+                self._endog = torch.clone(self.Y_inflated)
+                self.optim = torch.optim.Rprop(
+                    self._list_of_parameters_needing_gradient, lr=0
+                )
+                # self.use_closed_form_prob = True
+                self._dirac = self._endog == 0
+                # latent_prob = closed_form_latent_prob(self._exog, self._coef, self._covariance, self._dirac)
+                with torch.no_grad():
+                    self._latent_prob *= 0
+                    self._coef_inflation *= 0
+            try:
+                self.save_mse()
+            except:
+                pass
+
             # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
             # print(
             # "diff theta_0:",
@@ -693,8 +739,8 @@ class _model(ABC):
         name_file : str, optional
             The name of the file to save. Defaults to "".
         """
-        cov = self.covariance.cpu() * (torch.eye(self.dim) == 0)
-        # cov = self.covariance
+        # cov = self.covariance.cpu() * (torch.eye(self.dim) == 0)
+        cov = self.covariance
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
             sigma = sigma[:400, :400]
@@ -3237,6 +3283,8 @@ class ZIPln(_model):
         true_coef=None,
         true_infla=None,
         use_closed_form_prob=False,
+        Y_inflated=None,
+        ksi=None,
     ):
         super().__init__(
             endog,
@@ -3250,10 +3298,13 @@ class ZIPln(_model):
         self.true_covariance = true_covariance
         self.true_coef = true_coef
         self.true_infla = true_infla
-        self.mse_sigma_list = []
-        self.mse_coef_list = []
+        self.mse_cov_list = []
+        self.mse_beta_list = []
         self.mse_infla_list = []
+        self.mse_ksi_list = []
         self.use_closed_form_prob = use_closed_form_prob
+        self.Y_inflated = Y_inflated
+        self.ksi = ksi
 
     @property
     def _description(self):
@@ -3354,6 +3405,8 @@ class ZIPln(_model):
             list_param.append(self._latent_prob)
         if self._exog is not None:
             list_param.append(self._coef)
+        if self.nb_iteration_done > NB_BEFORE_SHIFTING:
+            return [self._coef_inflation, self._latent_prob]
         return list_param
 
     @property
@@ -3563,4 +3616,8 @@ class ZIPln(_model):
             )
         )
         sixth = sixth_first + sixth_second
-        return first + second + third + fourth + fifth + sixth
+        full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
+        seventh = (
+            -1 / 2 * (1 - 2 * self._latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
+        )
+        return first + second + third + fourth + fifth + sixth + seventh

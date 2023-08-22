@@ -141,12 +141,12 @@ def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Ten
         ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
     else:
         ksi = 0
-
-    endog = (1 - ksi) * torch.poisson(parameter)
+    Y = torch.poisson(parameter)
+    endog = (1 - ksi) * Y
 
     torch.random.set_rng_state(prev_state)
     if return_latent is True:
-        return endog, gaussian, ksi
+        return endog, gaussian, ksi, Y
     return endog
 
 
@@ -513,7 +513,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
-        coef += 0
+        # coef += 4
         if zero_inflated is True:
             coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
         else:
@@ -1084,11 +1084,9 @@ class lambert(torch.autograd.Function):
         """
         (input,) = ctx.saved_tensors
         arr = input.numpy()
-        print("sum 0 ", np.sum(np.abs(arr) < 1e-12))
         lamb = lambertw(arr).real
-        out = lamb / (input * (1 + lamb))
-        print("sum 1 + lamb", np.sum((1 + lamb) == 0))
-        print("out:", torch.norm(out))
+        # out = lamb / (input * (1 + lamb))
+        out = torch.where(torch.abs(input) > 1e-5, lamb / (input * (1 + lamb)), 1)
         return grad_output * out
 
 
