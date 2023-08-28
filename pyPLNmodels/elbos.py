@@ -220,7 +220,7 @@ def elbo_zi_pln(
     covariance = components @ (components.T)
     if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
         print("Bug")
-        raise RuntimeError("rho error")
+        # raise RuntimeError("rho error")
     n_samples, dim = counts.shape
     s_rond_s = torch.multiply(latent_var, latent_var)
     o_plus_m = offsets + latent_mean

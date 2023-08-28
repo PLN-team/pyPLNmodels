@@ -19,13 +19,12 @@ add_const = True
     true_infla,
 ) = get_simulated_count_data(
     return_true_param=True,
-    n_samples=20,
+    n_samples=2000,
     zero_inflated=True,
     nb_cov=0,
     add_const=add_const,
     return_latent_variables=True,
-    rank=5,
-    dim=5,
+    dim=25,
 )
 Y = simu[3]
 ksi = simu[2]
@@ -41,10 +40,10 @@ print(
 )
 print("percentage zeros Y:", torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
 # full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-nb_iter = 18950
-use_closed_form_prob = False
+nb_iter = 150
+use_closed_form_prob = True
 perfect = ZIPln(
-    Y,
+    endog,
     offsets=offsets,
     exog=exog,
     Y_inflated=endog,
@@ -55,22 +54,10 @@ perfect = ZIPln(
     true_infla=true_infla,
     ksi=ksi,
     perfect_init=False,
+    show_ksi=True,
 )
 perfect.fit(nb_max_iteration=nb_iter, tol=0)
 # perfect.show()
-normal = ZIPln(
-    Y,
-    offsets=offsets,
-    exog=exog,
-    add_const=add_const,
-    Y_inflated=endog,
-    use_closed_form_prob=use_closed_form_prob,
-    true_covariance=true_Sigma,
-    true_coef=true_beta,
-    true_infla=true_infla,
-    ksi=ksi,
-    perfect_init=False,
-)
 
 
 # normal.fit(nb_max_iteration=10, tol=0)
@@ -115,28 +102,32 @@ def show_mses(model_perfect, model_normal):
     plt.show()
 
 
-# fig, axes = plt.subplots(2)
-# sns.heatmap(full._coef.detach(), ax=axes[0])
-# sns.heatmap(true_beta, ax=axes[1])
-# plt.show()
+show_mses(perfect, perfect)
+pln = Pln(endog=endog, offsets=offsets, exog=exog, add_const=add_const)
+pln.fit()
+pln.show()
+
+fig, axes = plt.subplots(2)
+sns.heatmap(
+    (perfect._coef.detach() - pln._coef.detach()) / torch.abs(perfect._coef.detach()),
+    ax=axes[0],
+)
+sns.heatmap(pln._coef.detach(), ax=axes[1])
+plt.show()
 
 # fig, axes = plt.subplots(2)
 # sns.heatmap(full._coef_inflation.detach(), ax=axes[0])
 # sns.heatmap(true_infla, ax=axes[1])
 # plt.show()
-show_mses(perfect, normal)
 
 
 # sns.heatmap(true_Sigma)
 # plt.show()
 
 
-# pln = Pln(endog=endog, offsets = offsets, exog = exog, add_const = add_const)
-# pln.fit()
-# pln.show()
-# sns.heatmap(pln.covariance - full.covariance)
+sns.heatmap(pln.covariance - perfect.covariance)
 # print("mse :", torch.mean((pln._coef - true_beta) ** 2))
-# plt.show()
+plt.show()
 # sns.heatmap(full._latent_prob.detach())
 # plt.show()
 # sns.heatmap(simu[2])

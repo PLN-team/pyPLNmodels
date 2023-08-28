@@ -53,7 +53,8 @@ from ._initialization import (
 
 
 NB_BEFORE_SHIFTING = 600
-NB_BEFORE_RESHIFTING = NB_BEFORE_SHIFTING + 50
+NB_BEFORE_RESHIFTING = NB_BEFORE_SHIFTING + 5000
+
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
@@ -415,6 +416,7 @@ class _model(ABC):
         else:
             latent_prob = torch.clone(self._latent_prob)
         self.mse_ksi_list.append(torch.mean((latent_prob - self.ksi) ** 2).detach())
+        # self.mse_ksi_list.append(torch.mean((self._latent_mean) ** 2).detach())
 
     def _trainstep(self):
         """
@@ -434,31 +436,33 @@ class _model(ABC):
                 print("removing gradients")
                 self._endog = torch.clone(self.Y_inflated)
                 self.optim = torch.optim.Rprop(
-                    self._list_of_parameters_needing_gradient, lr=0
+                    self._list_of_parameters_needing_gradient, lr=0.000001
                 )
-                self.use_closed_form_prob = True
-                self._dirac = self._endog == 0
-                # latent_prob = closed_form_latent_prob(self._exog, self._coef, self._covariance, self._dirac)
-                with torch.no_grad():
-                    self._latent_prob *= 0
-                    # self._coef_inflation *= 0
-            if self.nb_iteration_done == NB_BEFORE_RESHIFTING + 1:
-                print("next reshifting")
-                self.use_closed_form_prob = False
+                # self.use_closed_form_prob = True
+                self._dirac = torch.clone(self._endog == 0).double()
                 latent_prob = closed_form_latent_prob(
                     self._exog, self._coef, self._covariance, self._dirac
                 )
-                with torch.no_grad():
-                    self._latent_prob = torch.clone(latent_prob)
-                self._latent_prob.requires_grad_(True)
-                self.optim = torch.optim.Rprop([self._latent_prob], lr=1e-6)
-                self.optim.zero_grad()
-                self._update_closed_forms()
-                loss = -self.compute_elbo()
-                loss.backward()
-            elif self.nb_iteration_done > NB_BEFORE_RESHIFTING + 1:
-                with torch.no_grad():
-                    self._latent_prob += 0.0000001 * self.grad_rho()
+                # with torch.no_grad():
+                # self._latent_prob = torch.clone(latent_prob)
+                # self._coef_inflation *= 0
+            # if self.nb_iteration_done == NB_BEFORE_RESHIFTING + 1:
+            #     print("next reshifting")
+            #     self.use_closed_form_prob = False
+            #     latent_prob = closed_form_latent_prob(
+            #         self._exog, self._coef, self._covariance, self._dirac
+            #     )
+            #     with torch.no_grad():
+            #         self._latent_prob = torch.clone(latent_prob)
+            #     self._latent_prob.requires_grad_(True)
+            #     self.optim = torch.optim.Rprop([self._latent_prob], lr=1e-6)
+            #     self.optim.zero_grad()
+            #     self._update_closed_forms()
+            #     loss = -self.compute_elbo()
+            #     loss.backward()
+            # elif self.nb_iteration_done > NB_BEFORE_RESHIFTING + 1:
+            # with torch.no_grad():
+            # self._latent_prob += 0.0000001 * self.grad_rho()
             try:
                 self.save_mse()
             except:
@@ -472,17 +476,15 @@ class _model(ABC):
             # print('norm torch', torch.norm(self._components.grad.detach()))
             # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
             # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
-            if self.use_closed_form_prob is False:
-                print(
-                    "diff rho:",
-                    torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
-                )
+            # if self.use_closed_form_prob is False:
+            #     print(
+            #         "diff rho:",
+            #         torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
+            #     )
         # if self._NAME == "Pln":
         # grad_M = grad_M_pln(self._endog, self._exog, self._offsets, self._latent_mean, self._latent_sqrt_var, self._coef, self._covariance)
         # print('diff M', torch.norm(grad_M + self._latent_mean.grad))
-        # print('latent prob before:', self._latent_prob)
         self.optim.step()
-        # print('latent prob after:', self._latent_prob)
         self._update_closed_forms()
         return loss
 
@@ -3303,6 +3305,7 @@ class ZIPln(_model):
         Y_inflated=None,
         ksi=None,
         perfect_init=None,
+        show_ksi=None,
     ):
         super().__init__(
             endog,
@@ -3324,6 +3327,7 @@ class ZIPln(_model):
         self.Y_inflated = Y_inflated
         self.ksi = torch.clone(ksi)
         self.perfect_init = perfect_init
+        self.show_ksi = show_ksi
 
     @property
     def _description(self):
@@ -3365,7 +3369,8 @@ class ZIPln(_model):
         self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
-        )
+        ).double()
+        # x
         # self._latent_prob *=0
 
     def _smart_init_latent_parameters(self):
@@ -3423,15 +3428,11 @@ class ZIPln(_model):
         list_param = [
             self._latent_mean,
             self._latent_sqrt_var,
-            self._coef_inflation,
             self._components,
         ]
         if self._exog is not None:
             list_param.append(self._coef)
-        if self.nb_iteration_done > NB_BEFORE_SHIFTING:
-            list_param = [self._coef_inflation]
-        if self.nb_iteration_done > NB_BEFORE_RESHIFTING:
-            list_param = []
+            list_param.append(self._coef_inflation)
         if self.use_closed_form_prob is False:
             list_param.append(self._latent_prob)
         return list_param
@@ -3443,13 +3444,20 @@ class ZIPln(_model):
     def _update_closed_forms(self):
         # pass
         # print('latent_prob grad before updating', self._latent_prob.grad)
+        threshold = torch.nn.Threshold(1, 1)
         if self.use_closed_form_prob is False:
             with torch.no_grad():
                 # self._latent_prob = self._latent_prob
-                self._latent_prob = torch.maximum(self._latent_prob, torch.tensor([0]))
-                self._latent_prob = torch.minimum(self._latent_prob, torch.tensor([1]))
-                self._latent_prob = self._dirac * self._latent_prob
-            self._latent_prob.requires_grad_(True)
+                # self._latent_prob = torch.where(self._latent_prob>1,1, self._latent_prob, out = self._latent_prob)
+                # self._latent_prob = torch.where(self._latent_prob<0,0, self._latent_prob)
+                self._latent_prob = torch.maximum(
+                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                )
+                self._latent_prob = torch.minimum(
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                )
+                self._latent_prob *= self._dirac
+            # self._latent_prob.requires_grad_(True)
         else:
             print(" not inside")
         # print('latent_prob grad after updating', self._latent_prob.grad)

@@ -513,7 +513,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
-        coef += 4
+        coef += 2
         if zero_inflated is True:
             coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
         else:
@@ -1086,7 +1086,7 @@ class lambert(torch.autograd.Function):
         arr = input.numpy()
         lamb = lambertw(arr).real
         # out = lamb / (input * (1 + lamb))
-        out = torch.where(torch.abs(input) > 1e-5, lamb / (input * (1 + lamb)), 1)
+        out = torch.where(torch.abs(input) > 1e-12, lamb / (input * (1 + lamb)), 1)
         return grad_output * out
 
 
