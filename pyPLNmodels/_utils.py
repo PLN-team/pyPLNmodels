@@ -513,7 +513,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
-        # coef += 4
+        coef += 4
         if zero_inflated is True:
             coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
         else:
@@ -1104,3 +1104,19 @@ def closed_form_latent_prob(exog, coef, cov, dirac):
     diag = torch.diag(cov)
     full_diag = diag.expand(exog.shape[0], -1)
     return (pi / (phi(XB, full_diag) * (1 - pi) + pi)) * dirac
+
+
+def C_from_Sigma(Sigma, q):
+    """Get the best matrix of size (p,q) when Sigma is of
+    size (p,p). i.e. reduces norm(Sigma-C@C.T)
+    Args :
+        Sigma: torch.tensor of size (p,p). Should be positive definite and symmetric.
+        q: int. The number of columns wanted for C
+
+    Returns:
+        C_reduct: torch.tensor of size (p,q) containing the q eigenvectors with largest eigenvalues.
+    """
+    w, v = TLA.eigh(Sigma)  # Get the eigenvaluues and eigenvectors
+    # Take only the q largest
+    C_reduct = v[:, -q:] @ torch.diag(torch.sqrt(w[-q:]))
+    return C_reduct
