@@ -1087,7 +1087,7 @@ class lambert(torch.autograd.Function):
         lamb = lambertw(arr).real
         # out = lamb / (input * (1 + lamb))
         out = torch.where(torch.abs(input) > 1e-12, lamb / (input * (1 + lamb)), 1)
-        return grad_output * out
+        return grad_output * 0 * out
 
 
 def phi(mu, sigma):

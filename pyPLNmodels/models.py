@@ -468,19 +468,19 @@ class _model(ABC):
             except:
                 pass
 
-            # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
-            # print(
-            # "diff theta_0:",
-            # torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
-            # )
-            # print('norm torch', torch.norm(self._components.grad.detach()))
-            # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
-            # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
-            # if self.use_closed_form_prob is False:
-            #     print(
-            #         "diff rho:",
-            #         torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
-            #     )
+            print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
+            print(
+                "diff theta_0:",
+                torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
+            )
+            print("norm torch", torch.norm(self._components.grad.detach()))
+            print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
+            print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
+            if self.use_closed_form_prob is False:
+                print(
+                    "diff rho:",
+                    torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
+                )
         # if self._NAME == "Pln":
         # grad_M = grad_M_pln(self._endog, self._exog, self._offsets, self._latent_mean, self._latent_sqrt_var, self._coef, self._covariance)
         # print('diff M', torch.norm(grad_M + self._latent_mean.grad))
