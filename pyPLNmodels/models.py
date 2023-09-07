@@ -440,64 +440,10 @@ class _model(ABC):
         loss = -self.compute_elbo()
         loss.backward()
         if self._NAME == "ZIPln":
-            print("elbo:", -loss.item() / self.n_samples)
-            if self.nb_iteration_done == NB_BEFORE_SHIFTING + 1:
-                print("removing gradients")
-                self._endog = torch.clone(self.Y_inflated)
-                self.optim = torch.optim.Rprop(
-                    self._list_of_parameters_needing_gradient, lr=0.000001
-                )
-                # self.use_closed_form_prob = True
-                self._dirac = torch.clone(self._endog == 0).double()
-                latent_prob = closed_form_latent_prob(
-                    self._exog,
-                    self._coef,
-                    self._coef_inflation,
-                    self._covariance,
-                    self._dirac,
-                )
-                # with torch.no_grad():
-                # self._latent_prob = torch.clone(latent_prob)
-                # self._coef_inflation *= 0
-            # if self.nb_iteration_done == NB_BEFORE_RESHIFTING + 1:
-            #     print("next reshifting")
-            #     self.use_closed_form_prob = False
-            #     latent_prob = closed_form_latent_prob(
-            #         self._exog, self._coef, self._covariance, self._dirac
-            #     )
-            #     with torch.no_grad():
-            #         self._latent_prob = torch.clone(latent_prob)
-            #     self._latent_prob.requires_grad_(True)
-            #     self.optim = torch.optim.Rprop([self._latent_prob], lr=1e-6)
-            #     self.optim.zero_grad()
-            #     self._update_closed_forms()
-            #     loss = -self.compute_elbo()
-            #     loss.backward()
-            # elif self.nb_iteration_done > NB_BEFORE_RESHIFTING + 1:
-            # with torch.no_grad():
-            # self._latent_prob += 0.0000001 * self.grad_rho()
             try:
                 self.save_mse()
             except:
                 pass
-
-            # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
-            # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
-            # print(
-            #     "diff theta_0:",
-            #     torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
-            # )
-            # print("norm torch", torch.norm(self._components.grad.detach()))
-            # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
-            # if self.use_closed_form_prob is False:
-            #     print(
-            #         "diff rho:",
-            #         torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
-            #     )
-            # print('diff C',
-            #         torch.norm(self.grad_C() + self._components.grad).item(),
-            #       )
-
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -3316,10 +3262,7 @@ class ZIPln(_model):
         true_coef=None,
         true_infla=None,
         use_closed_form_prob=False,
-        Y_inflated=None,
         ksi=None,
-        perfect_init=None,
-        show_ksi=None,
     ):
         super().__init__(
             endog,
@@ -3338,10 +3281,7 @@ class ZIPln(_model):
         self.mse_infla_list = []
         self.mse_ksi_list = []
         self.use_closed_form_prob = use_closed_form_prob
-        self.Y_inflated = Y_inflated
         self.ksi = torch.clone(ksi)
-        self.perfect_init = perfect_init
-        self.show_ksi = show_ksi
 
     @property
     def _description(self):
@@ -3369,10 +3309,6 @@ class ZIPln(_model):
             )
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
-        if self.perfect_init is True:
-            self._coef = torch.clone(self.true_coef)
-            self._components = C_from_Sigma(self.true_covariance, self.dim)
-            self._coef_inflation = torch.clone(self.true_infla)
 
     def _random_init_latent_parameters(self):
         self._dirac = self._endog == 0
@@ -3446,14 +3382,8 @@ class ZIPln(_model):
         return self._covariance.detach().cpu()
 
     def _update_closed_forms(self):
-        # pass
-        # print('latent_prob grad before updating', self._latent_prob.grad)
-        threshold = torch.nn.Threshold(1, 1)
         if self.use_closed_form_prob is False:
             with torch.no_grad():
-                # self._latent_prob = self._latent_prob
-                # self._latent_prob = torch.where(self._latent_prob>1,1, self._latent_prob, out = self._latent_prob)
-                # self._latent_prob = torch.where(self._latent_prob<0,0, self._latent_prob)
                 self._latent_prob = torch.maximum(
                     self._latent_prob, torch.tensor([0]), out=self._latent_prob
                 )
@@ -3461,26 +3391,6 @@ class ZIPln(_model):
                     self._latent_prob, torch.tensor([1]), out=self._latent_prob
                 )
                 self._latent_prob *= self._dirac
-            # self._latent_prob.requires_grad_(True)
-        else:
-            print(" not inside")
-        # print('latent_prob grad after updating', self._latent_prob.grad)
-        # self._coef = _closed_formula_coef(self._exog, self._latent_mean)
-        # self._covariance = _closed_formula_covariance(
-        # self._exog,
-        # self._latent_mean,
-        # self._latent_sqrt_var,
-        # self._coef,
-        # self.n_samples,
-        # )
-        # self._pi = _closed_formula_pi(
-        # self._offsets,
-        # self._latent_mean,
-        # self._latent_sqrt_var,
-        # self._dirac,
-        # self._exog,
-        # self._coef_inflation,
-        # )
 
     @property
     def number_of_parameters(self):
