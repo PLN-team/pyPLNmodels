@@ -92,9 +92,3 @@ def show_mses(model_perfect):
 
 
 show_mses(zi)
-
-
-sns.heatmap(zi.covariance)
-plt.show()
-sns.heatmap(true_Sigma)
-plt.show()

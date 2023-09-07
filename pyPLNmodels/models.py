@@ -3291,10 +3291,7 @@ class ZIPln(_model):
         super()._random_init_model_parameters()
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)
         self._coef = torch.randn(self.nb_cov, self.dim)
-        # self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
-
         self._components = torch.randn(int(self.dim * (self.dim + 1) / 2))
-        # self._components = torch.randn(self.dim, self.dim)
 
     def _print_beginning_message(self):
         print("Fitting a ZIPLN model")
@@ -3312,16 +3309,12 @@ class ZIPln(_model):
 
     def _random_init_latent_parameters(self):
         self._dirac = self._endog == 0
-        self._dirac = self._dirac.double()
-        # self._dirac *=0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
         ).double()
-        # x
-        # self._latent_prob *=0
 
     def _smart_init_latent_parameters(self):
         self._random_init_latent_parameters()
@@ -3331,17 +3324,6 @@ class ZIPln(_model):
         return self.latent_mean, self.latent_prob
 
     def compute_elbo(self):
-        # elbo_pln(
-        #     self._endog,
-        #     self._exog,
-        #     self._offsets,
-        #     self._latent_mean,
-        #     self._latent_sqrt_var,
-        #     self._covariance,
-        #     self._coef,
-        # )
-        # elbo = elbo_pln(self._endog, self._exog, self._offsets, self._latent_mean, self._latent_sqrt_var, self._covariance, self._coef)
-        # return elbo
         if self.use_closed_form_prob is True:
             latent_prob = self.closed_form_latent_prob
         else:
@@ -3395,18 +3377,6 @@ class ZIPln(_model):
     @property
     def number_of_parameters(self):
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
-
-    def print_mse(self):
-        fig, axes = plt.subplots(2)
-        nb_to_plot = len(self.mse_sigma_list)
-        absc = np.arange(len(self.mse_sigma_list))[-nb_to_plot:]
-        axes[0].plot(absc, self.mse_sigma_list[-nb_to_plot:], label="sigma")
-        axes[0].plot(absc, self.mse_coef_list[-nb_to_plot:], label="coef")
-        axes[0].plot(absc, self.mse_infla_list[-nb_to_plot:], label="infla")
-        axes[0].set_yscale("log")
-        axes[0].legend()
-        axes[1].plot(absc, self.elbos_list[-nb_to_plot:])
-        plt.show()
 
     def grad_M(self):
         if self.use_closed_form_prob is True:
@@ -3518,31 +3488,6 @@ class ZIPln(_model):
         Diag = (first * second) * torch.eye(self.dim)
         last_grad = Diag @ self._components
         grad = b_grad + first_part_grad + second_part_grad + last_grad
-
-        # if we want to see the grad of the diagonal of Sigma
-        def sig_grad_interesting(x):
-            return torch.diag(x @ (x.T))
-
-        norm = 0
-        grad_sigma = sig_grad_interesting(grad)
-        deter_sigma = sig_grad_interesting(deter)
-        norm += torch.norm(deter_sigma)
-        sec_part_b_grad_sigma = sig_grad_interesting(sec_part_b_grad)
-        norm += torch.norm(sec_part_b_grad_sigma)
-        first_part_grad_sigma = sig_grad_interesting(first_part_grad)
-        norm += torch.norm(first_part_grad_sigma)
-        second_part_grad_sigma = sig_grad_interesting(second_part_grad)
-        norm += torch.norm(second_part_grad_sigma)
-        last_grad_sigma = sig_grad_interesting(last_grad)
-        norm += torch.norm(last_grad_sigma)
-
-        # print('--------------')
-        # print('deter:', torch.norm(deter_sigma)/norm)
-        # print('sec_part b grad', torch.norm(sec_part_b_grad_sigma)/norm)
-        # print('first_part:', torch.norm(first_part_grad_sigma)/norm)
-        # print('second_part_grad:', torch.norm(second_part_grad_sigma)/norm)
-        # print('last_grad:', torch.norm(last_grad_sigma)/norm)
-        # print('--------------')
         return grad
 
     def grad_rho(self):
