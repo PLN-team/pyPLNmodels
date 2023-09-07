@@ -1086,8 +1086,8 @@ class lambert(torch.autograd.Function):
         arr = input.numpy()
         lamb = lambertw(arr).real
         # out = lamb / (input * (1 + lamb))
-        out = torch.where(torch.abs(input) > 1e-12, lamb / (input * (1 + lamb)), 1)
-        return grad_output * 0 * out
+        out = torch.where(torch.abs(input) > 1e-5, lamb / (input * (1 + lamb)), 1)
+        return grad_output * out
 
 
 def phi(mu, sigma):
@@ -1098,11 +1098,13 @@ def phi(mu, sigma):
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
 
 
-def closed_form_latent_prob(exog, coef, cov, dirac):
-    XB = exog @ coef
-    pi = torch.sigmoid(XB)
+def closed_form_latent_prob(exog, coef, coef_infla, cov, dirac):
+    XB_zero = exog @ coef_infla
+    pi = torch.sigmoid(XB_zero)
     diag = torch.diag(cov)
     full_diag = diag.expand(exog.shape[0], -1)
+    XB = exog @ coef
+    # return torch.sigmoid(XB_zero - torch.log(phi(XB, full_diag)))*dirac
     return (pi / (phi(XB, full_diag) * (1 - pi) + pi)) * dirac
 
 

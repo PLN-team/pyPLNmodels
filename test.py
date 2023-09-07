@@ -25,6 +25,7 @@ add_const = True
     add_const=add_const,
     return_latent_variables=True,
     dim=25,
+    rank=25,
 )
 Y = simu[3]
 ksi = simu[2]
@@ -40,7 +41,7 @@ print(
 )
 print("percentage zeros Y:", torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
 # full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-nb_iter = 50
+nb_iter = 150
 use_closed_form_prob = True
 perfect = ZIPln(
     endog,
@@ -53,11 +54,11 @@ perfect = ZIPln(
     true_coef=true_beta,
     true_infla=true_infla,
     ksi=ksi,
-    perfect_init=False,
+    perfect_init=True,
     show_ksi=True,
 )
 perfect.fit(nb_max_iteration=nb_iter, tol=0)
-# perfect.show()
+perfect.show()
 
 
 # normal.fit(nb_max_iteration=10, tol=0)
@@ -95,7 +96,7 @@ def show_mses(model_perfect, model_normal):
     plt.title("Evolution de la MSE en fonction du temps et de l'initialisation.")
     plt.ylabel("MSE")
     plt.xlabel("Temps")
-    # plt.ylim(1e-6)
+    plt.ylim(1e-6)
     plt.legend()
     plt.yscale("log")
     # plt.savefig("mse_init.pdf", format = "pdf")

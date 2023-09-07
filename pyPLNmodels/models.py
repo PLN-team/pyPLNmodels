@@ -25,7 +25,6 @@ from .elbos import (
     elbo_plnpca,
     elbo_zi_pln,
     profiled_elbo_pln,
-    full_elbo_zi_pln,
     elbo_pln,
 )
 from ._utils import (
@@ -411,12 +410,22 @@ class _model(ABC):
         )
         if self.use_closed_form_prob is True:
             latent_prob = closed_form_latent_prob(
-                self._exog, self._coef, self._covariance, self._dirac
+                self._exog,
+                self._coef,
+                self._coef_inflation,
+                self._covariance,
+                self._dirac,
             )
         else:
             latent_prob = torch.clone(self._latent_prob)
         self.mse_ksi_list.append(torch.mean((latent_prob - self.ksi) ** 2).detach())
         # self.mse_ksi_list.append(torch.mean((self._latent_mean) ** 2).detach())
+
+    @property
+    def closed_form_latent_prob(self):
+        return closed_form_latent_prob(
+            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
+        )
 
     def _trainstep(self):
         """
@@ -441,7 +450,11 @@ class _model(ABC):
                 # self.use_closed_form_prob = True
                 self._dirac = torch.clone(self._endog == 0).double()
                 latent_prob = closed_form_latent_prob(
-                    self._exog, self._coef, self._covariance, self._dirac
+                    self._exog,
+                    self._coef,
+                    self._coef_inflation,
+                    self._covariance,
+                    self._dirac,
                 )
                 # with torch.no_grad():
                 # self._latent_prob = torch.clone(latent_prob)
@@ -468,22 +481,23 @@ class _model(ABC):
             except:
                 pass
 
-            print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
-            print(
-                "diff theta_0:",
-                torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
-            )
-            print("norm torch", torch.norm(self._components.grad.detach()))
-            print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
-            print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
-            if self.use_closed_form_prob is False:
-                print(
-                    "diff rho:",
-                    torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
-                )
-        # if self._NAME == "Pln":
-        # grad_M = grad_M_pln(self._endog, self._exog, self._offsets, self._latent_mean, self._latent_sqrt_var, self._coef, self._covariance)
-        # print('diff M', torch.norm(grad_M + self._latent_mean.grad))
+            # print("diff M:", torch.norm(self.grad_M() + self._latent_mean.grad))
+            # print("diff theta:", torch.norm(self.grad_theta() + self._coef.grad))
+            # print(
+            #     "diff theta_0:",
+            #     torch.norm(self.grad_theta_0() + self._coef_inflation.grad),
+            # )
+            # print("norm torch", torch.norm(self._components.grad.detach()))
+            # print("diff S:", torch.norm(self.grad_S() + self._latent_sqrt_var.grad))
+            # if self.use_closed_form_prob is False:
+            #     print(
+            #         "diff rho:",
+            #         torch.norm(self.grad_rho() + self._latent_prob.grad).item(),
+            #     )
+            # print('diff C',
+            #         torch.norm(self.grad_C() + self._components.grad).item(),
+            #       )
+
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -3393,26 +3407,16 @@ class ZIPln(_model):
         # elbo = elbo_pln(self._endog, self._exog, self._offsets, self._latent_mean, self._latent_sqrt_var, self._covariance, self._coef)
         # return elbo
         if self.use_closed_form_prob is True:
-            print("returning with closed form")
-            return full_elbo_zi_pln(
-                self._endog,
-                self._exog,
-                self._offsets,
-                self._latent_mean,
-                self._latent_sqrt_var,
-                self._components,
-                self._coef,
-                self._coef_inflation,
-                self._dirac,
-            )
-        print("returning without closed form")
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
         return elbo_zi_pln(
             self._endog,
             self._exog,
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
-            self._latent_prob,
+            latent_prob,
             self._components,
             self._coef,
             self._coef_inflation,
@@ -3495,7 +3499,11 @@ class ZIPln(_model):
         plt.show()
 
     def grad_M(self):
-        un_moins_prob = 1 - self._latent_prob
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        un_moins_prob = 1 - latent_prob
         first = un_moins_prob * (
             self._endog
             - torch.exp(
@@ -3507,12 +3515,16 @@ class ZIPln(_model):
         diag_omega = torch.diag(torch.inverse(self._covariance))
         full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
         second = -un_moins_prob * A
-        added = -full_diag_omega * self._latent_prob * un_moins_prob * (MmoinsXB)
+        added = -full_diag_omega * latent_prob * un_moins_prob * (MmoinsXB)
         return first + second + added
 
     def grad_S(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
         Omega = torch.inverse(self.covariance)
-        un_moins_prob = 1 - self._latent_prob
+        un_moins_prob = 1 - latent_prob
         first = un_moins_prob * torch.exp(
             self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
         )
@@ -3527,23 +3539,35 @@ class ZIPln(_model):
         return first + sec + third
 
     def grad_theta(self):
-        un_moins_prob = 1 - self._latent_prob
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        un_moins_prob = 1 - latent_prob
         MmoinsXB = self._latent_mean - self._exog @ self._coef
         A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
         diag_omega = torch.diag(torch.inverse(self._covariance))
         full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
-        added = self._latent_prob * (MmoinsXB) * full_diag_omega
+        added = latent_prob * (MmoinsXB) * full_diag_omega
         A += added
         second = -un_moins_prob * A
         return -self._exog.T @ second
 
     def grad_theta_0(self):
-        return self._exog.T @ self._latent_prob - self._exog.T @ (
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        return self._exog.T @ latent_prob - self._exog.T @ (
             torch.exp(self._exog @ self._coef_inflation)
             / (1 + torch.exp(self._exog @ self._coef_inflation))
         )
 
     def grad_C(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
         omega = torch.inverse(self._covariance)
         if self._coef is not None:
             m_minus_xb = self._latent_mean - torch.mm(self._exog, self._coef)
@@ -3551,7 +3575,7 @@ class ZIPln(_model):
             m_minus_xb = self._latent_mean
         m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
 
-        un_moins_rho = 1 - self._latent_prob
+        un_moins_rho = 1 - latent_prob
 
         un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
         un_moins_rho_m_moins_xb_outer = (
@@ -3568,12 +3592,12 @@ class ZIPln(_model):
         b_grad = deter + sec_part_b_grad
 
         diag = torch.diag(self.covariance)
-        rho_t_unn = torch.sum(self._latent_prob, axis=0)
+        rho_t_unn = torch.sum(latent_prob, axis=0)
         omega_unp = torch.sum(omega, axis=0)
         K = torch.sum(un_moins_rho * self._latent_sqrt_var**2, axis=0) + diag * (
             rho_t_unn
         )
-        added = torch.sum(self._latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
+        added = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
         K += added
         first_part_grad = omega @ torch.diag_embed(K) @ omega @ self._components
         x = torch.diag(omega) * rho_t_unn
@@ -3612,6 +3636,10 @@ class ZIPln(_model):
         return grad
 
     def grad_rho(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
         omega = torch.inverse(self._covariance)
         s_rond_s = self._latent_sqrt_var * self._latent_sqrt_var
         A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
@@ -3620,7 +3648,7 @@ class ZIPln(_model):
             + A
             + _log_stirling(self._endog)
         )
-        un_moins_prob = 1 - self._latent_prob
+        un_moins_prob = 1 - latent_prob
         MmoinsXB = self._latent_mean - self._exog @ self._coef
         A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
         second = MmoinsXB * A
@@ -3635,7 +3663,7 @@ class ZIPln(_model):
             )
         )
         fourth = fourth_first + fourth_second
-        fifth = _trunc_log(un_moins_prob) - _trunc_log(self._latent_prob)
+        fifth = _trunc_log(un_moins_prob) - _trunc_log(latent_prob)
         sixth_first = (
             1
             / 2
@@ -3654,7 +3682,5 @@ class ZIPln(_model):
         )
         sixth = sixth_first + sixth_second
         full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
-        seventh = (
-            -1 / 2 * (1 - 2 * self._latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
-        )
+        seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
         return first + second + third + fourth + fifth + sixth + seventh
