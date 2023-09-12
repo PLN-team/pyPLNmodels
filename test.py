@@ -109,10 +109,10 @@ def plot_n_or_dim(n, dim, nb_fitting):
         f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}"
     )
     name_batch = f"results/batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}"
-    nb_max_iter = 30000
+    nb_max_iter = 30
     if (exists(name_no_batch) is False) and (exists(name_batch) is False):
         pln = Pln(counts, GT=GT)
-        pln.fit(verbose=True)
+        pln.fit(verbose=True, nb_max_iteration=nb_max_iter)
         true_beta = pln.coef
         true_Sigma = pln.covariance
     if exists(name_no_batch) is False:
@@ -145,7 +145,7 @@ def plot_n_or_dim(n, dim, nb_fitting):
             tol=0,
             nb_max_iteration=nb_max_iter,
             verbose=True,
-            batch_size=300,
+            batch_size=100,
             nb_fitting=nb_fitting,
         )
         save_col(col_batch, name_batch)
@@ -197,4 +197,4 @@ def plot_n_or_dim(n, dim, nb_fitting):
     plt.show()
 
 
-plot_n_or_dim(600, 100, 200)
+plot_n_or_dim(150, 100, 2)
