@@ -1098,6 +1098,13 @@ def phi(mu, sigma):
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
 
 
+def my_phi(mu, sigma):
+    y = sigma**2 * torch.exp(mu)
+    lamby = my_lambert(y)
+    log_num = -1 / (2 * sigma**2) * (lamby**2 + 2 * lamby)
+    return torch.exp(log_num) / torch.sqrt(1 + lamby)
+
+
 def closed_form_latent_prob(exog, coef, coef_infla, cov, dirac):
     XB_zero = exog @ coef_infla
     pi = torch.sigmoid(XB_zero)
@@ -1105,7 +1112,7 @@ def closed_form_latent_prob(exog, coef, coef_infla, cov, dirac):
     full_diag = diag.expand(exog.shape[0], -1)
     XB = exog @ coef
     # return torch.sigmoid(XB_zero - torch.log(phi(XB, full_diag)))*dirac
-    return (pi / (phi(XB, full_diag) * (1 - pi) + pi)) * dirac
+    return (pi / (my_phi(XB, full_diag) * (1 - pi) + pi)) * dirac
 
 
 def C_from_Sigma(Sigma, q):
@@ -1122,3 +1129,14 @@ def C_from_Sigma(Sigma, q):
     # Take only the q largest
     C_reduct = v[:, -q:] @ torch.diag(torch.sqrt(w[-q:]))
     return C_reduct
+
+
+def PF_lambert(x, y):
+    return x - (1 - (y * torch.exp(-x) + 1) / (x + 1))
+
+
+def my_lambert(y, nb_pf=10):
+    x = torch.log(1 + y)
+    for _ in range(nb_pf):
+        x = PF_lambert(x, y)
+    return x

@@ -1,6 +1,7 @@
 from pyPLNmodels.models import PlnPCAcollection, PlnPCA, Pln, ZIPln
 from pyPLNmodels import get_real_count_data, get_simulated_count_data
 
+
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,8 +42,8 @@ print(
 )
 print("percentage zeros Y:", torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
 # full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-nb_iter = 150
-use_closed_form_prob = False
+nb_iter = 1450
+use_closed_form_prob = True
 zi = ZIPln(
     endog,
     offsets=offsets,

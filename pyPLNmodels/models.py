@@ -3356,7 +3356,10 @@ class ZIPln(_model):
             list_param.append(self._coef)
             list_param.append(self._coef_inflation)
         if self.use_closed_form_prob is False:
+            print("appening the latent prob")
             list_param.append(self._latent_prob)
+        else:
+            print("not appening the latent prob")
         return list_param
 
     @property
