@@ -105,12 +105,10 @@ def plot_n_or_dim(n, dim, nb_fitting):
     offsets = None
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
     ranks = [4, 12, 30]  # , 40, 80, 120, 180, 250, 500]
-    name_no_batch = (
-        f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}"
-    )
-    name_batch = f"results/batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}"
-    nb_max_iter = 30
-    if (exists(name_no_batch) is False) and (exists(name_batch) is False):
+    nb_max_iter = 12000
+    name_no_batch = f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}_nbiter_{nb_max_iter}"
+    name_batch = f"results/batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}_nbiter_{nb_max_iter}"
+    if exists(name_batch) is False:
         pln = Pln(counts, GT=GT)
         pln.fit(verbose=True, nb_max_iteration=nb_max_iter)
         true_beta = pln.coef
