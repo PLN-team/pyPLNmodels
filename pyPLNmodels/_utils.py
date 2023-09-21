@@ -1090,18 +1090,18 @@ class lambert(torch.autograd.Function):
         return grad_output * out
 
 
-def phi(mu, sigma):
+def phi(mu, sigma2):
     lamb = lambert.apply
-    y = sigma**2 * torch.exp(mu)
+    y = sigma2 * torch.exp(mu)
     lamby = lamb(y)
-    log_num = -1 / (2 * sigma**2) * (lamby**2 + 2 * lamby)
+    log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
 
 
-def my_phi(mu, sigma):
-    y = sigma**2 * torch.exp(mu)
+def my_phi(mu, sigma2):
+    y = sigma2 * torch.exp(mu)
     lamby = my_lambert(y)
-    log_num = -1 / (2 * sigma**2) * (lamby**2 + 2 * lamby)
+    log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
 
 
@@ -1111,8 +1111,9 @@ def closed_form_latent_prob(exog, coef, coef_infla, cov, dirac):
     diag = torch.diag(cov)
     full_diag = diag.expand(exog.shape[0], -1)
     XB = exog @ coef
-    # return torch.sigmoid(XB_zero - torch.log(phi(XB, full_diag)))*dirac
-    return (pi / (my_phi(XB, full_diag) * (1 - pi) + pi)) * dirac
+    # return torch.sigmoid(XB_zero)*dirac
+    return torch.sigmoid(XB_zero - torch.log(phi(XB, full_diag)))*dirac
+    # return (pi / (phi(XB, full_diag) * (1 - pi) + pi)) * dirac
 
 
 def C_from_Sigma(Sigma, q):
@@ -1140,3 +1141,27 @@ def my_lambert(y, nb_pf=10):
     for _ in range(nb_pf):
         x = PF_lambert(x, y)
     return x
+
+
+def d_varpsi_x1(mu,sigma2):
+    W = my_lambert(sigma2*torch.exp(mu))
+    first = my_phi(mu,sigma2)
+    third = (1/sigma2 + 1/2*1/((1+W)**2))
+    return first*W*third
+
+def d_varpsi_x2(mu, sigma2):
+    first = d_varpsi_x1(mu,sigma2)
+    W = my_lambert(sigma2*torch.exp(mu))
+    second =  (W**2 + 2*W)/2/(sigma2**2)*my_phi(mu,sigma2)
+
+def d_h_x2(a,x,y):
+    rho = torch.sigmoid(a - torch.log(my_phi(x,y)))
+    rho_prime =rho*(1-rho)
+    return -rho_prime*d_varpsi_x1(x,y)/my_phi(x,y)
+
+def d_h_x3(a,x,y):
+    rho = torch.sigmoid(a - torch.log(my_phi(x,y)))
+    rho_prime =rho*(1-rho)
+    return -rho_prime*d_varpsi_x2(x,y)/my_phi(x,y)
+
+
