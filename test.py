@@ -42,7 +42,7 @@ print(
 )
 print("percentage zeros Y:", torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
 # full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-nb_iter = 750
+nb_iter = 550
 use_closed_form_prob = True
 zi = ZIPln(
     endog,
@@ -56,7 +56,7 @@ zi = ZIPln(
     ksi=ksi,
 )
 zi.fit(nb_max_iteration=nb_iter, tol=0)
-zi.show()
+# zi.show()
 
 
 def show_mses(model_perfect):
@@ -91,6 +91,7 @@ def show_mses(model_perfect):
     # plt.savefig("mse_init.pdf", format = "pdf")
     plt.show()
 
-sns.heatmap(true_Sigma)
-plt.show()
-show_mses(zi)
+
+# sns.heatmap(true_Sigma)
+# plt.show()
+# show_mses(zi)

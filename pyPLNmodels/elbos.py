@@ -276,7 +276,5 @@ def elbo_zi_pln(
     inside_f = torch.diag(Omega) * K
     f = -1 / 2 * torch.sum(inside_f)
     elbo = a + b + c + d + e + f
+    return a
     return elbo
-
-
-

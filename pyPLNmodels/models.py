@@ -447,7 +447,8 @@ class _model(ABC):
             except:
                 pass
             # print('diff grad Theta zero', torch.norm(self._coef_inflation.grad + self.grad_theta_0()))
-            print('diff grad Theta', torch.norm(self._coef.grad + self.grad_theta()))
+            # print('diff grad Theta', torch.norm(self._coef.grad + self.grad_theta()))
+            print("diff grad C", torch.norm(self._components.grad + self.grad_C()))
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -3347,7 +3348,7 @@ class ZIPln(_model):
 
     @property
     def _covariance(self):
-        return self._components @ self._components.T
+        return self._components @ (self._components.T)
 
     @property
     def _list_of_parameters_needing_gradient(self):
@@ -3430,6 +3431,7 @@ class ZIPln(_model):
             latent_prob = self.closed_form_latent_prob
         else:
             latent_prob = self._latent_prob
+
         un_moins_prob = 1 - latent_prob
         MmoinsXB = self._latent_mean - self._exog @ self._coef
         A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
@@ -3446,14 +3448,14 @@ class ZIPln(_model):
             diag = torch.diag(self._covariance)
             full_diag = diag.expand(self._exog.shape[0], -1)
             XB = self._exog @ self._coef
-            derivative = d_h_x2(XB_zero,XB, full_diag )
+            derivative = d_h_x2(XB_zero, XB, full_diag, self._dirac)
             grad_closed_form = self.gradients_closed_form_thetas(derivative)
             return grad_closed_form + grad_no_closed_form
 
     def gradients_closed_form_thetas(self, derivative):
         Omega = torch.inverse(self._covariance)
         MmoinsXB = self._latent_mean - self._exog @ self._coef
-        s_rond_s = self._latent_sqrt_var **2
+        s_rond_s = self._latent_sqrt_var**2
         latent_prob = self.closed_form_latent_prob
         A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
         poiss_term = (
@@ -3461,18 +3463,35 @@ class ZIPln(_model):
             - A
             - _log_stirling(self._endog)
         )
-        a = - self._exog.T @ (derivative *poiss_term)
-        b = self._exog.T@ (derivative * MmoinsXB *(((1-latent_prob)* MmoinsXB)@Omega))
-        c = self._exog.T @ (derivative*(self._exog @ self._coef_inflation))
-        first_d = derivative*torch.log(torch.abs(self._latent_sqrt_var))
-        second_d = 1/2*derivative@(torch.diag(torch.log(torch.diag(self._covariance))))
-        d =  - self._exog.T@(first_d - second_d)
-        e = -self._exog.T@(derivative*(_trunc_log(latent_prob) - _trunc_log(1-latent_prob)))
-        first_f = +1/2 * self._exog.T @(derivative*(s_rond_s@torch.diag(torch.diag(Omega))))
-        second_f = - 1/2 * self._exog.T@derivative@torch.diag(torch.diag(Omega)*torch.diag(self._covariance))
+        a = -self._exog.T @ (derivative * poiss_term)
+        b = self._exog.T @ (
+            derivative * MmoinsXB * (((1 - latent_prob) * MmoinsXB) @ Omega)
+        )
+        c = self._exog.T @ (derivative * (self._exog @ self._coef_inflation))
+        first_d = derivative * torch.log(torch.abs(self._latent_sqrt_var))
+        second_d = (
+            1 / 2 * derivative @ (torch.diag(torch.log(torch.diag(self._covariance))))
+        )
+        d = -self._exog.T @ (first_d - second_d)
+        e = -self._exog.T @ (
+            derivative * (_trunc_log(latent_prob) - _trunc_log(1 - latent_prob))
+        )
+        first_f = (
+            +1
+            / 2
+            * self._exog.T
+            @ (derivative * (s_rond_s @ torch.diag(torch.diag(Omega))))
+        )
+        second_f = (
+            -1
+            / 2
+            * self._exog.T
+            @ derivative
+            @ torch.diag(torch.diag(Omega) * torch.diag(self._covariance))
+        )
         full_diag_omega = torch.diag(Omega).expand(self.exog.shape[0], -1)
         common = (MmoinsXB) ** 2 * (full_diag_omega)
-        new_f = -1/2 * self._exog.T @(derivative*common* (1 - 2*latent_prob))
+        new_f = -1 / 2 * self._exog.T @ (derivative * common * (1 - 2 * latent_prob))
         f = first_f + second_f + new_f
         return a + b + c + d + e + f
 
@@ -3482,16 +3501,16 @@ class ZIPln(_model):
         else:
             latent_prob = self._latent_prob
         grad_no_closed_form = self._exog.T @ latent_prob - self._exog.T @ (
-                torch.exp(self._exog @ self._coef_inflation)
-                / (1 + torch.exp(self._exog @ self._coef_inflation))
-                )
+            torch.exp(self._exog @ self._coef_inflation)
+            / (1 + torch.exp(self._exog @ self._coef_inflation))
+        )
         if self.use_closed_form_prob is False:
             return grad_no_closed_form
         else:
-            grad_closed_form = self.gradients_closed_form_thetas(latent_prob*(1-latent_prob))
-            return  grad_closed_form + grad_no_closed_form
-
-
+            grad_closed_form = self.gradients_closed_form_thetas(
+                latent_prob * (1 - latent_prob)
+            )
+            return grad_closed_form + grad_no_closed_form
 
     def grad_C(self):
         if self.use_closed_form_prob is True:
@@ -3537,8 +3556,32 @@ class ZIPln(_model):
         second = torch.full((1, self.dim), 1.0)
         Diag = (first * second) * torch.eye(self.dim)
         last_grad = Diag @ self._components
-        grad = b_grad + first_part_grad + second_part_grad + last_grad
-        return grad
+        grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            s_rond_s = self._latent_sqrt_var**2
+            XB_zero = self._exog @ self._coef_inflation
+            XB = self._exog @ self._coef
+            A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+            poiss_term = (
+                self._endog * (self._offsets + self._latent_mean)
+                - A
+                - _log_stirling(self._endog)
+            )
+            full_diag = diag.expand(self._exog.shape[0], -1)
+            H3 = d_h_x3(XB_zero, XB, full_diag, self._dirac)
+            poiss_term_H = poiss_term * H3
+            a = (
+                -2
+                * (
+                    ((poiss_term_H.T @ torch.ones(self.n_samples, self.dim)))
+                    * (torch.eye(self.dim))
+                )
+                @ self._components
+            )
+            return a
+            return grad_closed_form + grad_no_closed_form
 
     def grad_rho(self):
         if self.use_closed_form_prob is True:
