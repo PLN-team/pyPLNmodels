@@ -27,6 +27,7 @@ add_const = True
     return_latent_variables=True,
     dim=25,
     rank=5,
+    seed=0,
 )
 Y = simu[3]
 ksi = simu[2]
@@ -42,7 +43,7 @@ print(
 )
 print("percentage zeros Y:", torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
 # full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-nb_iter = 550
+nb_iter = 150
 use_closed_form_prob = True
 zi = ZIPln(
     endog,
@@ -64,23 +65,23 @@ def show_mses(model_perfect):
     plt.plot(
         absc,
         model_perfect.mse_cov_list,
-        label=r"$\|\Sigma  - \hat \Sigma \|$  init true param",
+        label=r"$\|\Sigma  - \hat \Sigma \|$",
         color="blue",
     )
     plt.plot(
         absc,
         model_perfect.mse_beta_list,
-        label=r"$\|B  - \hat B \|$  init true param",
+        label=r"$\|B  - \hat B \|$",
         color="black",
     )
     plt.plot(
         absc,
         model_perfect.mse_infla_list,
-        label=r"$\|\Theta_0  - \hat \Theta_0 \|$  init true param",
+        label=r"$\|\Theta_0  - \hat \Theta_0 \|$",
         color="red",
     )
     plt.plot(
-        absc, model_perfect.mse_ksi_list, label="ksi init true param", color="green"
+        absc, model_perfect.mse_ksi_list, label="ksi", color="green"
     )
     plt.title("Evolution de la MSE en fonction du temps et de l'initialisation.")
     plt.ylabel("MSE")

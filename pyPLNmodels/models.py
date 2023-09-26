@@ -3569,8 +3569,9 @@ class ZIPln(_model):
                 - A
                 - _log_stirling(self._endog)
             )
-            full_diag = diag.expand(self._exog.shape[0], -1)
-            H3 = d_h_x3(XB_zero, XB, full_diag, self._dirac)
+            full_diag_sigma = diag.expand(self._exog.shape[0], -1)
+            full_diag_omega = torch.diag(torch.inverse(omega)).expand(self._exog.shape[0], -1)
+            H3 = d_h_x3(XB_zero, XB, full_diag_sigma, self._dirac)
             poiss_term_H = poiss_term * H3
             a = (
                 -2
@@ -3580,7 +3581,11 @@ class ZIPln(_model):
                 )
                 @ self._components
             )
-            return a
+            c = 2*(((XB_zero*H3).T@torch.ones(self.n_samples, self.dim))*torch.eye(self.dim))@self._components
+            f = 0
+            f -= (((full_diag_omega*(full_diag_sigma - s_rond_s)).T@torch.ones(self.n_samples, self.dim))*torch.eye(self.dim))@self._components
+            f -= ((((1-2*latent_prob)*m_minus_xb*full_diag_omega).T@torch.ones(self.n_samples, self.dim))*torch.eye(self.dim))@self._components
+            return f
             return grad_closed_form + grad_no_closed_form
 
     def grad_rho(self):

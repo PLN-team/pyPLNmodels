@@ -513,7 +513,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
-        # coef += 5
+        coef += 3
         if zero_inflated is True:
             coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
         else:
