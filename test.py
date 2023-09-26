@@ -25,7 +25,7 @@ add_const = True
     nb_cov=0,
     add_const=add_const,
     return_latent_variables=True,
-    dim=25,
+    dim=10,
     rank=5,
     seed=0,
 )
@@ -80,9 +80,7 @@ def show_mses(model_perfect):
         label=r"$\|\Theta_0  - \hat \Theta_0 \|$",
         color="red",
     )
-    plt.plot(
-        absc, model_perfect.mse_ksi_list, label="ksi", color="green"
-    )
+    plt.plot(absc, model_perfect.mse_ksi_list, label="ksi", color="green")
     plt.title("Evolution de la MSE en fonction du temps et de l'initialisation.")
     plt.ylabel("MSE")
     plt.xlabel("Temps")

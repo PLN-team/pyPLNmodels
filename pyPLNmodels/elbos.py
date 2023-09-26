@@ -272,10 +272,9 @@ def elbo_zi_pln(
         torch.diag(covariance), torch.sum(latent_prob, axis=0)
     )
     new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
-    K = sum_un_moins_rho_s2 + diag_sig_sum_rho + 0*new
+    K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
     inside_f = torch.diag(Omega) * K
     f = -1 / 2 * torch.sum(inside_f)
+    full_diag_omega = torch.diag(Omega).expand(covariates.shape[0], -1)
     elbo = a + b + c + d + e + f
-    # print('elbo:', elbo)
-    return f
     return elbo

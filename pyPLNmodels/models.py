@@ -446,9 +446,15 @@ class _model(ABC):
                 self.save_mse()
             except:
                 pass
-            # print('diff grad Theta zero', torch.norm(self._coef_inflation.grad + self.grad_theta_0()))
-            # print('diff grad Theta', torch.norm(self._coef.grad + self.grad_theta()))
+            print(
+                "diff grad Theta zero",
+                torch.norm(self._coef_inflation.grad + self.grad_theta_0()),
+            )
+            print("diff grad Theta", torch.norm(self._coef.grad + self.grad_theta()))
             print("diff grad C", torch.norm(self._components.grad + self.grad_C()))
+            print("diff grad S", torch.norm(self._latent_sqrt_var.grad + self.grad_S()))
+            print("diff grad M", torch.norm(self._latent_mean.grad + self.grad_M()))
+
         self.optim.step()
         self._update_closed_forms()
         return loss
@@ -3570,7 +3576,7 @@ class ZIPln(_model):
                 - _log_stirling(self._endog)
             )
             full_diag_sigma = diag.expand(self._exog.shape[0], -1)
-            full_diag_omega = torch.diag(torch.inverse(omega)).expand(self._exog.shape[0], -1)
+            full_diag_omega = torch.diag(omega).expand(self._exog.shape[0], -1)
             H3 = d_h_x3(XB_zero, XB, full_diag_sigma, self._dirac)
             poiss_term_H = poiss_term * H3
             a = (
@@ -3581,11 +3587,72 @@ class ZIPln(_model):
                 )
                 @ self._components
             )
-            c = 2*(((XB_zero*H3).T@torch.ones(self.n_samples, self.dim))*torch.eye(self.dim))@self._components
-            f = 0
-            f -= (((full_diag_omega*(full_diag_sigma - s_rond_s)).T@torch.ones(self.n_samples, self.dim))*torch.eye(self.dim))@self._components
-            f -= ((((1-2*latent_prob)*m_minus_xb*full_diag_omega).T@torch.ones(self.n_samples, self.dim))*torch.eye(self.dim))@self._components
-            return f
+            B_Omega = ((1 - latent_prob) * m_minus_xb) @ omega
+            K = H3 * B_Omega * m_minus_xb
+            b = (
+                2
+                * (
+                    (
+                        (m_minus_xb * B_Omega * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            c = (
+                2
+                * (
+                    ((XB_zero * H3).T @ torch.ones(self.n_samples, self.dim))
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            d = (
+                -2
+                * (
+                    (
+                        (torch.log(torch.abs(self._latent_sqrt_var)) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            log_full_diag_sigma = torch.log(diag).expand(self._exog.shape[0], -1)
+            d += (
+                ((log_full_diag_sigma * H3).T @ torch.ones(self.n_samples, self.dim))
+                * torch.eye(self.dim)
+            ) @ self._components
+            e = (
+                -2
+                * (
+                    (
+                        ((_trunc_log(latent_prob) - _trunc_log(1 - latent_prob)) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            f = (
+                -(
+                    (
+                        (full_diag_omega * (full_diag_sigma - s_rond_s) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            f -= (
+                (
+                    ((1 - 2 * latent_prob) * m_minus_xb**2 * full_diag_omega * H3).T
+                    @ torch.ones(self.n_samples, self.dim)
+                )
+                * torch.eye(self.dim)
+            ) @ self._components
+            grad_closed_form = a + b + c + d + e + f
             return grad_closed_form + grad_no_closed_form
 
     def grad_rho(self):
