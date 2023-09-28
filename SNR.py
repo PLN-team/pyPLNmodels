@@ -56,10 +56,18 @@ for moyenne in moyennes:
     ksi = simu[2]
     endog = simu[0]
 
+
     inflated_percentages_zero_Y.append(
         torch.sum(endog == 0) / (endog.shape[0] * endog.shape[1])
     )
     percentages_zero_Y.append(torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
+    percentage_zero_Y = percentages_zero_Y[-1]
+    percentage_zero_endog = inflated_percentages_zero_Y[-1]
+    fraction_removed = percentage_zero_endog-percentage_zero_Y
+    start =int(fraction_removed*Y.shape[0])
+    Y = Y[start:,:]
+    offsets_Y = offsets[start:,:]
+    exog_Y = exog[start:,:]
 
     nb_iter = 1000
     zi_closed_form = ZIPln(
@@ -101,7 +109,7 @@ for moyenne in moyennes:
 
     pln = Pln(
         Y,
-        offsets=offsets,
+        offsets=offsets_Y,
         add_const=add_const,
         true_covariance=true_Sigma,
         true_coef=true_beta,
