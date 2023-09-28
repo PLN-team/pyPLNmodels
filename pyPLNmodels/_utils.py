@@ -465,7 +465,7 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
 
 
 def _get_simulation_coef_cov_offsets_coefzi(
-    n_samples: int, nb_cov: int, dim: int, add_const: bool, zero_inflated: bool
+    n_samples: int, nb_cov: int, dim: int, add_const: bool, zero_inflated: bool, to_add_coef = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -513,7 +513,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
-        coef += 3
+        coef += to_add_coef
         if zero_inflated is True:
             coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
         else:
@@ -693,6 +693,7 @@ def get_simulation_parameters(
     rank: int = 5,
     add_const: bool = True,
     zero_inflated: bool = False,
+    to_add_coef = 0,
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -726,6 +727,7 @@ def get_simulation_parameters(
         dim,
         add_const,
         zero_inflated,
+        to_add_coef
     )
     components = _get_simulation_components(dim, rank)
     return PlnParameters(
@@ -748,6 +750,7 @@ def get_simulated_count_data(
     zero_inflated=False,
     seed: int = 0,
     return_latent_variables=False,
+    to_add_coef = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
@@ -788,6 +791,7 @@ def get_simulated_count_data(
         rank=rank,
         add_const=add_const,
         zero_inflated=zero_inflated,
+        to_add_coef = to_add_coef,
     )
     if return_latent_variables is True:
         returned_simu = sample_pln(
