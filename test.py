@@ -28,6 +28,7 @@ add_const = True
     dim=10,
     rank=5,
     seed=0,
+    to_add_coef = +3,
 )
 Y = simu[3]
 ksi = simu[2]
@@ -57,7 +58,7 @@ zi = ZIPln(
     ksi=ksi,
 )
 zi.fit(nb_max_iteration=nb_iter, tol=0)
-# zi.show()
+zi.show()
 
 
 def show_mses(model_perfect):
@@ -91,6 +92,6 @@ def show_mses(model_perfect):
     plt.show()
 
 
-# sns.heatmap(true_Sigma)
-# plt.show()
-# show_mses(zi)
+sns.heatmap(true_Sigma)
+plt.show()
+show_mses(zi)

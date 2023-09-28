@@ -404,23 +404,24 @@ class _model(ABC):
         self.mse_cov_list.append(
             torch.mean((self.true_covariance - self._covariance) ** 2).detach()
         )
-        self.mse_infla_list.append(
-            torch.mean((self.true_infla - self._coef_inflation) ** 2).detach()
-        )
         self.mse_beta_list.append(
             torch.mean((self.true_coef - self._coef) ** 2).detach()
         )
-        if self.use_closed_form_prob is True:
-            latent_prob = closed_form_latent_prob(
-                self._exog,
-                self._coef,
-                self._coef_inflation,
-                self._covariance,
-                self._dirac,
+        if self._NAME == "ZIPln":
+            self.mse_infla_list.append(
+                torch.mean((self.true_infla - self._coef_inflation) ** 2).detach()
             )
-        else:
-            latent_prob = torch.clone(self._latent_prob)
-        self.mse_ksi_list.append(torch.mean((latent_prob - self.ksi) ** 2).detach())
+            if self.use_closed_form_prob is True:
+                latent_prob = closed_form_latent_prob(
+                    self._exog,
+                    self._coef,
+                    self._coef_inflation,
+                    self._covariance,
+                    self._dirac,
+                )
+            else:
+                latent_prob = torch.clone(self._latent_prob)
+            self.mse_ksi_list.append(torch.mean((latent_prob - self.ksi) ** 2).detach())
         # self.mse_ksi_list.append(torch.mean((self._latent_mean) ** 2).detach())
 
     @property
@@ -441,19 +442,16 @@ class _model(ABC):
         self.optim.zero_grad()
         loss = -self.compute_elbo()
         loss.backward()
-        if self._NAME == "ZIPln":
-            try:
-                self.save_mse()
-            except:
-                pass
-            print(
-                "diff grad Theta zero",
-                torch.norm(self._coef_inflation.grad + self.grad_theta_0()),
-            )
-            print("diff grad Theta", torch.norm(self._coef.grad + self.grad_theta()))
-            print("diff grad C", torch.norm(self._components.grad + self.grad_C()))
-            print("diff grad S", torch.norm(self._latent_sqrt_var.grad + self.grad_S()))
-            print("diff grad M", torch.norm(self._latent_mean.grad + self.grad_M()))
+        # if self._NAME == "ZIPln":
+        self.save_mse()
+            # print(
+            #     "diff grad Theta zero",
+            #     torch.norm(self._coef_inflation.grad + self.grad_theta_0()),
+            # )
+            # print("diff grad Theta", torch.norm(self._coef.grad + self.grad_theta()))
+            # print("diff grad C", torch.norm(self._components.grad + self.grad_C()))
+            # print("diff grad S", torch.norm(self._latent_sqrt_var.grad + self.grad_S()))
+            # print("diff grad M", torch.norm(self._latent_mean.grad + self.grad_M()))
 
         self.optim.step()
         self._update_closed_forms()
@@ -1394,6 +1392,8 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        true_covariance=None,
+        true_coef=None,
     ):
         super().__init__(
             endog=endog,
@@ -1404,6 +1404,10 @@ class Pln(_model):
             take_log_offsets=take_log_offsets,
             add_const=add_const,
         )
+        self.true_covariance = true_covariance
+        self.true_coef = true_coef
+        self.mse_cov_list = []
+        self.mse_beta_list = []
 
     @classmethod
     @_add_doc(
