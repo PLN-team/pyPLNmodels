@@ -417,6 +417,10 @@ class _model(ABC):
         self.norm_list_Sigma = []
         self.scores_predictor = []
         self.scores_svm = []
+        self.mse_latent_variables = []
+        self.mse_latent_mean = []
+        self.mse_latent_sqrt_var = []
+        self.mse_predictions = []
         self._print_beginning_message()
         self._beginning_time = time.time()
         self.nb_predictor_fit = 0
@@ -438,6 +442,16 @@ class _model(ABC):
                 error_loss(self.true_Sigma.cpu() - self.covariance.detach().cpu())
                 .detach()
                 .item()
+            )
+            self.mse_latent_variables.append(
+                error_loss(self.latent_variables.detach().cpu())
+            )
+            self.mse_latent_mean.append(error_loss(self._latent_mean).detach().cpu())
+            self.mse_latent_sqrt_var.append(
+                error_loss(self._latent_sqrt_var).detach().cpu()
+            )
+            self.mse_predictions.append(
+                error_loss(self._endog_predictions()).detach().cpu()
             )
             if self._NAME == "PlnPCA":
                 self.norm_list_C.append(error_loss(self.components).item())
@@ -464,7 +478,7 @@ class _model(ABC):
             self.scores_predictor.append(self.score),
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
-            if abs(criterion) < tol or nb_fitting < self.nb_predictor_fit:
+            if abs(criterion) < tol:  # or nb_fitting < self.nb_predictor_fit:
                 stop_condition = True
 
             # try:
