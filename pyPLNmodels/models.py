@@ -443,15 +443,15 @@ class _model(ABC):
         loss = -self.compute_elbo()
         loss.backward()
         # if self._NAME == "ZIPln":
-        self.save_mse()
-            # print(
-            #     "diff grad Theta zero",
-            #     torch.norm(self._coef_inflation.grad + self.grad_theta_0()),
-            # )
-            # print("diff grad Theta", torch.norm(self._coef.grad + self.grad_theta()))
-            # print("diff grad C", torch.norm(self._components.grad + self.grad_C()))
-            # print("diff grad S", torch.norm(self._latent_sqrt_var.grad + self.grad_S()))
-            # print("diff grad M", torch.norm(self._latent_mean.grad + self.grad_M()))
+        # self.save_mse()
+        # print(
+        #     "diff grad Theta zero",
+        #     torch.norm(self._coef_inflation.grad + self.grad_theta_0()),
+        # )
+        # print("diff grad Theta", torch.norm(self._coef.grad + self.grad_theta()))
+        # print("diff grad C", torch.norm(self._components.grad + self.grad_C()))
+        # print("diff grad S", torch.norm(self._latent_sqrt_var.grad + self.grad_S()))
+        # print("diff grad M", torch.norm(self._latent_mean.grad + self.grad_M()))
 
         self.optim.step()
         self._update_closed_forms()
@@ -3296,7 +3296,7 @@ class ZIPln(_model):
         self.mse_infla_list = []
         self.mse_ksi_list = []
         self.use_closed_form_prob = use_closed_form_prob
-        self.ksi = torch.clone(ksi)
+        self.ksi = ksi
 
     @property
     def _description(self):
@@ -3337,6 +3337,10 @@ class ZIPln(_model):
     @property
     def latent_variables(self):
         return self.latent_mean, self.latent_prob
+
+    @property
+    def latent_prob(self):
+        return self._cpu_attribute_or_none("_latent_prob")
 
     def compute_elbo(self):
         if self.use_closed_form_prob is True:
