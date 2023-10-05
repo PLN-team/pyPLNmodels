@@ -20,12 +20,12 @@ add_const = True
     true_infla,
 ) = get_simulated_count_data(
     return_true_param=True,
-    n_samples=500,
+    n_samples=5000,
     zero_inflated=True,
     nb_cov=0,
     add_const=add_const,
     return_latent_variables=True,
-    dim=10,
+    dim=100,
     rank=5,
     seed=0,
     to_add_coef = +3,
@@ -44,7 +44,7 @@ print(
 )
 print("percentage zeros Y:", torch.sum(Y == 0) / (Y.shape[0] * Y.shape[1]))
 # full = ZIPln(endog=endog, exog=exog, offsets=offsets)
-nb_iter = 150
+nb_iter = 250
 use_closed_form_prob = True
 zi = ZIPln(
     endog,
