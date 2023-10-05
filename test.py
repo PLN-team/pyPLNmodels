@@ -50,18 +50,17 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
             linestyle=linestyle,
         )
         axes[1].plot(absc, model.mse_Sigma_list, color=colors[i], linestyle=linestyle)
-        axes[2].plot(absc, model.norm_list_beta, color=colors[i], linestyle=linestyle)
-        axes[3].plot(
+        axes[2].plot(
             absc, -np.array(model._elbos_list), color=colors[i], linestyle=linestyle
         )
-        axes[4].plot(absc, model.norm_list_Sigma, color=colors[i], linestyle=linestyle)
-        axes[6].plot(absc, model.scores_predictor, color=colors[i], linestyle=linestyle)
-        nb_diff = 300
+        nb_diff = 3
 
         tol_list.append(model._plotargs.criterions[-1])
 
         def plot_normalized_diff(absc, to_plot_orig, ax):
-            absc, to_plot_orig = lissage(absc, to_plot_orig, 100)
+            print("to plot orig", to_plot_orig)
+            absc, to_plot_orig = lissage(absc, to_plot_orig, 5)
+            print("to plot orig after first lissage", to_plot_orig)
             nb_crit = len(to_plot_orig)
             crit_shifted = to_plot_orig[: nb_crit - nb_diff]
             crit = to_plot_orig[nb_diff:]
@@ -71,15 +70,12 @@ def plot_collection(col, axes, colors, tol_list, linestyle):
             )
 
             absc_crit = absc[nb_diff:]
-            absc_crit, crit = lissage(absc_crit, crit, 150)
+            absc_crit, crit = lissage(absc_crit, crit, 5)
             crit = np.array(crit)
+            print('crit :', crit)
             ax.plot(absc_crit, crit, color=colors[i], linestyle=linestyle)
 
-        plot_normalized_diff(absc, model.norm_list_Sigma, axes[7])
-        plot_normalized_diff(absc, model.mse_latent_sqrt_var, axes[8])
-        plot_normalized_diff(absc, model.mse_latent_mean, axes[9])
-        plot_normalized_diff(absc, model.mse_latent_variables, axes[10])
-        plot_normalized_diff(absc, model.mse_predictions, axes[11])
+        plot_normalized_diff(absc, model._elbos_list, axes[5])
 
 
 class mimick_col:
@@ -171,12 +167,13 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, batch_size):
         save_col(col_batch, name_batch)
     else:
         col_batch = mimick_col_from_file(name_batch)
-    fig, mp_axes = plt.subplots(2, 6, figsize=(20, 20))
+    nb_cols = 3
+    fig, mp_axes = plt.subplots(2, nb_cols, figsize=(20, 20))
     colors = np.linspace(0, 200, len(col.ranks))
     axes = {}
-    for i in range(6):
+    for i in range(nb_cols):
         axes[i] = mp_axes[0, i]
-        axes[6 + i] = mp_axes[1, i]
+        axes[nb_cols + i] = mp_axes[1, i]
     colors /= 235
     colors = colors.reshape(-1, 1)
     colors = np.repeat(colors, 3, axis=1)
@@ -190,38 +187,25 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, batch_size):
     axes[2].legend()
     axes[3].legend()
     axes[4].legend()
-    axes[5].legend()
+
     axes[0].set_yscale("log")
     axes[0].set_title(r"$\hat \beta - \beta^{\star}$")
     axes[1].set_yscale("log")
     axes[1].set_title(r"$\hat \Sigma - \Sigma^{\star}$")
     axes[2].set_yscale("log")
-    axes[2].set_title(r"$\|\beta\|$")
-    axes[3].set_yscale("log")
-    axes[3].set_title(r"log(ELBO)")
-    axes[4].set_yscale("log")
-    axes[4].set_title(r"$\|\Sigma\|$")
-    axes[5].plot(
+    axes[2].set_title(r"log(ELBO)")
+    axes[3].plot(
         ranks,
         tols_batch,
         label="Criterion at last iteration",
         linestyle="--",
         color="black",
     )
-    axes[5].set_title(r"tolerance at last iteration")
-    axes[5].set_yscale("log")
-    axes[6].set_title("Scores predictor")
-    axes[7].set_yscale("log")
-    axes[7].set_title("tolerance")
-    axes[8].set_yscale("log")
-    axes[9].set_yscale("log")
-    axes[10].set_yscale("log")
-    axes[11].set_yscale("log")
+    axes[3].set_title(r"tolerance at last iteration")
+    axes[3].set_yscale("log")
+    axes[4].set_title("Scores predictor")
+    axes[5].set_title("normalized diff elbo")
 
-    axes[8].set_title(r"$\|\S^2\|$")
-    axes[9].set_title(r"$\|M\|$")
-    axes[10].set_title(r"$\|\hat Y\|$")
-    axes[11].set_title(r"$\|Z|Y\|$")
     plt.savefig(f"n_{n}_p_{dim}_ranks_{ranks}.pdf", format="pdf")
     plt.show()
 
