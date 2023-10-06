@@ -35,8 +35,13 @@ class _PlotArgs:
         """
         self.window = window
         self.running_times = []
-        self.criterions = [1] * window  # the first window criterion won't be computed.
+        self.criterions = []  # the first window criterion won't be computed.
         self._elbos_list = []
+        self.cumulative_elbo_list = [0]
+
+    @property
+    def cumulative_elbo(self):
+        return self.cumulative_elbo_list[-1]
 
     @property
     def iteration_number(self) -> int:
