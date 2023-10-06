@@ -809,14 +809,15 @@ class _model(ABC):
         """
         self._plotargs._elbos_list.append(-loss)
         self._plotargs.running_times.append(time.time() - self._beginning_time)
-        if self._plotargs.iteration_number > self._WINDOW:
-            criterion = abs(
-                self._plotargs._elbos_list[-1]
-                - self._plotargs._elbos_list[-1 - self._WINDOW]
-            )
-            self._plotargs.criterions.append(criterion)
-            return criterion
-        return tol
+        self._plotargs.cumulative_elbo_list.append(
+            self._plotargs.cumulative_elbo - loss
+        )
+        criterion = (
+            self._plotargs.cumulative_elbo_list[-2]
+            - self._plotargs.cumulative_elbo_list[-1]
+        ) / self._plotargs.cumulative_elbo_list[-1]
+        self._plotargs.criterions.append(criterion)
+        return criterion
 
     def _update_closed_forms(self):
         """
