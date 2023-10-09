@@ -3615,3 +3615,316 @@ class ZIPln(_model):
 
     def _update_closed_forms(self):
         pass
+
+    def grad_M(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        un_moins_prob = 1 - latent_prob
+        first = un_moins_prob * (
+            self._endog
+            - torch.exp(
+                self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2
+            )
+        )
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        diag_omega = torch.diag(torch.inverse(self._covariance))
+        full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
+        second = -un_moins_prob * A
+        added = -full_diag_omega * latent_prob * un_moins_prob * (MmoinsXB)
+        return first + second + added
+
+    def grad_S(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        Omega = torch.inverse(self.covariance)
+        un_moins_prob = 1 - latent_prob
+        first = un_moins_prob * torch.exp(
+            self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
+        )
+        first = -torch.multiply(first, self._latent_sqrt_var)
+        sec = un_moins_prob * 1 / self._latent_sqrt_var
+        K = un_moins_prob * (
+            torch.multiply(
+                torch.full((self.n_samples, 1), 1.0), torch.diag(Omega).unsqueeze(0)
+            )
+        )
+        third = -self._latent_sqrt_var * K
+        return first + sec + third
+
+    def grad_theta(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+
+        un_moins_prob = 1 - latent_prob
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        diag_omega = torch.diag(torch.inverse(self._covariance))
+        full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
+        added = latent_prob * (MmoinsXB) * full_diag_omega
+        A += added
+        second = -un_moins_prob * A
+        grad_no_closed_form = -self._exog.T @ second
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            XB_zero = self._exog @ self._coef_inflation
+            diag = torch.diag(self._covariance)
+            full_diag = diag.expand(self._exog.shape[0], -1)
+            XB = self._exog @ self._coef
+            derivative = d_h_x2(XB_zero, XB, full_diag, self._dirac)
+            grad_closed_form = self.gradients_closed_form_thetas(derivative)
+            return grad_closed_form + grad_no_closed_form
+
+    def gradients_closed_form_thetas(self, derivative):
+        Omega = torch.inverse(self._covariance)
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        s_rond_s = self._latent_sqrt_var**2
+        latent_prob = self.closed_form_latent_prob
+        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+        poiss_term = (
+            self._endog * (self._offsets + self._latent_mean)
+            - A
+            - _log_stirling(self._endog)
+        )
+        a = -self._exog.T @ (derivative * poiss_term)
+        b = self._exog.T @ (
+            derivative * MmoinsXB * (((1 - latent_prob) * MmoinsXB) @ Omega)
+        )
+        c = self._exog.T @ (derivative * (self._exog @ self._coef_inflation))
+        first_d = derivative * torch.log(torch.abs(self._latent_sqrt_var))
+        second_d = (
+            1 / 2 * derivative @ (torch.diag(torch.log(torch.diag(self._covariance))))
+        )
+        d = -self._exog.T @ (first_d - second_d)
+        e = -self._exog.T @ (
+            derivative * (_trunc_log(latent_prob) - _trunc_log(1 - latent_prob))
+        )
+        first_f = (
+            +1
+            / 2
+            * self._exog.T
+            @ (derivative * (s_rond_s @ torch.diag(torch.diag(Omega))))
+        )
+        second_f = (
+            -1
+            / 2
+            * self._exog.T
+            @ derivative
+            @ torch.diag(torch.diag(Omega) * torch.diag(self._covariance))
+        )
+        full_diag_omega = torch.diag(Omega).expand(self.exog.shape[0], -1)
+        common = (MmoinsXB) ** 2 * (full_diag_omega)
+        new_f = -1 / 2 * self._exog.T @ (derivative * common * (1 - 2 * latent_prob))
+        f = first_f + second_f + new_f
+        return a + b + c + d + e + f
+
+    def grad_theta_0(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        grad_no_closed_form = self._exog.T @ latent_prob - self._exog.T @ (
+            torch.exp(self._exog @ self._coef_inflation)
+            / (1 + torch.exp(self._exog @ self._coef_inflation))
+        )
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            grad_closed_form = self.gradients_closed_form_thetas(
+                latent_prob * (1 - latent_prob)
+            )
+            return grad_closed_form + grad_no_closed_form
+
+    def grad_C(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        omega = torch.inverse(self._covariance)
+        if self._coef is not None:
+            m_minus_xb = self._latent_mean - torch.mm(self._exog, self._coef)
+        else:
+            m_minus_xb = self._latent_mean
+        m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+
+        un_moins_rho = 1 - latent_prob
+
+        un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
+        un_moins_rho_m_moins_xb_outer = (
+            un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
+        )
+        deter = (
+            -self.n_samples
+            * torch.inverse(self._components @ (self._components.T))
+            @ self._components
+        )
+        sec_part_b_grad = (
+            omega @ (un_moins_rho_m_moins_xb_outer) @ omega @ self._components
+        )
+        b_grad = deter + sec_part_b_grad
+
+        diag = torch.diag(self.covariance)
+        rho_t_unn = torch.sum(latent_prob, axis=0)
+        omega_unp = torch.sum(omega, axis=0)
+        K = torch.sum(un_moins_rho * self._latent_sqrt_var**2, axis=0) + diag * (
+            rho_t_unn
+        )
+        added = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
+        K += added
+        first_part_grad = omega @ torch.diag_embed(K) @ omega @ self._components
+        x = torch.diag(omega) * rho_t_unn
+        second_part_grad = -torch.diag_embed(x) @ self._components
+        y = rho_t_unn
+        first = torch.multiply(y, 1 / torch.diag(self.covariance)).unsqueeze(1)
+        second = torch.full((1, self.dim), 1.0)
+        Diag = (first * second) * torch.eye(self.dim)
+        last_grad = Diag @ self._components
+        grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            s_rond_s = self._latent_sqrt_var**2
+            XB_zero = self._exog @ self._coef_inflation
+            XB = self._exog @ self._coef
+            A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+            poiss_term = (
+                self._endog * (self._offsets + self._latent_mean)
+                - A
+                - _log_stirling(self._endog)
+            )
+            full_diag_sigma = diag.expand(self._exog.shape[0], -1)
+            full_diag_omega = torch.diag(omega).expand(self._exog.shape[0], -1)
+            H3 = d_h_x3(XB_zero, XB, full_diag_sigma, self._dirac)
+            poiss_term_H = poiss_term * H3
+            a = (
+                -2
+                * (
+                    ((poiss_term_H.T @ torch.ones(self.n_samples, self.dim)))
+                    * (torch.eye(self.dim))
+                )
+                @ self._components
+            )
+            B_Omega = ((1 - latent_prob) * m_minus_xb) @ omega
+            K = H3 * B_Omega * m_minus_xb
+            b = (
+                2
+                * (
+                    (
+                        (m_minus_xb * B_Omega * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            c = (
+                2
+                * (
+                    ((XB_zero * H3).T @ torch.ones(self.n_samples, self.dim))
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            d = (
+                -2
+                * (
+                    (
+                        (torch.log(torch.abs(self._latent_sqrt_var)) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            log_full_diag_sigma = torch.log(diag).expand(self._exog.shape[0], -1)
+            d += (
+                ((log_full_diag_sigma * H3).T @ torch.ones(self.n_samples, self.dim))
+                * torch.eye(self.dim)
+            ) @ self._components
+            e = (
+                -2
+                * (
+                    (
+                        ((_trunc_log(latent_prob) - _trunc_log(1 - latent_prob)) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            f = (
+                -(
+                    (
+                        (full_diag_omega * (full_diag_sigma - s_rond_s) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            f -= (
+                (
+                    ((1 - 2 * latent_prob) * m_minus_xb**2 * full_diag_omega * H3).T
+                    @ torch.ones(self.n_samples, self.dim)
+                )
+                * torch.eye(self.dim)
+            ) @ self._components
+            grad_closed_form = a + b + c + d + e + f
+            return grad_closed_form + grad_no_closed_form
+
+    def grad_rho(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        omega = torch.inverse(self._covariance)
+        s_rond_s = self._latent_sqrt_var * self._latent_sqrt_var
+        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+        first = (
+            -self._endog * (self._offsets + self._latent_mean)
+            + A
+            + _log_stirling(self._endog)
+        )
+        un_moins_prob = 1 - latent_prob
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        second = MmoinsXB * A
+        third = self._exog @ self._coef_inflation
+        fourth_first = -torch.log(torch.abs(self._latent_sqrt_var))
+        fourth_second = (
+            1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0),
+                torch.log(torch.diag(self.covariance)).unsqueeze(0),
+            )
+        )
+        fourth = fourth_first + fourth_second
+        fifth = _trunc_log(un_moins_prob) - _trunc_log(latent_prob)
+        sixth_first = (
+            1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0), torch.diag(omega).unsqueeze(0)
+            )
+            * s_rond_s
+        )
+        sixth_second = (
+            -1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0),
+                (torch.diag(omega) * torch.diag(self._covariance)).unsqueeze(0),
+            )
+        )
+        sixth = sixth_first + sixth_second
+        full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
+        seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
+        return first + second + third + fourth + fifth + sixth + seventh
