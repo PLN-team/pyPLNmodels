@@ -202,11 +202,15 @@ def elbo_zi_pln(
     Returns:
         torch.tensor of size 1 with a gradient.
     """
-    covariance = components @ (components.T)
     if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
         raise RuntimeError("Latent probability is not zero when it should be.")
+    covariance = components @ (components.T)
+    diag_cov = torch.diag(covariance)
+    Omega = torch.inverse(covariance)
+    diag_omega = torch.diag(Omega)
+    un_moins_prob = 1 - latent_prob
     n_samples, dim = endog.shape
-    s_rond_s = torch.multiply(latent_sqrt_var, latent_sqrt_var)
+    s_rond_s = latent_sqrt_var * latent_sqrt_var
     o_plus_m = offsets + latent_mean
     if exog is None:
         XB = torch.zeros_like(endog)
@@ -217,40 +221,32 @@ def elbo_zi_pln(
     m_minus_xb = latent_mean - XB
 
     A = torch.exp(o_plus_m + s_rond_s / 2)
-    inside_a = torch.multiply(
-        1 - latent_prob, torch.multiply(endog, o_plus_m) - A - _log_stirling(endog)
-    )
-
-    Omega = torch.inverse(covariance)
-
+    inside_a = un_moins_prob * (endog * o_plus_m - A - _log_stirling(endog))
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-    un_moins_rho = 1 - latent_prob
-    un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
-    un_moins_rho_m_moins_xb_outer = un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
-    inside_b = -1 / 2 * Omega * un_moins_rho_m_moins_xb_outer
+    un_moins_prob_m_moins_xb = un_moins_prob * m_minus_xb
+    un_moins_prob_m_moins_xb_outer = (
+        un_moins_prob_m_moins_xb.T @ un_moins_prob_m_moins_xb
+    )
+    inside_b = -1 / 2 * Omega * un_moins_prob_m_moins_xb_outer
 
-    inside_c = torch.multiply(latent_prob, xcoef_inflation) - torch.log(
-        1 + torch.exp(xcoef_inflation)
-    )
-    log_diag = torch.log(torch.diag(covariance))
+    inside_c = latent_prob * xcoef_inflation - torch.log(1 + torch.exp(xcoef_inflation))
+    log_diag = torch.log(diag_cov)
     log_S_term = torch.sum(
-        torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_sqrt_var))), axis=0
+        un_moins_prob * torch.log(torch.abs(latent_sqrt_var)), axis=0
     )
-    y = torch.sum(latent_prob, axis=0)
-    covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
+    sum_prob = torch.sum(latent_prob, axis=0)
+    covariance_term = 1 / 2 * torch.log(diag_cov) * sum_prob
     inside_d = covariance_term + log_S_term
 
-    inside_e = torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(
-        1 - latent_prob, _trunc_log(1 - latent_prob)
-    )
-    sum_un_moins_rho_s2 = torch.sum(torch.multiply(1 - latent_prob, s_rond_s), axis=0)
-    diag_sig_sum_rho = torch.multiply(
-        torch.diag(covariance), torch.sum(latent_prob, axis=0)
-    )
-    new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
-    K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
-    inside_f = -1 / 2 * torch.diag(Omega) * K
-    full_diag_omega = torch.diag(Omega).expand(exog.shape[0], -1)
+    inside_e = torch.multiply(
+        latent_prob, _trunc_log(latent_prob)
+    ) + un_moins_prob * _trunc_log(un_moins_prob)
+    sum_un_moins_prob_s2 = torch.sum(un_moins_prob * s_rond_s, axis=0)
+    diag_sig_sum_prob = diag_cov * torch.sum(latent_prob, axis=0)
+    new = torch.sum(latent_prob * un_moins_prob * (m_minus_xb**2), axis=0)
+    K = sum_un_moins_prob_s2 + diag_sig_sum_prob + new
+    inside_f = -1 / 2 * diag_omega * K
+    full_diag_omega = diag_omega.expand(exog.shape[0], -1)
     elbo = torch.sum(inside_a + inside_c + inside_d)
     elbo += torch.sum(inside_b) - n_samples / 2 * torch.logdet(covariance)
     elbo += n_samples * dim / 2 + torch.sum(inside_d + inside_f)
