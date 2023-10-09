@@ -18,7 +18,7 @@ from scipy import stats
 from ._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
-    _closed_formula_pi,
+    _closed_formula_latent_prob,
 )
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
@@ -32,6 +32,7 @@ from ._utils import (
     _array2tensor,
     _handle_data,
     _add_doc,
+    _closed_form_latent_prob,
 )
 
 from ._initialization import (
@@ -110,7 +111,7 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._plotargs = _PlotArgs(self._WINDOW)
+        self._plotargs = _PlotArgs()
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
 
@@ -249,7 +250,7 @@ class _model(ABC):
         return batch_size
 
     @property
-    def _nb_iteration_done(self) -> int:
+    def nb_iteration_done(self) -> int:
         """
         The number of iterations done.
 
@@ -408,7 +409,7 @@ class _model(ABC):
         self._put_parameters_to_device()
         self._handle_optimizer(lr)
         stop_condition = False
-        while self._nb_iteration_done < nb_max_iteration and not stop_condition:
+        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
             if abs(criterion) < tol:
@@ -1242,7 +1243,7 @@ class _model(ABC):
         dict
             The dictionary of optimization parameters.
         """
-        return {"Number of iterations done": self._nb_iteration_done}
+        return {"Number of iterations done": self.nb_iteration_done}
 
     @property
     def _useful_properties_string(self):
@@ -1850,7 +1851,7 @@ class Pln(_model):
         covariance : torch.Tensor
             The covariance matrix.
         """
-        pass
+        raise AttributeError("You can not set the covariance for the Pln model.")
 
 
 class PlnPCAcollection:
@@ -3190,7 +3191,7 @@ class PlnPCA(_model):
     @property
     def covariance(self) -> torch.Tensor:
         """
-        Property representing the covariance a posteriori of the latent variables.
+        Property representing the covariance of the latent variables.
 
         Returns
         -------
@@ -3326,12 +3327,136 @@ class PlnPCA(_model):
         return self.latent_variables
 
 
-class ZIPln(Pln):
+class ZIPln(_model):
     _NAME = "ZIPln"
 
-    _pi: torch.Tensor
+    _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import ZIPln, get_real_count_data
+            >>> endog= get_real_count_data()
+            >>> zi = ZIPln(endog, add_const = True)
+            >>> zi.fit()
+            >>> print(zi)
+        """,
+        returns="""
+            ZIPln
+        """,
+        see_also="""
+        :func:`pyPLNmodels.ZIPln.from_formula`
+        """,
+    )
+    def __init__(
+        self,
+        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+        use_closed_form: bool = False,
+    ):
+        super().__init__(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
+        self._use_closed_form = use_closed_form
+
+    @classmethod
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import ZIPln, get_real_count_data
+            >>> endog = get_real_count_data()
+            >>> data = {"endog": endog}
+            >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        """,
+        returns="""
+            ZIPln
+        """,
+        see_also="""
+        :class:`pyPLNmodels.ZIPln`
+        :func:`pyPLNmodels.ZIPln.__init__`
+    """,
+    )
+    def from_formula(
+        cls,
+        formula: str,
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        use_closed_form: bool = True,
+    ):
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=False,
+            use_closed_form=use_closed_form,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog = get_real_count_data()
+        >>> zi = Pln(endog,add_const = True)
+        >>> zi.fit()
+        >>> print(zi)
+        """,
+    )
+    def fit(
+        self,
+        nb_max_iteration: int = 50000,
+        *,
+        lr: float = 0.01,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+        batch_size: int = None,
+    ):
+        super().fit(
+            nb_max_iteration,
+            lr=lr,
+            tol=tol,
+            do_smart_init=do_smart_init,
+            verbose=verbose,
+            batch_size=batch_size,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import ZIPln, get_real_count_data
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> zi = ZIPln(endog,add_const = True)
+            >>> zi.fit()
+            >>> zi.plot_expected_vs_true()
+            >>> plt.show()
+            >>> zi.plot_expected_vs_true(colors = labels)
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
 
     @property
     def _description(self):
@@ -3346,7 +3471,7 @@ class ZIPln(Pln):
     def _smart_init_model_parameters(self):
         super()._smart_init_model_parameters()
         if not hasattr(self, "_covariance"):
-            self._covariance = _init_covariance(self._endog, self._exog, self._coef)
+            self._components = _init_components(self._endog, self._exog, self.dim)
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
@@ -3354,10 +3479,28 @@ class ZIPln(Pln):
         self._dirac = self._endog == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
-        self._pi = (
+        self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
         )
+
+    @property
+    def _covariance(self):
+        return self._components @ (self._components.T)
+
+    @property
+    def covariance(self) -> torch.Tensor:
+        """
+        Property representing the covariance of the latent variables.
+
+        Returns
+        -------
+        Optional[torch.Tensor]
+            The covariance tensor or None if components are not present.
+        """
+        if hasattr(self, "_components"):
+            return self.components @ (self.components.T)
+        return None
 
     def compute_elbo(self):
         return elbo_zi_pln(
@@ -3366,7 +3509,7 @@ class ZIPln(Pln):
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
-            self._pi,
+            self._latent_prob,
             self._covariance,
             self._coef,
             self._coef_inflation,
@@ -3375,9 +3518,19 @@ class ZIPln(Pln):
 
     @property
     def _list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
+        list_parameters = [
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._coef_inflation,
+            self._components,
+            self._coef,
+        ]
+        if self._use_closed_form:
+            list_parameters.append(self._latent_prob)
+        return list_parameters
 
     def _update_closed_forms(self):
+        pass
         self._coef = _closed_formula_coef(self._exog, self._latent_mean)
         self._covariance = _closed_formula_covariance(
             self._exog,
@@ -3386,13 +3539,22 @@ class ZIPln(Pln):
             self._coef,
             self.n_samples,
         )
-        self._pi = _closed_formula_pi(
+        self._latent_prob = _closed_formula_latent_prob(
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
             self._dirac,
             self._exog,
             self._coef_inflation,
+        )
+
+    @property
+    def closed_form_latent_prob(self):
+        """
+        The closed form for the latent probability.
+        """
+        return closed_form_latent_prob(
+            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
         )
 
     @property
