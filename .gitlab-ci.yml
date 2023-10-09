@@ -23,6 +23,9 @@ tests:
     - cd tests
     - python create_readme_and_docstrings_tests.py
     - pytest .
+  only:
+    - main
+    - dev
 
 
 build_package:
