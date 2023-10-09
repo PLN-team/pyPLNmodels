@@ -24,19 +24,14 @@ else:
 
 
 class _PlotArgs:
-    def __init__(self, window: int):
+    def __init__(self):
         """
         Initialize the PlotArgs class.
-
-        Parameters
-        ----------
-        window : int
-            The size of the window for computing the criterion.
         """
-        self.window = window
         self.running_times = []
-        self.criterions = [1] * window  # the first window criterion won't be computed.
+        self.criterions = []
         self._elbos_list = []
+        self.cumulative_elbo_list = [0]
 
     @property
     def iteration_number(self) -> int:
@@ -49,6 +44,10 @@ class _PlotArgs:
             The number of iterations.
         """
         return len(self._elbos_list)
+
+    @property
+    def cumulative_elbo(self):
+        return self.cumulative_elbo_list[-1]
 
     def _show_loss(self, ax=None):
         """

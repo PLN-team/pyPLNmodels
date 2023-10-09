@@ -57,7 +57,6 @@ class _model(ABC):
     Base class for all the Pln models. Should be inherited.
     """
 
-    _WINDOW: int = 15
     _endog: torch.Tensor
     _exog: torch.Tensor
     _offsets: torch.Tensor
@@ -734,14 +733,15 @@ class _model(ABC):
         """
         self._plotargs._elbos_list.append(-loss)
         self._plotargs.running_times.append(time.time() - self._beginning_time)
-        if self._plotargs.iteration_number > self._WINDOW:
-            criterion = abs(
-                self._plotargs._elbos_list[-1]
-                - self._plotargs._elbos_list[-1 - self._WINDOW]
-            )
-            self._plotargs.criterions.append(criterion)
-            return criterion
-        return tol
+        self._plotargs.cumulative_elbo_list.append(
+            self._plotargs.cumulative_elbo_list - loss
+        )
+        criterion = (
+            self._plotargs.cumulative_elbo_list[-2]
+            - self._plotargs.cumulative_elbo_list[-1]
+        ) / self._plotargs.cumulative_elbo_list[-1]
+        self._plotargs.criterions.append(criterion)
+        return criterion
 
     def _update_closed_forms(self):
         """
@@ -2924,11 +2924,11 @@ class PlnPCA(_model):
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
             (self._components**2).unsqueeze(0)
-            * (self.latent_sqrt_var**2).unsqueeze(1),
+            * (self._latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
         if self.exog is not None:
-            XB = self.exog @ self.coef
+            XB = self._exog @ self._coef
         else:
             XB = 0
         return torch.exp(
