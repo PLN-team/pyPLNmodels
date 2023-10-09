@@ -14,9 +14,7 @@ else:
     DEVICE = torch.device("cpu")
 
 
-def _init_covariance(
-    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor
-) -> torch.Tensor:
+def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
     """
     Initialization for the covariance for the Pln model. Take the log of endog
     (careful when endog=0), and computes the Maximum Likelihood
