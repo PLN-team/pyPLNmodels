@@ -238,6 +238,12 @@ class _model(ABC):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
 
+    def _update_parameters(self):
+        """
+        Update the parameters with a gradient step and project if necessary.
+        """
+        self.optim.step()
+
     def _handle_batch_size(self, batch_size):
         if batch_size is None:
             batch_size = self.n_samples
@@ -489,7 +495,7 @@ class _model(ABC):
             loss = -self._compute_elbo_b()
             loss.backward()
             elbo += loss.item()
-            self.optim.step()
+            self._udpate_parameters()
             self._update_closed_forms()
         return elbo / self._nb_batches
 
@@ -2482,23 +2488,26 @@ class PlnPCAcollection:
         bic = self.BIC
         aic = self.AIC
         loglikes = self.loglikes
-        bic_color = "blue"
-        aic_color = "red"
-        loglikes_color = "orange"
-        plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
-        plt.plot(bic.keys(), bic.values(), c=bic_color)
-        plt.axvline(self.best_BIC_model_rank, c=bic_color, linestyle="dotted")
-        plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
-        plt.axvline(self.best_AIC_model_rank, c=aic_color, linestyle="dotted")
-        plt.plot(aic.keys(), aic.values(), c=aic_color)
-        plt.xticks(list(aic.keys()))
-        plt.scatter(
-            loglikes.keys(),
-            -np.array(list(loglikes.values())),
-            label="Negative log likelihood",
-            c=loglikes_color,
-        )
-        plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
+        colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
+        for criterion, values in zip(
+            ["BIC", "AIC", "Negative log likelihood"], [bic, aic, loglikes]
+        ):
+            plt.scatter(
+                values.keys(),
+                values.values(),
+                label=f"{criterion} criterion",
+                c=colors[criterion],
+            )
+            plt.plot(values.keys(), values.values(), c=colors[criterion])
+            if criterion == "BIC":
+                plt.axvline(
+                    self.best_BIC_model_rank, c=colors[criterion], linestyle="dotted"
+                )
+            elif criterion == "AIC":
+                plt.axvline(
+                    self.best_AIC_model_rank, c=colors[criterion], linestyle="dotted"
+                )
+                plt.xticks(list(values.keys()))
         plt.legend()
         plt.show()
 
@@ -2696,7 +2705,7 @@ class PlnPCA(_model):
     )
     def __init__(
         self,
-        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
@@ -3465,15 +3474,20 @@ class ZIPln(_model):
     def _random_init_model_parameters(self):
         super()._random_init_model_parameters()
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)
-        self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
+        self._coef = torch.randn(self.nb_cov, self.dim)
+        self._components = torch.randn(self.nb_cov, self.dim)
 
-    # should change the good initialization, especially for _coef_inflation
+    # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
+        # init of _coef.
         super()._smart_init_model_parameters()
         if not hasattr(self, "_covariance"):
             self._components = _init_components(self._endog, self._exog, self.dim)
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+
+    def _print_beginning_message(self):
+        print("Fitting a ZIPln model.")
 
     def _random_init_latent_parameters(self):
         self._dirac = self._endog == 0
@@ -3482,11 +3496,35 @@ class ZIPln(_model):
         self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
-        )
+        ).double()
+
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_parameters()
 
     @property
     def _covariance(self):
         return self._components @ (self._components.T)
+
+    def latent_variables(self):
+        return self.latent_mean, self.latent_prob
+
+    def _update_parameters(self):
+        super()._update_parameters()
+        self._project_latent_prob()
+
+    def _project_latent_prob(self):
+        """
+        Project the latent probability since it must be between 0 and 1.
+        """
+        if self.use_closed_form_prob is False:
+            with torch.no_grad():
+                self._latent_prob = torch.maximum(
+                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                )
+                self._latent_prob = torch.minimum(
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                )
+                self._latent_prob *= self._dirac
 
     @property
     def covariance(self) -> torch.Tensor:
@@ -3498,23 +3536,66 @@ class ZIPln(_model):
         Optional[torch.Tensor]
             The covariance tensor or None if components are not present.
         """
-        if hasattr(self, "_components"):
-            return self.components @ (self.components.T)
-        return None
+        return self._cpu_attribute_or_none("_covariance")
+
+    @property
+    def latent_prob(self):
+        return self._cpu_attribute_or_none("_latent_prob")
+
+    @property
+    def closed_form_latent_prob(self):
+        """
+        The closed form for the latent probability.
+        """
+        return closed_form_latent_prob(
+            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
+        )
 
     def compute_elbo(self):
+        if self._use_closed_form_prob is True:
+            latent_prob = self.closed_form_latent_prob
+        else:
+            latent_prob = self._latent_prob
         return elbo_zi_pln(
             self._endog,
             self._exog,
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
-            self._latent_prob,
-            self._covariance,
+            latent_prob,
+            self._components,
             self._coef,
             self._coef_inflation,
             self._dirac,
         )
+
+    def _compute_elbo_b(self):
+        if self._use_closed_form_prob is True:
+            latent_prob_b = _closed_form_latent_prob(
+                self._exog_b,
+                self._coef,
+                self._coef_inflation,
+                self._covariance,
+                self._dirac_b,
+            )
+        else:
+            latent_prob_b = self._latent_prob_b
+        return elbo_zi_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            latent_prob_b,
+            self._components,
+            self._coef,
+            self._coef_inflation,
+            self._dirac_b,
+        )
+
+    @property
+    def number_of_parameters(self):
+        return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
 
     @property
     def _list_of_parameters_needing_gradient(self):
@@ -3527,36 +3608,10 @@ class ZIPln(_model):
         ]
         if self._use_closed_form:
             list_parameters.append(self._latent_prob)
+        if self._exog is not None:
+            list_parameters.append(self._coef)
+            list_parameters.append(self._coef_inflation)
         return list_parameters
 
     def _update_closed_forms(self):
         pass
-        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
-        self._covariance = _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._coef,
-            self.n_samples,
-        )
-        self._latent_prob = _closed_formula_latent_prob(
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._dirac,
-            self._exog,
-            self._coef_inflation,
-        )
-
-    @property
-    def closed_form_latent_prob(self):
-        """
-        The closed form for the latent probability.
-        """
-        return closed_form_latent_prob(
-            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
-        )
-
-    @property
-    def number_of_parameters(self):
-        return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
