@@ -465,7 +465,12 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
 
 
 def _get_simulation_coef_cov_offsets_coefzi(
-    n_samples: int, nb_cov: int, dim: int, add_const: bool, zero_inflated: bool, to_add_coef = 0,
+    n_samples: int,
+    nb_cov: int,
+    dim: int,
+    add_const: bool,
+    zero_inflated: bool,
+    to_add_coef=0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -693,7 +698,7 @@ def get_simulation_parameters(
     rank: int = 5,
     add_const: bool = True,
     zero_inflated: bool = False,
-    to_add_coef = 0,
+    to_add_coef=0,
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -722,12 +727,7 @@ def get_simulation_parameters(
 
     """
     coef, exog, offsets, coef_inflation = _get_simulation_coef_cov_offsets_coefzi(
-        n_samples,
-        nb_cov,
-        dim,
-        add_const,
-        zero_inflated,
-        to_add_coef
+        n_samples, nb_cov, dim, add_const, zero_inflated, to_add_coef
     )
     components = _get_simulation_components(dim, rank)
     return PlnParameters(
@@ -750,7 +750,7 @@ def get_simulated_count_data(
     zero_inflated=False,
     seed: int = 0,
     return_latent_variables=False,
-    to_add_coef = 0,
+    to_add_coef=0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
@@ -791,7 +791,7 @@ def get_simulated_count_data(
         rank=rank,
         add_const=add_const,
         zero_inflated=zero_inflated,
-        to_add_coef = to_add_coef,
+        to_add_coef=to_add_coef,
     )
     if return_latent_variables is True:
         returned_simu = sample_pln(
@@ -1076,40 +1076,6 @@ def C_from_Sigma(Sigma, q):
     return C_reduct
 
 
-class lambert(torch.autograd.Function):
-    """
-    We can implement our own custom autograd Functions by subclassing
-    torch.autograd.Function and implementing the forward and backward passes
-    which operate on Tensors.
-    """
-
-    @staticmethod
-    def forward(ctx, input):
-        """
-        In the forward pass we receive a Tensor containing the input and return
-        a Tensor containing the output. ctx is a context object that can be used
-        to stash information for backward computation. You can cache arbitrary
-        objects for use in the backward pass using the ctx.save_for_backward method.
-        """
-        ctx.save_for_backward(input)
-        arr = input.numpy()
-        return torch.from_numpy(lambertw(arr).real)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """
-        In the backward pass we receive a Tensor containing the gradient of the loss
-        with respect to the output, and we need to compute the gradient of the loss
-        with respect to the input.
-        """
-        (input,) = ctx.saved_tensors
-        arr = input.numpy()
-        lamb = lambertw(arr).real
-        # out = lamb / (input * (1 + lamb))
-        out = torch.where(torch.abs(input) > 1e-5, lamb / (input * (1 + lamb)), 1)
-        return grad_output * out
-
-
 def phi(mu, sigma2):
     lamb = lambert.apply
     y = sigma2 * torch.exp(mu)
@@ -1127,10 +1093,6 @@ def closed_form_latent_prob(exog, coef, coef_infla, cov, dirac):
     # return temp_closed_form(XB_zero, XB, full_diag, dirac)
     return torch.sigmoid(XB_zero - torch.log(my_phi(XB, full_diag))) * dirac
     # return (pi / (phi(XB, full_diag) * (1 - pi) + pi)) * dirac
-
-
-def temp_closed_form(a, x, y, dirac):
-    return torch.sigmoid(a - torch.log(my_phi(x, y))) * dirac
 
 
 def PF_lambert(x, y):
