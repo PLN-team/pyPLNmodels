@@ -220,7 +220,6 @@ def elbo_zi_pln(
     inside_a = torch.multiply(
         1 - latent_prob, torch.multiply(endog, o_plus_m) - A - _log_stirling(endog)
     )
-    a = torch.sum(inside_a)
 
     Omega = torch.inverse(covariance)
 
@@ -229,12 +228,10 @@ def elbo_zi_pln(
     un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
     un_moins_rho_m_moins_xb_outer = un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
     inside_b = -1 / 2 * Omega * un_moins_rho_m_moins_xb_outer
-    b = -n_samples / 2 * torch.logdet(covariance) + torch.sum(inside_b)
 
     inside_c = torch.multiply(latent_prob, xcoef_inflation) - torch.log(
         1 + torch.exp(xcoef_inflation)
     )
-    c = torch.sum(inside_c)
     log_diag = torch.log(torch.diag(covariance))
     log_S_term = torch.sum(
         torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_sqrt_var))), axis=0
@@ -243,21 +240,18 @@ def elbo_zi_pln(
     covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
     inside_d = covariance_term + log_S_term
 
-    d = n_samples * dim / 2 + torch.sum(inside_d)
-
     inside_e = torch.multiply(latent_prob, _trunc_log(latent_prob)) + torch.multiply(
         1 - latent_prob, _trunc_log(1 - latent_prob)
     )
-    e = -torch.sum(inside_e)
     sum_un_moins_rho_s2 = torch.sum(torch.multiply(1 - latent_prob, s_rond_s), axis=0)
     diag_sig_sum_rho = torch.multiply(
         torch.diag(covariance), torch.sum(latent_prob, axis=0)
     )
     new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
     K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
-    inside_f = torch.diag(Omega) * K
-    f = -1 / 2 * torch.sum(inside_f)
+    inside_f = -1 / 2 * torch.diag(Omega) * K
     full_diag_omega = torch.diag(Omega).expand(exog.shape[0], -1)
-    elbo = a + b + c + d + e + f
-    print(" inside a shape", inside_a.shape)
+    elbo = torch.sum(inside_a + inside_c + inside_d)
+    elbo += torch.sum(inside_b) - n_samples / 2 * torch.logdet(covariance)
+    elbo += n_samples * dim / 2 + torch.sum(inside_d + inside_f)
     return elbo
