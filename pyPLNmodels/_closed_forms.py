@@ -1,4 +1,5 @@
 from typing import Optional
+from ._utils import phi
 
 import torch  # pylint:disable=[C0114]
 
@@ -98,3 +99,17 @@ def _closed_formula_pi(
     """
     poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_sqrt_var))
     return torch._sigmoid(poiss_param + torch.mm(exog, _coef_inflation)) * dirac
+
+
+def _closed_formula_latent_prob(exog, coef, coef_infla, cov, dirac):
+    if exog is not None:
+        XB = exog @ coef
+        XB_zero = exog @ coef_infla
+    else:
+        XB_zero = 0
+        XB = 0
+    XB_zero = exog @ coef_infla
+    pi = torch.sigmoid(XB_zero)
+    diag = torch.diag(cov)
+    full_diag = diag.expand(exog.shape[0], -1)
+    return torch.sigmoid(XB_zero - torch.log(phi(XB, full_diag))) * dirac

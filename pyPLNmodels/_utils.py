@@ -79,8 +79,8 @@ class _PlotArgs:
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(
-            self.running_times[self.window :],
-            self.criterions[self.window :],
+            self.running_times,
+            self.criterions,
             label="Delta",
         )
         ax.set_yscale("log")
@@ -1004,3 +1004,47 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
         return fun
 
     return wrapper
+
+
+def pf_lambert(x, y):
+    return x - (1 - (y * torch.exp(-x) + 1) / (x + 1))
+
+
+def lambert(y, nb_pf=10):
+    x = torch.log(1 + y)
+    for _ in range(nb_pf):
+        x = pf_lambert(x, y)
+    return x
+
+
+def d_varpsi_x1(mu, sigma2):
+    W = lambert(sigma2 * torch.exp(mu))
+    first = phi(mu, sigma2)
+    third = 1 / sigma2 + 1 / 2 * 1 / ((1 + W) ** 2)
+    return -first * W * third
+
+
+def phi(mu, sigma2):
+    y = sigma2 * torch.exp(mu)
+    lamby = lambert(y)
+    log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
+    return torch.exp(log_num) / torch.sqrt(1 + lamby)
+
+
+def d_varpsi_x2(mu, sigma2):
+    first = d_varpsi_x1(mu, sigma2) / sigma2
+    W = lambert(sigma2 * torch.exp(mu))
+    second = (W**2 + 2 * W) / 2 / (sigma2**2) * phi(mu, sigma2)
+    return first + second
+
+
+def d_h_x2(a, x, y, dirac):
+    rho = torch.sigmoid(a - torch.log(phi(x, y))) * dirac
+    rho_prime = rho * (1 - rho)
+    return -rho_prime * d_varpsi_x1(x, y) / phi(x, y)
+
+
+def d_h_x3(a, x, y, dirac):
+    rho = torch.sigmoid(a - torch.log(phi(x, y))) * dirac
+    rho_prime = rho * (1 - rho)
+    return -rho_prime * d_varpsi_x2(x, y) / phi(x, y)
