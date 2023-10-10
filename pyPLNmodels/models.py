@@ -389,7 +389,6 @@ class _model(ABC):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
-        nb_fitting=200000,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -478,7 +477,7 @@ class _model(ABC):
             self.scores_predictor.append(self.score),
             loss = self._trainstep()
             criterion = self._compute_criterion_and_update_plotargs(loss, tol)
-            if abs(criterion) < tol:  # or nb_fitting < self.nb_predictor_fit:
+            if abs(criterion) < tol:
                 stop_condition = True
 
             # try:
@@ -1580,7 +1579,6 @@ class Pln(_model):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
-        nb_fitting=200000,
     ):
         super().fit(
             nb_max_iteration,
@@ -1589,7 +1587,6 @@ class Pln(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
             batch_size=batch_size,
-            nb_fitting=nb_fitting,
         )
 
     @_add_doc(
@@ -2342,7 +2339,6 @@ class PlnPCAcollection:
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
-        nb_fitting=200000,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2373,7 +2369,6 @@ class PlnPCAcollection:
                 do_smart_init=do_smart_init,
                 verbose=verbose,
                 batch_size=batch_size,
-                nb_fitting=nb_fitting,
             )
             # if i < len(self.values()) - 1:
             #     next_model = self[self.ranks[i + 1]]
@@ -2875,7 +2870,6 @@ class PlnPCA(_model):
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
-        nb_fitting=200000,
     ):
         super().fit(
             nb_max_iteration,
@@ -2884,7 +2878,6 @@ class PlnPCA(_model):
             do_smart_init=do_smart_init,
             verbose=verbose,
             batch_size=batch_size,
-            nb_fitting=nb_fitting,
         )
 
     @_add_doc(
