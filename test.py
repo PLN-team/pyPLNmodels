@@ -145,7 +145,7 @@ def save_col(col, name):
         pickle.dump(saveable_col, fp)
 
 
-def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, dict_batches):
+def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
     batches_size = dict_batches.keys()
     marker_batches = list(dict_batches.values())
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
@@ -154,7 +154,7 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, dict_batches):
     offsets = None
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
     ranks = [4, 12, 15]  # , 40, 80, 120, 180, 250, 500]
-    name_no_batch = f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}_nbiter_{nb_max_iter}"
+    name_no_batch = f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbiter_{nb_max_iter}"
     nb_cols = 4
     fig, mp_axes = plt.subplots(2, nb_cols, figsize=(20, 20))
     colors = np.linspace(0, 200, len(ranks))
@@ -181,7 +181,7 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, dict_batches):
             GT=GT,
         )
         col.fit(
-            tol=0.001, nb_max_iteration=nb_max_iter, verbose=True, nb_fitting=nb_fitting
+            tol=0.00, nb_max_iteration=nb_max_iter, verbose=True,
         )
         save_col(col, name_no_batch)
     else:
@@ -194,7 +194,7 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, dict_batches):
         print("batch size", batch_size)
         marker_batch = dict_batches[batch_size]
         tols_batch = []
-        name_batch = f"results/batch_{batch_size}ranks_{ranks}_n_{n}_dim_{dim}_nbfitting_{nb_fitting}_nbiter_{nb_max_iter}"
+        name_batch = f"results/batch_{batch_size}ranks_{ranks}_n_{n}_dim_{dim}_nbiter_{nb_max_iter}"
         if exists(name_batch) is False:
             col_batch = PlnPCAcollection(
                 counts,
@@ -206,11 +206,10 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, dict_batches):
                 GT=GT,
             )
             col_batch.fit(
-                tol=0.001,
+                tol=0.00,
                 nb_max_iteration=nb_max_iter,
                 verbose=True,
                 batch_size=batch_size,
-                nb_fitting=nb_fitting,
             )
             save_col(col_batch, name_batch)
         else:
@@ -254,5 +253,5 @@ def plot_n_or_dim(n, dim, nb_fitting, nb_max_iter, dict_batches):
     plt.show()
 
 
-dict_batches = {20: "v", 30: "o", 40: "<", 50: "X"}
-plot_n_or_dim(450, 100, 100, nb_max_iter=16000, dict_batches=dict_batches)
+dict_batches = {20: "v", 50: "o", 100: "<", 500: "X", 1000:"+"}
+plot_n_or_dim(2000, 500,nb_max_iter=100000, dict_batches=dict_batches)
