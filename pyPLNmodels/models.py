@@ -32,7 +32,6 @@ from ._utils import (
     _array2tensor,
     _handle_data,
     _add_doc,
-    _closed_form_latent_prob,
 )
 
 from ._initialization import (
@@ -65,6 +64,7 @@ class _model(ABC):
     _beginning_time: float
     _latent_sqrt_var: torch.Tensor
     _latent_mean: torch.Tensor
+    _batch_size: int = None
 
     def __init__(
         self,
@@ -164,7 +164,10 @@ class _model(ABC):
         """
         if "coef" not in dict_initialization.keys():
             print("No coef is initialized.")
-            self.coef = None
+            dict_initialization["coef"] = None
+        if self._NAME == "Pln":
+            del dict_initialization["covariance"]
+            del dict_initialization["coef"]
         for key, array in dict_initialization.items():
             array = _format_data(array)
             setattr(self, key, array)
@@ -175,6 +178,8 @@ class _model(ABC):
         """
         The batch size of the model. Should not be greater than the number of samples.
         """
+        if self._batch_size is None:
+            return self.n_samples
         return self._batch_size
 
     @property
@@ -265,7 +270,7 @@ class _model(ABC):
         int
             The number of iterations done.
         """
-        return len(self._plotargs._elbos_list) * self._nb_batches
+        return len(self._plotargs._elbos_list) * self.nb_batches
 
     @property
     def n_samples(self) -> int:
@@ -359,7 +364,7 @@ class _model(ABC):
 
     def _put_parameters_to_device(self):
         """
-        Move parameters to the device.
+        Move parameters to the cGPU device if present.
         """
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
@@ -374,7 +379,6 @@ class _model(ABC):
         List[torch.Tensor]
             List of parameters needing gradient.
         """
-        ...
 
     def fit(
         self,
@@ -459,9 +463,13 @@ class _model(ABC):
 
     def _return_batch(self, indices, beginning, end):
         to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        if self._exog is not None:
+            exog_b = torch.index_select(self._exog, 0, to_take)
+        else:
+            exog_b = None
         return (
             torch.index_select(self._endog, 0, to_take),
-            torch.index_select(self._exog, 0, to_take),
+            exog_b,
             torch.index_select(self._offsets, 0, to_take),
             torch.index_select(self._latent_mean, 0, to_take),
             torch.index_select(self._latent_sqrt_var, 0, to_take),
@@ -469,14 +477,14 @@ class _model(ABC):
 
     @property
     def _nb_full_batch(self):
-        return self.n_samples // self._batch_size
+        return self.n_samples // self.batch_size
 
     @property
     def _last_batch_size(self):
-        return self.n_samples % self._batch_size
+        return self.n_samples % self.batch_size
 
     @property
-    def _nb_batches(self):
+    def nb_batches(self):
         return self._nb_full_batch + (self._last_batch_size > 0)
 
     def _trainstep(self):
@@ -495,9 +503,9 @@ class _model(ABC):
             loss = -self._compute_elbo_b()
             loss.backward()
             elbo += loss.item()
-            self._udpate_parameters()
+            self._update_parameters()
             self._update_closed_forms()
-        return elbo / self._nb_batches
+        return elbo / self.nb_batches
 
     def _extract_batch(self, batch):
         self._endog_b = batch[0]
@@ -740,8 +748,9 @@ class _model(ABC):
         """
         self._plotargs._elbos_list.append(-loss)
         self._plotargs.running_times.append(time.time() - self._beginning_time)
+        elbo = -loss
         self._plotargs.cumulative_elbo_list.append(
-            self._plotargs.cumulative_elbo_list - loss
+            self._plotargs.cumulative_elbo + elbo
         )
         criterion = (
             self._plotargs.cumulative_elbo_list[-2]
@@ -1652,7 +1661,11 @@ class Pln(_model):
         ----------
         coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The regression coefficients of the gaussian latent variables.
+        Raises
+        ------
+        AttributeError since you can not set the coef in the Pln model.
         """
+        raise AttributeError("You can not set the coef in the Pln model.")
 
     def _endog_predictions(self):
         return torch.exp(
@@ -3543,17 +3556,17 @@ class ZIPln(_model):
         return self._cpu_attribute_or_none("_latent_prob")
 
     @property
-    def closed_form_latent_prob(self):
+    def closed_formula_latent_prob(self):
         """
         The closed form for the latent probability.
         """
-        return closed_form_latent_prob(
+        return closed_formula_latent_prob(
             self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
         )
 
     def compute_elbo(self):
         if self._use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
         return elbo_zi_pln(
@@ -3571,7 +3584,7 @@ class ZIPln(_model):
 
     def _compute_elbo_b(self):
         if self._use_closed_form_prob is True:
-            latent_prob_b = _closed_form_latent_prob(
+            latent_prob_b = _closed_formula_latent_prob(
                 self._exog_b,
                 self._coef,
                 self._coef_inflation,
@@ -3618,7 +3631,7 @@ class ZIPln(_model):
 
     def grad_M(self):
         if self.use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
         un_moins_prob = 1 - latent_prob
@@ -3638,7 +3651,7 @@ class ZIPln(_model):
 
     def grad_S(self):
         if self.use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
         Omega = torch.inverse(self.covariance)
@@ -3658,7 +3671,7 @@ class ZIPln(_model):
 
     def grad_theta(self):
         if self.use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
 
@@ -3686,7 +3699,7 @@ class ZIPln(_model):
         Omega = torch.inverse(self._covariance)
         MmoinsXB = self._latent_mean - self._exog @ self._coef
         s_rond_s = self._latent_sqrt_var**2
-        latent_prob = self.closed_form_latent_prob
+        latent_prob = self.closed_formula_latent_prob
         A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
         poiss_term = (
             self._endog * (self._offsets + self._latent_mean)
@@ -3727,7 +3740,7 @@ class ZIPln(_model):
 
     def grad_theta_0(self):
         if self.use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
         grad_no_closed_form = self._exog.T @ latent_prob - self._exog.T @ (
@@ -3744,7 +3757,7 @@ class ZIPln(_model):
 
     def grad_C(self):
         if self.use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
         omega = torch.inverse(self._covariance)
@@ -3881,7 +3894,7 @@ class ZIPln(_model):
 
     def grad_rho(self):
         if self.use_closed_form_prob is True:
-            latent_prob = self.closed_form_latent_prob
+            latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
         omega = torch.inverse(self._covariance)

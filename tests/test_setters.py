@@ -19,7 +19,8 @@ def test_data_setter_with_torch(pln):
 def test_parameters_setter_with_torch(pln):
     pln.latent_mean = pln.latent_mean
     pln.latent_sqrt_var = pln.latent_sqrt_var
-    pln.coef = pln.coef
+    if pln._NAME != "Pln":
+        pln.coef = pln.coef
     if pln._NAME == "PlnPCA":
         pln.components = pln.components
     pln.fit()
@@ -50,7 +51,8 @@ def test_parameters_setter_with_numpy(pln):
         np_coef = None
     pln.latent_mean = np_latent_mean
     pln.latent_sqrt_var = np_latent_sqrt_var
-    pln.coef = np_coef
+    if pln._NAME != "Pln":
+        pln.coef = np_coef
     if pln._NAME == "PlnPCA":
         pln.components = pln.components.numpy()
     pln.fit()
@@ -81,7 +83,8 @@ def test_parameters_setter_with_pandas(pln):
         pd_coef = None
     pln.latent_mean = pd_latent_mean
     pln.latent_sqrt_var = pd_latent_sqrt_var
-    pln.coef = pd_coef
+    if pln._NAME != "Pln":
+        pln.coef = pd_coef
     if pln._NAME == "PlnPCA":
         pln.components = pd.DataFrame(pln.components.numpy())
     pln.fit()
@@ -141,8 +144,9 @@ def test_fail_parameters_setter_with_torch(pln):
             d = 0
         else:
             d = pln.exog.shape[-1]
-        with pytest.raises(ValueError):
-            pln.coef = torch.zeros(d + 1, dim)
+        if pln._NAME != "Pln":
+            with pytest.raises(ValueError):
+                pln.coef = torch.zeros(d + 1, dim)
 
-        with pytest.raises(ValueError):
-            pln.coef = torch.zeros(d, dim + 1)
+            with pytest.raises(ValueError):
+                pln.coef = torch.zeros(d, dim + 1)
