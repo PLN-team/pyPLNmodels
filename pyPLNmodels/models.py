@@ -3382,7 +3382,7 @@ class ZIPln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        use_closed_form: bool = False,
+        use_closed_form_prob: bool = False,
     ):
         super().__init__(
             endog=endog,
@@ -3393,7 +3393,32 @@ class ZIPln(_model):
             take_log_offsets=take_log_offsets,
             add_const=add_const,
         )
-        self._use_closed_form = use_closed_form
+        self._use_closed_form_prob = use_closed_form_prob
+
+    def _extract_batch(self, batch):
+        super()._extract_batch(batch)
+        if self._use_closed_form_prob is False:
+            self._latent_prob_b = batch[5]
+
+    def _return_batch(self, indices, beginning, end):
+        pln_batch = super()._return_batch(indices, beginning, end)
+        if self._use_closed_form_prob is False:
+            return pln_batch + torch.index_select(self._latent_prob, 0, to_take)
+        return pln_batch
+
+    def _return_batch(self, indices, beginning, end):
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        if self._exog is not None:
+            exog_b = torch.index_select(self._exog, 0, to_take)
+        else:
+            exog_b = None
+        return (
+            torch.index_select(self._endog, 0, to_take),
+            exog_b,
+            torch.index_select(self._offsets, 0, to_take),
+            torch.index_select(self._latent_mean, 0, to_take),
+            torch.index_select(self._latent_sqrt_var, 0, to_take),
+        )
 
     @classmethod
     @_add_doc(
@@ -3439,7 +3464,7 @@ class ZIPln(_model):
         example="""
         >>> from pyPLNmodels import ZIPln, get_real_count_data
         >>> endog = get_real_count_data()
-        >>> zi = Pln(endog,add_const = True)
+        >>> zi = ZIPln(endog,add_const = True)
         >>> zi.fit()
         >>> print(zi)
         """,
@@ -3493,7 +3518,7 @@ class ZIPln(_model):
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
         # init of _coef.
-        super()._smart_init_model_parameters()
+        super()._smart_init_coef()
         if not hasattr(self, "_covariance"):
             self._components = _init_components(self._endog, self._exog, self.dim)
         if not hasattr(self, "_coef_inflation"):
@@ -3619,7 +3644,7 @@ class ZIPln(_model):
             self._components,
             self._coef,
         ]
-        if self._use_closed_form:
+        if self._use_closed_form_prob:
             list_parameters.append(self._latent_prob)
         if self._exog is not None:
             list_parameters.append(self._coef)
