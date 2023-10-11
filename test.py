@@ -36,45 +36,90 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 
 
 def plot_collection(
-    col, axes, colors, tol_list, linestyle, batch_size=None, marker_batch=None
+    col, axes, dict_colors, tol_list, linestyle,dict_ranks, batch_size=None
 ):
-    for i, model in enumerate(col.values()):
-        absc = model._plotargs.running_times
-        if linestyle == "--":
-            label = f"rank {model.rank} BS={batch_size} "
-        else:
-            label = f"rank {model.rank} full-batch"
-        axes[0].plot(
-            absc,
-            model.mse_beta_list,
-            label=label,
-            color=colors[i],
-            linestyle=linestyle,
-            marker=marker_batch,
-        )
-        axes[1].plot(
-            absc,
-            model.mse_Sigma_list,
-            color=colors[i],
-            linestyle=linestyle,
-            marker=marker_batch,
-        )
-        axes[2].plot(
-            absc,
-            -np.array(model._elbos_list),
-            color=colors[i],
-            linestyle=linestyle,
-            marker=marker_batch,
-        )
-        axes[6].plot(
-            absc,
-            -np.array(model._plotargs.criterions),
-            color=colors[i],
-            linestyle=linestyle,
-            marker=marker_batch,
-        )
+    if batch_size is None:
+        color = "red"
+    else:
+        color = dict_colors[batch_size]
 
-        tol_list.append(model._plotargs.criterions[-1])
+    for i, model in enumerate(col.values()):
+        marker = dict_ranks[model.rank]
+        if i==2:
+            absc = model._plotargs.running_times
+            if linestyle == "--":
+                label = f"rank {model.rank} BS={batch_size} "
+            else:
+                label = f"rank {model.rank} full-batch"
+            axes[0].plot(
+                absc,
+                model.mse_beta_list,
+                label=label,
+                color=color,
+                linestyle=linestyle,
+                marker=marker,
+            )
+            axes[1].plot(
+                absc,
+                model.mse_Sigma_list,
+                color=color,
+                linestyle=linestyle,
+                marker=marker,
+            )
+            axes[2].plot(
+                absc,
+                -np.array(model._elbos_list),
+                color=color,
+                linestyle=linestyle,
+                marker=marker,
+            )
+            criterions = -np.array(model._plotargs.criterions)
+            axes[6].plot(
+                absc,
+                criterions,
+                color=color,
+                linestyle=linestyle,
+                marker=marker,
+            )
+
+            def derive(criter, absc):
+                dx = np.diff(absc)
+                df = np.diff(criter) / dx
+                return df
+            derivative = np.abs(derive(criterions, absc))
+            nb_lissage = 50
+            absc_der = absc[1:]
+            beta = 0.2
+            moyenne_glissante = 0
+            lissed_derivative = []
+            for el in derivative:
+                moyenne_glissante = moyenne_glissante*(1-beta) + beta*el
+                lissed_derivative.append(moyenne_glissante)
+
+            # absc_der, lissed_derivative = lissage(absc[:-1], derivative, nb_lissage)
+            axes[7].plot(
+                    absc_der,
+                lissed_derivative,
+                color=color,
+                linestyle=linestyle,
+                marker=marker,
+            )
+            f_second  = np.abs(derive(lissed_derivative, absc_der))
+            # absc_hessian, lissed_hessian = lissage(absc_der[:-1], f_second, nb_lissage)
+            absc_hessian = absc_der[1:]
+            lissed_hessian = []
+            for el in f_second:
+                moyenne_glissante = moyenne_glissante*(1-beta) + beta*el
+                lissed_hessian.append(moyenne_glissante)
+            axes[5].plot(
+                    absc_hessian,
+                    lissed_hessian,
+                color=color,
+                linestyle=linestyle,
+                marker=marker,
+            )
+
+            tol_list.append(model._plotargs.criterions[-1])
 
         def plot_normalized_diff(absc, to_plot_orig, ax, nb_lissage, nb_diff):
             # print("to plot orig", to_plot_orig)
@@ -91,14 +136,13 @@ def plot_collection(
             absc_crit = absc[nb_diff:]
             absc_crit, crit = lissage(absc_crit, crit, nb_lissage)
             crit = np.array(crit)
-            ax.plot(absc_crit, crit, color=colors[i], linestyle=linestyle)
+            ax.plot(absc_crit, crit, color=color, linestyle=linestyle)
 
-        # axes[6].plot(absc, -np.cumsum(model._elbos_list), color = colors[i], linestyle = linestyle)
         nb_diff = 30
         nb_lissage = 200
         # plot_normalized_diff(absc, -np.cumsum(model._elbos_list), axes[6], 1,1)
 
-        plot_normalized_diff(absc, model._elbos_list, axes[5], nb_lissage, nb_diff)
+        # plot_normalized_diff(absc, model._elbos_list, axes[5], nb_lissage, nb_diff)
 
 
 class mimick_col:
@@ -145,19 +189,19 @@ def save_col(col, name):
         pickle.dump(saveable_col, fp)
 
 
-def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
-    batches_size = dict_batches.keys()
-    marker_batches = list(dict_batches.values())
+def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
+    ranks = list(dict_ranks.keys())
     counts, GT, _ = get_sc_mark_data(dim=dim, max_n=n)
     print("Y shape", counts.shape)
     covariates = None
     offsets = None
     # counts, covariates, offsets = get_simulated_count_data(seed = 0)
-    ranks = [4, 12, 15]  # , 40, 80, 120, 180, 250, 500]
-    name_no_batch = f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbiter_{nb_max_iter}"
+    name_no_batch = (
+        f"results/no_batch_ranks_{ranks}_n_{n}_dim_{dim}_nbiter_{nb_max_iter}"
+    )
     nb_cols = 4
     fig, mp_axes = plt.subplots(2, nb_cols, figsize=(20, 20))
-    colors = np.linspace(0, 200, len(ranks))
+    colors = np.linspace(0, 200, len(batches_size))
     axes = {}
     for i in range(nb_cols):
         axes[i] = mp_axes[0, i]
@@ -165,6 +209,10 @@ def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
     colors /= 235
     colors = colors.reshape(-1, 1)
     colors = np.repeat(colors, 3, axis=1)
+    dict_colors = {}
+    for batch_size, color in zip(batches_size, colors):
+        dict_colors[batch_size] = color
+
     tols = []
     if exists(name_no_batch) is False:
         pln = Pln(counts, GT=GT)
@@ -181,18 +229,18 @@ def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
             GT=GT,
         )
         col.fit(
-            tol=0.00, nb_max_iteration=nb_max_iter, verbose=True,
+            tol=0.00,
+            nb_max_iteration=nb_max_iter,
+            verbose=True,
         )
         save_col(col, name_no_batch)
     else:
         col = mimick_col_from_file(name_no_batch)
         true_Sigma = col.true_Sigma
         true_beta = col.true_beta
-    plot_collection(col, axes, colors, tols, linestyle="-")
+    plot_collection(col, axes, dict_colors, tols,dict_ranks = dict_ranks, linestyle="-")
     tols_batches = {}
     for batch_size in batches_size:
-        print("batch size", batch_size)
-        marker_batch = dict_batches[batch_size]
         tols_batch = []
         name_batch = f"results/batch_{batch_size}ranks_{ranks}_n_{n}_dim_{dim}_nbiter_{nb_max_iter}"
         if exists(name_batch) is False:
@@ -217,11 +265,11 @@ def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
         plot_collection(
             col_batch,
             axes,
-            colors,
+            dict_colors,
             tols_batch,
             linestyle="--",
+            dict_ranks=dict_ranks,
             batch_size=batch_size,
-            marker_batch=marker_batch,
         )
     axes[0].legend()
     axes[1].legend()
@@ -236,7 +284,7 @@ def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
     axes[2].set_yscale("log")
     axes[2].set_title(r"log(ELBO)")
     axes[3].plot(
-        ranks,
+            ranks[:1],
         tols_batch,
         label="Criterion at last iteration",
         linestyle="--",
@@ -245,13 +293,19 @@ def plot_n_or_dim(n, dim, nb_max_iter, dict_batches):
     axes[3].set_title(r"tolerance at last iteration")
     axes[3].set_yscale("log")
     axes[4].set_title("Scores predictor")
-    axes[5].set_title("normalized diff elbo")
+    axes[5].set_title("f second cumsum ")
+    axes[5].set_yscale("log")
     axes[6].set_title("cumsum elbo")
     axes[6].set_yscale("log")
+    axes[7].set_title("f' cumsum elbo")
+    axes[7].set_yscale("log")
 
     plt.savefig(f"n_{n}_p_{dim}_ranks_{ranks}.pdf", format="pdf")
     plt.show()
 
 
-dict_batches = {20: "v", 50: "o", 100: "<", 500: "X", 1000:"+"}
-plot_n_or_dim(2000, 500,nb_max_iter=100000, dict_batches=dict_batches)
+dict_ranks = {4:"v", 12:"o", 15:"<"}  # , 40, 80, 120, 180, 250, 500]
+batches_size = [20,50,100,500, 1000]
+plot_n_or_dim(2000, 500,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
+# batches_size = [20,50]
+# plot_n_or_dim(200, 50,dict_ranks, nb_max_iter=100, batches_size=batches_size)

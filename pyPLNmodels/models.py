@@ -120,7 +120,7 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._plotargs = _PlotArgs(self._WINDOW)
+        self._plotargs = _PlotAndCriterionArgs(self._WINDOW)
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
 
