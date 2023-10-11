@@ -22,26 +22,50 @@ if torch.cuda.is_available():
 else:
     DEVICE = torch.device("cpu")
 
+BETA = 0.1
 
 class _PlotArgs:
-    def __init__(self, window: int):
+    def __init__(self, nb_lissage=40):
         """
         Initialize the PlotArgs class.
 
         Parameters
         ----------
-        window : int
-            The size of the window for computing the criterion.
         """
-        self.window = window
         self.running_times = []
         self.criterions = []  # the first window criterion won't be computed.
         self._elbos_list = []
         self.cumulative_elbo_list = [0]
+        self.last_normalized_cumsum = []
+        self.last_MA_derivatives_normalized_cumsum = []
+        self.means_last_MA_derivative_normalized_cumsum = 0
+        # self.
+        self.mean_hessian_normalized_cumsum = 0
+        self.nb_lissage = nb_lissage
+
+    # def derivative_cumsum(self):
 
     @property
     def cumulative_elbo(self):
         return self.cumulative_elbo_list[-1]
+
+    def update_criterion(self, elbo, running_time):
+        self._elbos_list.append(elbo)
+        self.running_times.append(running_time)
+        self.cumulative_elbo_list.append(self.cumulative_elbo + elbo)
+        self.last_normalized_cumsum.append(self.cumulative_elbo_list[-1] / elbo)
+
+        if self.iteration_number > 1:
+            current_derivative = (self._elbos_list[-2] - self._elbos_list[-1]) / (self.running_times[-2] - self.running_times[-1])
+            self.last_MA_derivatives_normalized_cumsum.append(self.last_MA_derivatives_normalized_cumsum*(1-BETA) + current_derivative*BETA)
+            remove_first_element_if_needed(self.last_MA_derivatives_normalized_cumsum,self.nb_lissage)
+            # self.mean_hessian_normalized_cumsum -=
+
+
+
+        # self.means_last_derivative_normalized_cumsum.append()
+
+
 
     @property
     def iteration_number(self) -> int:
@@ -85,8 +109,8 @@ class _PlotArgs:
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(
-            self.running_times[self.window :],
-            self.criterions[self.window :],
+            self.running_times,
+            self.criterions,
             label="Delta",
         )
         ax.set_yscale("log")
@@ -1026,3 +1050,7 @@ def lissage(Lx, Ly, p):
         Lyout.append(val / 2 / p)
 
     return Lxout, Lyout
+
+def remove_first_element_if_need(l,nb_elements):
+    if len(l)> nb_elements:
+        l.pop(0)
