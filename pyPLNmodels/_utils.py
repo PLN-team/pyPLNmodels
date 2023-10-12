@@ -42,6 +42,7 @@ class _CriterionArgs:
         self.new_derivative = 0
         self.normalized_elbo_list = []
         self.criterion_list = [1]
+        self.criterion = 1
 
     def update_criterion(self, elbo, running_time):
         self._elbos_list.append(elbo)
@@ -58,7 +59,7 @@ class _CriterionArgs:
                 self.new_derivative * (1 - BETA) + current_derivative * BETA
             )
             current_hessian = np.abs(
-                (self.new_derivative - self.old_derivative)
+                (self.new_derivative - old_derivative)
                 / (self.running_times[-2] - self.running_times[-1])
             )
             self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
