@@ -22,7 +22,7 @@ from ._closed_forms import (
 )
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
-    _PlotArgs,
+    _CriterionArgs,
     _format_data,
     _nice_string_of_dict,
     _plot_ellipse,
@@ -111,7 +111,7 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._plotargs = _PlotArgs()
+        self._criterion_args = _CriterionArgs()
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
 
@@ -270,7 +270,7 @@ class _model(ABC):
         int
             The number of iterations done.
         """
-        return len(self._plotargs._elbos_list) * self.nb_batches
+        return len(self._criterion_args._elbos_list) * self.nb_batches
 
     @property
     def n_samples(self) -> int:
@@ -385,7 +385,7 @@ class _model(ABC):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-3,
+        tol: float = 1e-8,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
@@ -400,7 +400,7 @@ class _model(ABC):
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         tol : float, optional(keyword-only)
-            The tolerance for convergence. Defaults to 1e-3.
+            The tolerance for convergence. Defaults to 1e-8.
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
@@ -414,14 +414,14 @@ class _model(ABC):
         self._batch_size = self._handle_batch_size(batch_size)
         if self._fitted is False:
             self._init_parameters(do_smart_init)
-        elif len(self._plotargs.running_times) > 0:
-            self._beginning_time -= self._plotargs.running_times[-1]
+        elif len(self._criterion_args.running_times) > 0:
+            self._beginning_time -= self._criterion_args.running_times[-1]
         self._put_parameters_to_device()
         self._handle_optimizer(lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
-            criterion = self._compute_criterion_and_update_plotargs(loss, tol)
+            criterion = self._update_criterion_args(loss)
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 1:
@@ -711,14 +711,14 @@ class _model(ABC):
         if stop_condition is True:
             print(
                 f"Tolerance {tol} reached "
-                f"in {self._plotargs.iteration_number} iterations"
+                f"in {self._criterion_args.iteration_number} iterations"
             )
         else:
             print(
                 "Maximum number of iterations reached : ",
-                self._plotargs.iteration_number,
+                self._criterion_args.iteration_number,
                 "last criterion = ",
-                np.round(self._plotargs.criterions[-1], 8),
+                np.round(self._criterion_args.criterions[-1], 8),
             )
 
     def _print_stats(self):
@@ -726,11 +726,11 @@ class _model(ABC):
         Print the training statistics.
         """
         print("-------UPDATE-------")
-        print("Iteration number: ", self._plotargs.iteration_number)
-        print("Criterion: ", np.round(self._plotargs.criterions[-1], 8))
-        print("ELBO:", np.round(self._plotargs._elbos_list[-1], 6))
+        print("Iteration number: ", self._criterion_args.iteration_number)
+        print("Criterion: ", np.round(self._criterion_args.criterions[-1], 8))
+        print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
 
-    def _compute_criterion_and_update_plotargs(self, loss, tol):
+    def _update_criterion_args(self, loss):
         """
         Compute the convergence criterion and update the plot arguments.
 
@@ -738,26 +738,15 @@ class _model(ABC):
         ----------
         loss : torch.Tensor
             The loss value.
-        tol : float
-            The tolerance for convergence.
 
         Returns
         -------
         float
             The computed criterion.
         """
-        self._plotargs._elbos_list.append(-loss)
-        self._plotargs.running_times.append(time.time() - self._beginning_time)
-        elbo = -loss
-        self._plotargs.cumulative_elbo_list.append(
-            self._plotargs.cumulative_elbo + elbo
-        )
-        criterion = (
-            self._plotargs.cumulative_elbo_list[-2]
-            - self._plotargs.cumulative_elbo_list[-1]
-        ) / self._plotargs.cumulative_elbo_list[-1]
-        self._plotargs.criterions.append(criterion)
-        return criterion
+        current_running_time = time.time() - self._beginning_time
+        self._criterion_args.update_criterion(-loss, current_running_time)
+        return self._criterion_args.criterion
 
     def _update_closed_forms(self):
         """
@@ -858,8 +847,8 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            self._plotargs._show_loss(ax=axes[2])
-            self._plotargs._show_stopping_criterion(ax=axes[1])
+            self._criterion_args._show_loss(ax=axes[2])
+            self._criterion_args._show_stopping_criterion(ax=axes[1])
             self.display_covariance(ax=axes[0])
         else:
             self.display_covariance(ax=axes)
@@ -870,7 +859,7 @@ class _model(ABC):
         """
         Property representing the list of ELBO values.
         """
-        return self._plotargs._elbos_list
+        return self._criterion_args._elbos_list
 
     @property
     def loglike(self):
@@ -884,8 +873,8 @@ class _model(ABC):
         """
         if len(self._elbos_list) == 0:
             t0 = time.time()
-            self._plotargs._elbos_list.append(self.compute_elbo().item())
-            self._plotargs.running_times.append(time.time() - t0)
+            self._criterion_args._elbos_list.append(self.compute_elbo().item())
+            self._criterion_args.running_times.append(time.time() - t0)
         return self.n_samples * self._elbos_list[-1]
 
     @property
@@ -1512,7 +1501,7 @@ class Pln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-3,
+        tol: float = 1e-8,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
@@ -2267,7 +2256,7 @@ class PlnPCAcollection:
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-3,
+        tol: float = 1e-8,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
@@ -2282,7 +2271,7 @@ class PlnPCAcollection:
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
         tol : float, optional(keyword-only)
-            The tolerance, by default 1e-3.
+            The tolerance, by default 1e-8.
         do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
@@ -2795,7 +2784,7 @@ class PlnPCA(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-3,
+        tol: float = 1e-8,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
@@ -3474,7 +3463,7 @@ class ZIPln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-3,
+        tol: float = 1e-8,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
