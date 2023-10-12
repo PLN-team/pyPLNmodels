@@ -36,7 +36,7 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 
 
 def plot_collection(
-    col, axes, dict_colors, tol_list, linestyle,dict_ranks, batch_size=None
+    col, axes, dict_colors, tol_list, linestyle, dict_ranks, batch_size=None
 ):
     if batch_size is None:
         color = "red"
@@ -45,7 +45,7 @@ def plot_collection(
 
     for i, model in enumerate(col.values()):
         marker = dict_ranks[model.rank]
-        if i==2:
+        if i == 2:
             absc = model._plotargs.running_times
             if linestyle == "--":
                 label = f"rank {model.rank} BS={batch_size} "
@@ -73,10 +73,10 @@ def plot_collection(
                 linestyle=linestyle,
                 marker=marker,
             )
-            criterions = -np.array(model._plotargs.criterions)
+            to_derive = -np.array(model._plotargs.normalized_cumulative_elbo_list)
             axes[6].plot(
                 absc,
-                criterions,
+                np.array(model._plotargs.criterions),
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
@@ -86,34 +86,36 @@ def plot_collection(
                 dx = np.diff(absc)
                 df = np.diff(criter) / dx
                 return df
-            derivative = np.abs(derive(criterions, absc))
+
+            derivative = np.abs(derive(to_derive, absc))
             nb_lissage = 50
             absc_der = absc[1:]
-            beta = 0.2
+            beta = 0.03
             moyenne_glissante = 0
             lissed_derivative = []
             for el in derivative:
-                moyenne_glissante = moyenne_glissante*(1-beta) + beta*el
+                moyenne_glissante = moyenne_glissante * (1 - beta) + beta * el
                 lissed_derivative.append(moyenne_glissante)
 
             # absc_der, lissed_derivative = lissage(absc[:-1], derivative, nb_lissage)
             axes[7].plot(
-                    absc_der,
+                absc_der,
                 lissed_derivative,
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
             )
-            f_second  = np.abs(derive(lissed_derivative, absc_der))
+            f_second = np.abs(derive(lissed_derivative, absc_der))
             # absc_hessian, lissed_hessian = lissage(absc_der[:-1], f_second, nb_lissage)
             absc_hessian = absc_der[1:]
             lissed_hessian = []
+            moyenne_glissante = 0
             for el in f_second:
-                moyenne_glissante = moyenne_glissante*(1-beta) + beta*el
+                moyenne_glissante = moyenne_glissante * (1 - beta) + beta * el
                 lissed_hessian.append(moyenne_glissante)
             axes[5].plot(
-                    absc_hessian,
-                    lissed_hessian,
+                absc_hessian,
+                lissed_hessian,
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
@@ -238,7 +240,7 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
         col = mimick_col_from_file(name_no_batch)
         true_Sigma = col.true_Sigma
         true_beta = col.true_beta
-    plot_collection(col, axes, dict_colors, tols,dict_ranks = dict_ranks, linestyle="-")
+    plot_collection(col, axes, dict_colors, tols, dict_ranks=dict_ranks, linestyle="-")
     tols_batches = {}
     for batch_size in batches_size:
         tols_batch = []
@@ -284,7 +286,7 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     axes[2].set_yscale("log")
     axes[2].set_title(r"log(ELBO)")
     axes[3].plot(
-            ranks[:1],
+        ranks[:1],
         tols_batch,
         label="Criterion at last iteration",
         linestyle="--",
@@ -295,7 +297,7 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     axes[4].set_title("Scores predictor")
     axes[5].set_title("f second cumsum ")
     axes[5].set_yscale("log")
-    axes[6].set_title("cumsum elbo")
+    axes[6].set_title("criterions")
     axes[6].set_yscale("log")
     axes[7].set_title("f' cumsum elbo")
     axes[7].set_yscale("log")
@@ -304,8 +306,8 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     plt.show()
 
 
-dict_ranks = {4:"v", 12:"o", 15:"<"}  # , 40, 80, 120, 180, 250, 500]
-batches_size = [20,50,100,500, 1000]
-plot_n_or_dim(2000, 500,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
-# batches_size = [20,50]
-# plot_n_or_dim(200, 50,dict_ranks, nb_max_iter=100, batches_size=batches_size)
+dict_ranks = {4: "v", 12: "o", 15: "<"}  # , 40, 80, 120, 180, 250, 500]
+# batches_size = [20,50,100,500, 1000]
+# plot_n_or_dim(2000, 500,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
+batches_size = [20, 50]
+plot_n_or_dim(230, 50, dict_ranks, nb_max_iter=4000, batches_size=batches_size)

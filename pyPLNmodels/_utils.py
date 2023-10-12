@@ -22,7 +22,8 @@ if torch.cuda.is_available():
 else:
     DEVICE = torch.device("cpu")
 
-BETA = 0.1
+BETA = 0.03
+
 
 class _PlotArgs:
     def __init__(self, nb_lissage=40):
@@ -36,12 +37,9 @@ class _PlotArgs:
         self.criterions = []  # the first window criterion won't be computed.
         self._elbos_list = []
         self.cumulative_elbo_list = [0]
-        self.last_normalized_cumsum = []
-        self.last_MA_derivatives_normalized_cumsum = []
-        self.means_last_MA_derivative_normalized_cumsum = 0
-        # self.
-        self.mean_hessian_normalized_cumsum = 0
-        self.nb_lissage = nb_lissage
+        self.old_derivative = 0
+        self.new_derivative = 0
+        self.normalized_cumulative_elbo_list = []
 
     # def derivative_cumsum(self):
 
@@ -53,19 +51,33 @@ class _PlotArgs:
         self._elbos_list.append(elbo)
         self.running_times.append(running_time)
         self.cumulative_elbo_list.append(self.cumulative_elbo + elbo)
-        self.last_normalized_cumsum.append(self.cumulative_elbo_list[-1] / elbo)
+        self.normalized_cumulative_elbo_list.append(
+            self.cumulative_elbo_list[-1] / elbo
+        )
 
         if self.iteration_number > 1:
-            current_derivative = (self._elbos_list[-2] - self._elbos_list[-1]) / (self.running_times[-2] - self.running_times[-1])
-            self.last_MA_derivatives_normalized_cumsum.append(self.last_MA_derivatives_normalized_cumsum*(1-BETA) + current_derivative*BETA)
-            remove_first_element_if_needed(self.last_MA_derivatives_normalized_cumsum,self.nb_lissage)
-            # self.mean_hessian_normalized_cumsum -=
+            current_derivative = np.abs(
+                (self.cumulative_elbo_list[-2] - self.cumulative_elbo_list[-1])
+                / (self.running_times[-2] - self.running_times[-1])
+            )
+            self.old_derivative = self.new_derivative
+            self.new_derivative = (
+                self.new_derivative * (1 - BETA) + current_derivative * BETA
+            )
+            current_hessian = np.abs(
+                (self.new_derivative - self.old_derivative)
+                * (self.running_times[-2] - self.running_times[-1])
+            )
+            self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
+        else:
+            self.criterion = 1
+        self.criterions.append(self.criterion)
 
-
+        # self.last_MA_derivatives_normalized_cumsum.append(self.last_MA_derivatives_normalized_cumsum*(1-BETA) + current_derivative*BETA)
+        # remove_first_element_if_needed(self.last_MA_derivatives_normalized_cumsum,self.nb_lissage)
+        # self.mean_hessian_normalized_cumsum -=
 
         # self.means_last_derivative_normalized_cumsum.append()
-
-
 
     @property
     def iteration_number(self) -> int:
@@ -1051,6 +1063,7 @@ def lissage(Lx, Ly, p):
 
     return Lxout, Lyout
 
-def remove_first_element_if_need(l,nb_elements):
-    if len(l)> nb_elements:
+
+def remove_first_element_if_need(l, nb_elements):
+    if len(l) > nb_elements:
         l.pop(0)
