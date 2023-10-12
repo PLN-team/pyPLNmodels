@@ -718,7 +718,7 @@ class _model(ABC):
                 "Maximum number of iterations reached : ",
                 self._criterion_args.iteration_number,
                 "last criterion = ",
-                np.round(self._criterion_args.criterions[-1], 8),
+                np.round(self._criterion_args.criterion_list[-1], 8),
             )
 
     def _print_stats(self):
@@ -727,7 +727,7 @@ class _model(ABC):
         """
         print("-------UPDATE-------")
         print("Iteration number: ", self._criterion_args.iteration_number)
-        print("Criterion: ", np.round(self._criterion_args.criterions[-1], 8))
+        print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
 
     def _update_criterion_args(self, loss):
