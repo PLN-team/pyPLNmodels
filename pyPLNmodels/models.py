@@ -120,7 +120,7 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._plotargs = _PlotAndCriterionArgs(self._WINDOW)
+        self._plotargs = _PlotArgs()
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
 
@@ -806,17 +806,8 @@ class _model(ABC):
         float
             The computed criterion.
         """
-        self._plotargs._elbos_list.append(-loss)
-        self._plotargs.running_times.append(time.time() - self._beginning_time)
-        self._plotargs.cumulative_elbo_list.append(
-            self._plotargs.cumulative_elbo - loss
-        )
-        criterion = (
-            self._plotargs.cumulative_elbo_list[-2]
-            - self._plotargs.cumulative_elbo_list[-1]
-        ) / self._plotargs.cumulative_elbo_list[-1]
-        self._plotargs.criterions.append(criterion)
-        return criterion
+        self._plotargs.update_criterion(-loss, time.time() - self._beginning_time)
+        return self._plotargs.criterion
 
     def _update_closed_forms(self):
         """
