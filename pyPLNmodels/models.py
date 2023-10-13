@@ -701,7 +701,7 @@ class _model(ABC):
                 "Maximum number of iterations reached : ",
                 self._criterion_args.iteration_number,
                 "last criterion = ",
-                np.round(self._criterion_args.criterions[-1], 8),
+                np.round(self._criterion_args.criterion_list[-1], 8),
             )
 
     def _print_stats(self):
@@ -710,7 +710,7 @@ class _model(ABC):
         """
         print("-------UPDATE-------")
         print("Iteration number: ", self._criterion_args.iteration_number)
-        print("Criterion: ", np.round(self._criterion_args.criterions[-1], 8))
+        print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
 
     def _update_criterion_args(self, loss):
@@ -3366,28 +3366,18 @@ class ZIPln(_model):
 
     def _extract_batch(self, batch):
         super()._extract_batch(batch)
+        self._dirac_b = batch[5]
         if self._use_closed_form_prob is False:
-            self._latent_prob_b = batch[5]
+            self._latent_prob_b = batch[6]
 
     def _return_batch(self, indices, beginning, end):
         pln_batch = super()._return_batch(indices, beginning, end)
-        if self._use_closed_form_prob is False:
-            return (pln_batch + torch.index_select(self._latent_prob, 0, to_take))
-        return pln_batch
-
-    def _return_batch(self, indices, beginning, end):
         to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
-        if self._exog is not None:
-            exog_b = torch.index_select(self._exog, 0, to_take)
-        else:
-            exog_b = None
-        return (
-            torch.index_select(self._endog, 0, to_take),
-            exog_b,
-            torch.index_select(self._offsets, 0, to_take),
-            torch.index_select(self._latent_mean, 0, to_take),
-            torch.index_select(self._latent_sqrt_var, 0, to_take),
-        )
+        batch = pln_batch + (torch.index_select(self._dirac, 0, to_take),)
+        if self._use_closed_form_prob is False:
+            return batch + (torch.index_select(self._latent_prob, 0, to_take),)
+        return batch
+
 
     @classmethod
     @_add_doc(
@@ -3542,15 +3532,15 @@ class ZIPln(_model):
         """
         Project the latent probability since it must be between 0 and 1.
         """
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             with torch.no_grad():
-                self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                self._latent_prob_b = torch.maximum(
+                    self._latent_prob_b, torch.tensor([0]), out=self._latent_prob_b
                 )
-                self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                self._latent_prob_b = torch.minimum(
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob_b
                 )
-                self._latent_prob *= self._dirac
+                self._latent_prob_b *= self._dirac_b
 
     @property
     def covariance(self) -> torch.Tensor:
