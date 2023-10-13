@@ -45,7 +45,7 @@ def plot_collection(
 
     for i, model in enumerate(col.values()):
         marker = dict_ranks[model.rank]
-        if i==2:
+        if i>-1:
             absc = model._plotargs.running_times
             if linestyle == "--":
                 label = f"rank {model.rank} BS={batch_size} "
@@ -73,53 +73,14 @@ def plot_collection(
                 linestyle=linestyle,
                 marker=marker,
             )
-            criterions = -np.array(model._plotargs.criterions)
             axes[6].plot(
                 absc,
-                criterions,
+                model._plotargs.new_criterion_list,
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
             )
 
-            def derive(criter, absc):
-                dx = np.diff(absc)
-                df = np.diff(criter) / dx
-                return df
-            derivative = np.abs(derive(criterions, absc))
-            nb_lissage = 50
-            absc_der = absc[1:]
-            beta = 0.2
-            moyenne_glissante = 0
-            lissed_derivative = []
-            for el in derivative:
-                moyenne_glissante = moyenne_glissante*(1-beta) + beta*el
-                lissed_derivative.append(moyenne_glissante)
-
-            # absc_der, lissed_derivative = lissage(absc[:-1], derivative, nb_lissage)
-            axes[7].plot(
-                    absc_der,
-                lissed_derivative,
-                color=color,
-                linestyle=linestyle,
-                marker=marker,
-            )
-            f_second  = np.abs(derive(lissed_derivative, absc_der))
-            # absc_hessian, lissed_hessian = lissage(absc_der[:-1], f_second, nb_lissage)
-            absc_hessian = absc_der[1:]
-            lissed_hessian = []
-            for el in f_second:
-                moyenne_glissante = moyenne_glissante*(1-beta) + beta*el
-                lissed_hessian.append(moyenne_glissante)
-            axes[5].plot(
-                    absc_hessian,
-                    lissed_hessian,
-                color=color,
-                linestyle=linestyle,
-                marker=marker,
-            )
-
-            tol_list.append(model._plotargs.criterions[-1])
 
         def plot_normalized_diff(absc, to_plot_orig, ax, nb_lissage, nb_diff):
             # print("to plot orig", to_plot_orig)
@@ -284,7 +245,7 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     axes[2].set_yscale("log")
     axes[2].set_title(r"log(ELBO)")
     axes[3].plot(
-            ranks[:1],
+            ranks,
         tols_batch,
         label="Criterion at last iteration",
         linestyle="--",
@@ -295,7 +256,7 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     axes[4].set_title("Scores predictor")
     axes[5].set_title("f second cumsum ")
     axes[5].set_yscale("log")
-    axes[6].set_title("cumsum elbo")
+    axes[6].set_title("criterion")
     axes[6].set_yscale("log")
     axes[7].set_title("f' cumsum elbo")
     axes[7].set_yscale("log")
@@ -304,8 +265,8 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     plt.show()
 
 
-dict_ranks = {4:"v", 12:"o", 15:"<"}  # , 40, 80, 120, 180, 250, 500]
+dict_ranks = {4:"v", 12:"o", 15:"<", 25:"1"}  # , 40, 80, 120, 180, 250, 500]
 batches_size = [20,50,100,500, 1000]
-plot_n_or_dim(2000, 500,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
+plot_n_or_dim(3000, 500,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
 # batches_size = [20,50]
-# plot_n_or_dim(200, 50,dict_ranks, nb_max_iter=100, batches_size=batches_size)
+# plot_n_or_dim(210, 50,dict_ranks, nb_max_iter=1600, batches_size=batches_size)

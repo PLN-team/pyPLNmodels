@@ -806,17 +806,10 @@ class _model(ABC):
         float
             The computed criterion.
         """
-        self._plotargs._elbos_list.append(-loss)
-        self._plotargs.running_times.append(time.time() - self._beginning_time)
-        self._plotargs.cumulative_elbo_list.append(
-            self._plotargs.cumulative_elbo - loss
-        )
-        criterion = (
-            self._plotargs.cumulative_elbo_list[-2]
-            - self._plotargs.cumulative_elbo_list[-1]
-        ) / self._plotargs.cumulative_elbo_list[-1]
-        self._plotargs.criterions.append(criterion)
-        return criterion
+        running_time = time.time() - self._beginning_time
+        self._plotargs.update_criterion(-loss, running_time)
+
+        return self._plotargs.criterions[-1]
 
     def _update_closed_forms(self):
         """
