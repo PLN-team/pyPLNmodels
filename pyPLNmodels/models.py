@@ -3629,9 +3629,7 @@ class ZIPln(_model):
         list_parameters = [
             self._latent_mean,
             self._latent_sqrt_var,
-            self._coef_inflation,
             self._components,
-            self._coef,
         ]
         if self._use_closed_form_prob:
             list_parameters.append(self._latent_prob)
