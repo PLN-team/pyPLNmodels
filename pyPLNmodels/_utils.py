@@ -112,7 +112,7 @@ class _CriterionArgs:
         ax = plt.gca() if ax is None else ax
         ax.plot(
             self.running_times,
-            self.criterions,
+            self.criterion_list,
             label="Delta",
         )
         ax.set_yscale("log")
