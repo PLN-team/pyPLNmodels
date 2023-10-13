@@ -63,8 +63,8 @@ If `newmodel` is well implemented, running
 from pyPLNmodels import newmodel, get_real_count_data
 
 endog = get_real_count_data()
-zi = newmodel(endog, add_const = True)
-zi.fit(nb_max_iteration = 10, tol = 0)
+model = newmodel(endog, add_const = True)
+model.fit(nb_max_iteration = 10, tol = 0)
 ```
 should increase the elbo of the model. You should document your functions with
 [numpy-style
