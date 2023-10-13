@@ -806,8 +806,10 @@ class _model(ABC):
         float
             The computed criterion.
         """
-        self._plotargs.update_criterion(-loss, time.time() - self._beginning_time)
-        return self._plotargs.criterion
+        running_time = time.time() - self._beginning_time
+        self._plotargs.update_criterion(-loss, running_time)
+
+        return self._plotargs.criterions[-1]
 
     def _update_closed_forms(self):
         """
