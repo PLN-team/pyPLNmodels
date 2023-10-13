@@ -1,9 +1,6 @@
-from pyPLNmodels import ZIPln, get_real_count_data
+from pyPLNmodels import PlnPCA, get_real_count_data, Pln
 
 
 endog = get_real_count_data()
-zi = ZIPln(endog, add_const = True)
-zi.fit(nb_max_iteration = 10)
-zi.show()
-
-
+zi = Pln(endog, add_const=True)
+zi.fit(nb_max_iteration=10)
