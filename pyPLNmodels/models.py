@@ -370,6 +370,7 @@ class _model(ABC):
             parameter.requires_grad_(True)
 
     @property
+    @abstractmethod
     def _list_of_parameters_needing_gradient(self):
         """
         A list containing all the parameters that need to be upgraded via a gradient step.
@@ -378,6 +379,41 @@ class _model(ABC):
         -------
         List[torch.Tensor]
             List of parameters needing gradient.
+        """
+
+    def _print_beginning_message(self) -> str:
+        """
+        Method for printing the beginning message.
+        """
+        print(f"Fitting a {self._NAME} model with {self._description} \n")
+
+    @abstractmethod
+    def _endog_predictions(self):
+        pass
+
+    @abstractmethod
+    def number_of_parameters(self):
+        pass
+
+    @abstractmethod
+    def _compute_elbo_b(self):
+        pass
+
+    @property
+    @abstractmethod
+    def covariance(self):
+        pass
+
+    @covariance.setter
+    @abstractmethod
+    def covariance(self, covariance):
+        pass
+
+    @property
+    @abstractmethod
+    def _description(self):
+        """
+        Describes the model and what it does.
         """
 
     def fit(
@@ -1793,12 +1829,6 @@ class Pln(_model):
         covariances = components_var @ (sk_components.T.unsqueeze(0))
         return covariances
 
-    def _print_beginning_message(self):
-        """
-        Method for printing the beginning message.
-        """
-        print(f"Fitting a Pln model with {self._description}")
-
     @property
     @_add_doc(
         _model,
@@ -2215,17 +2245,6 @@ class PlnPCAcollection:
             The ranks.
         """
         return [model.rank for model in self.values()]
-
-    def _print_beginning_message(self) -> str:
-        """
-        Method for printing the beginning message.
-
-        Returns
-        -------
-        str
-            The beginning message.
-        """
-        return f"Adjusting {len(self.ranks)} Pln models for PCA analysis \n"
 
     @property
     def dim(self) -> int:
@@ -3045,13 +3064,6 @@ class PlnPCA(_model):
         """
         return self._rank
 
-    def _print_beginning_message(self):
-        """
-        Print the beginning message when fitted.
-        """
-        print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
-        print(f"Fitting a PlnPCA model with {self._rank} components")
-
     @property
     def model_parameters(self) -> Dict[str, torch.Tensor]:
         """
@@ -3235,7 +3247,7 @@ class PlnPCA(_model):
     @property
     def _description(self) -> str:
         """
-        Property representing the description.
+        Description output when fitting and printing the model.
 
         Returns
         -------
@@ -3496,7 +3508,7 @@ class ZIPln(_model):
 
     @property
     def _description(self):
-        return "with full covariance model and zero-inflation."
+        return " full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
         super()._random_init_model_parameters()
@@ -3512,9 +3524,6 @@ class ZIPln(_model):
             self._components = _init_components(self._endog, self._exog, self.dim)
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
-
-    def _print_beginning_message(self):
-        print("Fitting a ZIPln model.")
 
     def _random_init_latent_parameters(self):
         self._dirac = self._endog == 0
