@@ -35,17 +35,21 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     return Y, GT, list(GT_name.values.__array__())
 
 
+markevery = 2000
+
+
 def plot_collection(
     col, axes, dict_colors, tol_list, linestyle, dict_ranks, batch_size=None
 ):
     if batch_size is None:
+        batch_size = n
         color = "red"
     else:
         color = dict_colors[batch_size]
 
     for i, model in enumerate(col.values()):
         marker = dict_ranks[model.rank]
-        if i>-1:
+        if i > -1:
             absc = model._plotargs.running_times
             if linestyle == "--":
                 label = f"rank {model.rank} BS={batch_size} "
@@ -58,6 +62,7 @@ def plot_collection(
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
+                markevery=markevery,
             )
             axes[1].plot(
                 absc,
@@ -65,6 +70,7 @@ def plot_collection(
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
+                markevery=markevery,
             )
             axes[2].plot(
                 absc,
@@ -72,15 +78,16 @@ def plot_collection(
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
+                markevery=markevery,
             )
             axes[6].plot(
                 absc,
-                model._plotargs.new_criterion_list,
+                np.array(model._plotargs.new_criterion_list) * n * p * batch_size,
                 color=color,
                 linestyle=linestyle,
                 marker=marker,
+                markevery=markevery,
             )
-
 
         def plot_normalized_diff(absc, to_plot_orig, ax, nb_lissage, nb_diff):
             # print("to plot orig", to_plot_orig)
@@ -244,13 +251,13 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     axes[1].set_title(r"$\hat \Sigma - \Sigma^{\star}$")
     axes[2].set_yscale("log")
     axes[2].set_title(r"log(ELBO)")
-    axes[3].plot(
-            ranks,
-        tols_batch,
-        label="Criterion at last iteration",
-        linestyle="--",
-        color="black",
-    )
+    # axes[3].plot(
+    #         ranks,
+    #     tols_batch,
+    #     label="Criterion at last iteration",
+    #     linestyle="--",
+    #     color="black",
+    # )
     axes[3].set_title(r"tolerance at last iteration")
     axes[3].set_yscale("log")
     axes[4].set_title("Scores predictor")
@@ -265,8 +272,12 @@ def plot_n_or_dim(n, dim, dict_ranks, nb_max_iter, batches_size):
     plt.show()
 
 
-dict_ranks = {4:"v", 12:"o", 15:"<", 25:"1"}  # , 40, 80, 120, 180, 250, 500]
-batches_size = [20,50,100,500, 1000]
-plot_n_or_dim(3000, 500,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
+dict_ranks = {4: "v", 12: "o", 15: "<", 25: "1"}  # , 40, 80, 120, 180, 250, 500]
+# n = 210
+# p = 250
+n = 3000
+p = 500
+batches_size = [20, 50, 100, 500, 1000]
+plot_n_or_dim(n, p, dict_ranks, nb_max_iter=100000, batches_size=batches_size)
 # batches_size = [20,50]
-# plot_n_or_dim(210, 50,dict_ranks, nb_max_iter=1600, batches_size=batches_size)
+# plot_n_or_dim(n,p,dict_ranks, nb_max_iter=100000, batches_size=batches_size)
