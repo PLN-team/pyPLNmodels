@@ -22,6 +22,8 @@ if torch.cuda.is_available():
 else:
     DEVICE = torch.device("cpu")
 
+BETA = 0.03
+
 
 class _PlotArgs:
     def __init__(self, window: int):
@@ -38,10 +40,38 @@ class _PlotArgs:
         self.criterions = []  # the first window criterion won't be computed.
         self._elbos_list = []
         self.cumulative_elbo_list = [0]
+        self.old_derivative = 0
+        self.new_derivative = 0
+        self.normalized_elbo_list = []
+        self.new_criterion = 0
+        self.new_criterion_list = [1]
+        self.derivative_list = [1]
+
+
+    def update_criterion(self, elbo, running_time):
+        self._elbos_list.append(elbo)
+        self.running_times.append(running_time)
+        self.cumulative_elbo_list.append(
+            self.cumulative_elbo + elbo
+        )
+        self.normalized_elbo_list.append(-elbo / self.cumulative_elbo_list[-1])
+        self.criterions.append(self.normalized_elbo_list[-1])
+        if self.iteration_number> 1:
+            current_derivative = np.abs((self.normalized_elbo_list[-2] - self.normalized_elbo_list[-1])/(self.running_times[-2] - self.running_times[-1]))
+            self.old_derivative = self.new_derivative
+            self.new_derivative = self.new_derivative*(1-BETA) + current_derivative*BETA
+            self.derivative_list.append(self.new_derivative)
+            current_hessian = np.abs((self.new_derivative - self.old_derivative)/(self.running_times[-2]- self.running_times[-1]))
+            self.new_criterion = self.new_criterion *(1-BETA) + current_hessian*BETA
+            self.new_criterion_list.append(self.new_criterion)
+
+
 
     @property
     def cumulative_elbo(self):
         return self.cumulative_elbo_list[-1]
+
+
 
     @property
     def iteration_number(self) -> int:
