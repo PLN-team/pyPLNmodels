@@ -3372,7 +3372,7 @@ class ZIPln(_model):
     def _return_batch(self, indices, beginning, end):
         pln_batch = super()._return_batch(indices, beginning, end)
         if self._use_closed_form_prob is False:
-            return pln_batch + torch.index_select(self._latent_prob, 0, to_take)
+            return (pln_batch + torch.index_select(self._latent_prob, 0, to_take))
         return pln_batch
 
     def _return_batch(self, indices, beginning, end):
