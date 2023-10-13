@@ -39,45 +39,33 @@ class _PlotArgs:
         self.cumulative_elbo_list = [0]
         self.old_derivative = 0
         self.new_derivative = 0
-        self.normalized_cumulative_elbo_list = []
+        self.normalized_elbo_list = []
+        self.new_criterion = 0
+        self.new_criterion_list = [1]
+        self.derivative_list = [1]
 
-    # def derivative_cumsum(self):
-
-    @property
-    def cumulative_elbo(self):
-        return self.cumulative_elbo_list[-1]
 
     def update_criterion(self, elbo, running_time):
         self._elbos_list.append(elbo)
         self.running_times.append(running_time)
-        self.cumulative_elbo_list.append(self.cumulative_elbo + elbo)
-        self.normalized_cumulative_elbo_list.append(
-            self.cumulative_elbo_list[-1] / elbo
+        self.cumulative_elbo_list.append(
+            self.cumulative_elbo + elbo
         )
-
-        if self.iteration_number > 1:
-            current_derivative = np.abs(
-                (self.cumulative_elbo_list[-2] - self.cumulative_elbo_list[-1])
-                / (self.running_times[-2] - self.running_times[-1])
-            )
+        self.normalized_elbo_list.append(-elbo / self.cumulative_elbo_list[-1])
+        self.criterions.append(self.normalized_elbo_list[-1])
+        if self.iteration_number> 1:
+            current_derivative = np.abs((self.normalized_elbo_list[-2] - self.normalized_elbo_list[-1])/(self.running_times[-2] - self.running_times[-1]))
             self.old_derivative = self.new_derivative
-            self.new_derivative = (
-                self.new_derivative * (1 - BETA) + current_derivative * BETA
-            )
-            current_hessian = np.abs(
-                (self.new_derivative - self.old_derivative)
-                * (self.running_times[-2] - self.running_times[-1])
-            )
-            self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
-        else:
-            self.criterion = 1
-        self.criterions.append(self.criterion)
+            self.new_derivative = self.new_derivative*(1-BETA) + current_derivative*BETA
+            self.derivative_list.append(self.new_derivative)
+            current_hessian = np.abs((self.new_derivative - self.old_derivative)/(self.running_times[-2]- self.running_times[-1]))
+            self.new_criterion = self.new_criterion *(1-BETA) + current_hessian*BETA
+            self.new_criterion_list.append(self.new_criterion)
 
-        # self.last_MA_derivatives_normalized_cumsum.append(self.last_MA_derivatives_normalized_cumsum*(1-BETA) + current_derivative*BETA)
-        # remove_first_element_if_needed(self.last_MA_derivatives_normalized_cumsum,self.nb_lissage)
-        # self.mean_hessian_normalized_cumsum -=
 
-        # self.means_last_derivative_normalized_cumsum.append()
+    @property
+    def cumulative_elbo(self):
+        return self.cumulative_elbo_list[-1]
 
     @property
     def iteration_number(self) -> int:
