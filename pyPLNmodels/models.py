@@ -1002,30 +1002,6 @@ class _model(ABC):
             )
         self._latent_mean = latent_mean
 
-    @latent_sqrt_var.setter
-    @_array2tensor
-    def latent_sqrt_var(
-        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
-    ):
-        """
-        Setter for the latent variance property.
-
-        Parameters
-        ----------
-        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The latent variance.
-
-        Raises
-        ------
-        ValueError
-            If the shape of the latent variance is incorrect.
-        """
-        if latent_sqrt_var.shape != (self.n_samples, self.dim):
-            raise ValueError(
-                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
-            )
-        self._latent_sqrt_var = latent_sqrt_var
-
     def _cpu_attribute_or_none(self, attribute_name):
         """
         Get the CPU attribute or return None.
@@ -1760,6 +1736,31 @@ class Pln(_model):
         print(f"Fitting a Pln model with {self._description}")
 
 
+
+    @_model.latent_sqrt_var.setter
+    @_array2tensor
+    def latent_sqrt_var(
+        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the latent variance property.
+
+        Parameters
+        ----------
+        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The latent variance.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the latent variance is incorrect.
+        """
+        if latent_sqrt_var.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
+            )
+        self._latent_sqrt_var = latent_sqrt_var
+
     @property
     def number_of_parameters(self):
         """
@@ -1878,8 +1879,8 @@ class Pln(_model):
         if not hasattr(self, "_latent_mean"):
             self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
 
-    @_add_doc(_model)
     @property
+    @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         return [self._latent_mean, self._latent_sqrt_var]
 
@@ -2950,7 +2951,7 @@ class PlnPCA(_model):
             )
         self._latent_mean = latent_mean
 
-    @latent_sqrt_var.setter
+    @_model.latent_sqrt_var.setter
     @_array2tensor
     def latent_sqrt_var(self, latent_sqrt_var: torch.Tensor):
         """
@@ -3306,8 +3307,8 @@ class PlnPCA(_model):
                 1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
             )
 
-    @_add_doc(_model)
     @property
+    @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         if self._coef is None:
             return [self._components, self._latent_mean, self._latent_sqrt_var]
@@ -3325,7 +3326,7 @@ class ZIPln(_model):
         params= """
         use_closed_form_prob: bool, optional
             Whether or not use the closed formula for the latent probability
-        """
+        """,
         example="""
             >>> from pyPLNmodels import ZIPln, get_real_count_data
             >>> endog= get_real_count_data()
@@ -3511,7 +3512,7 @@ class ZIPln(_model):
     def _covariance(self):
         return self._components @ (self._components.T)
 
-    def latent_variables(self) -> tuple(torch.Tensor, torch.Tensor):
+    def latent_variables(self) -> tuple([torch.Tensor, torch.Tensor]):
         """
         Property representing the latent variables. Two latent
         variables are available if exog is not None
@@ -3622,8 +3623,8 @@ class ZIPln(_model):
     def number_of_parameters(self):
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
 
-    @_add_doc(_model)
     @property
+    @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         list_parameters = [
             self._latent_mean,
