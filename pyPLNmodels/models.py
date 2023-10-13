@@ -324,19 +324,7 @@ class _model(ABC):
             self._coef = None
         self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
 
-    @abstractmethod
-    def _random_init_model_parameters(self):
-        """
-        Abstract method to randomly initialize model parameters.
-        """
-        pass
 
-    @abstractmethod
-    def _random_init_latent_parameters(self):
-        """
-        Abstract method to randomly initialize latent parameters.
-        """
-        pass
 
     def _smart_init_latent_parameters(self):
         """
@@ -369,16 +357,6 @@ class _model(ABC):
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        """
-        A list containing all the parameters that need to be upgraded via a gradient step.
-
-        Returns
-        -------
-        List[torch.Tensor]
-            List of parameters needing gradient.
-        """
 
     def fit(
         self,
@@ -579,7 +557,7 @@ class _model(ABC):
         return pca
 
     @property
-    def latent_var(self) -> torch.Tensor:
+    def latent_variance(self) -> torch.Tensor:
         """
         Property representing the latent variance.
 
@@ -689,13 +667,18 @@ class _model(ABC):
         )
         plt.show()
 
+
     @property
-    @abstractmethod
-    def latent_variables(self):
+    def _latent_var(self) -> torch.Tensor:
         """
-        Abstract property representing the latent variables.
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
         """
-        pass
+        return self._latent_sqrt_var**2
 
     def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
         """
@@ -754,13 +737,6 @@ class _model(ABC):
         """
         pass
 
-    @abstractmethod
-    def compute_elbo(self):
-        """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized
-        by pytorch.
-        """
-        pass
 
     def display_covariance(self, ax=None, savefig=False, name_file=""):
         """
@@ -1385,8 +1361,74 @@ class _model(ABC):
         ax.legend()
         return ax
 
+    @property
+    @abstractmethod
+    def latent_variables(self) -> torch.Tensor:
+        """
+        Property representing the latent variables.
 
-# need to do a good init for M and S
+        Returns
+        -------
+        torch.Tensor
+            The latent variables of size (n_samples, dim).
+        """
+
+    @abstractmethod
+    def compute_elbo(self):
+        """
+        Compute the Evidence Lower BOund (ELBO) that will be maximized
+        by pytorch.
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+
+    @abstractmethod
+    def _compute_elbo_b(self):
+        """
+        Compute the Evidence Lower BOund (ELBO) for the current mini-batch.
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO on the current batch.
+        """
+
+    @abstractmethod
+    def _random_init_model_parameters(self):
+        """
+        Abstract method to randomly initialize model parameters.
+        """
+
+    @abstractmethod
+    def _random_init_latent_parameters(self):
+        """
+        Abstract method to randomly initialize latent parameters.
+        """
+    @abstractmethod
+    def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
+    @abstractmethod
+    def _smart_init_model_parameters(self):
+        """
+        Method for smartly initializing the model parameters.
+        """
+
+    @property
+    @abstractmethod
+    def _list_of_parameters_needing_gradient(self):
+        """
+        A list containing all the parameters that need to be upgraded via a gradient step.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            List of parameters needing gradient.
+        """
+
 class Pln(_model):
     """
     Pln class.
@@ -1661,34 +1703,6 @@ class Pln(_model):
             self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
         )
 
-    def _smart_init_latent_parameters(self):
-        """
-        Method for smartly initializing the latent parameters.
-        """
-        self._random_init_latent_parameters()
-
-    def _random_init_latent_parameters(self):
-        """
-        Method for randomly initializing the latent parameters.
-        """
-        if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
-            )
-        if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
-
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        """
-        Property representing the list of parameters needing gradient.
-
-        Returns
-        -------
-        list
-            The list of parameters needing gradient.
-        """
-        return [self._latent_mean, self._latent_sqrt_var]
 
     def _get_max_components(self):
         """
@@ -1701,60 +1715,6 @@ class Pln(_model):
         """
         return self.dim
 
-    def compute_elbo(self):
-        """
-        Method for computing the evidence lower bound (ELBO).
-
-        Returns
-        -------
-        torch.Tensor
-            The computed ELBO.
-        Examples
-        --------
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(endog,add_const = True)
-        >>> pln.fit()
-        >>> elbo = pln.compute_elbo()
-        >>> print("elbo", elbo)
-        >>> print("loglike/n", pln.loglike/pln.n_samples)
-        """
-        return profiled_elbo_pln(
-            self._endog,
-            self._exog,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-        )
-
-    def _compute_elbo_b(self):
-        """
-        Method for computing the evidence lower bound (ELBO) on the current batch.
-
-        Returns
-        -------
-        torch.Tensor
-            The computed ELBO on the current batch.
-        """
-        return profiled_elbo_pln(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
-        )
-
-    def _smart_init_model_parameters(self):
-        """
-        Method for smartly initializing the model parameters.
-        """
-        # no model parameters since we are doing a profiled ELBO
-
-    def _random_init_model_parameters(self):
-        """
-        Method for randomly initializing the model parameters.
-        """
-        # no model parameters since we are doing a profiled ELBO
 
     @property
     def _coef(self):
@@ -1799,19 +1759,6 @@ class Pln(_model):
         """
         print(f"Fitting a Pln model with {self._description}")
 
-    @property
-    @_add_doc(
-        _model,
-        example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(endog,add_const = True)
-        >>> pln.fit()
-        >>> print(pln.latent_variables.shape)
-        """,
-    )
-    def latent_variables(self):
-        return self.latent_mean.detach()
 
     @property
     def number_of_parameters(self):
@@ -1861,6 +1808,80 @@ class Pln(_model):
         """
         raise AttributeError("You can not set the covariance for the Pln model.")
 
+    def _random_init_latent_sqrt_var(self):
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+            )
+
+    @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(endog,add_const = True)
+        >>> pln.fit()
+        >>> print(pln.latent_variables.shape)
+        """,
+    )
+    def latent_variables(self):
+        return self.latent_mean.detach()
+
+    @_add_doc(
+            _model,
+            example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(endog,add_const = True)
+            >>> pln.fit()
+            >>> elbo = pln.compute_elbo()
+            >>> print("elbo", elbo)
+            >>> print("loglike/n", pln.loglike/pln.n_samples)
+            """
+            )
+    def compute_elbo(self):
+        return profiled_elbo_pln(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+        )
+    @_add_doc(_model)
+    def _compute_elbo_b(self):
+        return profiled_elbo_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+        )
+    @_add_doc(_model)
+    def _smart_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @_add_doc(_model)
+    def _random_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+    @_add_doc(_model)
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.log(self._endog + (self._endog == 0))
+
+    @_add_doc(_model)
+    def _random_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    @_add_doc(_model)
+    @property
+    def _list_of_parameters_needing_gradient(self):
+        return [self._latent_mean, self._latent_sqrt_var]
 
 class PlnPCAcollection:
     """
@@ -2655,7 +2676,7 @@ class PlnPCAcollection:
         return ".BIC, .AIC, .loglikes"
 
 
-# Here, setting the value for each key in _dict_parameters
+# Here, setting the value for each key  _dict_parameters
 class PlnPCA(_model):
     """
     PlnPCA object where the covariance has low rank.
@@ -2881,19 +2902,6 @@ class PlnPCA(_model):
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
-    def _check_if_rank_is_too_high(self):
-        """
-        Check if the rank is too high and issue a warning if necessary.
-        """
-        if self.dim < self.rank:
-            warning_string = (
-                f"\nThe requested rank of approximation {self.rank} "
-                f"is greater than the number of variables {self.dim}. "
-                f"Setting rank to {self.dim}"
-            )
-            warnings.warn(warning_string)
-            self._rank = self.dim
-
     @property
     @_add_doc(
         _model,
@@ -2909,29 +2917,7 @@ class PlnPCA(_model):
     def latent_mean(self) -> torch.Tensor:
         return self._cpu_attribute_or_none("_latent_mean")
 
-    @property
-    def latent_sqrt_var(self) -> torch.Tensor:
-        """
-        Property representing the unsigned square root of the latent variance.
 
-        Returns
-        -------
-        torch.Tensor
-            The latent variance tensor.
-        """
-        return self._cpu_attribute_or_none("_latent_sqrt_var")
-
-    @property
-    def _latent_var(self) -> torch.Tensor:
-        """
-        Property representing the latent variance.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variance tensor.
-        """
-        return self._latent_sqrt_var**2
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
@@ -3064,103 +3050,9 @@ class PlnPCA(_model):
         """
         return {"coef": self.coef, "components": self.components}
 
-    def _smart_init_model_parameters(self):
-        """
-        Initialize the model parameters smartly.
-        """
-        if not hasattr(self, "_coef"):
-            super()._smart_init_coef()
-        if not hasattr(self, "_components"):
-            self._components = _init_components(self._endog, self._exog, self._rank)
 
-    def _random_init_model_parameters(self):
-        """
-        Randomly initialize the model parameters.
-        """
-        super()._random_init_coef()
-        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
 
-    def _random_init_latent_parameters(self):
-        """
-        Randomly initialize the latent parameters.
-        """
-        self._latent_sqrt_var = (
-            1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-        )
-        self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
 
-    def _smart_init_latent_parameters(self):
-        """
-        Initialize the latent parameters smartly.
-        """
-        if not hasattr(self, "_latent_mean"):
-            self._latent_mean = (
-                _init_latent_mean(
-                    self._endog,
-                    self._exog,
-                    self._offsets,
-                    self._coef,
-                    self._components,
-                )
-                .to(DEVICE)
-                .detach()
-            )
-        if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-            )
-
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        """
-        Property representing the list of parameters needing gradient.
-
-        Returns
-        -------
-        List[torch.Tensor]
-            The list of parameters needing gradient.
-        """
-        if self._coef is None:
-            return [self._components, self._latent_mean, self._latent_sqrt_var]
-        return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
-
-    def _compute_elbo_b(self) -> torch.Tensor:
-        """
-        Compute the evidence lower bound (ELBO) with the current batch.
-
-        Returns
-        -------
-        torch.Tensor
-            The ELBO value on the current batch.
-        """
-        return elbo_plnpca(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
-            self._components,
-            self._coef,
-        )
-
-    def compute_elbo(self) -> torch.Tensor:
-        """
-        Compute the evidence lower bound (ELBO).
-
-        Returns
-        -------
-        torch.Tensor
-            The ELBO value.
-        """
-        return elbo_plnpca(
-            self._endog,
-            self._exog,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._components,
-            self._coef,
-        )
 
     @property
     def number_of_parameters(self) -> int:
@@ -3244,17 +3136,6 @@ class PlnPCA(_model):
         """
         return f" {self.rank} principal component."
 
-    @property
-    def latent_variables(self) -> torch.Tensor:
-        """
-        Property representing the latent variables.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variables of size (n_samples, dim).
-        """
-        return torch.matmul(self._latent_mean, self._components.T).detach()
 
     @property
     def projected_latent_variables(self) -> torch.Tensor:
@@ -3337,6 +3218,100 @@ class PlnPCA(_model):
             return self.projected_latent_variables
         return self.latent_variables
 
+    @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> endog = get_real_count_data(return_labels=False)
+        >>> pca = PlnPCA(endog,add_const = True)
+        >>> pca.fit()
+        >>> print(pca.latent_variables.shape)
+        """,
+    )
+    def latent_variables(self) -> torch.Tensor:
+        return torch.matmul(self._latent_mean, self._components.T).detach()
+
+    @_add_doc(
+            _model,
+            example="""
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> endog = get_real_count_data(return_labels = False)
+            >>> pca = PlnPCA(endog,add_const = True)
+            >>> pca.fit()
+            >>> elbo = pca.compute_elbo()
+            >>> print("elbo", elbo)
+            >>> print("loglike/n", pln.loglike/pln.n_samples)
+            """
+            )
+    def compute_elbo(self) -> torch.Tensor:
+        return elbo_plnpca(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._components,
+            self._coef,
+        )
+    @_add_doc(_model)
+    def _compute_elbo_b(self) -> torch.Tensor:
+        return elbo_plnpca(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            self._components,
+            self._coef,
+        )
+    @_add_doc(_model)
+    def _random_init_model_parameters(self):
+        super()._random_init_coef()
+        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
+
+    @_add_doc(_model)
+    def _smart_init_model_parameters(self):
+        if not hasattr(self, "_coef"):
+            super()._smart_init_coef()
+        if not hasattr(self, "_components"):
+            self._components = _init_components(self._endog, self._exog, self._rank)
+
+    @_add_doc(_model)
+    def _random_init_latent_parameters(self):
+        """
+        Randomly initialize the latent parameters.
+        """
+        self._latent_sqrt_var = (
+            1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+        )
+        self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
+
+    @_add_doc(_model)
+    def _smart_init_latent_parameters(self):
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = (
+                _init_latent_mean(
+                    self._endog,
+                    self._exog,
+                    self._offsets,
+                    self._coef,
+                    self._components,
+                )
+                .to(DEVICE)
+                .detach()
+            )
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+            )
+
+    @_add_doc(_model)
+    @property
+    def _list_of_parameters_needing_gradient(self):
+        if self._coef is None:
+            return [self._components, self._latent_mean, self._latent_sqrt_var]
+        return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
 
 class ZIPln(_model):
     _NAME = "ZIPln"
@@ -3347,6 +3322,10 @@ class ZIPln(_model):
 
     @_add_doc(
         _model,
+        params= """
+        use_closed_form_prob: bool, optional
+            Whether or not use the closed formula for the latent probability
+        """
         example="""
             >>> from pyPLNmodels import ZIPln, get_real_count_data
             >>> endog= get_real_count_data()
@@ -3532,7 +3511,26 @@ class ZIPln(_model):
     def _covariance(self):
         return self._components @ (self._components.T)
 
-    def latent_variables(self):
+    def latent_variables(self) -> tuple(torch.Tensor, torch.Tensor):
+        """
+        Property representing the latent variables. Two latent
+        variables are available if exog is not None
+
+        Returns
+        -------
+        tuple(torch.Tensor, torch.Tensor)
+            The latent variables of a classic Pln model (size (n_samples, dim))
+            and zero inflated latent variables of size (n_samples, dim).
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> zi = ZIPln(endog,add_const = True)
+        >>> zi.fit()
+        >>> latent_mean, latent_inflated = zi.latent_variables
+        >>> print(latent_mean.shape)
+        >>> print(latent_inflated.shape)
+        """
         return self.latent_mean, self.latent_prob
 
     def _update_parameters(self):
@@ -3624,6 +3622,7 @@ class ZIPln(_model):
     def number_of_parameters(self):
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
 
+    @_add_doc(_model)
     @property
     def _list_of_parameters_needing_gradient(self):
         list_parameters = [
