@@ -397,7 +397,6 @@ class _model(ABC):
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
-            print("criterion", criterion)
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 1:
@@ -477,6 +476,8 @@ class _model(ABC):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
+            if torch.sum(torch.isnan(loss)):
+                raise ValueError("test")
             loss.backward()
             elbo += loss.item()
             self._update_parameters()
@@ -3334,7 +3335,7 @@ class PlnPCA(_model):
         if not hasattr(self, "_coef"):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
-            self._components = _init_components(self._endog, self._exog, self._rank)
+            self._components = _init_components(self._endog, self._rank)
 
     @_add_doc(_model)
     def _random_init_latent_parameters(self):
@@ -3490,7 +3491,7 @@ class ZIPln(_model):
         use_closed_form_prob: bool = True,
     ):
         """
-        Create a model instance from a formula and data.
+        Create a ZIPln instance from a formula and data.
 
         Parameters
         ----------
@@ -3585,7 +3586,6 @@ class ZIPln(_model):
         return "with full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
-        super()._random_init_model_parameters()
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)
         self._coef = torch.randn(self.nb_cov, self.dim)
         self._components = torch.randn(self.nb_cov, self.dim)
@@ -3595,7 +3595,10 @@ class ZIPln(_model):
         # init of _coef.
         super()._smart_init_coef()
         if not hasattr(self, "_covariance"):
-            self._components = _init_components(self._endog, self._exog, self.dim)
+            self._components = _init_components(self._endog, self.dim)
+            print('sum components', torch.sum(self._components))
+            print('sum endog', torch.sum(self._endog))
+            print('log det ', torch.logdet(self._components))
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 

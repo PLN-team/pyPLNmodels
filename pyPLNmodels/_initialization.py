@@ -44,7 +44,7 @@ def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
 
 
 def _init_components(
-    endog: torch.Tensor, exog: torch.Tensor, rank: int
+    endog: torch.Tensor, rank: int
 ) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
@@ -65,7 +65,7 @@ def _init_components(
     log_y = torch.log(endog + (endog == 0) * math.exp(-2))
     pca = PCA(n_components=rank)
     pca.fit(log_y.detach().cpu())
-    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
+    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_ + 0.001)
     return torch.from_numpy(pca_comp).to(DEVICE)
 
 

@@ -238,16 +238,15 @@ def elbo_zi_pln(
         1 - latent_prob, torch.multiply(endog, o_plus_m) - A - _log_stirling(endog)
     )
     Omega = torch.inverse(covariance)
-
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
     un_moins_rho = 1 - latent_prob
     un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
     un_moins_rho_m_moins_xb_outer = un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
     inside_b = -1 / 2 * Omega * un_moins_rho_m_moins_xb_outer
-
     inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
         1 + torch.exp(x_coef_inflation)
     )
+
 
     log_diag = torch.log(torch.diag(covariance))
     log_S_term = torch.sum(
@@ -267,10 +266,19 @@ def elbo_zi_pln(
     new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
     K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
     inside_f =-1 / 2 *  torch.diag(Omega) * K
+    print("inside_a",torch.sum(inside_a))
+    print("inside_b",torch.sum(inside_b))
+    print("inside_c",torch.sum(inside_c))
+    print("inside_d",torch.sum(inside_d))
+    print("inside_e",torch.sum(inside_e))
+    print("inside_f",torch.sum(inside_f))
     first = torch.sum(inside_a + inside_c + inside_e)
+    print('first', first)
     second = torch.sum(inside_b)
-    second -= n_samples / 2 * torch.logdet(covariance)
+    second -= n_samples * torch.logdet(components)
+    print('logdet', torch.logdet(components))
     third = torch.sum(inside_d + inside_f)
     third += n_samples*dim/2
+    print('third', third)
     res = first + second + third
     return res
