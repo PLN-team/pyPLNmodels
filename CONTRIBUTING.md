@@ -21,42 +21,91 @@ The `newmodel` class should contains at least the following code:
 ```
 class newmodel(_model):
     _NAME=""
-    def _random_init_latent_sqrt_var(self):
+    @property
+    def latent_variables(self) -> torch.Tensor:
+        "Implement here"
+
+    def compute_elbo(self) -> torch.Tensor:
+        "Implement here"
+
+    def _compute_elbo_b(self) -> torch.Tensor:
+        "Implement here"
+
+    def _smart_init_model_parameters(self)-> None:
+        "Implement here"
+
+    def _random_init_model_parameters(self)-> None:
+        "Implement here"
+
+    def _smart_init_latent_parameters(self)-> None:
+        "Implement here"
+
+    def _random_init_latent_parameters(self)-> None:
         "Implement here"
 
     @property
-    def latent_variables(self):
+    def _list_of_parameters_needing_gradient(self)-> list:
         "Implement here"
-
-    def compute_elbo(self):
-        "Implement here"
-
-    def _compute_elbo_b(self):
-        "Implement here"
-
-    def _smart_init_model_parameters(self):
-        "Implement here"
-
-    def _random_init_model_parameters(self):
-        "Implement here"
-
-    def _smart_init_latent_parameters(self):
-        "Implement here"
-
-    def _random_init_latent_parameters(self):
+    @property
+    def _description(self)-> str:
         "Implement here"
 
     @property
-    def _list_of_parameters_needing_gradient(self):
-        "Implement here"
-    @property
-    def _description(self):
+    def number_of_parameters(self) -> int:
         "Implement here"
 
     @property
-    def number_of_parameters(self):
+    def model_parameters(self)-> Dict[str, torch.Tensor]:
+        "Implement here"
+
+    @property
+    def latent_parameters(self)-> Dict[str, torch.Tensor]:
         "Implement here"
 ```
+Each value of the 'latent_parameters' dict should be implemented (and protected) both in the
+`_random_init_latent_parameters` and '_smart_init_latent_parameters'.
+Each value of the 'model_parameters' dict should be implemented (and protected) both in the
+`_random_init_model_parameters` and '_smart_init_model_parameters'.
+For example, if you have one model parameters `coef` and latent_parameters `latent_mean` and `latent_var`, you should implement such as
+```py
+class newmodel(_model):
+    @property
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {"coef":self.coef}
+    @property
+    def latent_parameters(self) -> Dict[str, torch.Tensor]:
+        return {"latent_mean":self.latent_mean, "latent_var":self.latent_var}
+
+    def _random_init_latent_parameters(self):
+        self._latent_mean = init_latent_mean()
+        self._latent_var = init_latent_var()
+
+    @property
+    def _smart_init_model_parameters(self):
+        self._latent_mean = random_init_latent_mean()
+        self._latent_var = random_init_latent_var()
+
+    @property
+    def latent_var(self):
+        return self._latent_var
+
+    @property
+    def latent_mean(self):
+        return self._latent_mean
+
+    def _random_init_model_parameters(self):
+        self._coef = init_coef()
+
+    def _smart_init_model_parameters(self):
+        self._coef = random_init_latent_coef()
+
+    @property
+    def coef(self):
+        return self._coef
+```
+
+
+
 Then, add `newmodel` in the `__init__.py` file of the pyPLNmodels module.
 If `newmodel` is well implemented, running
 ```
@@ -69,4 +118,4 @@ model.fit(nb_max_iteration = 10, tol = 0)
 should increase the elbo of the model. You should document your functions with
 [numpy-style
 docstrings](https://numpydoc.readthedocs.io/en/latest/format.html). You can use
-the `_add_doc` decorator to inherit the docstrings of the `_model` class.
+the `_add_doc` decorator (implemented in the `_utils` module) to inherit the docstrings of the `_model` class.

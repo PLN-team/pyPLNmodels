@@ -7,7 +7,7 @@ from pytest_lazyfixture import lazy_fixture as lf
 import pandas as pd
 
 from pyPLNmodels import load_model, load_plnpcacollection
-from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection
+from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection, ZIPln
 
 
 sys.path.append("../")
@@ -78,14 +78,20 @@ def convenient_PlnPCAcollection(*args, **kwargs):
 
 
 def convenientpln(*args, **kwargs):
+    # no need to dict init since we do not have ranks
     if isinstance(args[0], str):
         return Pln.from_formula(*args, **kwargs)
     return Pln(*args, **kwargs)
 
 
+def convenientzi(*args, **kwargs):
+    if isinstance(args[0], str):
+        return ZIPln.from_formula(*args, **kwargs)
+    return ZIPln(*args, **kwargs)
+
+
 def generate_new_model(model, *args, **kwargs):
     name_dir = model._directory_name
-    print("directory name", name_dir)
     name = model._NAME
     if name in ("Pln", "PlnPCA"):
         path = model._path_to_directory + name_dir
@@ -94,6 +100,8 @@ def generate_new_model(model, *args, **kwargs):
             new = convenientpln(*args, **kwargs, dict_initialization=init)
         if name == "PlnPCA":
             new = convenient_PlnPCA(*args, **kwargs, dict_initialization=init)
+        if name == "ZIPln":
+            new = convenientzi(*args, **kwargs, dict_initialization=init)
     if name == "PlnPCAcollection":
         init = load_plnpcacollection(name_dir)
         new = convenient_PlnPCAcollection(*args, **kwargs, dict_initialization=init)
