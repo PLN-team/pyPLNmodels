@@ -397,6 +397,7 @@ class _model(ABC):
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
+            print("criterion", criterion)
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 1:
@@ -3317,26 +3318,6 @@ class ZIPln(_model):
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
 
-    @_add_doc(
-        _model,
-        params="""
-        use_closed_form_prob: bool, optional
-            Whether or not use the closed formula for the latent probability
-        """,
-        example="""
-            >>> from pyPLNmodels import ZIPln, get_real_count_data
-            >>> endog= get_real_count_data()
-            >>> zi = ZIPln(endog, add_const = True)
-            >>> zi.fit()
-            >>> print(zi)
-        """,
-        returns="""
-            ZIPln
-        """,
-        see_also="""
-        :func:`pyPLNmodels.ZIPln.from_formula`
-        """,
-    )
     def __init__(
         self,
         endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
@@ -3349,6 +3330,54 @@ class ZIPln(_model):
         add_const: bool = True,
         use_closed_form_prob: bool = False,
     ):
+        """
+        Initializes the ZIPln class.
+
+        Parameters
+        ----------
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The count data.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The covariate data. Defaults to None.
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The offsets data. Defaults to None.
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum". Overriden if
+            offsets is not None.
+        dict_initialization : dict, optional(keyword-only)
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional(keyword-only)
+            Whether to take the log of offsets. Defaults to False.
+        add_const : bool, optional(keyword-only)
+            Whether to add a column of one in the exog. Defaults to True.
+            If exog is None, add_const is set to True anyway and a warnings
+            is launched.
+        use_closed_form_prob : bool, optional
+            Whether or not use the closed formula for the latent probability.
+            Default is False.
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
+        Returns
+        -------
+        A ZIPln object
+        See also
+        --------
+        :func:`pyPLNmodels.ZIPln.from_formula`
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog= get_real_count_data()
+        >>> zi = ZIPln(endog, add_const = True)
+        >>> zi.fit()
+        >>> print(zi)
+        """
+        if exog is None and add_const is False:
+            msg = "No covariates has been given. An intercept is added since "
+            msg += "a ZIPln must have at least an intercept."
+            warnings.warn(msg)
+            add_const = True
         super().__init__(
             endog=endog,
             exog=exog,
@@ -3375,22 +3404,6 @@ class ZIPln(_model):
         return batch
 
     @classmethod
-    @_add_doc(
-        _model,
-        example="""
-            >>> from pyPLNmodels import ZIPln, get_real_count_data
-            >>> endog = get_real_count_data()
-            >>> data = {"endog": endog}
-            >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
-        """,
-        returns="""
-            ZIPln
-        """,
-        see_also="""
-        :class:`pyPLNmodels.ZIPln`
-        :func:`pyPLNmodels.ZIPln.__init__`
-    """,
-    )
     def from_formula(
         cls,
         formula: str,
@@ -3401,6 +3414,39 @@ class ZIPln(_model):
         take_log_offsets: bool = False,
         use_closed_form_prob: bool = True,
     ):
+        """
+        Create a model instance from a formula and data.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : dict
+            The data dictionary. Each value can be either a torch.Tensor,
+            a np.ndarray or pd.DataFrame
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum".
+        dict_initialization : dict, optional(keyword-only)
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional(keyword-only)
+            Whether to take the log of offsets. Defaults to False.
+        use_closed_form_prob : bool, optional
+            Whether or not use the closed formula for the latent probability.
+            Default is False.
+        Returns
+        -------
+        A ZIPln object
+        See also
+        --------
+        :class:`pyPLNmodels.ZIPln`
+        :func:`pyPLNmodels.ZIPln.__init__`
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
@@ -3495,6 +3541,18 @@ class ZIPln(_model):
         return self._components @ (self._components.T)
 
     @property
+    def components(self) -> torch.Tensor:
+        """
+        Property representing the components.
+
+        Returns
+        -------
+        torch.Tensor
+            The components.
+        """
+        return self._cpu_attribute_or_none("_components")
+
+    @property
     def latent_variables(self) -> tuple([torch.Tensor, torch.Tensor]):
         """
         Property representing the latent variables. Two latent
@@ -3516,6 +3574,18 @@ class ZIPln(_model):
         >>> print(latent_inflated.shape)
         """
         return self.latent_mean, self.latent_prob
+
+    @property
+    def coef_inflation(self):
+        """
+        Property representing the coefficients of the zero inflated model.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None.
+        """
+        return self._cpu_attribute_or_none("_coef_inflation")
 
     def _update_parameters(self):
         super()._update_parameters()
