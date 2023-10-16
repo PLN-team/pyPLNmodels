@@ -43,7 +43,7 @@ def get_example_readme(lines):
                     in_example = False
             elif in_example is True:
                 example.append(line)
-    example.pop(0)  # The first is pip install pyPLNmodels which is not python code.
+    example.pop()  # The last line is pip install pyPLNmodels which is not python code.
     return [example]
 
 

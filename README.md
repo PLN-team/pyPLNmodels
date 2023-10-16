@@ -16,22 +16,10 @@
 <!-- > slides](https://pln-team.github.io/slideshow/) for a -->
 <!-- > comprehensive introduction. -->
 
-## Getting started
-The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/raw/dev/Getting_started.ipynb?inline=false). If you need just a quick view of the package, see next.
+##  Getting started
+The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/raw/dev/Getting_started.ipynb?inline=false). If you need just a quick view of the package, see the quickstart next.
 
-## Installation
-
-**pyPLNmodels** is available on
-[pypi](https://pypi.org/project/pyPLNmodels/). The development
-version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
-
-### Package installation
-
-```
-pip install pyPLNmodels
-```
-
-## Usage and main fitting functions
+## ⚡️ Quickstart
 
 The package comes with an ecological data set to present the functionality
 ```
@@ -61,7 +49,24 @@ transformed_data = pln.transform()
 ```
 
 
-## References
+## 🛠 Installation
+
+**pyPLNmodels** is available on
+[pypi](https://pypi.org/project/pyPLNmodels/). The development
+version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
+
+### Package installation
+
+```
+pip install pyPLNmodels
+```
+
+## 👐 Contributing
+
+Feel free to contribute, but read the [CONTRIBUTING.md](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/blob/main/CONTRIBUTING.md) first. A public roadmap will be available soon.
+
+
+## ⚡️ Citations
 
 Please cite our work using the following references:
 -   J. Chiquet, M. Mariadassou and S. Robin: Variational inference for
