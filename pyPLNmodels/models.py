@@ -324,8 +324,6 @@ class _model(ABC):
             self._coef = None
         self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
 
-
-
     def _smart_init_latent_parameters(self):
         """
         Initialize latent parameters smartly.
@@ -357,13 +355,12 @@ class _model(ABC):
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
-
     def fit(
         self,
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-8,
+        tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
@@ -400,6 +397,7 @@ class _model(ABC):
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
+            print("criterion", criterion)
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 1:
@@ -737,7 +735,6 @@ class _model(ABC):
         """
         pass
 
-
     def display_covariance(self, ax=None, savefig=False, name_file=""):
         """
         Display the covariance matrix.
@@ -876,33 +873,6 @@ class _model(ABC):
             The AIC value.
         """
         return -self.loglike + self.number_of_parameters
-
-    @property
-    def latent_parameters(self):
-        """
-        Property representing the latent parameters.
-
-        Returns
-        -------
-        dict
-            The dictionary of latent parameters.
-        """
-        return {
-            "latent_sqrt_var": self.latent_sqrt_var,
-            "latent_mean": self.latent_mean,
-        }
-
-    @property
-    def model_parameters(self):
-        """
-        Property representing the model parameters.
-
-        Returns
-        -------
-        dict
-            The dictionary of model parameters.
-        """
-        return {"coef": self.coef, "covariance": self.covariance}
 
     @property
     def dict_data(self):
@@ -1289,18 +1259,6 @@ class _model(ABC):
         """
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
 
-    @property
-    def _path_to_directory(self):
-        """
-        Property representing the path to the directory.
-
-        Returns
-        -------
-        str
-            The path to the directory.
-        """
-        return ""
-
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
         Plot the predicted value of the endog against the endog.
@@ -1336,6 +1294,12 @@ class _model(ABC):
         ax.set_xlabel("Counts")
         ax.legend()
         return ax
+
+    def _print_beginning_message(self):
+        """
+        Method for printing the beginning message.
+        """
+        print(f"Fitting a {self._NAME} model with {self._description}")
 
     @property
     @abstractmethod
@@ -1382,11 +1346,13 @@ class _model(ABC):
         """
         Abstract method to randomly initialize latent parameters.
         """
+
     @abstractmethod
     def _smart_init_latent_parameters(self):
         """
         Method for smartly initializing the latent parameters.
         """
+
     @abstractmethod
     def _smart_init_model_parameters(self):
         """
@@ -1404,6 +1370,43 @@ class _model(ABC):
         List[torch.Tensor]
             List of parameters needing gradient.
         """
+
+    @property
+    @abstractmethod
+    def _description(self):
+        pass
+
+    @property
+    @abstractmethod
+    def number_of_parameters(self):
+        """
+        Number of parameters of the model.
+        """
+
+    @property
+    @abstractmethod
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        """
+        Property representing the model parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of model parameters.
+        """
+
+    @property
+    @abstractmethod
+    def latent_parameters(self) -> Dict[str, torch.Tensor]:
+        """
+        Property representing the latent parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of latent parameters.
+        """
+
 
 class Pln(_model):
     """
@@ -1493,15 +1496,12 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
     ):
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
-        return cls(
-            endog,
-            exog=exog,
-            offsets=offsets,
+        return super().from_formula(
+            formula=formula,
+            data=data,
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
-            add_const=False,
         )
 
     @_add_doc(
@@ -1519,7 +1519,7 @@ class Pln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-8,
+        tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
@@ -1672,13 +1672,13 @@ class Pln(_model):
         ------
         AttributeError since you can not set the coef in the Pln model.
         """
-        raise AttributeError("You can not set the coef in the Pln model.")
+        msg = "You can not set the coef in the Pln model."
+        warnings.warn(msg)
 
     def _endog_predictions(self):
         return torch.exp(
             self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
         )
-
 
     def _get_max_components(self):
         """
@@ -1690,7 +1690,6 @@ class Pln(_model):
             The maximum number of components.
         """
         return self.dim
-
 
     @property
     def _coef(self):
@@ -1728,14 +1727,6 @@ class Pln(_model):
         ) * sk_components.unsqueeze(0)
         covariances = components_var @ (sk_components.T.unsqueeze(0))
         return covariances
-
-    def _print_beginning_message(self):
-        """
-        Method for printing the beginning message.
-        """
-        print(f"Fitting a Pln model with {self._description}")
-
-
 
     @_model.latent_sqrt_var.setter
     @_array2tensor
@@ -1807,7 +1798,98 @@ class Pln(_model):
         covariance : torch.Tensor
             The covariance matrix.
         """
-        raise AttributeError("You can not set the covariance for the Pln model.")
+        warnings.warn("You can not set the covariance for the Pln model.")
+
+    def _random_init_latent_sqrt_var(self):
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+            )
+
+    @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(endog,add_const = True)
+        >>> pln.fit()
+        >>> print(pln.latent_variables.shape)
+        """,
+    )
+    def latent_variables(self):
+        return self.latent_mean.detach()
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(endog,add_const = True)
+            >>> pln.fit()
+            >>> elbo = pln.compute_elbo()
+            >>> print("elbo", elbo)
+            >>> print("loglike/n", pln.loglike/pln.n_samples)
+            """,
+    )
+    def compute_elbo(self):
+        return profiled_elbo_pln(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+        )
+
+    @_add_doc(_model)
+    def _compute_elbo_b(self):
+        return profiled_elbo_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+        )
+
+    @_add_doc(_model)
+    def _smart_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @_add_doc(_model)
+    def _random_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @_add_doc(_model)
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.log(self._endog + (self._endog == 0))
+
+    @_add_doc(_model)
+    def _random_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    @property
+    @_add_doc(_model)
+    def _list_of_parameters_needing_gradient(self):
+        return [self._latent_mean, self._latent_sqrt_var]
+
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {"coef": self.coef, "covariance": self.covariance}
+
+    @property
+    @_add_doc(_model)
+    def latent_parameters(self):
+        return {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
 
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
@@ -2278,7 +2360,7 @@ class PlnPCAcollection:
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-8,
+        tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
@@ -2806,7 +2888,7 @@ class PlnPCA(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-8,
+        tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size=None,
@@ -2917,8 +2999,6 @@ class PlnPCA(_model):
     )
     def latent_mean(self) -> torch.Tensor:
         return self._cpu_attribute_or_none("_latent_mean")
-
-
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
@@ -3032,29 +3112,6 @@ class PlnPCA(_model):
         """
         return self._rank
 
-    def _print_beginning_message(self):
-        """
-        Print the beginning message when fitted.
-        """
-        print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
-        print(f"Fitting a PlnPCA model with {self._rank} components")
-
-    @property
-    def model_parameters(self) -> Dict[str, torch.Tensor]:
-        """
-        Property representing the model parameters.
-
-        Returns
-        -------
-        Dict[str, torch.Tensor]
-            The model parameters.
-        """
-        return {"coef": self.coef, "components": self.components}
-
-
-
-
-
     @property
     def number_of_parameters(self) -> int:
         """
@@ -3136,7 +3193,6 @@ class PlnPCA(_model):
             The description string.
         """
         return f" {self.rank} principal component."
-
 
     @property
     def projected_latent_variables(self) -> torch.Tensor:
@@ -3234,8 +3290,8 @@ class PlnPCA(_model):
         return torch.matmul(self._latent_mean, self._components.T).detach()
 
     @_add_doc(
-            _model,
-            example="""
+        _model,
+        example="""
             >>> from pyPLNmodels import PlnPCA, get_real_count_data
             >>> endog = get_real_count_data(return_labels = False)
             >>> pca = PlnPCA(endog,add_const = True)
@@ -3243,8 +3299,8 @@ class PlnPCA(_model):
             >>> elbo = pca.compute_elbo()
             >>> print("elbo", elbo)
             >>> print("loglike/n", pln.loglike/pln.n_samples)
-            """
-            )
+            """,
+    )
     def compute_elbo(self) -> torch.Tensor:
         return elbo_plnpca(
             self._endog,
@@ -3255,6 +3311,7 @@ class PlnPCA(_model):
             self._components,
             self._coef,
         )
+
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
         return elbo_plnpca(
@@ -3266,6 +3323,7 @@ class PlnPCA(_model):
             self._components,
             self._coef,
         )
+
     @_add_doc(_model)
     def _random_init_model_parameters(self):
         super()._random_init_coef()
@@ -3314,6 +3372,20 @@ class PlnPCA(_model):
             return [self._components, self._latent_mean, self._latent_sqrt_var]
         return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
 
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {"coef": self.coef, "components": self.components}
+
+    @property
+    @_add_doc(_model)
+    def latent_parameters(self):
+        return {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
+
+
 class ZIPln(_model):
     _NAME = "ZIPln"
 
@@ -3321,26 +3393,6 @@ class ZIPln(_model):
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
 
-    @_add_doc(
-        _model,
-        params= """
-        use_closed_form_prob: bool, optional
-            Whether or not use the closed formula for the latent probability
-        """,
-        example="""
-            >>> from pyPLNmodels import ZIPln, get_real_count_data
-            >>> endog= get_real_count_data()
-            >>> zi = ZIPln(endog, add_const = True)
-            >>> zi.fit()
-            >>> print(zi)
-        """,
-        returns="""
-            ZIPln
-        """,
-        see_also="""
-        :func:`pyPLNmodels.ZIPln.from_formula`
-        """,
-    )
     def __init__(
         self,
         endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
@@ -3353,6 +3405,54 @@ class ZIPln(_model):
         add_const: bool = True,
         use_closed_form_prob: bool = False,
     ):
+        """
+        Initializes the ZIPln class.
+
+        Parameters
+        ----------
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The count data.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The covariate data. Defaults to None.
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The offsets data. Defaults to None.
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum". Overriden if
+            offsets is not None.
+        dict_initialization : dict, optional(keyword-only)
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional(keyword-only)
+            Whether to take the log of offsets. Defaults to False.
+        add_const : bool, optional(keyword-only)
+            Whether to add a column of one in the exog. Defaults to True.
+            If exog is None, add_const is set to True anyway and a warnings
+            is launched.
+        use_closed_form_prob : bool, optional
+            Whether or not use the closed formula for the latent probability.
+            Default is False.
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
+        Returns
+        -------
+        A ZIPln object
+        See also
+        --------
+        :func:`pyPLNmodels.ZIPln.from_formula`
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog= get_real_count_data()
+        >>> zi = ZIPln(endog, add_const = True)
+        >>> zi.fit()
+        >>> print(zi)
+        """
+        if exog is None and add_const is False:
+            msg = "No covariates has been given. An intercept is added since "
+            msg += "a ZIPln must have at least an intercept."
+            warnings.warn(msg)
+            add_const = True
         super().__init__(
             endog=endog,
             exog=exog,
@@ -3378,24 +3478,7 @@ class ZIPln(_model):
             return batch + (torch.index_select(self._latent_prob, 0, to_take),)
         return batch
 
-
     @classmethod
-    @_add_doc(
-        _model,
-        example="""
-            >>> from pyPLNmodels import ZIPln, get_real_count_data
-            >>> endog = get_real_count_data()
-            >>> data = {"endog": endog}
-            >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
-        """,
-        returns="""
-            ZIPln
-        """,
-        see_also="""
-        :class:`pyPLNmodels.ZIPln`
-        :func:`pyPLNmodels.ZIPln.__init__`
-    """,
-    )
     def from_formula(
         cls,
         formula: str,
@@ -3404,8 +3487,41 @@ class ZIPln(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        use_closed_form: bool = True,
+        use_closed_form_prob: bool = True,
     ):
+        """
+        Create a model instance from a formula and data.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : dict
+            The data dictionary. Each value can be either a torch.Tensor,
+            a np.ndarray or pd.DataFrame
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum".
+        dict_initialization : dict, optional(keyword-only)
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional(keyword-only)
+            Whether to take the log of offsets. Defaults to False.
+        use_closed_form_prob : bool, optional
+            Whether or not use the closed formula for the latent probability.
+            Default is False.
+        Returns
+        -------
+        A ZIPln object
+        See also
+        --------
+        :class:`pyPLNmodels.ZIPln`
+        :func:`pyPLNmodels.ZIPln.__init__`
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
@@ -3415,7 +3531,7 @@ class ZIPln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
-            use_closed_form=use_closed_form,
+            use_closed_form_prob=use_closed_form_prob,
         )
 
     @_add_doc(
@@ -3433,7 +3549,7 @@ class ZIPln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        tol: float = 1e-8,
+        tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
         batch_size: int = None,
@@ -3483,9 +3599,6 @@ class ZIPln(_model):
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
-    def _print_beginning_message(self):
-        print("Fitting a ZIPln model.")
-
     def _random_init_latent_parameters(self):
         self._dirac = self._endog == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
@@ -3502,6 +3615,19 @@ class ZIPln(_model):
     def _covariance(self):
         return self._components @ (self._components.T)
 
+    @property
+    def components(self) -> torch.Tensor:
+        """
+        Property representing the components.
+
+        Returns
+        -------
+        torch.Tensor
+            The components.
+        """
+        return self._cpu_attribute_or_none("_components")
+
+    @property
     def latent_variables(self) -> tuple([torch.Tensor, torch.Tensor]):
         """
         Property representing the latent variables. Two latent
@@ -3523,6 +3649,18 @@ class ZIPln(_model):
         >>> print(latent_inflated.shape)
         """
         return self.latent_mean, self.latent_prob
+
+    @property
+    def coef_inflation(self):
+        """
+        Property representing the coefficients of the zero inflated model.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None.
+        """
+        return self._cpu_attribute_or_none("_coef_inflation")
 
     def _update_parameters(self):
         super()._update_parameters()
@@ -3630,6 +3768,26 @@ class ZIPln(_model):
 
     def _update_closed_forms(self):
         pass
+
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {
+            "coef": self.coef,
+            "components": self.components,
+            "coef_inflation": self.coef_inflation,
+        }
+
+    @property
+    @_add_doc(_model)
+    def latent_parameters(self):
+        latent_param = {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
+        if self._use_closed_form_prob is True:
+            latent_param["latent_prob"] = self.latent_prob
+        return latent_param
 
     def grad_M(self):
         if self.use_closed_form_prob is True:
