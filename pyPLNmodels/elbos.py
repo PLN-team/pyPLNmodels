@@ -266,19 +266,11 @@ def elbo_zi_pln(
     new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
     K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
     inside_f =-1 / 2 *  torch.diag(Omega) * K
-    print("inside_a",torch.sum(inside_a))
-    print("inside_b",torch.sum(inside_b))
-    print("inside_c",torch.sum(inside_c))
-    print("inside_d",torch.sum(inside_d))
-    print("inside_e",torch.sum(inside_e))
-    print("inside_f",torch.sum(inside_f))
     first = torch.sum(inside_a + inside_c + inside_e)
-    print('first', first)
     second = torch.sum(inside_b)
-    second -= n_samples * torch.logdet(components)
-    print('logdet', torch.logdet(components))
+    _, logdet = torch.slogdet(components)
+    second -= n_samples *logdet
     third = torch.sum(inside_d + inside_f)
     third += n_samples*dim/2
-    print('third', third)
     res = first + second + third
     return res
