@@ -65,7 +65,7 @@ def _init_components(
     log_y = torch.log(endog + (endog == 0) * math.exp(-2))
     pca = PCA(n_components=rank)
     pca.fit(log_y.detach().cpu())
-    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_ + 0.001)
+    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
     return torch.from_numpy(pca_comp).to(DEVICE)
 
 

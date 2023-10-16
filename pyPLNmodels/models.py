@@ -32,6 +32,8 @@ from ._utils import (
     _array2tensor,
     _handle_data,
     _add_doc,
+    vec_to_mat,
+    mat_to_vec,
 )
 
 from ._initialization import (
@@ -3596,9 +3598,7 @@ class ZIPln(_model):
         super()._smart_init_coef()
         if not hasattr(self, "_covariance"):
             self._components = _init_components(self._endog, self.dim)
-            print('sum components', torch.sum(self._components))
-            print('sum endog', torch.sum(self._endog))
-            print('log det ', torch.logdet(self._components))
+
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 

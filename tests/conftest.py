@@ -37,7 +37,6 @@ endog_real = data_real["endog"]
 endog_real = pd.DataFrame(endog_real)
 endog_real.columns = [f"var_{i}" for i in range(endog_real.shape[1])]
 
-
 def add_fixture_to_dict(my_dict, string_fixture):
     my_dict[string_fixture] = [lf(string_fixture)]
     return my_dict
