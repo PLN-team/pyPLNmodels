@@ -793,10 +793,7 @@ def get_simulated_count_data(
         zero_inflated=zero_inflated,
         to_add_coef=to_add_coef,
     )
-    if return_latent_variables is True:
-        returned_simu = sample_pln(
-            pln_param, seed=seed, return_latent=return_latent_variables
-        )
+    returned_simu = sample_pln(pln_param, seed=seed, return_latent=return_latent_variables)
     if return_true_param is True:
         if zero_inflated is True:
             return (
