@@ -668,7 +668,6 @@ class _model(ABC):
         )
         plt.show()
 
-
     @property
     def _latent_var(self) -> torch.Tensor:
         """
@@ -1915,8 +1914,8 @@ class Pln(_model):
         return self.latent_mean.detach()
 
     @_add_doc(
-            _model,
-            example="""
+        _model,
+        example="""
             >>> from pyPLNmodels import Pln, get_real_count_data
             >>> endog, labels = get_real_count_data(return_labels = True)
             >>> pln = Pln(endog,add_const = True)
@@ -1924,8 +1923,8 @@ class Pln(_model):
             >>> elbo = pln.compute_elbo()
             >>> print("elbo", elbo)
             >>> print("loglike/n", pln.loglike/pln.n_samples)
-            """
-            )
+            """,
+    )
     def compute_elbo(self):
         return profiled_elbo_pln(
             self._endog,
@@ -1934,6 +1933,7 @@ class Pln(_model):
             self._latent_mean,
             self._latent_sqrt_var,
         )
+
     @_add_doc(_model)
     def _compute_elbo_b(self):
         return profiled_elbo_pln(
@@ -1943,6 +1943,7 @@ class Pln(_model):
             self._latent_mean_b,
             self._latent_sqrt_var_b,
         )
+
     @_add_doc(_model)
     def _smart_init_model_parameters(self):
         pass
@@ -1952,6 +1953,7 @@ class Pln(_model):
     def _random_init_model_parameters(self):
         pass
         # no model parameters since we are doing a profiled ELBO
+
     @_add_doc(_model)
     def _smart_init_latent_parameters(self):
         self._random_init_latent_sqrt_var()
@@ -1968,6 +1970,7 @@ class Pln(_model):
     @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         return [self._latent_mean, self._latent_sqrt_var]
+
 
 class PlnPCAcollection:
     """
@@ -3451,6 +3454,7 @@ class ZIPln(_model):
         >>> zi.fit()
         >>> print(zi)
         """
+        self._use_closed_form_prob = use_closed_form_prob
         if exog is None and add_const is False:
             msg = "No covariates has been given. An intercept is added since "
             msg += "a ZIPln must have at least an intercept."
@@ -3465,7 +3469,6 @@ class ZIPln(_model):
             take_log_offsets=take_log_offsets,
             add_const=add_const,
         )
-        self._use_closed_form_prob = use_closed_form_prob
 
     def _extract_batch(self, batch):
         super()._extract_batch(batch)
@@ -3490,7 +3493,7 @@ class ZIPln(_model):
         offsets_formula: str = "logsum",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        use_closed_form_prob: bool = True,
+        use_closed_form_prob: bool = False,
     ):
         """
         Create a ZIPln instance from a formula and data.
@@ -3590,7 +3593,7 @@ class ZIPln(_model):
     def _random_init_model_parameters(self):
         self._coef_inflation = torch.randn(self.nb_cov, self.dim)
         self._coef = torch.randn(self.nb_cov, self.dim)
-        self._components = torch.randn(self.nb_cov, self.dim)
+        self._components = torch.randn(self.dim, self.dim)
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
@@ -3656,7 +3659,7 @@ class ZIPln(_model):
     @property
     def coef_inflation(self):
         """
-        Property representing the coefficients of the zero inflated model.
+        Property representing the coefficients of the inflation.
 
         Returns
         -------
@@ -3664,6 +3667,54 @@ class ZIPln(_model):
             The coefficients or None.
         """
         return self._cpu_attribute_or_none("_coef_inflation")
+
+    @coef_inflation.setter
+    @_array2tensor
+    def coef_inflation(
+        self, coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the coef_inflation property.
+
+        Parameters
+        ----------
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the coef is incorrect.
+        """
+        if coef_inflation.shape != (self.nb_cov, self.dim):
+            raise ValueError(
+                f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef_inflation.shape}"
+            )
+        self._coef_inflation = coef_inflation
+
+    @_model.latent_sqrt_var.setter
+    @_array2tensor
+    def latent_sqrt_var(
+        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the latent variance property.
+
+        Parameters
+        ----------
+        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The latent square root of the variance.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the latent variance is incorrect.
+        """
+        if latent_sqrt_var.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
+            )
+        self._latent_sqrt_var = latent_sqrt_var
 
     def _update_parameters(self):
         super()._update_parameters()
@@ -3695,9 +3746,50 @@ class ZIPln(_model):
         """
         return self._cpu_attribute_or_none("_covariance")
 
+    @components.setter
+    @_array2tensor
+    def components(self, components: torch.Tensor):
+        """
+        Setter for the components.
+
+        Parameters
+        ----------
+        components : torch.Tensor
+            The components to set.
+
+        Raises
+        ------
+        ValueError
+            If the components have an invalid shape.
+        """
+        if components.shape != (self.dim, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.dim, self.dim}, got {components.shape}"
+            )
+        self._components = components
+
     @property
     def latent_prob(self):
         return self._cpu_attribute_or_none("_latent_prob")
+
+    @latent_prob.setter
+    @_array2tensor
+    def latent_prob(self, latent_prob: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        if self._use_closed_form_prob is True:
+            raise ValueError(
+                "Can not set the latent prob when the closed form is used."
+            )
+        if latent_prob.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_prob.shape}"
+            )
+        if torch.max(latent_prob) > 1 or torch.min(latent_prob) < 0:
+            raise ValueError(f"Wrong value. All values should be between 0 and 1.")
+        if torch.norm(latent_prob * (self._endog == 0) - latent_prob) > 0.00000001:
+            raise ValueError(
+                "You can not assign non zeros inflation probabilities to non zero counts."
+            )
+        self._latent_prob = latent_prob
 
     @property
     def closed_formula_latent_prob(self):
@@ -3780,6 +3872,40 @@ class ZIPln(_model):
             "components": self.components,
             "coef_inflation": self.coef_inflation,
         }
+
+    def predict_prob_inflation(
+        self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Method for estimating the probability of a zero coming from the zero inflated component.
+
+        Parameters
+        ----------
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The exog.
+
+        Returns
+        -------
+        torch.Tensor
+            The predicted values.
+
+        Raises
+        ------
+        RuntimeError
+            If the shape of the exog is incorrect.
+
+        Notes
+        -----
+        - The mean sigmoid(exog @ coef_inflation) is returned.
+        - `exog` should have the shape `(_, nb_cov)`, where `nb_cov` is the number of exog variables.
+        """
+        if exog is not None and self.nb_cov == 0:
+            raise AttributeError("No exog in the model, can't predict")
+        if exog.shape[-1] != self.nb_cov:
+            error_string = f"X has wrong shape ({exog.shape}). Should"
+            error_string += f" be (_, {self.nb_cov})."
+            raise RuntimeError(error_string)
+        return torch.sigmoid(exog @ self.coef_inflation)
 
     @property
     @_add_doc(_model)

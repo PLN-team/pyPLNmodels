@@ -247,7 +247,6 @@ def elbo_zi_pln(
         1 + torch.exp(x_coef_inflation)
     )
 
-
     log_diag = torch.log(torch.diag(covariance))
     log_S_term = torch.sum(
         torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_sqrt_var))), axis=0
@@ -265,12 +264,12 @@ def elbo_zi_pln(
     )
     new = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
     K = sum_un_moins_rho_s2 + diag_sig_sum_rho + new
-    inside_f =-1 / 2 *  torch.diag(Omega) * K
+    inside_f = -1 / 2 * torch.diag(Omega) * K
     first = torch.sum(inside_a + inside_c + inside_e)
     second = torch.sum(inside_b)
     _, logdet = torch.slogdet(components)
-    second -= n_samples *logdet
+    second -= n_samples * logdet
     third = torch.sum(inside_d + inside_f)
-    third += n_samples*dim/2
+    third += n_samples * dim / 2
     res = first + second + third
     return res

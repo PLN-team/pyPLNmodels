@@ -1081,6 +1081,7 @@ def d_h_x3(a, x, y, dirac):
     rho_prime = rho * (1 - rho)
     return -rho_prime * d_varpsi_x2(x, y) / phi(x, y)
 
+
 def vec_to_mat(C, p, q):
     c = torch.zeros(p, q)
     c[torch.tril_indices(p, q, offset=0).tolist()] = C
@@ -1092,4 +1093,3 @@ def mat_to_vec(matc, p, q):
     tril = torch.tril(matc)
     # tril = matc.reshape(-1,1).squeeze()
     return tril[torch.tril_indices(p, q, offset=0).tolist()]
-
