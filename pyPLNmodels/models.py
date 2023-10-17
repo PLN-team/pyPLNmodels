@@ -99,10 +99,6 @@ class _model(ABC):
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
-        Raises
-        ------
-        ValueError
-            If the batch_size is greater than the number of samples, or not int.
         """
         (
             self._endog,
@@ -116,6 +112,7 @@ class _model(ABC):
         self._criterion_args = _CriterionArgs()
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
+        self._dirac = self._endog == 0
 
     @classmethod
     def from_formula(
@@ -253,7 +250,10 @@ class _model(ABC):
 
     def _handle_batch_size(self, batch_size):
         if batch_size is None:
-            batch_size = self.n_samples
+            if hasattr(self, "batch_size"):
+                batch_size = self.batch_size
+            else:
+                batch_size = self.n_samples
         if batch_size > self.n_samples:
             raise ValueError(
                 f"batch_size ({batch_size}) can not be greater than the number of samples ({self.n_samples})"
@@ -385,6 +385,10 @@ class _model(ABC):
         batch_size: int, optional(keyword-only)
             The batch size when optimizing the elbo. If None,
             batch gradient descent will be performed (i.e. batch_size = n_samples).
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
         """
         self._print_beginning_message()
         self._beginning_time = time.time()
@@ -531,7 +535,7 @@ class _model(ABC):
 
     def sk_PCA(self, n_components=None):
         """
-        Perform PCA on the latent variables.
+        Perform the scikit-learn PCA on the latent variables.
 
         Parameters
         ----------
@@ -553,8 +557,9 @@ class _model(ABC):
             raise ValueError(
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
+        latent_variables = self.transform()
         pca = PCA(n_components=n_components)
-        pca.fit(self.latent_variables.cpu())
+        pca.fit(latent_variables.cpu())
         return pca
 
     @property
@@ -595,9 +600,9 @@ class _model(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = self.sk_PCA(n_components=n_components)
-        proj_variables = pca.transform(self.latent_variables)
+        latent_variables = self.transform()
+        proj_variables = pca.transform(latent_variables)
         components = torch.from_numpy(pca.components_)
-
         labels = {
             str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
             for i in range(n_components)
@@ -655,7 +660,7 @@ class _model(ABC):
 
         n_components = 2
         pca = self.sk_PCA(n_components=n_components)
-        variables = self.latent_variables
+        variables = self.transform()
         proj_variables = pca.transform(variables)
         ## the package is not correctly printing the variance ratio
         figure, correlation_matrix = plot_pca_correlation_graph(
@@ -1808,51 +1813,6 @@ class Pln(_model):
                 1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
             )
 
-    @property
-    @_add_doc(
-        _model,
-        example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(endog,add_const = True)
-        >>> pln.fit()
-        >>> print(pln.latent_variables.shape)
-        """,
-    )
-    def latent_variables(self):
-        return self.latent_mean.detach()
-
-    @_add_doc(
-        _model,
-        example="""
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
-            >>> pln = Pln(endog,add_const = True)
-            >>> pln.fit()
-            >>> elbo = pln.compute_elbo()
-            >>> print("elbo", elbo)
-            >>> print("loglike/n", pln.loglike/pln.n_samples)
-            """,
-    )
-    def compute_elbo(self):
-        return profiled_elbo_pln(
-            self._endog,
-            self._exog,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-        )
-
-    @_add_doc(_model)
-    def _compute_elbo_b(self):
-        return profiled_elbo_pln(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
-        )
-
     @_add_doc(_model)
     def _smart_init_model_parameters(self):
         pass
@@ -2057,7 +2017,7 @@ class PlnPCAcollection:
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._init_models(ranks, dict_of_dict_initialization)
+        self._init_models(ranks, dict_of_dict_initialization, add_const=add_const)
 
     @classmethod
     def from_formula(
@@ -2128,6 +2088,18 @@ class PlnPCAcollection:
             The exog.
         """
         return self[self.ranks[0]].exog
+
+    @property
+    def batch_size(self) -> torch.Tensor:
+        """
+        Property representing the batch_size.
+
+        Returns
+        -------
+        torch.Tensor
+            The batch_size.
+        """
+        return self[self.ranks[0]].batch_size
 
     @property
     def endog(self) -> torch.Tensor:
@@ -2203,6 +2175,19 @@ class PlnPCAcollection:
         for model in self.values():
             model.endog = endog
 
+    @batch_size.setter
+    def batch_size(self, batch_size: int):
+        """
+        Setter for the batch_size property.
+
+        Parameters
+        ----------
+        batch_size : int
+            The batch size.
+        """
+        for model in self.values():
+            model.batch_size = batch_size
+
     @coef.setter
     @_array2tensor
     def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
@@ -2258,7 +2243,10 @@ class PlnPCAcollection:
             model.offsets = offsets
 
     def _init_models(
-        self, ranks: Iterable[int], dict_of_dict_initialization: Optional[dict]
+        self,
+        ranks: Iterable[int],
+        dict_of_dict_initialization: Optional[dict],
+        add_const: bool,
     ):
         """
         Method for initializing the models.
@@ -2282,6 +2270,7 @@ class PlnPCAcollection:
                         offsets=self._offsets,
                         rank=rank,
                         dict_initialization=dict_initialization,
+                        add_const=add_const,
                     )
                 else:
                     raise TypeError(
@@ -2389,6 +2378,10 @@ class PlnPCAcollection:
         batch_size: int, optional(keyword-only)
             The batch size when optimizing the elbo. If None,
             batch gradient descent will be performed (i.e. batch_size = n_samples).
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
         """
         self._print_beginning_message()
         for i in range(len(self.values())):
@@ -3606,7 +3599,6 @@ class ZIPln(_model):
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
     def _random_init_latent_parameters(self):
-        self._dirac = self._endog == 0
         self._latent_mean = torch.randn(self.n_samples, self.dim)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         self._latent_prob = (
@@ -3620,6 +3612,17 @@ class ZIPln(_model):
     @property
     def _covariance(self):
         return self._components @ (self._components.T)
+
+    def _get_max_components(self):
+        """
+        Method for getting the maximum number of components.
+
+        Returns
+        -------
+        int
+            The maximum number of components.
+        """
+        return self.dim
 
     @property
     def components(self) -> torch.Tensor:
@@ -3655,6 +3658,27 @@ class ZIPln(_model):
         >>> print(latent_inflated.shape)
         """
         return self.latent_mean, self.latent_prob
+
+    def transform(self, return_latent_prob=False):
+        """
+        Method for transforming the endog. Can be seen as a normalization of the endog.
+
+        Parameters
+        ----------
+        return_latent_prob: bool, optional
+            Wheter to return or not the latent_probability of zero inflation.
+        Returns
+        -------
+        The latent mean if `return_latent_prob` is False and (latent_mean, latent_prob) else.
+        """
+        if return_latent_prob is True:
+            return self.latent_variables
+        return self.latent_mean
+
+    def _endog_predictions(self):
+        return torch.exp(
+            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
+        ) * (1 - self._latent_prob)
 
     @property
     def coef_inflation(self):
@@ -3730,7 +3754,7 @@ class ZIPln(_model):
                     self._latent_prob_b, torch.tensor([0]), out=self._latent_prob_b
                 )
                 self._latent_prob_b = torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob_b
+                    self._latent_prob_b, torch.tensor([1]), out=self._latent_prob_b
                 )
                 self._latent_prob_b *= self._dirac_b
 

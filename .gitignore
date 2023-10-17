@@ -159,3 +159,4 @@ paper/*
 tests/test_models*
 tests/test_load*
 tests/test_readme*
+Getting_started.py

@@ -6,6 +6,9 @@ from tests.conftest import dict_fixtures
 from tests.utils import filter_models, MSE
 
 
+from pyPLNmodels import get_simulated_count_data
+
+
 @pytest.mark.parametrize("zi", dict_fixtures["loaded_and_fitted_model"])
 @filter_models(["ZIPln"])
 def test_properties(zi):
@@ -60,14 +63,67 @@ def test_no_exog_not_possible(model):
     assert model._coef_inflation.shape[0] == 1
 
 
-def test_find_right_covariance_and_coef():
-    pln_param = get_simulation_parameters(
-        n_samples=300, dim=50, nb_cov=2, rank=5, add_const=True
-    )
-    pln_param._coef += 5
+def test_find_right_covariance_coef_and_infla():
+    pln_param = get_simulation_parameters(zero_inflated=True, n_samples=1000)
+    # pln_param._coef += 5
     endog = sample_pln(pln_param, seed=0, return_latent=False)
-    zi = ZIPln(endog, exog=pln_param.exog, offsets=pln_param.offsets)
+    exog = pln_param.exog
+    offsets = pln_param.offsets
+    covariance = pln_param.covariance
+    coef = pln_param.coef
+    coef_inflation = pln_param.coef_inflation
+    endog, exog, offsets, covariance, coef, coef_inflation = get_simulated_count_data(
+        zero_inflated=True, return_true_param=True, n_samples=1000
+    )
+    zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
     zi.fit()
-    mse_covariance = MSE(zi.covariance - pln_param.covariance)
-    mse_coef = MSE(zi.coef)
-    assert mse_covariance < 0.5
+    mse_covariance = MSE(zi.covariance - covariance)
+    mse_coef = MSE(zi.coef - coef)
+    mse_coef_infla = MSE(zi.coef_inflation - coef_inflation)
+    assert mse_coef < 3
+    assert mse_coef_infla < 3
+    assert mse_covariance < 1
+
+
+@pytest.mark.parametrize("zi", dict_fixtures["loaded_and_fitted_model"])
+@filter_models(["ZIPln"])
+def test_latent_variables(zi):
+    z, w = zi.latent_variables
+    assert z.shape == zi.endog.shape
+    assert w.shape == zi.endog.shape
+
+
+@pytest.mark.parametrize("zi", dict_fixtures["loaded_and_fitted_model"])
+@filter_models(["ZIPln"])
+def test_transform(zi):
+    z = zi.transform()
+    assert z.shape == zi.endog.shape
+    z, w = zi.transform(return_latent_prob=True)
+    assert z.shape == w.shape == zi.endog.shape
+
+
+@pytest.mark.parametrize("model", dict_fixtures["sim_model_instance"])
+@filter_models(["ZIPln"])
+def test_batch(model):
+    pln_param = get_simulation_parameters(zero_inflated=True, n_samples=1000)
+    # pln_param._coef += 5
+    endog = sample_pln(pln_param, seed=0, return_latent=False)
+    exog = pln_param.exog
+    offsets = pln_param.offsets
+    covariance = pln_param.covariance
+    coef = pln_param.coef
+    coef_inflation = pln_param.coef_inflation
+    endog, exog, offsets, covariance, coef, coef_inflation = get_simulated_count_data(
+        zero_inflated=True, return_true_param=True, n_samples=1000
+    )
+    zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
+    zi.fit(batch_size=20)
+    mse_covariance = MSE(zi.covariance - covariance)
+    mse_coef = MSE(zi.coef - coef)
+    mse_coef_infla = MSE(zi.coef_inflation - coef_inflation)
+    assert mse_coef < 3
+    assert mse_coef_infla < 3
+    assert mse_covariance < 1
+    zi.show()
+    print(zi)
+    zi.fit()

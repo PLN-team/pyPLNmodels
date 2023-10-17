@@ -1,6 +1,5 @@
 import sys
 import glob
-from functools import singledispatch
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture as lf
@@ -8,6 +7,7 @@ import pandas as pd
 
 from pyPLNmodels import load_model, load_plnpcacollection
 from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection, ZIPln
+from pyPLNmodels import get_simulated_count_data
 
 
 sys.path.append("../")
@@ -206,6 +206,7 @@ dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_model_0cov_fitted", sim_model_0cov_fitted
 )
 
+
 sim_model_0cov_loaded = [
     "simulated_loaded_model_0cov_array",
     "simulated_loaded_model_0cov_formula",
@@ -285,12 +286,17 @@ sim_model_2cov_instance = [
     "simulated_model_2cov_array",
     "simulated_model_2cov_formula",
 ]
+sim_model_instance = sim_model_0cov_instance + sim_model_2cov_instance
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_model_instance", sim_model_instance
+)
 instances = sim_model_2cov_instance + instances
+
 
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_model_2cov_instance", sim_model_2cov_instance
 )
-
 sim_model_2cov_fitted = [
     "simulated_fitted_model_2cov_array",
     "simulated_fitted_model_2cov_formula",
