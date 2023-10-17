@@ -8,8 +8,8 @@ from tests.utils import MSE, filter_models
 
 from tests.import_data import true_sim_0cov, true_sim_2cov, endog_real
 
-single_models = ["Pln", "PlnPCA", "ZIPln"]
 pln_and_plnpca = ["Pln", "PlnPCA"]
+single_models = ["Pln", "PlnPCA", "ZIPln"]
 
 
 @pytest.mark.parametrize("any_model", dict_fixtures["loaded_and_fitted_model"])
@@ -108,3 +108,17 @@ def test_fail_wrong_exog_prediction(model):
     X = torch.randn(model.n_samples, model.nb_cov + 1)
     with pytest.raises(Exception):
         model.predict(X)
+
+
+@pytest.mark.parametrize("model", dict_fixtures["sim_model_instance"])
+@filter_models(pln_and_plnpca)
+def test_batch(model):
+    model.fit(batch_size=20)
+    print(model)
+    model.show()
+    if model.nb_cov == 2:
+        true_coef = true_sim_2cov["beta"]
+        mse_coef = MSE(model.coef - true_coef)
+        assert mse_coef < 0.1
+    elif model.nb_cov == 0:
+        assert model.coef is None
