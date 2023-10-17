@@ -43,9 +43,7 @@ def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
     return sigma_hat
 
 
-def _init_components(
-    endog: torch.Tensor, rank: int
-) -> torch.Tensor:
+def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
     that is easier to estimate and then takes the rank largest eigenvectors to get components.
