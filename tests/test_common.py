@@ -85,8 +85,11 @@ def test_find_right_coef(simulated_fitted_any_model):
 @filter_models(single_models)
 def test_fail_count_setter(model):
     wrong_endog = torch.randint(size=(10, 5), low=0, high=10)
-    with pytest.raises(Exception):
+    negative_endog = -model._endog
+    with pytest.raises(ValueError):
         model.endog = wrong_endog
+    with pytest.raises(ValueError):
+        model.endog = negative_endog
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])

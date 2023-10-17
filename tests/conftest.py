@@ -37,6 +37,7 @@ endog_real = data_real["endog"]
 endog_real = pd.DataFrame(endog_real)
 endog_real.columns = [f"var_{i}" for i in range(endog_real.shape[1])]
 
+
 def add_fixture_to_dict(my_dict, string_fixture):
     my_dict[string_fixture] = [lf(string_fixture)]
     return my_dict
@@ -217,6 +218,11 @@ dict_fixtures = add_list_of_fixture_to_dict(
 sim_model_0cov = sim_model_0cov_instance + sim_model_0cov_fitted + sim_model_0cov_loaded
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_model_0cov", sim_model_0cov
+)
+
+sim_model_0cov_fitted_and_loaded = sim_model_0cov_fitted + sim_model_0cov_loaded
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_model_0cov_fitted_and_loaded", sim_model_0cov_fitted_and_loaded
 )
 
 
