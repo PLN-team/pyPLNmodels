@@ -539,7 +539,7 @@ class PlnParameters:
         coef: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         exog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
-        coef_inflation=None,
+        coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame, None] = None,
     ):
         """
         Instantiate all the needed parameters to sample from the PLN model.
