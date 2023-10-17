@@ -33,8 +33,8 @@ def test_right_nbcov(plnpca):
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_model"])
 @filter_models(["PlnPCA"])
 def test_latent_var_pca(plnpca):
-    assert plnpca.transform(project=False).shape == plnpca.endog.shape
-    assert plnpca.transform().shape == (plnpca.n_samples, plnpca.rank)
+    assert plnpca.transform().shape == plnpca.endog.shape
+    assert plnpca.transform(project=True).shape == (plnpca.n_samples, plnpca.rank)
 
 
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_model"])

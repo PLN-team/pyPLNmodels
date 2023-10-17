@@ -3252,7 +3252,7 @@ class PlnPCA(_model):
         Parameters
         ----------
         project : bool, optional
-            Whether to project the latent variables, by default True.
+            Whether to project the latent variables, by default False.
         """,
         returns="""
         torch.Tensor
@@ -3269,7 +3269,7 @@ class PlnPCA(_model):
             >>> print(transformed_endog_high_dim.shape)
             """,
     )
-    def transform(self, project: bool = True) -> torch.Tensor:
+    def transform(self, project: bool = False) -> torch.Tensor:
         if project is True:
             return self.projected_latent_variables
         return self.latent_variables
@@ -3297,7 +3297,7 @@ class PlnPCA(_model):
             >>> pca.fit()
             >>> elbo = pca.compute_elbo()
             >>> print("elbo", elbo)
-            >>> print("loglike/n", pln.loglike/pln.n_samples)
+            >>> print("loglike/n", pca.loglike/pca.n_samples)
             """,
     )
     def compute_elbo(self) -> torch.Tensor:
