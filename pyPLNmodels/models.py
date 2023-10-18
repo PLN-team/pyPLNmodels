@@ -14,6 +14,7 @@ import plotly.express as px
 from mlxtend.plotting import plot_pca_correlation_graph
 import matplotlib
 from scipy import stats
+from statsmodels.discrete.count_model import ZeroInflatedPoisson
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -430,11 +431,11 @@ class _model(ABC):
         indices = np.arange(self.n_samples)
         if shuffle:
             np.random.shuffle(indices)
-
         for i in range(self._nb_full_batch):
-            yield self._return_batch(
+            batch = self._return_batch(
                 indices, i * self._batch_size, (i + 1) * self._batch_size
             )
+            yield batch
         # Last batch
         if self._last_batch_size != 0:
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
@@ -475,7 +476,7 @@ class _model(ABC):
             The loss value.
         """
         elbo = 0
-        for batch in self._get_batch(shuffle=True):
+        for batch in self._get_batch(shuffle=False):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
@@ -1005,6 +1006,13 @@ class _model(ABC):
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
+            if key == "latent_prob":
+                if torch.max(value) > 1 or torch.min(value) < 0:
+                    if (
+                        torch.norm(self.dirac * self.latent_prob - self.latent_prob)
+                        > 0.0001
+                    ):
+                        raise Exception("Error is here")
             if isinstance(value, torch.Tensor):
                 pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
@@ -3465,6 +3473,9 @@ class ZIPln(_model):
         to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
         batch = pln_batch + (torch.index_select(self._dirac, 0, to_take),)
         if self._use_closed_form_prob is False:
+            to_return = torch.index_select(self._latent_prob, 0, to_take)
+            print("max latent_prbo", torch.max(self._latent_prob))
+            print("max to return", torch.max(to_return))
             return batch + (torch.index_select(self._latent_prob, 0, to_take),)
         return batch
 
@@ -3587,6 +3598,12 @@ class ZIPln(_model):
             self._components = _init_components(self._endog, self.dim)
 
         if not hasattr(self, "_coef_inflation"):
+            # print('shape', self.exog.shape[1])
+            # for j in range(self.exog.shape[1]):
+            #     Y_j = self._endog[:,j].numpy()
+            #     offsets_j = self.offsets[:,j].numpy()
+            #     zip_training_results = ZeroInflatedPoisson(endog=Y_j,exog = self.exog.numpy(), exog_infl = self.exog.numpy(), inflation='logit', offsets = offsets_j).fit()
+            #     print('params', zip_training_results.params)
             self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
     def _random_init_latent_parameters(self):
@@ -3740,12 +3757,8 @@ class ZIPln(_model):
         """
         if self._use_closed_form_prob is False:
             with torch.no_grad():
-                torch.maximum(
-                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
-                )
-                torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
-                )
+                self._latent_prob = torch.maximum(self._latent_prob, torch.tensor([0]))
+                self._latent_prob = torch.minimum(self._latent_prob, torch.tensor([1]))
                 self._latent_prob *= self._dirac
 
     @property
