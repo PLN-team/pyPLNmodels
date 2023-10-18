@@ -1,5 +1,4 @@
 import sys
-import glob
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture as lf
@@ -12,10 +11,6 @@ from pyPLNmodels import get_simulated_count_data
 
 sys.path.append("../")
 
-# pytest_plugins = [
-#     fixture_file.replace("/", ".").replace(".py", "")
-#     for fixture_file in glob.glob("src/**/tests/fixtures/[!__]*.py", recursive=True)
-# ]
 
 from tests.import_data import (
     data_sim_0cov,
@@ -40,6 +35,11 @@ endog_real.columns = [f"var_{i}" for i in range(endog_real.shape[1])]
 def add_fixture_to_dict(my_dict, string_fixture):
     my_dict[string_fixture] = [lf(string_fixture)]
     return my_dict
+
+
+# zi = ZIPln(endog_sim_2cov, exog = exog_sim_2cov)
+# zi.fit()
+# print(zi)
 
 
 def add_list_of_fixture_to_dict(
