@@ -8,7 +8,7 @@ from tests.utils import MSE, filter_models
 single_models = ["Pln", "PlnPCA", "ZIPln"]
 
 
-@pytest.mark.parametrize("model", dict_fixtures["all_model"])
+@pytest.mark.parametrize("model", dict_fixtures["loaded_model"])
 def test_data_setter_with_torch(model):
     model.endog = model.endog
     model.exog = model.exog

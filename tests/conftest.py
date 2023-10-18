@@ -17,7 +17,6 @@ sys.path.append("../")
 #     for fixture_file in glob.glob("src/**/tests/fixtures/[!__]*.py", recursive=True)
 # ]
 
-
 from tests.import_data import (
     data_sim_0cov,
     data_sim_2cov,
