@@ -150,6 +150,7 @@ test.py
 
 ## directories that outputs when running the tests
 tests/Pln*
+tests/ZIPln*
 slides/
 index.html
 
