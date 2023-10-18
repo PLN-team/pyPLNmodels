@@ -242,11 +242,8 @@ class _model(ABC):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
 
-    def _update_parameters(self):
-        """
-        Update the parameters with a gradient step and project if necessary.
-        """
-        self.optim.step()
+    def _project_parameters(self):
+        pass
 
     def _handle_batch_size(self, batch_size):
         if batch_size is None:
@@ -486,8 +483,8 @@ class _model(ABC):
                 raise ValueError("test")
             loss.backward()
             elbo += loss.item()
-            self._update_parameters()
-            self._update_closed_forms()
+            self.optim.step()
+        self._project_parameters()
         return elbo / self.nb_batches
 
     def _extract_batch(self, batch):
@@ -735,12 +732,6 @@ class _model(ABC):
         current_running_time = time.time() - self._beginning_time
         self._criterion_args.update_criterion(-loss, current_running_time)
         return self._criterion_args.criterion
-
-    def _update_closed_forms(self):
-        """
-        Update closed-form expressions.
-        """
-        pass
 
     def display_covariance(self, ax=None, savefig=False, name_file=""):
         """
@@ -3740,8 +3731,7 @@ class ZIPln(_model):
             )
         self._latent_sqrt_var = latent_sqrt_var
 
-    def _update_parameters(self):
-        super()._update_parameters()
+    def _project_parameters(self):
         self._project_latent_prob()
 
     def _project_latent_prob(self):
@@ -3750,13 +3740,13 @@ class ZIPln(_model):
         """
         if self._use_closed_form_prob is False:
             with torch.no_grad():
-                self._latent_prob_b = torch.maximum(
-                    self._latent_prob_b, torch.tensor([0]), out=self._latent_prob_b
+                torch.maximum(
+                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
                 )
-                self._latent_prob_b = torch.minimum(
-                    self._latent_prob_b, torch.tensor([1]), out=self._latent_prob_b
+                torch.minimum(
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
                 )
-                self._latent_prob_b *= self._dirac_b
+                self._latent_prob *= self._dirac
 
     @property
     def covariance(self) -> torch.Tensor:
@@ -3878,15 +3868,12 @@ class ZIPln(_model):
             self._latent_sqrt_var,
             self._components,
         ]
-        if self._use_closed_form_prob:
+        if self._use_closed_form_prob is False:
             list_parameters.append(self._latent_prob)
         if self._exog is not None:
             list_parameters.append(self._coef)
             list_parameters.append(self._coef_inflation)
         return list_parameters
-
-    def _update_closed_forms(self):
-        pass
 
     @property
     @_add_doc(_model)
@@ -3938,7 +3925,7 @@ class ZIPln(_model):
             "latent_sqrt_var": self.latent_sqrt_var,
             "latent_mean": self.latent_mean,
         }
-        if self._use_closed_form_prob is True:
+        if self._use_closed_form_prob is False:
             latent_param["latent_prob"] = self.latent_prob
         return latent_param
 

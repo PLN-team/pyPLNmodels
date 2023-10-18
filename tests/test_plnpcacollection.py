@@ -86,4 +86,4 @@ def test_batch(collection):
             assert mse_coef < 0.35
         assert mse_covariance < 0.25
     collection.fit()
-    assert collection.batch_size == collection.n_samples
+    assert collection.batch_size == 20
