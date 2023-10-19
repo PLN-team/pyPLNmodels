@@ -14,7 +14,6 @@ import plotly.express as px
 from mlxtend.plotting import plot_pca_correlation_graph
 import matplotlib
 from scipy import stats
-from statsmodels.discrete.count_model import ZeroInflatedPoisson
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -3474,8 +3473,6 @@ class ZIPln(_model):
         batch = pln_batch + (torch.index_select(self._dirac, 0, to_take),)
         if self._use_closed_form_prob is False:
             to_return = torch.index_select(self._latent_prob, 0, to_take)
-            print("max latent_prbo", torch.max(self._latent_prob))
-            print("max to return", torch.max(to_return))
             return batch + (torch.index_select(self._latent_prob, 0, to_take),)
         return batch
 
@@ -3598,13 +3595,14 @@ class ZIPln(_model):
             self._components = _init_components(self._endog, self.dim)
 
         if not hasattr(self, "_coef_inflation"):
-            # print('shape', self.exog.shape[1])
+            self._coef_inflation = torch.randn(self.nb_cov, self.dim)
             # for j in range(self.exog.shape[1]):
             #     Y_j = self._endog[:,j].numpy()
             #     offsets_j = self.offsets[:,j].numpy()
-            #     zip_training_results = ZeroInflatedPoisson(endog=Y_j,exog = self.exog.numpy(), exog_infl = self.exog.numpy(), inflation='logit', offsets = offsets_j).fit()
-            #     print('params', zip_training_results.params)
-            self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+            #     exog = self.exog[:,j].unsqueeze(1).numpy()
+            #     undzi = ZeroInflatedPoisson(endog=Y_j,exog = exog, exog_infl = exog, inflation='logit', offset = offsets_j)
+            #     zip_training_results = undzi.fit()
+            #     self._coef_inflation[:,j] = zip_training_results.params[1]
 
     def _random_init_latent_parameters(self):
         self._latent_mean = torch.randn(self.n_samples, self.dim)
