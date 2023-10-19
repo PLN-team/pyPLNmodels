@@ -231,7 +231,7 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
-        proj_variables = pca.transform(self.latent_variables.detach().cpu())
+        proj_variables = pca.transform(self.latent_variables)
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
@@ -1286,7 +1286,7 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
-        predictions = self._endog_predictions().ravel().detach()
+        predictions = self._endog_predictions().ravel().cpu().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
         sns.scatterplot(x=self.endog.ravel(), y=predictions, hue=colors, ax=ax)
@@ -3284,7 +3284,7 @@ class PlnPCA(_model):
         """,
     )
     def latent_variables(self) -> torch.Tensor:
-        return torch.matmul(self._latent_mean, self._components.T).detach()
+        return torch.matmul(self.latent_mean, self.components.T)
 
     @_add_doc(
         _model,
