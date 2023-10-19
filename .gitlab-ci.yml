@@ -20,8 +20,16 @@ tests:
     pip install '.[tests]'
   script:
     - pip install .
+    - jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
     - cd tests
-    - python create_readme_and_docstrings_tests.py
+    - python create_readme_getting_started_and_docstrings_tests.py
+    - cd readme_examples
+    - pytest .
+    - cd ../readme_examples
+    - pytest .
+    - cd ../getting_started
+    - pytest .
+    - cd ..
     - pytest .
   only:
     - main
