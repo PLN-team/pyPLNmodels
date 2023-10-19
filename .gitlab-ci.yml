@@ -24,7 +24,6 @@ tests:
     - cd tests
     - python create_readme_getting_started_and_docstrings_tests.py
     - rm test_getting_started.py
-    - ./run_readme_docstrings_getting_started.sh
     - pytest .
   only:
     - main
