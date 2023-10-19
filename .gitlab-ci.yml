@@ -15,7 +15,7 @@ black:
 
 tests:
   stage: checks
-  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter:main"
+  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     pip install '.[tests]'
   script:
