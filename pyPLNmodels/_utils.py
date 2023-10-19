@@ -929,6 +929,10 @@ def _extract_data_from_formula(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
+    # dmatrices can not deal with GPU matrices
+    for key,matrix in data.items():
+        if isinstance(matrix, torch.Tensor):
+            data[key] = matrix.cpu()
     dmatrix = dmatrices(formula, data=data)
     endog = dmatrix[0]
     exog = dmatrix[1]
