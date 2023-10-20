@@ -232,8 +232,8 @@ class _model(ABC):
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
         proj_variables = pca.transform(self.latent_variables)
-        x = proj_variables[:, 0]
-        y = proj_variables[:, 1]
+        x = proj_variables[:, 0].cpu()
+        y = proj_variables[:, 1].cpu()
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_).to(DEVICE)
