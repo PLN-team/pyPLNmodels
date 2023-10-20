@@ -236,7 +236,7 @@ class _model(ABC):
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
-            sk_components = torch.from_numpy(pca.components_)
+            sk_components = torch.from_numpy(pca.components_).to(DEVICE)
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
@@ -3008,7 +3008,7 @@ class PlnPCA(_model):
         else:
             XB = 0
         return torch.exp(
-            self._offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
+            self._offsets + XB + self.latent_variables.to(DEVICE) + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
