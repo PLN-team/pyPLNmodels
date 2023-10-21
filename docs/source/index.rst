@@ -16,6 +16,7 @@ API documentation
    ./plnpcacollection.rst
    ./plnpca.rst
    ./pln.rst
+   ./zipln.rst
 
 .. toctree::
    :maxdepth: 1
