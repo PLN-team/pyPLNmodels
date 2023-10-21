@@ -232,12 +232,12 @@ class _model(ABC):
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
         proj_variables = pca.transform(self.latent_variables)
-        x = proj_variables[:, 0].cpu()
-        y = proj_variables[:, 1].cpu()
+        x = proj_variables[:, 0]
+        y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_).to(DEVICE)
-            covariances = self._get_pca_low_dim_covariances(sk_components).detach()
+            covariances = self._get_pca_low_dim_covariances(sk_components).cpu().detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
