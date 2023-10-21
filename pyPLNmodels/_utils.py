@@ -199,9 +199,8 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
         integer_ / math.exp(1)
     )
 
-
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
-    integer = torch.min(torch.max(tens, torch.tensor([eps])), torch.tensor([1 - eps]))
+    integer = torch.min(torch.max(tens, torch.tensor([eps]).to(DEVICE)), torch.tensor([1 - eps]).to(DEVICE))
     return torch.log(integer)
 
 

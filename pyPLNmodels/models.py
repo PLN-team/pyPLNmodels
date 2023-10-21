@@ -968,7 +968,7 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
             )
-        self._latent_mean = latent_mean
+        self._latent_mean = latent_mean.to(DEVICE)
 
     def _cpu_attribute_or_none(self, attribute_name):
         """
@@ -1821,17 +1821,6 @@ class Pln(_model):
         pass
         # no model parameters since we are doing a profiled ELBO
 
-    @_add_doc(_model)
-    def _smart_init_latent_parameters(self):
-        self._random_init_latent_sqrt_var()
-        if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.log(self._endog + (self._endog == 0))
-
-    @_add_doc(_model)
-    def _random_init_latent_parameters(self):
-        self._random_init_latent_sqrt_var()
-        if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
 
     @property
     @_add_doc(_model)
@@ -3583,9 +3572,9 @@ class ZIPln(_model):
         return "with full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
-        self._coef_inflation = torch.randn(self.nb_cov, self.dim)
-        self._coef = torch.randn(self.nb_cov, self.dim)
-        self._components = torch.randn(self.dim, self.dim)
+        self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        self._components = torch.randn(self.dim, self.dim).to(DEVICE)
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
@@ -3595,7 +3584,7 @@ class ZIPln(_model):
             self._components = _init_components(self._endog, self.dim)
 
         if not hasattr(self, "_coef_inflation"):
-            self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+            self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
             # for j in range(self.exog.shape[1]):
             #     Y_j = self._endog[:,j].numpy()
             #     offsets_j = self.offsets[:,j].numpy()
@@ -3605,12 +3594,12 @@ class ZIPln(_model):
             #     self._coef_inflation[:,j] = zip_training_results.params[1]
 
     def _random_init_latent_parameters(self):
-        self._latent_mean = torch.randn(self.n_samples, self.dim)
-        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
+        self._latent_mean = torch.randn(self.n_samples, self.dim).to(DEVICE)
+        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim).to(DEVICE)
         self._latent_prob = (
             torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
             * self._dirac
-        ).double()
+        ).double().to(DEVICE)
 
     def _smart_init_latent_parameters(self):
         self._random_init_latent_parameters()
@@ -3755,8 +3744,8 @@ class ZIPln(_model):
         """
         if self._use_closed_form_prob is False:
             with torch.no_grad():
-                self._latent_prob = torch.maximum(self._latent_prob, torch.tensor([0]))
-                self._latent_prob = torch.minimum(self._latent_prob, torch.tensor([1]))
+                self._latent_prob = torch.maximum(self._latent_prob, torch.tensor([0]).to(DEVICE))
+                self._latent_prob = torch.minimum(self._latent_prob, torch.tensor([1]).to(DEVICE))
                 self._latent_prob *= self._dirac
 
     @property
