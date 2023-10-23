@@ -1,10 +1,15 @@
 import os
+import torch
 
 from pyPLNmodels import (
     get_simulated_count_data,
     get_real_count_data,
 )
 
+if torch.cuda.is_available():
+    DEVICE = "cuda:0"
+else:
+    DEVICE = "cpu"
 
 (
     endog_sim_0cov,

@@ -23,8 +23,11 @@ else:
     DEVICE = torch.device("cpu")
 
 
-class _PlotArgs:
-    def __init__(self, window: int):
+BETA = 0.03
+
+
+class _CriterionArgs:
+    def __init__(self):
         """
         Initialize the PlotArgs class.
 
@@ -33,10 +36,34 @@ class _PlotArgs:
         window : int
             The size of the window for computing the criterion.
         """
-        self.window = window
         self.running_times = []
-        self.criterions = [1] * window  # the first window criterion won't be computed.
         self._elbos_list = []
+        self.cumulative_elbo_list = [0]
+        self.new_derivative = 0
+        self.normalized_elbo_list = []
+        self.criterion_list = [1]
+        self.criterion = 1
+
+    def update_criterion(self, elbo, running_time):
+        self._elbos_list.append(elbo)
+        self.running_times.append(running_time)
+        self.cumulative_elbo_list.append(self.cumulative_elbo + elbo)
+        self.normalized_elbo_list.append(-elbo / self.cumulative_elbo_list[-1])
+        if self.iteration_number > 1:
+            current_derivative = np.abs(
+                (self.normalized_elbo_list[-2] - self.normalized_elbo_list[-1])
+                / (self.running_times[-2] - self.running_times[-1])
+            )
+            old_derivative = self.new_derivative
+            self.new_derivative = (
+                self.new_derivative * (1 - BETA) + current_derivative * BETA
+            )
+            current_hessian = np.abs(
+                (self.new_derivative - old_derivative)
+                / (self.running_times[-2] - self.running_times[-1])
+            )
+            self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
+            self.criterion_list.append(self.criterion)
 
     @property
     def iteration_number(self) -> int:
@@ -49,6 +76,10 @@ class _PlotArgs:
             The number of iterations.
         """
         return len(self._elbos_list)
+
+    @property
+    def cumulative_elbo(self):
+        return self.cumulative_elbo_list[-1]
 
     def _show_loss(self, ax=None):
         """
@@ -80,8 +111,8 @@ class _PlotArgs:
         """
         ax = plt.gca() if ax is None else ax
         ax.plot(
-            self.running_times[self.window :],
-            self.criterions[self.window :],
+            self.running_times,
+            self.criterion_list,
             label="Delta",
         )
         ax.set_yscale("log")
@@ -170,7 +201,10 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
 
 
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
-    integer = torch.min(torch.max(tens, torch.tensor([eps])), torch.tensor([1 - eps]))
+    integer = torch.min(
+        torch.max(tens, torch.tensor([eps]).to(DEVICE)),
+        torch.tensor([1 - eps]).to(DEVICE),
+    )
     return torch.log(integer)
 
 
@@ -306,12 +340,12 @@ def _format_model_param(
     exog = _format_data(exog)
     if add_const is True:
         if exog is None:
-            exog = torch.ones(endog.shape[0], 1)
+            exog = torch.ones(endog.shape[0], 1).to(DEVICE)
         else:
             if _has_null_variance(exog) is False:
                 exog = torch.concat(
                     (exog, torch.ones(endog.shape[0]).unsqueeze(1)), dim=1
-                )
+                ).to(DEVICE)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of endog")
@@ -463,8 +497,12 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
     return components.to("cpu")
 
 
-def _get_simulation_coef_cov_offsets(
-    n_samples: int, nb_cov: int, dim: int, add_const: bool
+def _get_simulation_coef_cov_offsets_coefzi(
+    n_samples: int,
+    nb_cov: int,
+    dim: int,
+    add_const: bool,
+    zero_inflated: bool,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -482,6 +520,8 @@ def _get_simulation_coef_cov_offsets(
         Dimension required of the data.
     add_const : bool, optional
         If True, will add a vector of ones in the exog.
+    zero_inflated : bool
+        If True, will return a zero_inflated coefficient.
 
     Returns
     -------
@@ -506,14 +546,23 @@ def _get_simulation_coef_cov_offsets(
         if add_const is True:
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
+        if zero_inflated is True:
+            msg = "Can not instantiate a zero inflate model without covariates."
+            msg += " Please give at least an intercept by setting add_const to True"
+            raise ValueError(msg)
         coef = None
+        coef_inflation = None
     else:
         coef = torch.randn(exog.shape[1], dim, device="cpu")
+        if zero_inflated is True:
+            coef_inflation = torch.randn(exog.shape[1], dim, device="cpu")
+        else:
+            coef_inflation = None
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
     torch.random.set_rng_state(prev_state)
-    return coef, exog, offsets
+    return coef, exog, offsets, coef_inflation
 
 
 class PlnParameters:
@@ -524,7 +573,7 @@ class PlnParameters:
         coef: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         exog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
-        coef_inflation=None,
+        coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame, None] = None,
     ):
         """
         Instantiate all the needed parameters to sample from the PLN model.
@@ -539,9 +588,8 @@ class PlnParameters:
             Covariates, size (n, d) or None
         offsets : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Offset, size (n, p)
-        _coef_inflation : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None, optional(keyword-only)
+        coef_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame, None], optional(keyword-only)
             Coefficient for zero-inflation model, size (d, p) or None. Default is None.
-
         """
         self._components = _format_data(components)
         self._coef = _format_data(coef)
@@ -682,6 +730,7 @@ def get_simulation_parameters(
     nb_cov: int = 1,
     rank: int = 5,
     add_const: bool = True,
+    zero_inflated: bool = False,
 ) -> PlnParameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -700,18 +749,26 @@ def get_simulation_parameters(
             The rank of the data components, by default 5.
         add_const : bool, optional(keyword-only)
             If True, will add a vector of ones in the exog.
+        zero_inflated : bool, optional(keyword-only)
+            If True, the model will be zero inflated.
+            Default is False.
 
     Returns
     -------
         PlnParameters
             The generated simulation parameters.
-
     """
-    coef, exog, offsets = _get_simulation_coef_cov_offsets(
-        n_samples, nb_cov, dim, add_const
+    coef, exog, offsets, coef_inflation = _get_simulation_coef_cov_offsets_coefzi(
+        n_samples, nb_cov, dim, add_const, zero_inflated
     )
     components = _get_simulation_components(dim, rank)
-    return PlnParameters(components=components, coef=coef, exog=exog, offsets=offsets)
+    return PlnParameters(
+        components=components,
+        coef=coef,
+        exog=exog,
+        offsets=offsets,
+        coef_inflation=coef_inflation,
+    )
 
 
 def get_simulated_count_data(
@@ -722,6 +779,7 @@ def get_simulated_count_data(
     nb_cov: int = 1,
     return_true_param: bool = False,
     add_const: bool = True,
+    zero_inflated=False,
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -741,19 +799,45 @@ def get_simulated_count_data(
         Number of exog, by default 1.
     return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
+    zero_inflated: bool, optional(keyword-only)
+        Whether to use a zero inflated model or not.
+        Default to False.
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 
     Returns
     -------
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        Tuple containing endog, exog, and offsets.
+    if return_true_param is False:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            Tuple containing endog, exog, and offsets.
+    else:
+        if zero_inflated is True:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+                Tuple containing endog, exog, offsets, covariance, coef, coef_inflation .
+        else:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+                Tuple containing endog, exog, offsets, covariance, coef.
+
     """
     pln_param = get_simulation_parameters(
-        n_samples=n_samples, dim=dim, nb_cov=nb_cov, rank=rank, add_const=add_const
+        n_samples=n_samples,
+        dim=dim,
+        nb_cov=nb_cov,
+        rank=rank,
+        add_const=add_const,
+        zero_inflated=zero_inflated,
     )
     endog = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
+        if zero_inflated is True:
+            return (
+                endog,
+                pln_param.exog,
+                pln_param.offsets,
+                pln_param.covariance,
+                pln_param.coef,
+                pln_param.coef_inflation,
+            )
         return (
             endog,
             pln_param.exog,
@@ -761,7 +845,7 @@ def get_simulated_count_data(
             pln_param.covariance,
             pln_param.coef,
         )
-    return pln_param.endog, pln_param.cov, pln_param.offsets
+    return endog, pln_param.exog, pln_param.offsets
 
 
 def get_real_count_data(
@@ -848,6 +932,10 @@ def _extract_data_from_formula(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
+    # dmatrices can not deal with GPU matrices
+    for key, matrix in data.items():
+        if isinstance(matrix, torch.Tensor):
+            data[key] = matrix.cpu()
     dmatrix = dmatrices(formula, data=data)
     endog = dmatrix[0]
     exog = dmatrix[1]
@@ -1005,3 +1093,60 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
         return fun
 
     return wrapper
+
+
+def pf_lambert(x, y):
+    return x - (1 - (y * torch.exp(-x) + 1) / (x + 1))
+
+
+def lambert(y, nb_pf=10):
+    x = torch.log(1 + y)
+    for _ in range(nb_pf):
+        x = pf_lambert(x, y)
+    return x
+
+
+def d_varpsi_x1(mu, sigma2):
+    W = lambert(sigma2 * torch.exp(mu))
+    first = phi(mu, sigma2)
+    third = 1 / sigma2 + 1 / 2 * 1 / ((1 + W) ** 2)
+    return -first * W * third
+
+
+def phi(mu, sigma2):
+    y = sigma2 * torch.exp(mu)
+    lamby = lambert(y)
+    log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
+    return torch.exp(log_num) / torch.sqrt(1 + lamby)
+
+
+def d_varpsi_x2(mu, sigma2):
+    first = d_varpsi_x1(mu, sigma2) / sigma2
+    W = lambert(sigma2 * torch.exp(mu))
+    second = (W**2 + 2 * W) / 2 / (sigma2**2) * phi(mu, sigma2)
+    return first + second
+
+
+def d_h_x2(a, x, y, dirac):
+    rho = torch.sigmoid(a - torch.log(phi(x, y))) * dirac
+    rho_prime = rho * (1 - rho)
+    return -rho_prime * d_varpsi_x1(x, y) / phi(x, y)
+
+
+def d_h_x3(a, x, y, dirac):
+    rho = torch.sigmoid(a - torch.log(phi(x, y))) * dirac
+    rho_prime = rho * (1 - rho)
+    return -rho_prime * d_varpsi_x2(x, y) / phi(x, y)
+
+
+def vec_to_mat(C, p, q):
+    c = torch.zeros(p, q)
+    c[torch.tril_indices(p, q, offset=0).tolist()] = C
+    # c = C.reshape(p,q)
+    return c
+
+
+def mat_to_vec(matc, p, q):
+    tril = torch.tril(matc)
+    # tril = matc.reshape(-1,1).squeeze()
+    return tril[torch.tril_indices(p, q, offset=0).tolist()]
