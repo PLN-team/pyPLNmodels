@@ -45,7 +45,7 @@ transformed_data = pln.transform()
 pca =  PlnPCAcollection.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca.fit()
 print(pca)
-transformed_data = pca.transform()
+transformed_data = pca.best_model().transform()
 ```
 ### Zero inflated Poisson Log normal Model (aka ZIPln)
 ```
