@@ -3197,7 +3197,7 @@ class PlnPCA(_model):
         """
         Orthogonal components of the model.
         """
-        return torch.linalg.qr(self._components, "reduced")[0]
+        return torch.linalg.qr(self._components, "reduced")[0].cpu()
 
     @property
     def components(self) -> torch.Tensor:

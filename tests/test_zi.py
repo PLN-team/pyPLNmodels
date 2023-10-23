@@ -77,9 +77,9 @@ def test_find_right_covariance_coef_and_infla():
     )
     zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
     zi.fit()
-    mse_covariance = MSE(zi.covariance - covariance)
-    mse_coef = MSE(zi.coef - coef)
-    mse_coef_infla = MSE(zi.coef_inflation - coef_inflation)
+    mse_covariance = MSE(zi.covariance.cpu() - covariance.cpu())
+    mse_coef = MSE(zi.coef.cpu() - coef.cpu())
+    mse_coef_infla = MSE(zi.coef_inflation.cpu() - coef_inflation.cpu())
     assert mse_coef < 3
     assert mse_coef_infla < 3
     assert mse_covariance < 1
@@ -118,9 +118,9 @@ def test_batch(model):
     )
     zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
     zi.fit(batch_size=20)
-    mse_covariance = MSE(zi.covariance - covariance)
-    mse_coef = MSE(zi.coef - coef)
-    mse_coef_infla = MSE(zi.coef_inflation - coef_inflation)
+    mse_covariance = MSE(zi.covariance.cpu() - covariance.cpu())
+    mse_coef = MSE(zi.coef.cpu() - coef.cpu())
+    mse_coef_infla = MSE(zi.coef_inflation.cpu() - coef_inflation.cpu())
     assert mse_coef < 3
     assert mse_coef_infla < 3
     assert mse_covariance < 1
