@@ -49,7 +49,7 @@ transformed_data = pca.best_model().transform()
 ```
 ### Zero inflated Poisson Log normal Model (aka ZIPln)
 ```
-zi =  ZIPln.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
+zi =  ZIPln.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
 zi.fit()
 print(zi)
 transformed_data = zi.transform()
