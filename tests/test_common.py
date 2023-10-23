@@ -53,7 +53,9 @@ def test_find_right_covariance(simulated_fitted_any_model):
         raise ValueError(
             f"Not the right numbers of covariance({simulated_fitted_any_model.nb_cov})"
         )
-    mse_covariance = MSE(simulated_fitted_any_model.covariance.cpu() - true_covariance.cpu())
+    mse_covariance = MSE(
+        simulated_fitted_any_model.covariance.cpu() - true_covariance.cpu()
+    )
     assert mse_covariance < 0.05
 
 

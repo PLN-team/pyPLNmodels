@@ -8,6 +8,7 @@ from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
 from tests.import_data import true_sim_0cov, true_sim_2cov
 
+
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_model"])
 @filter_models(["PlnPCAcollection"])
 def test_best_model(plnpca):
