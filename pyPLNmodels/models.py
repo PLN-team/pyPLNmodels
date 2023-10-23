@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 import warnings
 import os
-from typing import Optional, Dict, List, Type, Any, Iterable, Union
+from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
 
 import pandas as pd
 import torch
@@ -18,11 +18,11 @@ from scipy import stats
 from ._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
-    _closed_formula_pi,
+    _closed_formula_latent_prob,
 )
 from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
 from ._utils import (
-    _PlotArgs,
+    _CriterionArgs,
     _format_data,
     _nice_string_of_dict,
     _plot_ellipse,
@@ -32,6 +32,8 @@ from ._utils import (
     _array2tensor,
     _handle_data,
     _add_doc,
+    vec_to_mat,
+    mat_to_vec,
 )
 
 from ._initialization import (
@@ -57,7 +59,6 @@ class _model(ABC):
     Base class for all the Pln models. Should be inherited.
     """
 
-    _WINDOW: int = 15
     _endog: torch.Tensor
     _exog: torch.Tensor
     _offsets: torch.Tensor
@@ -65,6 +66,7 @@ class _model(ABC):
     _beginning_time: float
     _latent_sqrt_var: torch.Tensor
     _latent_mean: torch.Tensor
+    _batch_size: int = None
 
     def __init__(
         self,
@@ -107,9 +109,10 @@ class _model(ABC):
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._plotargs = _PlotArgs(self._WINDOW)
+        self._criterion_args = _CriterionArgs()
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
+        self._dirac = self._endog == 0
 
     @classmethod
     def from_formula(
@@ -160,11 +163,34 @@ class _model(ABC):
         """
         if "coef" not in dict_initialization.keys():
             print("No coef is initialized.")
-            self.coef = None
+            dict_initialization["coef"] = None
+        if self._NAME == "Pln":
+            del dict_initialization["covariance"]
+            del dict_initialization["coef"]
         for key, array in dict_initialization.items():
             array = _format_data(array)
             setattr(self, key, array)
         self._fitted = True
+
+    @property
+    def batch_size(self) -> int:
+        """
+        The batch size of the model. Should not be greater than the number of samples.
+        """
+        if self._batch_size is None:
+            return self.n_samples
+        return self._batch_size
+
+    @property
+    def _current_batch_size(self) -> int:
+        return self._exog_b.shape[0]
+
+    @batch_size.setter
+    def batch_size(self, batch_size: int):
+        """
+        Setter for the batch size. Should be an integer not greater than the number of samples.
+        """
+        self._batch_size = self._handle_batch_size(batch_size)
 
     @property
     def fitted(self) -> bool:
@@ -210,11 +236,30 @@ class _model(ABC):
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
-            sk_components = torch.from_numpy(pca.components_)
-            covariances = self._get_pca_low_dim_covariances(sk_components).detach()
+            sk_components = torch.from_numpy(pca.components_).to(DEVICE)
+            covariances = (
+                self._get_pca_low_dim_covariances(sk_components).cpu().detach()
+            )
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
+
+    def _project_parameters(self):
+        pass
+
+    def _handle_batch_size(self, batch_size):
+        if batch_size is None:
+            if hasattr(self, "batch_size"):
+                batch_size = self.batch_size
+            else:
+                batch_size = self.n_samples
+        if batch_size > self.n_samples:
+            raise ValueError(
+                f"batch_size ({batch_size}) can not be greater than the number of samples ({self.n_samples})"
+            )
+        elif isinstance(batch_size, int) is False:
+            raise ValueError(f"batch_size should be int, got {type(batch_size)}")
+        return batch_size
 
     @property
     def nb_iteration_done(self) -> int:
@@ -226,7 +271,7 @@ class _model(ABC):
         int
             The number of iterations done.
         """
-        return len(self._plotargs._elbos_list)
+        return len(self._criterion_args._elbos_list) * self.nb_batches
 
     @property
     def n_samples(self) -> int:
@@ -280,20 +325,6 @@ class _model(ABC):
             self._coef = None
         self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
 
-    @abstractmethod
-    def _random_init_model_parameters(self):
-        """
-        Abstract method to randomly initialize model parameters.
-        """
-        pass
-
-    @abstractmethod
-    def _random_init_latent_parameters(self):
-        """
-        Abstract method to randomly initialize latent parameters.
-        """
-        pass
-
     def _smart_init_latent_parameters(self):
         """
         Initialize latent parameters smartly.
@@ -320,32 +351,20 @@ class _model(ABC):
 
     def _put_parameters_to_device(self):
         """
-        Move parameters to the device.
+        Move parameters to the cGPU device if present.
         """
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
-
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        """
-        A list containing all the parameters that need to be upgraded via a gradient step.
-
-        Returns
-        -------
-        List[torch.Tensor]
-            List of parameters needing gradient.
-        """
-        ...
 
     def fit(
         self,
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size=None,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -356,50 +375,126 @@ class _model(ABC):
             The maximum number of iterations. Defaults to 50000.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
-        class_optimizer : torch.optim.Optimizer, optional
-            The optimizer class. Defaults to torch.optim.Rprop.
         tol : float, optional(keyword-only)
-            The tolerance for convergence. Defaults to 1e-3.
+            The tolerance for convergence. Defaults to 1e-8.
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         self._beginning_time = time.time()
-
+        self._batch_size = self._handle_batch_size(batch_size)
         if self._fitted is False:
             self._init_parameters(do_smart_init)
-        elif len(self._plotargs.running_times) > 0:
-            self._beginning_time -= self._plotargs.running_times[-1]
+        elif len(self._criterion_args.running_times) > 0:
+            self._beginning_time -= self._criterion_args.running_times[-1]
         self._put_parameters_to_device()
-        self.optim = class_optimizer(self._list_of_parameters_needing_gradient, lr=lr)
+        self._handle_optimizer(lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
-            criterion = self._compute_criterion_and_update_plotargs(loss, tol)
+            criterion = self._update_criterion_args(loss)
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose and self.nb_iteration_done % 50 == 0:
+            if verbose and self.nb_iteration_done % 50 == 1:
                 self._print_stats()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
+    def _handle_optimizer(self, lr):
+        if self.batch_size < self.n_samples:
+            self.optim = torch.optim.Adam(
+                self._list_of_parameters_needing_gradient, lr=lr
+            )
+        else:
+            self.optim = torch.optim.Rprop(
+                self._list_of_parameters_needing_gradient, lr=lr
+            )
+
+    def _get_batch(self, shuffle=False):
+        """Get the batches required to do a  minibatch gradient ascent.
+
+        Args:
+            batch_size: int. The batch size. Should be lower than n.
+
+        Returns: A generator. Will generate n//batch_size + 1 batches of
+            size batch_size (except the last one since the rest of the
+            division is not always 0)
+        """
+        indices = np.arange(self.n_samples)
+        if shuffle:
+            np.random.shuffle(indices)
+        for i in range(self._nb_full_batch):
+            batch = self._return_batch(
+                indices, i * self._batch_size, (i + 1) * self._batch_size
+            )
+            yield batch
+        # Last batch
+        if self._last_batch_size != 0:
+            yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
+
+    def _return_batch(self, indices, beginning, end):
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        if self._exog is not None:
+            exog_b = torch.index_select(self._exog, 0, to_take)
+        else:
+            exog_b = None
+        return (
+            torch.index_select(self._endog, 0, to_take),
+            exog_b,
+            torch.index_select(self._offsets, 0, to_take),
+            torch.index_select(self._latent_mean, 0, to_take),
+            torch.index_select(self._latent_sqrt_var, 0, to_take),
+        )
+
+    @property
+    def _nb_full_batch(self):
+        return self.n_samples // self.batch_size
+
+    @property
+    def _last_batch_size(self):
+        return self.n_samples % self.batch_size
+
+    @property
+    def nb_batches(self):
+        return self._nb_full_batch + (self._last_batch_size > 0)
+
     def _trainstep(self):
         """
-        Perform a single training step.
+        Perform a single pass of the data.
 
         Returns
         -------
         torch.Tensor
             The loss value.
         """
-        self.optim.zero_grad()
-        loss = -self.compute_elbo()
-        loss.backward()
-        self.optim.step()
-        self._update_closed_forms()
-        return loss
+        elbo = 0
+        for batch in self._get_batch(shuffle=False):
+            self._extract_batch(batch)
+            self.optim.zero_grad()
+            loss = -self._compute_elbo_b()
+            if torch.sum(torch.isnan(loss)):
+                raise ValueError("test")
+            loss.backward()
+            elbo += loss.item()
+            self.optim.step()
+        self._project_parameters()
+        return elbo / self.nb_batches
+
+    def _extract_batch(self, batch):
+        self._endog_b = batch[0]
+        self._exog_b = batch[1]
+        self._offsets_b = batch[2]
+        self._latent_mean_b = batch[3]
+        self._latent_sqrt_var_b = batch[4]
 
     def transform(self):
         """
@@ -439,7 +534,7 @@ class _model(ABC):
 
     def sk_PCA(self, n_components=None):
         """
-        Perform PCA on the latent variables.
+        Perform the scikit-learn PCA on the latent variables.
 
         Parameters
         ----------
@@ -461,12 +556,13 @@ class _model(ABC):
             raise ValueError(
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
+        latent_variables = self.transform()
         pca = PCA(n_components=n_components)
-        pca.fit(self.latent_variables.cpu())
+        pca.fit(latent_variables.cpu())
         return pca
 
     @property
-    def latent_var(self) -> torch.Tensor:
+    def latent_variance(self) -> torch.Tensor:
         """
         Property representing the latent variance.
 
@@ -503,9 +599,9 @@ class _model(ABC):
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
         pca = self.sk_PCA(n_components=n_components)
-        proj_variables = pca.transform(self.latent_variables)
+        latent_variables = self.transform()
+        proj_variables = pca.transform(latent_variables)
         components = torch.from_numpy(pca.components_)
-
         labels = {
             str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
             for i in range(n_components)
@@ -563,7 +659,7 @@ class _model(ABC):
 
         n_components = 2
         pca = self.sk_PCA(n_components=n_components)
-        variables = self.latent_variables
+        variables = self.transform()
         proj_variables = pca.transform(variables)
         ## the package is not correctly printing the variance ratio
         figure, correlation_matrix = plot_pca_correlation_graph(
@@ -577,12 +673,16 @@ class _model(ABC):
         plt.show()
 
     @property
-    @abstractmethod
-    def latent_variables(self):
+    def _latent_var(self) -> torch.Tensor:
         """
-        Abstract property representing the latent variables.
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
         """
-        pass
+        return self._latent_sqrt_var**2
 
     def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
         """
@@ -598,14 +698,14 @@ class _model(ABC):
         if stop_condition is True:
             print(
                 f"Tolerance {tol} reached "
-                f"in {self._plotargs.iteration_number} iterations"
+                f"in {self._criterion_args.iteration_number} iterations"
             )
         else:
             print(
                 "Maximum number of iterations reached : ",
-                self._plotargs.iteration_number,
+                self._criterion_args.iteration_number,
                 "last criterion = ",
-                np.round(self._plotargs.criterions[-1], 8),
+                np.round(self._criterion_args.criterion_list[-1], 8),
             )
 
     def _print_stats(self):
@@ -613,11 +713,11 @@ class _model(ABC):
         Print the training statistics.
         """
         print("-------UPDATE-------")
-        print("Iteration number: ", self._plotargs.iteration_number)
-        print("Criterion: ", np.round(self._plotargs.criterions[-1], 8))
-        print("ELBO:", np.round(self._plotargs._elbos_list[-1], 6))
+        print("Iteration number: ", self._criterion_args.iteration_number)
+        print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
+        print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
 
-    def _compute_criterion_and_update_plotargs(self, loss, tol):
+    def _update_criterion_args(self, loss):
         """
         Compute the convergence criterion and update the plot arguments.
 
@@ -625,38 +725,15 @@ class _model(ABC):
         ----------
         loss : torch.Tensor
             The loss value.
-        tol : float
-            The tolerance for convergence.
 
         Returns
         -------
         float
             The computed criterion.
         """
-        self._plotargs._elbos_list.append(-loss.item())
-        self._plotargs.running_times.append(time.time() - self._beginning_time)
-        if self._plotargs.iteration_number > self._WINDOW:
-            criterion = abs(
-                self._plotargs._elbos_list[-1]
-                - self._plotargs._elbos_list[-1 - self._WINDOW]
-            )
-            self._plotargs.criterions.append(criterion)
-            return criterion
-        return tol
-
-    def _update_closed_forms(self):
-        """
-        Update closed-form expressions.
-        """
-        pass
-
-    @abstractmethod
-    def compute_elbo(self):
-        """
-        Compute the Evidence Lower BOund (ELBO) that will be maximized
-        by pytorch.
-        """
-        pass
+        current_running_time = time.time() - self._beginning_time
+        self._criterion_args.update_criterion(-loss, current_running_time)
+        return self._criterion_args.criterion
 
     def display_covariance(self, ax=None, savefig=False, name_file=""):
         """
@@ -743,8 +820,8 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            self._plotargs._show_loss(ax=axes[2])
-            self._plotargs._show_stopping_criterion(ax=axes[1])
+            self._criterion_args._show_loss(ax=axes[2])
+            self._criterion_args._show_stopping_criterion(ax=axes[1])
             self.display_covariance(ax=axes[0])
         else:
             self.display_covariance(ax=axes)
@@ -755,7 +832,7 @@ class _model(ABC):
         """
         Property representing the list of ELBO values.
         """
-        return self._plotargs._elbos_list
+        return self._criterion_args._elbos_list
 
     @property
     def loglike(self):
@@ -769,8 +846,8 @@ class _model(ABC):
         """
         if len(self._elbos_list) == 0:
             t0 = time.time()
-            self._plotargs._elbos_list.append(self.compute_elbo().item())
-            self._plotargs.running_times.append(time.time() - t0)
+            self._criterion_args._elbos_list.append(self.compute_elbo().item())
+            self._criterion_args.running_times.append(time.time() - t0)
         return self.n_samples * self._elbos_list[-1]
 
     @property
@@ -796,33 +873,6 @@ class _model(ABC):
             The AIC value.
         """
         return -self.loglike + self.number_of_parameters
-
-    @property
-    def latent_parameters(self):
-        """
-        Property representing the latent parameters.
-
-        Returns
-        -------
-        dict
-            The dictionary of latent parameters.
-        """
-        return {
-            "latent_sqrt_var": self.latent_sqrt_var,
-            "latent_mean": self.latent_mean,
-        }
-
-    @property
-    def model_parameters(self):
-        """
-        Property representing the model parameters.
-
-        Returns
-        -------
-        dict
-            The dictionary of model parameters.
-        """
-        return {"coef": self.coef, "covariance": self.covariance}
 
     @property
     def dict_data(self):
@@ -920,31 +970,7 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
             )
-        self._latent_mean = latent_mean
-
-    @latent_sqrt_var.setter
-    @_array2tensor
-    def latent_sqrt_var(
-        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
-    ):
-        """
-        Setter for the latent variance property.
-
-        Parameters
-        ----------
-        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The latent variance.
-
-        Raises
-        ------
-        ValueError
-            If the shape of the latent variance is incorrect.
-        """
-        if latent_sqrt_var.shape != (self.n_samples, self.dim):
-            raise ValueError(
-                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
-            )
-        self._latent_sqrt_var = latent_sqrt_var
+        self._latent_mean = latent_mean.to(DEVICE)
 
     def _cpu_attribute_or_none(self, attribute_name):
         """
@@ -981,6 +1007,13 @@ class _model(ABC):
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
+            if key == "latent_prob":
+                if torch.max(value) > 1 or torch.min(value) < 0:
+                    if (
+                        torch.norm(self.dirac * self.latent_prob - self.latent_prob)
+                        > 0.0001
+                    ):
+                        raise Exception("Error is here")
             if isinstance(value, torch.Tensor):
                 pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
@@ -1233,18 +1266,6 @@ class _model(ABC):
         """
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
 
-    @property
-    def _path_to_directory(self):
-        """
-        Property representing the path to the directory.
-
-        Returns
-        -------
-        str
-            The path to the directory.
-        """
-        return ""
-
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
         Plot the predicted value of the endog against the endog.
@@ -1267,7 +1288,7 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
-        predictions = self._endog_predictions().ravel().detach()
+        predictions = self._endog_predictions().ravel().cpu().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
         sns.scatterplot(x=self.endog.ravel(), y=predictions, hue=colors, ax=ax)
@@ -1281,8 +1302,119 @@ class _model(ABC):
         ax.legend()
         return ax
 
+    def _print_beginning_message(self):
+        """
+        Method for printing the beginning message.
+        """
+        print(f"Fitting a {self._NAME} model with {self._description}")
 
-# need to do a good init for M and S
+    @property
+    @abstractmethod
+    def latent_variables(self) -> torch.Tensor:
+        """
+        Property representing the latent variables.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variables of size (n_samples, dim).
+        """
+
+    @abstractmethod
+    def compute_elbo(self):
+        """
+        Compute the Evidence Lower BOund (ELBO) that will be maximized
+        by pytorch.
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+
+    @abstractmethod
+    def _compute_elbo_b(self):
+        """
+        Compute the Evidence Lower BOund (ELBO) for the current mini-batch.
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO on the current batch.
+        """
+
+    @abstractmethod
+    def _random_init_model_parameters(self):
+        """
+        Abstract method to randomly initialize model parameters.
+        """
+
+    @abstractmethod
+    def _random_init_latent_parameters(self):
+        """
+        Abstract method to randomly initialize latent parameters.
+        """
+
+    @abstractmethod
+    def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
+
+    @abstractmethod
+    def _smart_init_model_parameters(self):
+        """
+        Method for smartly initializing the model parameters.
+        """
+
+    @property
+    @abstractmethod
+    def _list_of_parameters_needing_gradient(self):
+        """
+        A list containing all the parameters that need to be upgraded via a gradient step.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            List of parameters needing gradient.
+        """
+
+    @property
+    @abstractmethod
+    def _description(self):
+        pass
+
+    @property
+    @abstractmethod
+    def number_of_parameters(self):
+        """
+        Number of parameters of the model.
+        """
+
+    @property
+    @abstractmethod
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        """
+        Property representing the model parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of model parameters.
+        """
+
+    @property
+    @abstractmethod
+    def latent_parameters(self) -> Dict[str, torch.Tensor]:
+        """
+        Property representing the latent parameters.
+
+        Returns
+        -------
+        dict
+            The dictionary of latent parameters.
+        """
+
+
 class Pln(_model):
     """
     Pln class.
@@ -1371,15 +1503,12 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
     ):
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
-        return cls(
-            endog,
-            exog=exog,
-            offsets=offsets,
+        return super().from_formula(
+            formula=formula,
+            data=data,
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
-            add_const=False,
         )
 
     @_add_doc(
@@ -1397,18 +1526,18 @@ class Pln(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size: int = None,
     ):
         super().fit(
             nb_max_iteration,
             lr=lr,
-            class_optimizer=class_optimizer,
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1546,41 +1675,17 @@ class Pln(_model):
         ----------
         coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The regression coefficients of the gaussian latent variables.
+        Raises
+        ------
+        AttributeError since you can not set the coef in the Pln model.
         """
+        msg = "You can not set the coef in the Pln model."
+        warnings.warn(msg)
 
     def _endog_predictions(self):
         return torch.exp(
             self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
         )
-
-    def _smart_init_latent_parameters(self):
-        """
-        Method for smartly initializing the latent parameters.
-        """
-        self._random_init_latent_parameters()
-
-    def _random_init_latent_parameters(self):
-        """
-        Method for randomly initializing the latent parameters.
-        """
-        if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
-            )
-        if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
-
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        """
-        Property representing the list of parameters needing gradient.
-
-        Returns
-        -------
-        list
-            The list of parameters needing gradient.
-        """
-        return [self._latent_mean, self._latent_sqrt_var]
 
     def _get_max_components(self):
         """
@@ -1592,44 +1697,6 @@ class Pln(_model):
             The maximum number of components.
         """
         return self.dim
-
-    def compute_elbo(self):
-        """
-        Method for computing the evidence lower bound (ELBO).
-
-        Returns
-        -------
-        torch.Tensor
-            The computed ELBO.
-        Examples
-        --------
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(endog,add_const = True)
-        >>> pln.fit()
-        >>> elbo = pln.compute_elbo()
-        >>> print("elbo", elbo)
-        >>> print("loglike/n", pln.loglike/pln.n_samples)
-        """
-        return profiled_elbo_pln(
-            self._endog,
-            self._exog,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-        )
-
-    def _smart_init_model_parameters(self):
-        """
-        Method for smartly initializing the model parameters.
-        """
-        # no model parameters since we are doing a profiled ELBO
-
-    def _random_init_model_parameters(self):
-        """
-        Method for randomly initializing the model parameters.
-        """
-        # no model parameters since we are doing a profiled ELBO
 
     @property
     def _coef(self):
@@ -1668,25 +1735,29 @@ class Pln(_model):
         covariances = components_var @ (sk_components.T.unsqueeze(0))
         return covariances
 
-    def _pring_beginning_message(self):
+    @_model.latent_sqrt_var.setter
+    @_array2tensor
+    def latent_sqrt_var(
+        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
         """
-        Method for printing the beginning message.
-        """
-        print(f"Fitting a Pln model with {self._description}")
+        Setter for the latent variance property.
 
-    @property
-    @_add_doc(
-        _model,
-        example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
-        >>> pln = Pln(endog,add_const = True)
-        >>> pln.fit()
-        >>> print(pln.latent_variables.shape)
-        """,
-    )
-    def latent_variables(self):
-        return self.latent_mean.detach()
+        Parameters
+        ----------
+        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The latent variance.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the latent variance is incorrect.
+        """
+        if latent_sqrt_var.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
+            )
+        self._latent_sqrt_var = latent_sqrt_var
 
     @property
     def number_of_parameters(self):
@@ -1734,7 +1805,119 @@ class Pln(_model):
         covariance : torch.Tensor
             The covariance matrix.
         """
+        warnings.warn("You can not set the covariance for the Pln model.")
+
+    def _random_init_latent_sqrt_var(self):
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+            )
+
+    @_add_doc(_model)
+    def _smart_init_model_parameters(self):
         pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @_add_doc(_model)
+    def _random_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @property
+    @_add_doc(_model)
+    def _list_of_parameters_needing_gradient(self):
+        return [self._latent_mean, self._latent_sqrt_var]
+
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {"coef": self.coef, "covariance": self.covariance}
+
+    @property
+    @_add_doc(_model)
+    def latent_parameters(self):
+        return {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
+
+    def _random_init_latent_sqrt_var(self):
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+            )
+
+    @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import Pln, get_real_count_data
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> pln = Pln(endog,add_const = True)
+        >>> pln.fit()
+        >>> print(pln.latent_variables.shape)
+        """,
+    )
+    def latent_variables(self):
+        return self.latent_mean.detach()
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import Pln, get_real_count_data
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> pln = Pln(endog,add_const = True)
+            >>> pln.fit()
+            >>> elbo = pln.compute_elbo()
+            >>> print("elbo", elbo)
+            >>> print("loglike/n", pln.loglike/pln.n_samples)
+            """,
+    )
+    def compute_elbo(self):
+        return profiled_elbo_pln(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+        )
+
+    @_add_doc(_model)
+    def _compute_elbo_b(self):
+        return profiled_elbo_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+        )
+
+    @_add_doc(_model)
+    def _smart_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @_add_doc(_model)
+    def _random_init_model_parameters(self):
+        pass
+        # no model parameters since we are doing a profiled ELBO
+
+    @_add_doc(_model)
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.log(self._endog + (self._endog == 0))
+
+    @_add_doc(_model)
+    def _random_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    @property
+    @_add_doc(_model)
+    def _list_of_parameters_needing_gradient(self):
+        return [self._latent_mean, self._latent_sqrt_var]
 
 
 class PlnPCAcollection:
@@ -1801,6 +1984,9 @@ class PlnPCAcollection:
             Whether to take the logarithm of offsets, by default False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Returns
         -------
         PlnPCAcollection
@@ -1819,7 +2005,7 @@ class PlnPCAcollection:
             endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
-        self._init_models(ranks, dict_of_dict_initialization)
+        self._init_models(ranks, dict_of_dict_initialization, add_const=add_const)
 
     @classmethod
     def from_formula(
@@ -1851,6 +2037,7 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
+
         Returns
         -------
         PlnPCAcollection
@@ -1889,6 +2076,18 @@ class PlnPCAcollection:
             The exog.
         """
         return self[self.ranks[0]].exog
+
+    @property
+    def batch_size(self) -> torch.Tensor:
+        """
+        Property representing the batch_size.
+
+        Returns
+        -------
+        torch.Tensor
+            The batch_size.
+        """
+        return self[self.ranks[0]].batch_size
 
     @property
     def endog(self) -> torch.Tensor:
@@ -1964,6 +2163,19 @@ class PlnPCAcollection:
         for model in self.values():
             model.endog = endog
 
+    @batch_size.setter
+    def batch_size(self, batch_size: int):
+        """
+        Setter for the batch_size property.
+
+        Parameters
+        ----------
+        batch_size : int
+            The batch size.
+        """
+        for model in self.values():
+            model.batch_size = batch_size
+
     @coef.setter
     @_array2tensor
     def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
@@ -2019,7 +2231,10 @@ class PlnPCAcollection:
             model.offsets = offsets
 
     def _init_models(
-        self, ranks: Iterable[int], dict_of_dict_initialization: Optional[dict]
+        self,
+        ranks: Iterable[int],
+        dict_of_dict_initialization: Optional[dict],
+        add_const: bool,
     ):
         """
         Method for initializing the models.
@@ -2043,6 +2258,7 @@ class PlnPCAcollection:
                         offsets=self._offsets,
                         rank=rank,
                         dict_initialization=dict_initialization,
+                        add_const=add_const,
                     )
                 else:
                     raise TypeError(
@@ -2087,7 +2303,7 @@ class PlnPCAcollection:
         """
         return [model.rank for model in self.values()]
 
-    def _pring_beginning_message(self) -> str:
+    def _print_beginning_message(self) -> str:
         """
         Method for printing the beginning message.
 
@@ -2127,10 +2343,10 @@ class PlnPCAcollection:
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: Type[torch.optim.Optimizer] = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size: int = None,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2141,25 +2357,30 @@ class PlnPCAcollection:
             The maximum number of iterations, by default 50000.
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
-        class_optimizer : Type[torch.optim.Optimizer], optional(keyword-only)
-            The optimizer class, by default torch.optim.Rprop.
         tol : float, optional(keyword-only)
-            The tolerance, by default 1e-3.
+            The tolerance, by default 1e-8.
         do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
         """
-        self._pring_beginning_message()
+        self._print_beginning_message()
         for i in range(len(self.values())):
             model = self[self.ranks[i]]
             model.fit(
                 nb_max_iteration,
                 lr=lr,
-                class_optimizer=class_optimizer,
                 tol=tol,
                 do_smart_init=do_smart_init,
                 verbose=verbose,
+                batch_size=batch_size,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
@@ -2360,23 +2581,26 @@ class PlnPCAcollection:
         bic = self.BIC
         aic = self.AIC
         loglikes = self.loglikes
-        bic_color = "blue"
-        aic_color = "red"
-        loglikes_color = "orange"
-        plt.scatter(bic.keys(), bic.values(), label="BIC criterion", c=bic_color)
-        plt.plot(bic.keys(), bic.values(), c=bic_color)
-        plt.axvline(self.best_BIC_model_rank, c=bic_color, linestyle="dotted")
-        plt.scatter(aic.keys(), aic.values(), label="AIC criterion", c=aic_color)
-        plt.axvline(self.best_AIC_model_rank, c=aic_color, linestyle="dotted")
-        plt.plot(aic.keys(), aic.values(), c=aic_color)
-        plt.xticks(list(aic.keys()))
-        plt.scatter(
-            loglikes.keys(),
-            -np.array(list(loglikes.values())),
-            label="Negative log likelihood",
-            c=loglikes_color,
-        )
-        plt.plot(loglikes.keys(), -np.array(list(loglikes.values())), c=loglikes_color)
+        colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
+        for criterion, values in zip(
+            ["BIC", "AIC", "Negative log likelihood"], [bic, aic, loglikes]
+        ):
+            plt.scatter(
+                values.keys(),
+                values.values(),
+                label=f"{criterion} criterion",
+                c=colors[criterion],
+            )
+            plt.plot(values.keys(), values.values(), c=colors[criterion])
+            if criterion == "BIC":
+                plt.axvline(
+                    self.best_BIC_model_rank, c=colors[criterion], linestyle="dotted"
+                )
+            elif criterion == "AIC":
+                plt.axvline(
+                    self.best_AIC_model_rank, c=colors[criterion], linestyle="dotted"
+                )
+                plt.xticks(list(values.keys()))
         plt.legend()
         plt.show()
 
@@ -2522,7 +2746,7 @@ class PlnPCAcollection:
         return ".BIC, .AIC, .loglikes"
 
 
-# Here, setting the value for each key in _dict_parameters
+# Here, setting the value for each key  _dict_parameters
 class PlnPCA(_model):
     """
     PlnPCA object where the covariance has low rank.
@@ -2574,7 +2798,7 @@ class PlnPCA(_model):
     )
     def __init__(
         self,
-        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
@@ -2651,18 +2875,18 @@ class PlnPCA(_model):
         nb_max_iteration: int = 50000,
         *,
         lr: float = 0.01,
-        class_optimizer: torch.optim.Optimizer = torch.optim.Rprop,
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
+        batch_size=None,
     ):
         super().fit(
             nb_max_iteration,
             lr=lr,
-            class_optimizer=class_optimizer,
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -2748,19 +2972,6 @@ class PlnPCA(_model):
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
-    def _check_if_rank_is_too_high(self):
-        """
-        Check if the rank is too high and issue a warning if necessary.
-        """
-        if self.dim < self.rank:
-            warning_string = (
-                f"\nThe requested rank of approximation {self.rank} "
-                f"is greater than the number of variables {self.dim}. "
-                f"Setting rank to {self.dim}"
-            )
-            warnings.warn(warning_string)
-            self._rank = self.dim
-
     @property
     @_add_doc(
         _model,
@@ -2776,42 +2987,21 @@ class PlnPCA(_model):
     def latent_mean(self) -> torch.Tensor:
         return self._cpu_attribute_or_none("_latent_mean")
 
-    @property
-    def latent_sqrt_var(self) -> torch.Tensor:
-        """
-        Property representing the unsigned square root of the latent variance.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variance tensor.
-        """
-        return self._cpu_attribute_or_none("_latent_sqrt_var")
-
-    @property
-    def _latent_var(self) -> torch.Tensor:
-        """
-        Property representing the latent variance.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variance tensor.
-        """
-        return self._latent_sqrt_var**2
-
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
             (self._components**2).unsqueeze(0)
-            * (self.latent_sqrt_var**2).unsqueeze(1),
+            * (self._latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
         if self.exog is not None:
-            XB = self.exog @ self.coef
+            XB = self._exog @ self._coef
         else:
             XB = 0
         return torch.exp(
-            self._offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
+            self._offsets
+            + XB
+            + self.latent_variables.to(DEVICE)
+            + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
@@ -2831,7 +3021,7 @@ class PlnPCA(_model):
             )
         self._latent_mean = latent_mean
 
-    @latent_sqrt_var.setter
+    @_model.latent_sqrt_var.setter
     @_array2tensor
     def latent_sqrt_var(self, latent_sqrt_var: torch.Tensor):
         """
@@ -2912,106 +3102,6 @@ class PlnPCA(_model):
         """
         return self._rank
 
-    def _pring_beginning_message(self):
-        """
-        Print the beginning message when fitted.
-        """
-        print("-" * NB_CHARACTERS_FOR_NICE_PLOT)
-        print(f"Fitting a PlnPCAcollection model with {self._rank} components")
-
-    @property
-    def model_parameters(self) -> Dict[str, torch.Tensor]:
-        """
-        Property representing the model parameters.
-
-        Returns
-        -------
-        Dict[str, torch.Tensor]
-            The model parameters.
-        """
-        return {"coef": self.coef, "components": self.components}
-
-    def _smart_init_model_parameters(self):
-        """
-        Initialize the model parameters smartly.
-        """
-        if not hasattr(self, "_coef"):
-            super()._smart_init_coef()
-        if not hasattr(self, "_components"):
-            self._components = _init_components(
-                self._endog, self._exog, self._coef, self._rank
-            )
-
-    def _random_init_model_parameters(self):
-        """
-        Randomly initialize the model parameters.
-        """
-        super()._random_init_coef()
-        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
-
-    def _random_init_latent_parameters(self):
-        """
-        Randomly initialize the latent parameters.
-        """
-        self._latent_sqrt_var = (
-            1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-        )
-        self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
-
-    def _smart_init_latent_parameters(self):
-        """
-        Initialize the latent parameters smartly.
-        """
-        if not hasattr(self, "_latent_mean"):
-            self._latent_mean = (
-                _init_latent_mean(
-                    self._endog,
-                    self._exog,
-                    self._offsets,
-                    self._coef,
-                    self._components,
-                )
-                .to(DEVICE)
-                .detach()
-            )
-        if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-            )
-
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        """
-        Property representing the list of parameters needing gradient.
-
-        Returns
-        -------
-        List[torch.Tensor]
-            The list of parameters needing gradient.
-        """
-        if self._coef is None:
-            return [self._components, self._latent_mean, self._latent_sqrt_var]
-        return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
-
-    def compute_elbo(self) -> torch.Tensor:
-        """
-        Compute the evidence lower bound (ELBO).
-
-        Returns
-        -------
-        torch.Tensor
-            The ELBO value.
-        """
-        return elbo_plnpca(
-            self._endog,
-            self._exog,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._components,
-            self._coef,
-        )
-
     @property
     def number_of_parameters(self) -> int:
         """
@@ -3052,7 +3142,7 @@ class PlnPCA(_model):
     @property
     def covariance(self) -> torch.Tensor:
         """
-        Property representing the covariance a posteriori of the latent variables.
+        Property representing the covariance of the latent variables.
 
         Returns
         -------
@@ -3095,18 +3185,6 @@ class PlnPCA(_model):
         return f" {self.rank} principal component."
 
     @property
-    def latent_variables(self) -> torch.Tensor:
-        """
-        Property representing the latent variables.
-
-        Returns
-        -------
-        torch.Tensor
-            The latent variables of size (n_samples, dim).
-        """
-        return torch.matmul(self._latent_mean, self._components.T).detach()
-
-    @property
     def projected_latent_variables(self) -> torch.Tensor:
         """
         Property representing the projected latent variables.
@@ -3123,7 +3201,7 @@ class PlnPCA(_model):
         """
         Orthogonal components of the model.
         """
-        return torch.linalg.qr(self._components, "reduced")[0]
+        return torch.linalg.qr(self._components, "reduced")[0].cpu()
 
     @property
     def components(self) -> torch.Tensor:
@@ -3165,7 +3243,7 @@ class PlnPCA(_model):
         Parameters
         ----------
         project : bool, optional
-            Whether to project the latent variables, by default True.
+            Whether to project the latent variables, by default False.
         """,
         returns="""
         torch.Tensor
@@ -3182,81 +3260,996 @@ class PlnPCA(_model):
             >>> print(transformed_endog_high_dim.shape)
             """,
     )
-    def transform(self, project: bool = True) -> torch.Tensor:
+    def transform(self, project: bool = False) -> torch.Tensor:
         if project is True:
             return self.projected_latent_variables
         return self.latent_variables
 
+    @property
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, get_real_count_data
+        >>> endog = get_real_count_data(return_labels=False)
+        >>> pca = PlnPCA(endog,add_const = True)
+        >>> pca.fit()
+        >>> print(pca.latent_variables.shape)
+        """,
+    )
+    def latent_variables(self) -> torch.Tensor:
+        return torch.matmul(self.latent_mean, self.components.T)
 
-class ZIPln(Pln):
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import PlnPCA, get_real_count_data
+            >>> endog = get_real_count_data(return_labels = False)
+            >>> pca = PlnPCA(endog,add_const = True)
+            >>> pca.fit()
+            >>> elbo = pca.compute_elbo()
+            >>> print("elbo", elbo)
+            >>> print("loglike/n", pca.loglike/pca.n_samples)
+            """,
+    )
+    def compute_elbo(self) -> torch.Tensor:
+        return elbo_plnpca(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._components,
+            self._coef,
+        )
+
+    @_add_doc(_model)
+    def _compute_elbo_b(self) -> torch.Tensor:
+        return elbo_plnpca(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            self._components,
+            self._coef,
+        )
+
+    @_add_doc(_model)
+    def _random_init_model_parameters(self):
+        super()._random_init_coef()
+        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
+
+    @_add_doc(_model)
+    def _smart_init_model_parameters(self):
+        if not hasattr(self, "_coef"):
+            super()._smart_init_coef()
+        if not hasattr(self, "_components"):
+            self._components = _init_components(self._endog, self._rank)
+
+    @_add_doc(_model)
+    def _random_init_latent_parameters(self):
+        """
+        Randomly initialize the latent parameters.
+        """
+        self._latent_sqrt_var = (
+            1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+        )
+        self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
+
+    @_add_doc(_model)
+    def _smart_init_latent_parameters(self):
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = (
+                _init_latent_mean(
+                    self._endog,
+                    self._exog,
+                    self._offsets,
+                    self._coef,
+                    self._components,
+                )
+                .to(DEVICE)
+                .detach()
+            )
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = (
+                1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
+            )
+
+    @property
+    @_add_doc(_model)
+    def _list_of_parameters_needing_gradient(self):
+        if self._coef is None:
+            return [self._components, self._latent_mean, self._latent_sqrt_var]
+        return [self._components, self._coef, self._latent_mean, self._latent_sqrt_var]
+
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {"coef": self.coef, "components": self.components}
+
+    @property
+    @_add_doc(_model)
+    def latent_parameters(self):
+        return {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
+
+
+class ZIPln(_model):
     _NAME = "ZIPln"
 
-    _pi: torch.Tensor
+    _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
+
+    def __init__(
+        self,
+        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+        use_closed_form_prob: bool = False,
+    ):
+        """
+        Initializes the ZIPln class.
+
+        Parameters
+        ----------
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The count data.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The covariate data. Defaults to None.
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The offsets data. Defaults to None.
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum". Overriden if
+            offsets is not None.
+        dict_initialization : dict, optional(keyword-only)
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional(keyword-only)
+            Whether to take the log of offsets. Defaults to False.
+        add_const : bool, optional(keyword-only)
+            Whether to add a column of one in the exog. Defaults to True.
+            If exog is None, add_const is set to True anyway and a warnings
+            is launched.
+        use_closed_form_prob : bool, optional
+            Whether or not use the closed formula for the latent probability.
+            Default is False.
+        Raises
+        ------
+        ValueError
+            If the batch_size is greater than the number of samples, or not int.
+        Returns
+        -------
+        A ZIPln object
+        See also
+        --------
+        :func:`pyPLNmodels.ZIPln.from_formula`
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog= get_real_count_data()
+        >>> zi = ZIPln(endog, add_const = True)
+        >>> zi.fit()
+        >>> print(zi)
+        """
+        self._use_closed_form_prob = use_closed_form_prob
+        if exog is None and add_const is False:
+            msg = "No covariates has been given. An intercept is added since "
+            msg += "a ZIPln must have at least an intercept."
+            warnings.warn(msg)
+            add_const = True
+        super().__init__(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+        )
+
+    def _extract_batch(self, batch):
+        super()._extract_batch(batch)
+        self._dirac_b = batch[5]
+        if self._use_closed_form_prob is False:
+            self._latent_prob_b = batch[6]
+
+    def _return_batch(self, indices, beginning, end):
+        pln_batch = super()._return_batch(indices, beginning, end)
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        batch = pln_batch + (torch.index_select(self._dirac, 0, to_take),)
+        if self._use_closed_form_prob is False:
+            to_return = torch.index_select(self._latent_prob, 0, to_take)
+            return batch + (torch.index_select(self._latent_prob, 0, to_take),)
+        return batch
+
+    @classmethod
+    def from_formula(
+        cls,
+        formula: str,
+        data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        *,
+        offsets_formula: str = "logsum",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        use_closed_form_prob: bool = False,
+    ):
+        """
+        Create a ZIPln instance from a formula and data.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : dict
+            The data dictionary. Each value can be either a torch.Tensor,
+            a np.ndarray or pd.DataFrame
+        offsets_formula : str, optional(keyword-only)
+            The formula for offsets. Defaults to "logsum".
+        dict_initialization : dict, optional(keyword-only)
+            The initialization dictionary. Defaults to None.
+        take_log_offsets : bool, optional(keyword-only)
+            Whether to take the log of offsets. Defaults to False.
+        use_closed_form_prob : bool, optional
+            Whether or not use the closed formula for the latent probability.
+            Default is False.
+        Returns
+        -------
+        A ZIPln object
+        See also
+        --------
+        :class:`pyPLNmodels.ZIPln`
+        :func:`pyPLNmodels.ZIPln.__init__`
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        """
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=False,
+            use_closed_form_prob=use_closed_form_prob,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog = get_real_count_data()
+        >>> zi = ZIPln(endog,add_const = True)
+        >>> zi.fit()
+        >>> print(zi)
+        """,
+    )
+    def fit(
+        self,
+        nb_max_iteration: int = 50000,
+        *,
+        lr: float = 0.01,
+        tol: float = 1e-3,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+        batch_size: int = None,
+    ):
+        super().fit(
+            nb_max_iteration,
+            lr=lr,
+            tol=tol,
+            do_smart_init=do_smart_init,
+            verbose=verbose,
+            batch_size=batch_size,
+        )
+
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import ZIPln, get_real_count_data
+            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> zi = ZIPln(endog,add_const = True)
+            >>> zi.fit()
+            >>> zi.plot_expected_vs_true()
+            >>> plt.show()
+            >>> zi.plot_expected_vs_true(colors = labels)
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
 
     @property
     def _description(self):
         return "with full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
-        super()._random_init_model_parameters()
-        self._coef_inflation = torch.randn(self.nb_cov, self.dim)
-        self._covariance = torch.diag(torch.ones(self.dim)).to(DEVICE)
+        self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        self._components = torch.randn(self.dim, self.dim).to(DEVICE)
 
-    # should change the good initialization, especially for _coef_inflation
+    # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
-        super()._smart_init_model_parameters()
+        # init of _coef.
+        super()._smart_init_coef()
         if not hasattr(self, "_covariance"):
-            self._covariance = _init_covariance(self._endog, self._exog, self._coef)
+            self._components = _init_components(self._endog, self.dim)
+
         if not hasattr(self, "_coef_inflation"):
-            self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+            self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+            # for j in range(self.exog.shape[1]):
+            #     Y_j = self._endog[:,j].numpy()
+            #     offsets_j = self.offsets[:,j].numpy()
+            #     exog = self.exog[:,j].unsqueeze(1).numpy()
+            #     undzi = ZeroInflatedPoisson(endog=Y_j,exog = exog, exog_infl = exog, inflation='logit', offset = offsets_j)
+            #     zip_training_results = undzi.fit()
+            #     self._coef_inflation[:,j] = zip_training_results.params[1]
 
     def _random_init_latent_parameters(self):
-        self._dirac = self._endog == 0
-        self._latent_mean = torch.randn(self.n_samples, self.dim)
-        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
-        self._pi = (
-            torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
-            * self._dirac
+        self._latent_mean = torch.randn(self.n_samples, self.dim).to(DEVICE)
+        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim).to(DEVICE)
+        self._latent_prob = (
+            (
+                torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
+                * self._dirac
+            )
+            .double()
+            .to(DEVICE)
+        )
+
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_parameters()
+
+    @property
+    def _covariance(self):
+        return self._components @ (self._components.T)
+
+    def _get_max_components(self):
+        """
+        Method for getting the maximum number of components.
+
+        Returns
+        -------
+        int
+            The maximum number of components.
+        """
+        return self.dim
+
+    @property
+    def components(self) -> torch.Tensor:
+        """
+        Property representing the components.
+
+        Returns
+        -------
+        torch.Tensor
+            The components.
+        """
+        return self._cpu_attribute_or_none("_components")
+
+    @property
+    def latent_variables(self) -> tuple([torch.Tensor, torch.Tensor]):
+        """
+        Property representing the latent variables. Two latent
+        variables are available if exog is not None
+
+        Returns
+        -------
+        tuple(torch.Tensor, torch.Tensor)
+            The latent variables of a classic Pln model (size (n_samples, dim))
+            and zero inflated latent variables of size (n_samples, dim).
+        Examples
+        --------
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> zi = ZIPln(endog,add_const = True)
+        >>> zi.fit()
+        >>> latent_mean, latent_inflated = zi.latent_variables
+        >>> print(latent_mean.shape)
+        >>> print(latent_inflated.shape)
+        """
+        return self.latent_mean, self.latent_prob
+
+    def transform(self, return_latent_prob=False):
+        """
+        Method for transforming the endog. Can be seen as a normalization of the endog.
+
+        Parameters
+        ----------
+        return_latent_prob: bool, optional
+            Wheter to return or not the latent_probability of zero inflation.
+        Returns
+        -------
+        The latent mean if `return_latent_prob` is False and (latent_mean, latent_prob) else.
+        """
+        if return_latent_prob is True:
+            return self.latent_variables
+        return self.latent_mean
+
+    def _endog_predictions(self):
+        return torch.exp(
+            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
+        ) * (1 - self._latent_prob)
+
+    @property
+    def coef_inflation(self):
+        """
+        Property representing the coefficients of the inflation.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None.
+        """
+        return self._cpu_attribute_or_none("_coef_inflation")
+
+    @coef_inflation.setter
+    @_array2tensor
+    def coef_inflation(
+        self, coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the coef_inflation property.
+
+        Parameters
+        ----------
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the coef is incorrect.
+        """
+        if coef_inflation.shape != (self.nb_cov, self.dim):
+            raise ValueError(
+                f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef_inflation.shape}"
+            )
+        self._coef_inflation = coef_inflation
+
+    @_model.latent_sqrt_var.setter
+    @_array2tensor
+    def latent_sqrt_var(
+        self, latent_sqrt_var: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the latent variance property.
+
+        Parameters
+        ----------
+        latent_sqrt_var : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The latent square root of the variance.
+
+        Raises
+        ------
+        ValueError
+            If the shape of the latent variance is incorrect.
+        """
+        if latent_sqrt_var.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
+            )
+        self._latent_sqrt_var = latent_sqrt_var
+
+    def _project_parameters(self):
+        self._project_latent_prob()
+
+    def _project_latent_prob(self):
+        """
+        Project the latent probability since it must be between 0 and 1.
+        """
+        if self._use_closed_form_prob is False:
+            with torch.no_grad():
+                self._latent_prob = torch.maximum(
+                    self._latent_prob, torch.tensor([0]).to(DEVICE)
+                )
+                self._latent_prob = torch.minimum(
+                    self._latent_prob, torch.tensor([1]).to(DEVICE)
+                )
+                self._latent_prob *= self._dirac
+
+    @property
+    def covariance(self) -> torch.Tensor:
+        """
+        Property representing the covariance of the latent variables.
+
+        Returns
+        -------
+        Optional[torch.Tensor]
+            The covariance tensor or None if components are not present.
+        """
+        return self._cpu_attribute_or_none("_covariance")
+
+    @components.setter
+    @_array2tensor
+    def components(self, components: torch.Tensor):
+        """
+        Setter for the components.
+
+        Parameters
+        ----------
+        components : torch.Tensor
+            The components to set.
+
+        Raises
+        ------
+        ValueError
+            If the components have an invalid shape.
+        """
+        if components.shape != (self.dim, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.dim, self.dim}, got {components.shape}"
+            )
+        self._components = components
+
+    @property
+    def latent_prob(self):
+        return self._cpu_attribute_or_none("_latent_prob")
+
+    @latent_prob.setter
+    @_array2tensor
+    def latent_prob(self, latent_prob: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        if self._use_closed_form_prob is True:
+            raise ValueError(
+                "Can not set the latent prob when the closed form is used."
+            )
+        if latent_prob.shape != (self.n_samples, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_prob.shape}"
+            )
+        if torch.max(latent_prob) > 1 or torch.min(latent_prob) < 0:
+            raise ValueError(f"Wrong value. All values should be between 0 and 1.")
+        if torch.norm(latent_prob * (self._endog == 0) - latent_prob) > 0.00000001:
+            raise ValueError(
+                "You can not assign non zeros inflation probabilities to non zero counts."
+            )
+        self._latent_prob = latent_prob
+
+    @property
+    def closed_formula_latent_prob(self):
+        """
+        The closed form for the latent probability.
+        """
+        return closed_formula_latent_prob(
+            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
         )
 
     def compute_elbo(self):
+        if self._use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
         return elbo_zi_pln(
             self._endog,
             self._exog,
             self._offsets,
             self._latent_mean,
             self._latent_sqrt_var,
-            self._pi,
-            self._covariance,
+            latent_prob,
+            self._components,
             self._coef,
             self._coef_inflation,
             self._dirac,
         )
 
-    @property
-    def _list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
-
-    def _update_closed_forms(self):
-        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
-        self._covariance = _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
+    def _compute_elbo_b(self):
+        if self._use_closed_form_prob is True:
+            latent_prob_b = _closed_formula_latent_prob(
+                self._exog_b,
+                self._coef,
+                self._coef_inflation,
+                self._covariance,
+                self._dirac_b,
+            )
+        else:
+            latent_prob_b = self._latent_prob_b
+        return elbo_zi_pln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            latent_prob_b,
+            self._components,
             self._coef,
-            self.n_samples,
-        )
-        self._pi = _closed_formula_pi(
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._dirac,
-            self._exog,
             self._coef_inflation,
+            self._dirac_b,
         )
 
     @property
     def number_of_parameters(self):
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
+
+    @property
+    @_add_doc(_model)
+    def _list_of_parameters_needing_gradient(self):
+        list_parameters = [
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._components,
+        ]
+        if self._use_closed_form_prob is False:
+            list_parameters.append(self._latent_prob)
+        if self._exog is not None:
+            list_parameters.append(self._coef)
+            list_parameters.append(self._coef_inflation)
+        return list_parameters
+
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {
+            "coef": self.coef,
+            "components": self.components,
+            "coef_inflation": self.coef_inflation,
+        }
+
+    def predict_prob_inflation(
+        self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Method for estimating the probability of a zero coming from the zero inflated component.
+
+        Parameters
+        ----------
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The exog.
+
+        Returns
+        -------
+        torch.Tensor
+            The predicted values.
+
+        Raises
+        ------
+        RuntimeError
+            If the shape of the exog is incorrect.
+
+        Notes
+        -----
+        - The mean sigmoid(exog @ coef_inflation) is returned.
+        - `exog` should have the shape `(_, nb_cov)`, where `nb_cov` is the number of exog variables.
+        """
+        if exog is not None and self.nb_cov == 0:
+            raise AttributeError("No exog in the model, can't predict")
+        if exog.shape[-1] != self.nb_cov:
+            error_string = f"X has wrong shape ({exog.shape}). Should"
+            error_string += f" be (_, {self.nb_cov})."
+            raise RuntimeError(error_string)
+        return torch.sigmoid(exog @ self.coef_inflation)
+
+    @property
+    @_add_doc(_model)
+    def latent_parameters(self):
+        latent_param = {
+            "latent_sqrt_var": self.latent_sqrt_var,
+            "latent_mean": self.latent_mean,
+        }
+        if self._use_closed_form_prob is False:
+            latent_param["latent_prob"] = self.latent_prob
+        return latent_param
+
+    def grad_M(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        un_moins_prob = 1 - latent_prob
+        first = un_moins_prob * (
+            self._endog
+            - torch.exp(
+                self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2
+            )
+        )
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        diag_omega = torch.diag(torch.inverse(self._covariance))
+        full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
+        second = -un_moins_prob * A
+        added = -full_diag_omega * latent_prob * un_moins_prob * (MmoinsXB)
+        return first + second + added
+
+    def grad_S(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        Omega = torch.inverse(self.covariance)
+        un_moins_prob = 1 - latent_prob
+        first = un_moins_prob * torch.exp(
+            self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
+        )
+        first = -torch.multiply(first, self._latent_sqrt_var)
+        sec = un_moins_prob * 1 / self._latent_sqrt_var
+        K = un_moins_prob * (
+            torch.multiply(
+                torch.full((self.n_samples, 1), 1.0), torch.diag(Omega).unsqueeze(0)
+            )
+        )
+        third = -self._latent_sqrt_var * K
+        return first + sec + third
+
+    def grad_theta(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
+
+        un_moins_prob = 1 - latent_prob
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        diag_omega = torch.diag(torch.inverse(self._covariance))
+        full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
+        added = latent_prob * (MmoinsXB) * full_diag_omega
+        A += added
+        second = -un_moins_prob * A
+        grad_no_closed_form = -self._exog.T @ second
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            XB_zero = self._exog @ self._coef_inflation
+            diag = torch.diag(self._covariance)
+            full_diag = diag.expand(self._exog.shape[0], -1)
+            XB = self._exog @ self._coef
+            derivative = d_h_x2(XB_zero, XB, full_diag, self._dirac)
+            grad_closed_form = self.gradients_closed_form_thetas(derivative)
+            return grad_closed_form + grad_no_closed_form
+
+    def gradients_closed_form_thetas(self, derivative):
+        Omega = torch.inverse(self._covariance)
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        s_rond_s = self._latent_sqrt_var**2
+        latent_prob = self.closed_formula_latent_prob
+        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+        poiss_term = (
+            self._endog * (self._offsets + self._latent_mean)
+            - A
+            - _log_stirling(self._endog)
+        )
+        a = -self._exog.T @ (derivative * poiss_term)
+        b = self._exog.T @ (
+            derivative * MmoinsXB * (((1 - latent_prob) * MmoinsXB) @ Omega)
+        )
+        c = self._exog.T @ (derivative * (self._exog @ self._coef_inflation))
+        first_d = derivative * torch.log(torch.abs(self._latent_sqrt_var))
+        second_d = (
+            1 / 2 * derivative @ (torch.diag(torch.log(torch.diag(self._covariance))))
+        )
+        d = -self._exog.T @ (first_d - second_d)
+        e = -self._exog.T @ (
+            derivative * (_trunc_log(latent_prob) - _trunc_log(1 - latent_prob))
+        )
+        first_f = (
+            +1
+            / 2
+            * self._exog.T
+            @ (derivative * (s_rond_s @ torch.diag(torch.diag(Omega))))
+        )
+        second_f = (
+            -1
+            / 2
+            * self._exog.T
+            @ derivative
+            @ torch.diag(torch.diag(Omega) * torch.diag(self._covariance))
+        )
+        full_diag_omega = torch.diag(Omega).expand(self.exog.shape[0], -1)
+        common = (MmoinsXB) ** 2 * (full_diag_omega)
+        new_f = -1 / 2 * self._exog.T @ (derivative * common * (1 - 2 * latent_prob))
+        f = first_f + second_f + new_f
+        return a + b + c + d + e + f
+
+    def grad_theta_0(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        grad_no_closed_form = self._exog.T @ latent_prob - self._exog.T @ (
+            torch.exp(self._exog @ self._coef_inflation)
+            / (1 + torch.exp(self._exog @ self._coef_inflation))
+        )
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            grad_closed_form = self.gradients_closed_form_thetas(
+                latent_prob * (1 - latent_prob)
+            )
+            return grad_closed_form + grad_no_closed_form
+
+    def grad_C(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        omega = torch.inverse(self._covariance)
+        if self._coef is not None:
+            m_minus_xb = self._latent_mean - torch.mm(self._exog, self._coef)
+        else:
+            m_minus_xb = self._latent_mean
+        m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+
+        un_moins_rho = 1 - latent_prob
+
+        un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
+        un_moins_rho_m_moins_xb_outer = (
+            un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
+        )
+        deter = (
+            -self.n_samples
+            * torch.inverse(self._components @ (self._components.T))
+            @ self._components
+        )
+        sec_part_b_grad = (
+            omega @ (un_moins_rho_m_moins_xb_outer) @ omega @ self._components
+        )
+        b_grad = deter + sec_part_b_grad
+
+        diag = torch.diag(self.covariance)
+        rho_t_unn = torch.sum(latent_prob, axis=0)
+        omega_unp = torch.sum(omega, axis=0)
+        K = torch.sum(un_moins_rho * self._latent_sqrt_var**2, axis=0) + diag * (
+            rho_t_unn
+        )
+        added = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
+        K += added
+        first_part_grad = omega @ torch.diag_embed(K) @ omega @ self._components
+        x = torch.diag(omega) * rho_t_unn
+        second_part_grad = -torch.diag_embed(x) @ self._components
+        y = rho_t_unn
+        first = torch.multiply(y, 1 / torch.diag(self.covariance)).unsqueeze(1)
+        second = torch.full((1, self.dim), 1.0)
+        Diag = (first * second) * torch.eye(self.dim)
+        last_grad = Diag @ self._components
+        grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
+        if self.use_closed_form_prob is False:
+            return grad_no_closed_form
+        else:
+            s_rond_s = self._latent_sqrt_var**2
+            XB_zero = self._exog @ self._coef_inflation
+            XB = self._exog @ self._coef
+            A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+            poiss_term = (
+                self._endog * (self._offsets + self._latent_mean)
+                - A
+                - _log_stirling(self._endog)
+            )
+            full_diag_sigma = diag.expand(self._exog.shape[0], -1)
+            full_diag_omega = torch.diag(omega).expand(self._exog.shape[0], -1)
+            H3 = d_h_x3(XB_zero, XB, full_diag_sigma, self._dirac)
+            poiss_term_H = poiss_term * H3
+            a = (
+                -2
+                * (
+                    ((poiss_term_H.T @ torch.ones(self.n_samples, self.dim)))
+                    * (torch.eye(self.dim))
+                )
+                @ self._components
+            )
+            B_Omega = ((1 - latent_prob) * m_minus_xb) @ omega
+            K = H3 * B_Omega * m_minus_xb
+            b = (
+                2
+                * (
+                    (
+                        (m_minus_xb * B_Omega * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            c = (
+                2
+                * (
+                    ((XB_zero * H3).T @ torch.ones(self.n_samples, self.dim))
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            d = (
+                -2
+                * (
+                    (
+                        (torch.log(torch.abs(self._latent_sqrt_var)) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            log_full_diag_sigma = torch.log(diag).expand(self._exog.shape[0], -1)
+            d += (
+                ((log_full_diag_sigma * H3).T @ torch.ones(self.n_samples, self.dim))
+                * torch.eye(self.dim)
+            ) @ self._components
+            e = (
+                -2
+                * (
+                    (
+                        ((_trunc_log(latent_prob) - _trunc_log(1 - latent_prob)) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            f = (
+                -(
+                    (
+                        (full_diag_omega * (full_diag_sigma - s_rond_s) * H3).T
+                        @ torch.ones(self.n_samples, self.dim)
+                    )
+                    * torch.eye(self.dim)
+                )
+                @ self._components
+            )
+            f -= (
+                (
+                    ((1 - 2 * latent_prob) * m_minus_xb**2 * full_diag_omega * H3).T
+                    @ torch.ones(self.n_samples, self.dim)
+                )
+                * torch.eye(self.dim)
+            ) @ self._components
+            grad_closed_form = a + b + c + d + e + f
+            return grad_closed_form + grad_no_closed_form
+
+    def grad_rho(self):
+        if self.use_closed_form_prob is True:
+            latent_prob = self.closed_formula_latent_prob
+        else:
+            latent_prob = self._latent_prob
+        omega = torch.inverse(self._covariance)
+        s_rond_s = self._latent_sqrt_var * self._latent_sqrt_var
+        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
+        first = (
+            -self._endog * (self._offsets + self._latent_mean)
+            + A
+            + _log_stirling(self._endog)
+        )
+        un_moins_prob = 1 - latent_prob
+        MmoinsXB = self._latent_mean - self._exog @ self._coef
+        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
+        second = MmoinsXB * A
+        third = self._exog @ self._coef_inflation
+        fourth_first = -torch.log(torch.abs(self._latent_sqrt_var))
+        fourth_second = (
+            1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0),
+                torch.log(torch.diag(self.covariance)).unsqueeze(0),
+            )
+        )
+        fourth = fourth_first + fourth_second
+        fifth = _trunc_log(un_moins_prob) - _trunc_log(latent_prob)
+        sixth_first = (
+            1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0), torch.diag(omega).unsqueeze(0)
+            )
+            * s_rond_s
+        )
+        sixth_second = (
+            -1
+            / 2
+            * torch.multiply(
+                torch.full((self.n_samples, 1), 1.0),
+                (torch.diag(omega) * torch.diag(self._covariance)).unsqueeze(0),
+            )
+        )
+        sixth = sixth_first + sixth_second
+        full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
+        seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
+        return first + second + third + fourth + fifth + sixth + seventh

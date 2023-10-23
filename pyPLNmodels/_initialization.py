@@ -2,6 +2,11 @@ import torch
 import math
 from typing import Optional
 from ._utils import _log_stirling
+import time
+from sklearn.decomposition import PCA
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
 
 if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
@@ -9,9 +14,7 @@ else:
     DEVICE = torch.device("cpu")
 
 
-def _init_covariance(
-    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor
-) -> torch.Tensor:
+def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
     """
     Initialization for the covariance for the Pln model. Take the log of endog
     (careful when endog=0), and computes the Maximum Likelihood
@@ -40,9 +43,7 @@ def _init_covariance(
     return sigma_hat
 
 
-def _init_components(
-    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor, rank: int
-) -> torch.Tensor:
+def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
     that is easier to estimate and then takes the rank largest eigenvectors to get components.
@@ -51,12 +52,6 @@ def _init_components(
     ----------
     endog : torch.Tensor
         Samples with size (n,p)
-    offsets : torch.Tensor
-        Offset, size (n,p)
-    exog : torch.Tensor
-        Covariates, size (n,d)
-    coef : torch.Tensor
-        Coefficient of size (d,p)
     rank : int
         The dimension of the latent space, i.e. the reduced dimension.
 
@@ -65,9 +60,11 @@ def _init_components(
     torch.Tensor
         Initialization of components of size (p,rank)
     """
-    sigma_hat = _init_covariance(endog, exog, coef).detach()
-    components = _components_from_covariance(sigma_hat, rank)
-    return components
+    log_y = torch.log(endog + (endog == 0) * math.exp(-2))
+    pca = PCA(n_components=rank)
+    pca.fit(log_y.detach().cpu())
+    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
+    return torch.from_numpy(pca_comp).to(DEVICE)
 
 
 def _init_latent_mean(
@@ -102,7 +99,7 @@ def _init_latent_mean(
         The learning rate of the optimizer. Default is 0.01.
     eps : float, optional
         The tolerance. The algorithm will stop as soon as the criterion is lower than the tolerance.
-        Default is 7e-3.
+        Default is 7e-1.
 
     Returns
     -------

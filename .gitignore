@@ -150,9 +150,16 @@ test.py
 
 ## directories that outputs when running the tests
 tests/Pln*
+tests/ZIPln*
 slides/
 index.html
 
-tests/test_models*
-tests/test_load*
-tests/test_readme*
+paper/*
+
+
+tests/docstrings_examples/*
+tests/getting_started/*
+tests/readme_examples/*
+# tests/test_getting_started.py
+Getting_started.py
+new_model.py
