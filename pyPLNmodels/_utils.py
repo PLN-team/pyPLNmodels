@@ -199,8 +199,12 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
         integer_ / math.exp(1)
     )
 
+
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
-    integer = torch.min(torch.max(tens, torch.tensor([eps]).to(DEVICE)), torch.tensor([1 - eps]).to(DEVICE))
+    integer = torch.min(
+        torch.max(tens, torch.tensor([eps]).to(DEVICE)),
+        torch.tensor([1 - eps]).to(DEVICE),
+    )
     return torch.log(integer)
 
 
@@ -929,7 +933,7 @@ def _extract_data_from_formula(
 
     """
     # dmatrices can not deal with GPU matrices
-    for key,matrix in data.items():
+    for key, matrix in data.items():
         if isinstance(matrix, torch.Tensor):
             data[key] = matrix.cpu()
     dmatrix = dmatrices(formula, data=data)

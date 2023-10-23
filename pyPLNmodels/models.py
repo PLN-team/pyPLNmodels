@@ -237,7 +237,9 @@ class _model(ABC):
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_).to(DEVICE)
-            covariances = self._get_pca_low_dim_covariances(sk_components).cpu().detach()
+            covariances = (
+                self._get_pca_low_dim_covariances(sk_components).cpu().detach()
+            )
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         return ax
@@ -1821,7 +1823,6 @@ class Pln(_model):
         pass
         # no model parameters since we are doing a profiled ELBO
 
-
     @property
     @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
@@ -2997,7 +2998,10 @@ class PlnPCA(_model):
         else:
             XB = 0
         return torch.exp(
-            self._offsets + XB + self.latent_variables.to(DEVICE) + 1 / 2 * covariance_a_posteriori
+            self._offsets
+            + XB
+            + self.latent_variables.to(DEVICE)
+            + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
@@ -3597,9 +3601,13 @@ class ZIPln(_model):
         self._latent_mean = torch.randn(self.n_samples, self.dim).to(DEVICE)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim).to(DEVICE)
         self._latent_prob = (
-            torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
-            * self._dirac
-        ).double().to(DEVICE)
+            (
+                torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
+                * self._dirac
+            )
+            .double()
+            .to(DEVICE)
+        )
 
     def _smart_init_latent_parameters(self):
         self._random_init_latent_parameters()
@@ -3744,8 +3752,12 @@ class ZIPln(_model):
         """
         if self._use_closed_form_prob is False:
             with torch.no_grad():
-                self._latent_prob = torch.maximum(self._latent_prob, torch.tensor([0]).to(DEVICE))
-                self._latent_prob = torch.minimum(self._latent_prob, torch.tensor([1]).to(DEVICE))
+                self._latent_prob = torch.maximum(
+                    self._latent_prob, torch.tensor([0]).to(DEVICE)
+                )
+                self._latent_prob = torch.minimum(
+                    self._latent_prob, torch.tensor([1]).to(DEVICE)
+                )
                 self._latent_prob *= self._dirac
 
     @property
