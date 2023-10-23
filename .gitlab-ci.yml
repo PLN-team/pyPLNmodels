@@ -32,7 +32,7 @@ tests:
 
 build_package:
   stage: build
-  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     - pip install build
   script:
@@ -59,7 +59,7 @@ publish_package:
 
 pages:
   stage: publish
-  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     - pip install '.[build-doc]'
   script:
