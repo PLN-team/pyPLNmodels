@@ -51,7 +51,7 @@ transformed_data = pca.best_model().transform()
 ```
 zi =  ZIPln.from_formula("counts ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 zi.fit()
-zi(pca)
+print(zi)
 transformed_data = zi.transform()
 ```
 
