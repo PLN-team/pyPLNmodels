@@ -4,7 +4,6 @@ from typing import Optional
 from ._utils import _log_stirling
 import time
 from sklearn.decomposition import PCA
-import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
