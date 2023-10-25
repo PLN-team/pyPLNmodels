@@ -28,7 +28,6 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     not_only_zeros = np.sum(Y, axis=0) > 0
     Y = Y[:, not_only_zeros]
     var = np.var(Y, axis=0)
-    print("var ", var.shape)
     # most_variables = np.argsort(var)[11200:(11200+dim)]
     # most_variables = np.argsort(var)[:dim]
     most_variables = np.argsort(var)[-dim:]
@@ -36,11 +35,13 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     return Y, GT, list(GT_name.values.__array__())
 
 
-Y, GT, _ = get_sc_mark_data(max_n=19998, dim=12000)
+n = 150
+dim = 100
+Y, GT, _ = get_sc_mark_data(max_n=n, dim=dim)
+# print('Y :', Y)
 # print('Y:', Y)
 print("percentage of zeros", np.sum(Y == 0) / np.prod(Y.shape))
 print(Y.shape)
-x
 
 zi = ZIPln(Y, use_closed_form_prob=True)
 tol = 0.0001
@@ -55,7 +56,7 @@ pln.fit(tol=tol, verbose=True, nb_max_iteration=nb_iter)
 
 
 Z_ZI, W_ZI = zi.transform()
-latent_zi = np.concatenate((Z_ZI, W_ZI), axis=-1)
+# latent_zi = np.concatenate((Z_ZI, W_ZI), axis=-1)
 # print('latent', latent_zi.shape)
 Z_pln = pln.transform()
 xgb = XGBClassifier()
