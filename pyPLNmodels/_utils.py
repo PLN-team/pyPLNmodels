@@ -189,7 +189,7 @@ def _get_offsets_from_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Offsets of size (n, p)
     """
-    sum_of_endog = torch.sum(endog, axis=1)
+    sum_of_endog = torch.maximum(torch.sum(endog, axis=1), torch.tensor([1]).to(DEVICE))
     return sum_of_endog.repeat((endog.shape[1], 1)).T
 
 
