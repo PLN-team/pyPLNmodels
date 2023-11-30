@@ -405,7 +405,7 @@ class _model(ABC):
             torch.mean((self.true_covariance - self._covariance) ** 2).detach()
         )
         self.mse_beta_list.append(
-            torch.mean((self.true_coef - self._coef) ** 2).detach()
+            torch.mean((self.true_coef - self.coef) ** 2).detach()
         )
         if self._NAME == "ZIPln":
             self.mse_infla_list.append(
@@ -443,7 +443,8 @@ class _model(ABC):
         loss = -self.compute_elbo()
         loss.backward()
         # if self._NAME == "ZIPln":
-        # self.save_mse()
+        if self.true_coef is not None:
+            self.save_mse()
         # print(
         #     "diff grad Theta zero",
         #     torch.norm(self._coef_inflation.grad + self.grad_theta_0()),
@@ -3268,6 +3269,7 @@ class ZIPln(_model):
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        exog_0: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets_formula: str = "logsum",
         dict_initialization: Optional[dict] = None,
@@ -3278,7 +3280,15 @@ class ZIPln(_model):
         true_infla=None,
         use_closed_form_prob=False,
         ksi=None,
+        do_single_inflation= False,
+        do_n_inflation = False,
+        do_np_inflation = False,
     ):
+        if do_single_inflation + do_n_inflation + do_np_inflation >1:
+            raise ValueError("You should take only one scheme.")
+        self.do_single_inflation = do_single_inflation
+        self.do_n_inflation = do_n_inflation
+        self.do_np_inflation = do_np_inflation
         super().__init__(
             endog,
             exog=exog,
@@ -3288,9 +3298,24 @@ class ZIPln(_model):
             take_log_offsets=take_log_offsets,
             add_const=add_const,
         )
+        if do_single_inflation is True:
+            self._exog_0 = 1
+        else:
+            self._exog_0 = _format_data(exog_0)
         self.true_covariance = true_covariance
         self.true_coef = true_coef
-        self.true_infla = true_infla
+        if true_infla is not None:
+            if self.do_single_inflation is True:
+                self.true_infla = true_infla[0,0]
+            elif self.do_n_inflation is True:
+                zero_inflated_mean = torch.matmul(self.exog, true_infla)
+                self.true_infla = zero_inflated_mean[:,0]
+            elif self.do_np_inflation is True:
+                self.true_infla = torch.matmul(self.exog, true_infla)
+            else:
+                self.true_infla = true_infla
+        else:
+            self.true_infla = None
         self.mse_cov_list = []
         self.mse_beta_list = []
         self.mse_infla_list = []
@@ -3299,12 +3324,30 @@ class ZIPln(_model):
         self.ksi = ksi
 
     @property
+    def exog_0(self):
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None.
+        """
+        return self._cpu_attribute_or_none("_exog_0")
+    @property
     def _description(self):
         return "with full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
         super()._random_init_model_parameters()
-        self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+        if self.do_single_inflation is True:
+            self._coef_inflation = torch.tensor([1.]).to(DEVICE)
+        elif self.do_n_inflation is True:
+            self._coef_inflation = torch.ones(self.n_samples).to(DEVICE)
+        elif self.do_np_inflation is True:
+            self._coef_inflation = torch.ones(self.n_samples, self.dim).to(DEVICE)
+        else:
+            self._coef_inflation = torch.randn(self.nb_cov, self.dim)
         self._coef = torch.randn(self.nb_cov, self.dim)
         self._components = torch.randn(int(self.dim * (self.dim + 1) / 2))
 
@@ -3320,7 +3363,14 @@ class ZIPln(_model):
                 self._endog, self._exog, self._coef, self.dim
             )
         if not hasattr(self, "_coef_inflation"):
-            self._coef_inflation = torch.randn(self.nb_cov, self.dim)
+            if self.do_single_inflation is True:
+                self._coef_inflation = torch.tensor([1.]).to(DEVICE)
+            elif self.do_n_inflation is True:
+                self._coef_inflation = torch.ones(self.n_samples).to(DEVICE)
+            elif self.do_np_inflation is True:
+                self._coef_inflation = torch.ones(self.n_samples, self.dim).to(DEVICE)
+            else:
+                self._coef_inflation = torch.randn(self.nb_cov, self.dim)
 
     def _random_init_latent_parameters(self):
         self._dirac = self._endog == 0

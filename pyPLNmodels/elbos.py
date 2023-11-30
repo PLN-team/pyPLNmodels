@@ -162,7 +162,6 @@ def elbo_pln(
         XB = torch.zeros_like(endog)
     else:
         XB = exog @ coef
-    # print('XB:', XB)
     m_minus_xb = latent_mean - XB
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
     A = torch.exp(offsets_plus_m + s_rond_s / 2)
@@ -180,10 +179,6 @@ def elbo_pln(
     elbo += d
     f = -0.5 * torch.trace(torch.inverse(covariance) @ diag)
     elbo += f
-    # print("a pln", a)
-    # print("b pln", b)
-    # print("d pln", d)
-    # print("f pln", f)
     return elbo  # / n_samples
 
 
@@ -229,7 +224,14 @@ def elbo_zi_pln(
         x_coef_inflation = torch.zeros_like(counts)
     else:
         XB = covariates @ coef
-        x_coef_inflation = covariates @ _coef_inflation
+        if torch.prod(torch.tensor(_coef_inflation.shape))==1:
+            x_coef_inflation = torch.ones(n_samples, dim)*_coef_inflation
+        elif _coef_inflation.shape == (n_samples, dim):
+            x_coef_inflation = _coef_inflation
+        elif torch.prod(torch.tensor(_coef_inflation.shape)) == n_samples:
+            x_coef_inflation = _coef_inflation.unsqueeze(1).repeat(1,dim)
+        else:
+            x_coef_inflation = covariates @ _coef_inflation
 
     m_minus_xb = latent_mean - XB
 

@@ -139,14 +139,21 @@ def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Ten
         print("ZIPln is sampled")
         zero_inflated_mean = torch.matmul(pln_param.exog, pln_param.coef_inflation)
         ksi = torch.bernoulli(1 / (1 + torch.exp(-zero_inflated_mean)))
+        single_mean = torch.ones(zero_inflated_mean.shape)*pln_param.coef_inflation[0,0]
+        ksi_single = torch.bernoulli(1/(1+ torch.exp(-single_mean)))
+        mean_n_param = zero_inflated_mean[:,0].unsqueeze(1).repeat(1,pln_param._dim)
+        ksi_n_param = torch.bernoulli(1/(1 + torch.exp(-mean_n_param)))
     else:
         ksi = 0
+        ksi_single = 0
     Y = torch.poisson(parameter)
     endog = (1 - ksi) * Y
+    single_inflated_endog = (1- ksi_single)*Y
+    n_inflated_endog = (1 - ksi_n_param)*Y
 
     torch.random.set_rng_state(prev_state)
     if return_latent is True:
-        return endog, gaussian, ksi, Y
+        return endog, gaussian, ksi, Y, single_inflated_endog, n_inflated_endog, ksi_single, ksi_n_param
     return endog
 
 
@@ -511,6 +518,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
             dtype=torch.float64,
             device="cpu",
         )
+        exog += 1/10*torch.randn(exog.shape).to("cpu")
         if add_const is True:
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
@@ -563,6 +571,8 @@ class PlnParameters:
         self._exog = _format_data(exog)
         self._offsets = _format_data(offsets)
         self._coef_inflation = _format_data(coef_inflation)
+        self._dim = self._coef.shape[1]
+        self._n_samples = self._offsets.shape[0]
         if self._coef is not None:
             _check_two_dimensions_are_equal(
                 "components",
@@ -646,6 +656,7 @@ class PlnParameters:
         Inflation coefficient of the model.
         """
         return self._coef_inflation
+
 
 
 def _check_two_dimensions_are_equal(
@@ -1082,7 +1093,17 @@ def phi(mu, sigma2):
 
 
 def closed_form_latent_prob(exog, coef, coef_infla, cov, dirac):
-    XB_zero = exog @ coef_infla
+    prod_shape = np.prod(coef_infla.shape)
+    n = exog.shape[0]
+    p = coef.shape[1]
+    if prod_shape == 1:
+        XB_zero = torch.ones(n,p)*coef_infla
+    elif prod_shape == n*p:
+        XB_zero = coef_infla
+    elif prod_shape == n:
+        XB_zero = coef_infla.unsqueeze(1).repeat(1,p)
+    else:
+        XB_zero = exog @ coef_infla
     pi = torch.sigmoid(XB_zero)
     diag = torch.diag(cov)
     full_diag = diag.expand(exog.shape[0], -1)
