@@ -224,12 +224,12 @@ def elbo_zi_pln(
         x_coef_inflation = torch.zeros_like(counts)
     else:
         XB = covariates @ coef
-        if torch.prod(torch.tensor(_coef_inflation.shape))==1:
-            x_coef_inflation = torch.ones(n_samples, dim)*_coef_inflation
+        if torch.prod(torch.tensor(_coef_inflation.shape)) == 1:
+            x_coef_inflation = torch.ones(n_samples, dim) * _coef_inflation
         elif _coef_inflation.shape == (n_samples, dim):
             x_coef_inflation = _coef_inflation
         elif torch.prod(torch.tensor(_coef_inflation.shape)) == n_samples:
-            x_coef_inflation = _coef_inflation.unsqueeze(1).repeat(1,dim)
+            x_coef_inflation = _coef_inflation.unsqueeze(1).repeat(1, dim)
         else:
             x_coef_inflation = covariates @ _coef_inflation
 
@@ -279,4 +279,13 @@ def elbo_zi_pln(
     f = -1 / 2 * torch.sum(inside_f)
     full_diag_omega = torch.diag(Omega).expand(covariates.shape[0], -1)
     elbo = a + b + c + d + e + f
+    if torch.isnan(elbo):
+        print("a ", a)
+        print("covariance", torch.sum(torch.isnan(covariance)))
+        print("b ", b)
+        print("c ", c)
+        print("d ", d)
+        print("e ", e)
+        print("f ", f)
+        return 0 * elbo
     return elbo
