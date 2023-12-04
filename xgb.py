@@ -48,12 +48,12 @@ def launch_test():
     pass
 
 
-cv = 4
-nb_iter = 150
-dims = [20, 50, 80]
+cv = 10
+nb_iter = 1500
+dims = [20, 100, 200, 400]
 # ps = [50, 75]#,100,125,150,200,300, 400, 500, 600, 700, 800, 900, 1000]
-to_begins_with = [None, 19000, 18500, 18000, 17500]
-n = 700
+to_begins_with = [None, 17000, 16500, 16000, 15500, 15000, 14500]
+n = 3000
 fig, axes = plt.subplots(len(dims), 1, figsize=(20, 20))
 markers = {"green": "o", "orange": ">", "red": None, "black": "s"}
 

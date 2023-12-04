@@ -11,11 +11,11 @@ import torch
 os.chdir("./pyPLNmodels/")
 
 
-moyennes = np.linspace(-1, 4,4)
+moyennes = np.linspace(-1, 4,14)
 
-nb_iter = 150
-n_samples = 100
-dim = 50
+nb_iter = 3000
+n_samples = 1500
+dim = 200
 rank = 10
 
 inflated_percentages_zero_Y = []
@@ -298,7 +298,6 @@ ax_percentages.set_yscale("log")
 
 handles, labels = ax_mse_sigma.get_legend_handles_labels()
 fig.legend(handles, labels, loc='upper center', ncol = 3)
-
-plt.savefig("zi_stats.pdf", format = "pdf")
+fig.savefig("zi_stats.pdf", format = "pdf")
 plt.show()
 
