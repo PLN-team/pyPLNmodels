@@ -20,6 +20,18 @@
 ##  Getting started
 The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/raw/dev/Getting_started.ipynb?inline=false). If you need just a quick view of the package, see the quickstart next.
 
+## 🛠 Installation
+
+**pyPLNmodels** is available on
+[pypi](https://pypi.org/project/pyPLNmodels/). The development
+version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
+
+### Package installation
+
+```
+pip install pyPLNmodels
+```
+
 ## ⚡️ Quickstart
 
 The package comes with an ecological data set to present the functionality
@@ -56,17 +68,6 @@ print(zi)
 transformed_data = zi.transform()
 ```
 
-## 🛠 Installation
-
-**pyPLNmodels** is available on
-[pypi](https://pypi.org/project/pyPLNmodels/). The development
-version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
-
-### Package installation
-
-```
-pip install pyPLNmodels
-```
 
 ## 👐 Contributing
 
