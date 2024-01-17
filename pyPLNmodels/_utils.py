@@ -1100,14 +1100,14 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
     return wrapper
 
 
-def pf_lambert(x, y):
+def point_fixe_lambert(x, y):
     return x - (1 - (y * torch.exp(-x) + 1) / (x + 1))
 
 
 def lambert(y, nb_pf=10):
     x = torch.log(1 + y)
     for _ in range(nb_pf):
-        x = pf_lambert(x, y)
+        x = point_fixe_lambert(x, y)
     return x
 
 
