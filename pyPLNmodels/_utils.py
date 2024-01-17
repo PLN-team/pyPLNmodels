@@ -333,10 +333,15 @@ def _format_model_param(
     ------
     ValueError
         If endog has negative values or offsets_formula is not None and not "logsum" or "zero"
+        If endog has one line that is full of zeros.
     """
     endog = _format_data(endog)
     if torch.min(endog) < 0:
         raise ValueError("Counts should be only non negative values.")
+    if torch.min(torch.sum(endog, axis=0)) < 0.5:
+        raise ValueError(
+            "Counts contains individuals containing only zero coutns. Remove it."
+        )
     exog = _format_data(exog)
     if add_const is True:
         if exog is None:
