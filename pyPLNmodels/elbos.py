@@ -180,11 +180,7 @@ def elbo_pln(
     elbo += d
     f = -0.5 * torch.trace(torch.inverse(covariance) @ diag)
     elbo += f
-    # print("a pln", a)
-    # print("b pln", b)
-    # print("d pln", d)
-    # print("f pln", f)
-    return elbo  # / n_samples
+    return elbo
 
 
 ## pb with trunc_log
