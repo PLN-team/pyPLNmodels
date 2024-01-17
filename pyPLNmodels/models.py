@@ -4260,3 +4260,18 @@ class ZIPln(_model):
         full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
         seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
         return first + second + third + fourth + fifth + sixth + seventh
+
+
+class Brute_ZIPln(ZIPln):
+    def _compute_elbo_b(self):
+        if self._use_closed_form_prob is True:
+            latent_prob_b = _closed_formula_latent_prob(
+                self._exog_b,
+                self._coef,
+                self._coef_inflation,
+                self._covariance,
+                self._dirac_b,
+            )
+        else:
+            latent_prob_b = self._latent_prob_b
+        return
