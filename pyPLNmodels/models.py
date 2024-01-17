@@ -244,6 +244,7 @@ class _model(ABC):
             )
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
+        plt.show()
         return ax
 
     def _project_parameters(self):
@@ -504,7 +505,7 @@ class _model(ABC):
         """
         return self.latent_variables
 
-    def qq_plots(self):
+    def _qq_plots(self):
         centered_latent = self.latent_variables - torch.mean(
             self.latent_variables, axis=0
         )
@@ -1302,6 +1303,7 @@ class _model(ABC):
         ax.set_ylabel("Predicted values")
         ax.set_xlabel("Counts")
         ax.legend()
+        plt.show()
         return ax
 
     def _print_beginning_message(self):
@@ -3578,7 +3580,7 @@ class ZIPln(_model):
 
     @property
     def _description(self):
-        return "with full covariance model and zero-inflation."
+        return "full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
         self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
