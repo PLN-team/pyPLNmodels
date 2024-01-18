@@ -787,6 +787,8 @@ def get_simulated_count_data(
     add_const: bool = True,
     zero_inflated=False,
     seed: int = 0,
+    mean_XB = 0,
+    mean_infla = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
