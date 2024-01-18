@@ -314,3 +314,9 @@ def elbo_brute_zipln(
     e = torch.sum(inside_e)
     _, logdet_C = torch.slogdet(components)
     logdet = -n_samples * logdet_C
+    diag_sum_s2 = torch.diag(torch.sum(s_rond_s, axis=0))
+    inside_b = -1 / 2 * Omega * (m_moins_xb_outer + diag_sum_s2)
+    b = torch.sum(inside_b)
+    inside_d = 1 / 2 * torch.log(s_rond_s)
+    d = torch.sum(inside_d)
+    return a + b + c + d + e + logdet + n_samples * dim / 2
