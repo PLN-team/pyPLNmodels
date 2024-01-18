@@ -20,7 +20,7 @@ from ._closed_forms import (
     _closed_formula_covariance,
     _closed_formula_latent_prob,
 )
-from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
+from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln, elbo_brute_zipln
 from ._utils import (
     _CriterionArgs,
     _format_data,
@@ -854,6 +854,11 @@ class _model(ABC):
         return self.n_samples * self._elbos_list[-1]
 
     @property
+    def elbo(self):
+        """Alias for loglike"""
+        return self.loglike
+
+    @property
     def BIC(self):
         """
         Property representing the Bayesian Information Criterion (BIC).
@@ -1294,11 +1299,16 @@ class _model(ABC):
         predictions = self._endog_predictions().ravel().cpu().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
-        sns.scatterplot(x=self.endog.ravel(), y=predictions, hue=colors, ax=ax)
+        endog_ravel = self.endog.ravel()
+        rec_error = torch.mean((endog_ravel - predictions) ** 2).numpy()
+        sns.scatterplot(x=endog_ravel, y=predictions, hue=colors, ax=ax)
         max_y = int(torch.max(self.endog.ravel()).item())
         y = np.linspace(0, max_y, max_y)
         ax.plot(y, y, c="red")
         ax.set_yscale("log")
+        ax.set_title(
+            f"Expected counts vs counts, reconstruction error = {np.round(rec_error, 4)}"
+        )
         ax.set_xscale("log")
         ax.set_ylabel("Predicted values")
         ax.set_xlabel("Counts")
@@ -4274,4 +4284,15 @@ class Brute_ZIPln(ZIPln):
             )
         else:
             latent_prob_b = self._latent_prob_b
-        return
+        return elbo_brute_zipln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            latent_prob_b,
+            self._components,
+            self._coef,
+            self._coef_inflation,
+            self._dirac_b,
+        )

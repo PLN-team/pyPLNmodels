@@ -339,8 +339,9 @@ def _format_model_param(
     if torch.min(endog) < 0:
         raise ValueError("Counts should be only non negative values.")
     if torch.min(torch.sum(endog, axis=1)) < 0.5:
+        print("counts sum", torch.sum(endog, axis=1))
         raise ValueError(
-            "Counts contains individuals containing only zero coutns. Remove it."
+            "Counts contains individuals containing only zero counts. Remove it."
         )
     exog = _format_data(exog)
     if add_const is True:
