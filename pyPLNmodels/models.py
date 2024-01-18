@@ -1296,9 +1296,9 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
-        predictions = self._endog_predictions().ravel().cpu().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
+        predictions = self._endog_predictions().ravel().cpu().detach()
         endog_ravel = self.endog.ravel()
         rec_error = torch.mean((endog_ravel - predictions) ** 2).numpy()
         sns.scatterplot(x=endog_ravel, y=predictions, hue=colors, ax=ax)
@@ -1315,6 +1315,14 @@ class _model(ABC):
         ax.legend()
         plt.show()
         return ax
+
+    @property
+    def reconstruction_error(self):
+        """Reconstruction error of the counts"""
+        predictions = self._endog_predictions().ravel().cpu().detach()
+        endog_ravel = self.endog.ravel()
+        return  torch.mean((endog_ravel - predictions) ** 2)
+
 
     def _print_beginning_message(self):
         """
