@@ -340,7 +340,7 @@ def _format_model_param(
         raise ValueError("Counts should be only non negative values.")
     if torch.min(torch.sum(endog, axis=1)) < 0.5:
         raise ValueError(
-            "Counts contains individuals containing only zero coutns. Remove it."
+            "Counts contains individuals containing only zero counts. Remove it."
         )
     exog = _format_data(exog)
     if add_const is True:
@@ -1155,3 +1155,13 @@ def mat_to_vec(matc, p, q):
     tril = torch.tril(matc)
     # tril = matc.reshape(-1,1).squeeze()
     return tril[torch.tril_indices(p, q, offset=0).tolist()]
+
+
+def _log1pexp(t):
+    mask = t > 10
+    mask += t < -10
+    return torch.where(
+        mask,
+        t,
+        torch.log(1 + torch.exp(t)),
+    )

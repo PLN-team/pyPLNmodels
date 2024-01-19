@@ -1,5 +1,5 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import _log_stirling, _trunc_log
+from ._utils import _log_stirling, _trunc_log, _log1pexp
 from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 from typing import Optional
@@ -238,10 +238,9 @@ def elbo_zi_pln(
     un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
     un_moins_rho_m_moins_xb_outer = un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
     inside_b = -1 / 2 * Omega * un_moins_rho_m_moins_xb_outer
-    inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
-        1 + torch.exp(x_coef_inflation)
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - _log1pexp(
+        x_coef_inflation
     )
-
     log_diag = torch.log(torch.diag(covariance))
     log_S_term = torch.sum(
         torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_sqrt_var))), axis=0
