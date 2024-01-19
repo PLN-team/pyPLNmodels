@@ -1,6 +1,5 @@
 import sys
 import pytest
-import torch
 from pytest_lazyfixture import lazy_fixture as lf
 import pandas as pd
 

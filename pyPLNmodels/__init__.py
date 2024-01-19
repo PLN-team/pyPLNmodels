@@ -1,3 +1,5 @@
+import importlib.metadata
+
 from .models import PlnPCAcollection, Pln, PlnPCA, ZIPln  # pylint:disable=[C0114]
 from .oaks import load_oaks
 from .elbos import profiled_elbo_pln, elbo_plnpca, elbo_pln
@@ -30,3 +32,4 @@ __all__ = (
     "get_simulation_parameters",
     "PlnParameters",
 )
+__version__ = importlib.metadata.version("pyPLNmodels")
