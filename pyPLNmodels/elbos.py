@@ -1,5 +1,5 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import _log_stirling, _trunc_log
+from ._utils import _log_stirling, _trunc_log, _log1pexp
 from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 from typing import Optional
@@ -238,10 +238,9 @@ def elbo_zi_pln(
     un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
     un_moins_rho_m_moins_xb_outer = un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
     inside_b = -1 / 2 * Omega * un_moins_rho_m_moins_xb_outer
-    inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
-        1 + torch.exp(x_coef_inflation)
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - _log1pexp(
+        x_coef_inflation
     )
-
     log_diag = torch.log(torch.diag(covariance))
     log_S_term = torch.sum(
         torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_sqrt_var))), axis=0
@@ -267,6 +266,13 @@ def elbo_zi_pln(
     third = torch.sum(inside_d + inside_f)
     third += n_samples * dim / 2
     res = first + second + third
+    # if torch.sum(res.isinf()):
+    #     print('a', torch.sum(inside_a.isinf()))
+    #     print('b', torch.sum(inside_b.isinf()))
+    #     print('c', torch.sum(inside_c.isinf()))
+    #     print('d', torch.sum(inside_d.isinf()))
+    #     print('e', torch.sum(inside_e.isinf()))
+    #     print('f', torch.sum(inside_f.isinf()))
     return res
 
 
@@ -304,9 +310,11 @@ def elbo_brute_zipln(
     a = torch.sum(inside_a)
     Omega = torch.inverse(covariance)
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-    inside_c = torch.multiply(latent_prob, x_coef_inflation) - torch.log(
-        1 + torch.exp(x_coef_inflation)
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - _log1pexp(
+        x_coef_inflation
     )
+    # print('before',torch.sum(torch.log( 1 + torch.exp(x_coef_inflation))) )
+    # print('now',torch.sum(_log1pexp(x_coef_inflation)) )
     c = torch.sum(inside_c)
     inside_e = -torch.multiply(latent_prob, _trunc_log(latent_prob)) - torch.multiply(
         1 - latent_prob, _trunc_log(1 - latent_prob)
@@ -319,4 +327,16 @@ def elbo_brute_zipln(
     b = torch.sum(inside_b)
     inside_d = 1 / 2 * torch.log(s_rond_s)
     d = torch.sum(inside_d)
-    return a + b + c + d + e + logdet + n_samples * dim / 2
+    elbo = a + b + c + d + e + logdet + n_samples * dim / 2
+    # if torch.sum(elbo.isinf()):
+    #     print('a', torch.sum(a.isinf()))
+    #     print('b', torch.sum(b.isinf()))
+    #     print('c', torch.sum(inside_c.isinf()))
+    #     print('latent_prob', torch.sum(latent_prob.isinf()))
+    #     print('xcoef', torch.sum(x_coef_inflation.isinf()))
+    #     print('xcoef', torch.max(x_coef_inflation))
+    #     print('exp(xcoef)', torch.sum(torch.exp(x_coef_inflation).isinf()))
+    #     print('d', torch.sum(d.isinf()))
+    #     print('e', torch.sum(e.isinf()))
+    #     print('logdet', torch.sum(logdet.isinf()))
+    return elbo
