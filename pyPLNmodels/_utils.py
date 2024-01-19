@@ -333,10 +333,15 @@ def _format_model_param(
     ------
     ValueError
         If endog has negative values or offsets_formula is not None and not "logsum" or "zero"
+        If endog has one line that is full of zeros.
     """
     endog = _format_data(endog)
     if torch.min(endog) < 0:
         raise ValueError("Counts should be only non negative values.")
+    if torch.min(torch.sum(endog, axis=1)) < 0.5:
+        raise ValueError(
+            "Counts contains individuals containing only zero counts. Remove it."
+        )
     exog = _format_data(exog)
     if add_const is True:
         if exog is None:
@@ -1095,14 +1100,14 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
     return wrapper
 
 
-def pf_lambert(x, y):
+def point_fixe_lambert(x, y):
     return x - (1 - (y * torch.exp(-x) + 1) / (x + 1))
 
 
 def lambert(y, nb_pf=10):
     x = torch.log(1 + y)
     for _ in range(nb_pf):
-        x = pf_lambert(x, y)
+        x = point_fixe_lambert(x, y)
     return x
 
 
@@ -1150,3 +1155,13 @@ def mat_to_vec(matc, p, q):
     tril = torch.tril(matc)
     # tril = matc.reshape(-1,1).squeeze()
     return tril[torch.tril_indices(p, q, offset=0).tolist()]
+
+
+def _log1pexp(t):
+    mask = t > 10
+    mask += t < -10
+    return torch.where(
+        mask,
+        t,
+        torch.log(1 + torch.exp(t)),
+    )

@@ -8,6 +8,7 @@
 > though it has memory limitations. Possible fields of applications include
 > - Genomics (number of times a gene is expressed in a cell)
 > - Ecology (species abundances)
+>
 > One main functionality is to normalize the count data to obtain more valuable
 > data. It also analyse the significance of each variable and their correlation as well as the weight of
 > covariates (if available).
@@ -17,7 +18,19 @@
 <!-- > comprehensive introduction. -->
 
 ##  Getting started
-The getting started can be found [here](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/raw/dev/Getting_started.ipynb?inline=false). If you need just a quick view of the package, see the quickstart next.
+The getting started can be found [here](Getting_started.ipynb). If you need just a quick view of the package, see the quickstart next.
+
+## 🛠 Installation
+
+**pyPLNmodels** is available on
+[pypi](https://pypi.org/project/pyPLNmodels/). The development
+version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
+
+### Package installation
+
+```
+pip install pyPLNmodels
+```
 
 ## ⚡️ Quickstart
 
@@ -55,17 +68,6 @@ print(zi)
 transformed_data = zi.transform()
 ```
 
-## 🛠 Installation
-
-**pyPLNmodels** is available on
-[pypi](https://pypi.org/project/pyPLNmodels/). The development
-version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
-
-### Package installation
-
-```
-pip install pyPLNmodels
-```
 
 ## 👐 Contributing
 

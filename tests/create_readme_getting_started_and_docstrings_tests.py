@@ -9,7 +9,14 @@ dir_getting_started = "getting_started"
 
 def get_lines(path_to_file, filename, filetype=".py"):
     with open(f"{path_to_file}{filename}{filetype}") as file:
-        lines = [line.rstrip() for line in file]
+        lines = []
+        for line in file:
+            rstrip_line = line.rstrip()
+            if len(rstrip_line) > 4:
+                if rstrip_line[0:3] != "pip":
+                    lines.append(rstrip_line)
+            else:
+                lines.append(rstrip_line)
     return lines
 
 

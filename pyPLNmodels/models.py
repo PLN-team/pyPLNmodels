@@ -74,7 +74,7 @@ class _model(ABC):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
@@ -91,8 +91,8 @@ class _model(ABC):
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets. Defaults to "logsum". Overriden if
-            offsets is not None.
+            The formula for offsets. Defaults to "zero". Can be also "logsum" where we take the logarithm of the sum (of each line) of the counts.
+            Overriden (useless) if offsets is not None.
         dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
@@ -120,7 +120,7 @@ class _model(ABC):
         formula: str,
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
     ):
@@ -135,7 +135,9 @@ class _model(ABC):
             The data dictionary. Each value can be either a torch.Tensor,
             a np.ndarray or pd.DataFrame
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets. Defaults to "logsum".
+            The formula for offsets. Defaults to "zero". Can be also "logsum" where we take
+            the logarithm of the sum (of each line) of the counts.
+            Overriden (useless) if data["offsets"] is not None.
         dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
@@ -242,6 +244,7 @@ class _model(ABC):
             )
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
+        plt.show()
         return ax
 
     def _project_parameters(self):
@@ -482,7 +485,7 @@ class _model(ABC):
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             if torch.sum(torch.isnan(loss)):
-                raise ValueError("test")
+                raise ValueError("The ELBO contains nan values.")
             loss.backward()
             elbo += loss.item()
             self.optim.step()
@@ -502,7 +505,7 @@ class _model(ABC):
         """
         return self.latent_variables
 
-    def qq_plots(self):
+    def _qq_plots(self):
         centered_latent = self.latent_variables - torch.mean(
             self.latent_variables, axis=0
         )
@@ -1300,6 +1303,7 @@ class _model(ABC):
         ax.set_ylabel("Predicted values")
         ax.set_xlabel("Counts")
         ax.legend()
+        plt.show()
         return ax
 
     def _print_beginning_message(self):
@@ -1462,7 +1466,7 @@ class Pln(_model):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
@@ -1499,7 +1503,7 @@ class Pln(_model):
         formula: str,
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
     ):
@@ -1957,7 +1961,7 @@ class PlnPCAcollection:
         *,
         exog: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
@@ -1975,7 +1979,8 @@ class PlnPCAcollection:
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets, by default None.
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets, by default "logsum".
+            The formula for offsets, by default "zero". Can be also "logsum" where we take the logarithm of the sum (of each line) of the counts.
+            Overriden (useless) if offsets is not None.
         ranks : Iterable[int], optional(keyword-only)
             The range of ranks, by default range(3, 5).
         dict_of_dict_initialization : dict, optional(keyword-only)
@@ -2013,7 +2018,7 @@ class PlnPCAcollection:
         formula: str,
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
@@ -2029,8 +2034,8 @@ class PlnPCAcollection:
             The data dictionary. Each value can be either
             a torch.Tensor, np.ndarray or pd.DataFrame
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets, by default "logsum".
-            Overriden if data["offsets"] is not None.
+            The formula for offsets, by default "zero". Can be also "logsum" where we take the logarithm of the sum (of each line) of the counts.
+            Overriden (useless) if data["offsets"] is not None.
         ranks : Iterable[int], optional(keyword-only)
             The range of ranks, by default range(3, 5).
         dict_of_dict_initialization : dict, optional(keyword-only)
@@ -2802,7 +2807,7 @@ class PlnPCA(_model):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
@@ -2846,7 +2851,7 @@ class PlnPCA(_model):
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         rank: int = 5,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
@@ -3389,7 +3394,7 @@ class ZIPln(_model):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
@@ -3407,8 +3412,8 @@ class ZIPln(_model):
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets. Defaults to "logsum". Overriden if
-            offsets is not None.
+            The formula for offsets. Defaults to "zero". Can be also "logsum" where we take the logarithm of the sum (of each line) of the counts.
+            Overriden (useless) if offsets is not None.
         dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
@@ -3475,7 +3480,7 @@ class ZIPln(_model):
         formula: str,
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: str = "logsum",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         use_closed_form_prob: bool = False,
@@ -3491,7 +3496,9 @@ class ZIPln(_model):
             The data dictionary. Each value can be either a torch.Tensor,
             a np.ndarray or pd.DataFrame
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets. Defaults to "logsum".
+            The formula for offsets. Defaults to "zero". Can be also "logsum" where
+            we take the logarithm of the sum (of each line) of the counts. Overriden (useless)
+            if data["offsets"] is not None.
         dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
@@ -3573,7 +3580,7 @@ class ZIPln(_model):
 
     @property
     def _description(self):
-        return "with full covariance model and zero-inflation."
+        return "full covariance model and zero-inflation."
 
     def _random_init_model_parameters(self):
         self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)

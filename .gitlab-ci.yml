@@ -23,7 +23,7 @@ tests:
     - jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
     - cd tests
     - python create_readme_getting_started_and_docstrings_tests.py
-    - rm test_getting_started.py
+    - rm test_getting_started.py # remove as it has been modified in a directory.
     - pytest .
   only:
     - main
@@ -50,7 +50,6 @@ publish_package:
   before_script:
     - pip install twine
   script:
-    - echo ${pypln_token}
     - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
