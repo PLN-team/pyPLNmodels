@@ -484,8 +484,8 @@ class _model(ABC):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
-            if torch.sum(torch.isnan(loss)):
-                raise ValueError("The ELBO contains nan values.")
+            if torch.sum(torch.isnan(loss) + loss.isinf()):
+                raise ValueError("The ELBO contains nan or inf values.")
             loss.backward()
             elbo += loss.item()
             self.optim.step()
@@ -1321,8 +1321,7 @@ class _model(ABC):
         """Reconstruction error of the counts"""
         predictions = self._endog_predictions().ravel().cpu().detach()
         endog_ravel = self.endog.ravel()
-        return  torch.mean((endog_ravel - predictions) ** 2)
-
+        return torch.mean((endog_ravel - predictions) ** 2)
 
     def _print_beginning_message(self):
         """

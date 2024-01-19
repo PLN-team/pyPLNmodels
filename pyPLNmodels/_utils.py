@@ -13,6 +13,7 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
+from scipy.special import logit
 
 
 torch.set_default_dtype(torch.float64)
@@ -787,8 +788,8 @@ def get_simulated_count_data(
     add_const: bool = True,
     zero_inflated=False,
     seed: int = 0,
-    mean_XB = 0,
-    mean_infla = 0,
+    mean_XB=None,
+    mean_infla=None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
@@ -835,6 +836,15 @@ def get_simulated_count_data(
         add_const=add_const,
         zero_inflated=zero_inflated,
     )
+    if mean_XB is not None:
+        pln_param._coef += mean_XB - torch.mean(pln_param.coef)
+    if mean_infla is not None:
+        pln_param._coef_inflation += logit(mean_infla) - logit(
+            torch.mean(torch.sigmoid(pln_param._coef_inflation)).cpu()
+        )
+    print("mean XB", torch.mean(pln_param._coef))
+    print("mean coef infla", torch.mean(torch.sigmoid(pln_param._coef_inflation)))
+
     endog = sample_pln(pln_param, seed=seed, return_latent=False)
     if return_true_param is True:
         if zero_inflated is True:
@@ -1158,3 +1168,13 @@ def mat_to_vec(matc, p, q):
     tril = torch.tril(matc)
     # tril = matc.reshape(-1,1).squeeze()
     return tril[torch.tril_indices(p, q, offset=0).tolist()]
+
+
+def _log1pexp(t):
+    mask = t > 10  # x < 0
+    mask += t < -10
+    return torch.where(
+        mask,
+        t,
+        torch.log(1 + torch.exp(t)),
+    )
