@@ -5,7 +5,7 @@ import seaborn as sns
 import torch
 
 endog, exog, offsets, cov, coef, coef_inflation = get_simulated_count_data(
-    mean_XB=0.8,
+    mean_XB=2.8,
     mean_infla=0.2,
     zero_inflated=True,
     return_true_param=True,
@@ -15,8 +15,8 @@ endog, exog, offsets, cov, coef, coef_inflation = get_simulated_count_data(
 
 is_closed = True
 
-brute_zi = Brute_ZIPln(
-    endog, exog=exog, offsets=offsets, use_closed_form_prob=is_closed
+brute_zi = ZIPln(
+    endog, exog=exog, offsets=offsets, use_closed_form_prob=False
 )
 brute_zi.fit()
 print("brute elbo", brute_zi.elbo)

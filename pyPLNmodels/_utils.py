@@ -1171,10 +1171,12 @@ def mat_to_vec(matc, p, q):
 
 
 def _log1pexp(t):
-    mask = t > 10
-    mask += t < -10
-    return torch.where(
-        mask,
-        t,
-        torch.log(1 + torch.exp(t)),
-    )
+    return torch.logaddexp(torch.tensor([0]),t)
+    # print('mask')
+    # mask = t > 10
+    # mask += t < -10
+    # return torch.where(
+    #     mask,
+    #     t,
+    #     torch.log(1 + torch.exp(t)),
+    # )

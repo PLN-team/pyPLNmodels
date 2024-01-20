@@ -66,7 +66,7 @@ _moyennes_XB = np.linspace(0, 6, 6)
 chosen_moyennes = _moyennes_XB
 
 _mean_infla = 0.2
-_nb_bootstrap = 12
+_nb_bootstrap = 7
 
 
 KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
@@ -231,7 +231,6 @@ class one_plot:
             for ax in axe:
                 ax.set_yscale("log")
         data = self.data
-        print("data moyenne", data["moyenne"])
         for crit_key in CRITERION_KEYS:
             sns.boxplot(
                 data=data, x="moyenne", y=crit_key, hue="model_name", ax=plots[crit_key]
