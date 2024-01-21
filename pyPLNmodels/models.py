@@ -11,7 +11,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import plotly.express as px
-from mlxtend.plotting import plot_pca_correlation_graph
 import matplotlib
 from scipy import stats
 
@@ -34,6 +33,7 @@ from ._utils import (
     _add_doc,
     vec_to_mat,
     mat_to_vec,
+    plot_correlation_circle,
 )
 
 from ._initialization import (
@@ -391,7 +391,10 @@ class _model(ABC):
         ------
         ValueError
             If the batch_size is greater than the number of samples, or not int.
+            If 'nb_max_iteration' is not an int.
         """
+        if not isinstance(nb_max_iteration, int):
+            raise ValueError("The argument 'nb_max_iteration' should be an int.")
         self._print_beginning_message()
         self._beginning_time = time.time()
         self._batch_size = self._handle_batch_size(batch_size)
@@ -619,9 +622,9 @@ class _model(ABC):
         fig.update_traces(diagonal_visible=False)
         fig.show()
 
-    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+    def plot_pca_correlation_circle(self, variables_names, indices_of_variables=None):
         """
-        Visualizes variables using PCA and plots a correlation graph.
+        Visualizes variables using PCA and plots a correlation circle.
 
         Parameters
         ----------
@@ -659,21 +662,7 @@ class _model(ABC):
                 raise ValueError(
                     f"Number of variables {len(indices_of_variables)} should be the same as the number of variables_names {len(variables_names)}"
                 )
-
-        n_components = 2
-        pca = self.sk_PCA(n_components=n_components)
-        variables = self.transform()
-        proj_variables = pca.transform(variables)
-        ## the package is not correctly printing the variance ratio
-        figure, correlation_matrix = plot_pca_correlation_graph(
-            variables[:, indices_of_variables],
-            variables_names=variables_names,
-            X_pca=proj_variables,
-            explained_variance=pca.explained_variance_ratio_,
-            dimensions=(1, 2),
-            figure_axis_size=10,
-        )
-        plt.show()
+        plot_correlation_circle(self.transform(), variables_names, indices_of_variables)
 
     @property
     def _latent_var(self) -> torch.Tensor:
@@ -1203,7 +1192,7 @@ class _model(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_circle(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
 
     def sigma(self):
         """
@@ -1617,11 +1606,11 @@ class Pln(_model):
         >>> data = {"endog": endog}
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
-        >>> pln.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        >>> pln.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
         """,
     )
-    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
-        super().plot_pca_correlation_graph(
+    def plot_pca_correlation_circle(self, variables_names, indices_of_variables=None):
+        super().plot_pca_correlation_circle(
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
@@ -2967,13 +2956,13 @@ class PlnPCA(_model):
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
-        >>> plnpca.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        >>> plnpca.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
         """,
     )
-    def plot_pca_correlation_graph(
+    def plot_pca_correlation_circle(
         self, variables_names: List[str], indices_of_variables=None
     ):
-        super().plot_pca_correlation_graph(
+        super().plot_pca_correlation_circle(
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
