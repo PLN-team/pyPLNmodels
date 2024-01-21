@@ -68,23 +68,23 @@ def test_viz_pcacol(plnpca):
 
 @pytest.mark.parametrize("model", dict_fixtures["real_fitted_model_intercept_array"])
 @filter_models(single_models)
-def test_plot_pca_correlation_graph_with_names_only(model):
-    model.plot_pca_correlation_graph([f"var_{i}" for i in range(8)])
+def test_plot_pca_correlation_circle_with_names_only(model):
+    model.plot_pca_correlation_circle([f"var_{i}" for i in range(8)])
 
 
 @pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_sim_model"])
 @filter_models(single_models)
-def test_fail_plot_pca_correlation_graph_without_names(model):
+def test_fail_plot_pca_correlation_circle_without_names(model):
     with pytest.raises(ValueError):
-        model.plot_pca_correlation_graph([f"var_{i}" for i in range(8)])
+        model.plot_pca_correlation_circle([f"var_{i}" for i in range(8)])
     with pytest.raises(ValueError):
-        model.plot_pca_correlation_graph([f"var_{i}" for i in range(6)], [1, 2, 3])
+        model.plot_pca_correlation_circle([f"var_{i}" for i in range(6)], [1, 2, 3])
 
 
 @pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_sim_model"])
 @filter_models(single_models)
-def test_plot_pca_correlation_graph_without_names(model):
-    model.plot_pca_correlation_graph([f"var_{i}" for i in range(3)], [0, 1, 2])
+def test_plot_pca_correlation_circle_without_names(model):
+    model.plot_pca_correlation_circle([f"var_{i}" for i in range(3)], [0, 1, 2])
 
 
 @pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_model"])
