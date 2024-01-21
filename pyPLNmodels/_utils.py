@@ -1169,34 +1169,90 @@ def _log1pexp(t):
         torch.log(1 + torch.exp(t)),
     )
 
+
+
+def calculate_correlation(X, Xpca):
+    """
+    Calculate correlations between each variable in X and the first two principal components.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Input data matrix with shape (n_samples, n_features).
+    Xpca : np.ndarray
+        Data matrix after PCA transformation.
+
+    Returns
+    -------
+    ccircle : list of tuples
+        List of tuples containing correlations with the first and second principal components.
+    """
+    ccircle = []
+    for j in X.T:
+        corr1 = np.corrcoef(j, Xpca[:, 0])[0, 1]
+        corr2 = np.corrcoef(j, Xpca[:, 1])[0, 1]
+        ccircle.append((corr1, corr2))
+    return ccircle
+
+def plot_correlation_arrows(axs, ccircle, variables_names):
+    """
+    Plot arrows representing the correlation circle.
+
+    Parameters
+    ----------
+    axs : matplotlib.axes._axes.Axes
+        Axes object for plotting.
+    ccircle : list of tuples
+        List of tuples containing correlations with the first and second principal components.
+    variables_names : list
+        List of names for the variables corresponding to columns in X.
+
+    Returns
+    -------
+    None
+    """
+    for i, (corr1, corr2) in enumerate(ccircle):
+        axs.arrow(0, 0,
+                  corr1,  # 0 for PC1
+                  corr2,  # 1 for PC2
+                  lw=2,  # line width
+                  length_includes_head=True,
+                  head_width=0.05,
+                  head_length=0.05)
+        axs.text(corr1 / 2, corr2 / 2, variables_names[i])
+
 def plot_correlation_circle(X, variables_names, indices_of_variables):
+    """
+    Plot a correlation circle for principal component analysis (PCA).
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Input data matrix with shape (n_samples, n_features).
+    variables_names : list
+        List of names for the variables corresponding to columns in X.
+    indices_of_variables : list
+        List of indices of the variables to be considered in the plot.
+
+    Returns
+    -------
+    None
+    """
     Xstd = StandardScaler().fit_transform(X)
     pca = PCA(n_components=2)
     Xpca = pca.fit_transform(Xstd)
-    ccircle = []
-    X = X[:,indices_of_variables]
-    for j in (X .T):
-        corr1 = np.corrcoef(j,Xpca[:,0])[0,1]
-        corr2 = np.corrcoef(j,Xpca[:,1])[0,1]
-        ccircle.append((corr1, corr2))
+
+    ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
 
     with plt.style.context(('seaborn-whitegrid')):
         fig, axs = plt.subplots(figsize=(6, 6))
-        for i in range((X.shape)[1]):
-            axs.arrow(0,0, # Arrows start at the origin
-                     ccircle[i][0],  #0 for PC1
-                     ccircle[i][1],  #1 for PC2
-                     lw = 2, # line width
-                     length_includes_head=True,
-                     head_width=0.05,
-                     head_length=0.05)
-            axs.text(ccircle[i][0]/2,ccircle[i][1]/2, variables_names[i])
+        plot_correlation_arrows(axs, ccircle, variables_names)
+
         # Draw the unit circle, for clarity
         circle = Circle((0, 0), 1, facecolor='none', edgecolor='k', linewidth=1, alpha=0.5)
         axs.add_patch(circle)
         axs.set_xlabel("PCA 1")
         axs.set_ylabel("PCA 2")
+
     plt.tight_layout()
     plt.show()
-
-
