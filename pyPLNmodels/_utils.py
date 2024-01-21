@@ -13,6 +13,9 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 from patsy import dmatrices
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from matplotlib.patches import Circle
 
 
 torch.set_default_dtype(torch.float64)
@@ -1165,3 +1168,35 @@ def _log1pexp(t):
         t,
         torch.log(1 + torch.exp(t)),
     )
+
+def plot_correlation_circle(X, variables_names, indices_of_variables):
+    Xstd = StandardScaler().fit_transform(X)
+    pca = PCA(n_components=2)
+    Xpca = pca.fit_transform(Xstd)
+    ccircle = []
+    X = X[:,indices_of_variables]
+    for j in (X .T):
+        corr1 = np.corrcoef(j,Xpca[:,0])[0,1]
+        corr2 = np.corrcoef(j,Xpca[:,1])[0,1]
+        ccircle.append((corr1, corr2))
+
+    with plt.style.context(('seaborn-whitegrid')):
+        fig, axs = plt.subplots(figsize=(6, 6))
+        for i in range((X.shape)[1]):
+            axs.arrow(0,0, # Arrows start at the origin
+                     ccircle[i][0],  #0 for PC1
+                     ccircle[i][1],  #1 for PC2
+                     lw = 2, # line width
+                     length_includes_head=True,
+                     head_width=0.05,
+                     head_length=0.05)
+            axs.text(ccircle[i][0]/2,ccircle[i][1]/2, variables_names[i])
+        # Draw the unit circle, for clarity
+        circle = Circle((0, 0), 1, facecolor='none', edgecolor='k', linewidth=1, alpha=0.5)
+        axs.add_patch(circle)
+        axs.set_xlabel("PCA 1")
+        axs.set_ylabel("PCA 2")
+    plt.tight_layout()
+    plt.show()
+
+
