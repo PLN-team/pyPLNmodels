@@ -3911,6 +3911,17 @@ class ZIPln(_model):
             list_parameters.append(self._coef_inflation)
         return list_parameters
 
+    def _update_closed_forms(self):
+        if self.use_closed_form_prob is False:
+            with torch.no_grad():
+                self._latent_prob = torch.maximum(
+                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                )
+                self._latent_prob = torch.minimum(
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                )
+                self._latent_prob *= self._dirac
+
     @property
     @_add_doc(_model)
     def model_parameters(self) -> Dict[str, torch.Tensor]:
