@@ -49,7 +49,7 @@ LEGEND_DICT = {
     B_KEY: r"$\|\hat{\beta} - \beta \|^2_2$",
     SIGMA_KEY: r"$\|\hat{\Sigma} - \Sigma\|^2_2$",
     B0_KEY: r"$\|\hat{B}^0 - B^0\|^2_2$",
-    ELBO_KEY: "ELBO",
+    ELBO_KEY: "Negative ELBO (Lower the better)",
     PI_KEY: r"$\|\hat{\pi} - \pi\|_1$",
 }
 
@@ -66,7 +66,7 @@ _moyennes_XB = np.linspace(0, 6, 6)
 chosen_moyennes = _moyennes_XB
 
 _mean_infla = 0.2
-_nb_bootstrap = 5
+_nb_bootstrap = 8
 
 
 KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
@@ -207,6 +207,8 @@ class one_plot:
                     values = {"model_name": [model_key], "moyenne": [moyenne]}
                     for crit_key in CRITERION_KEYS:
                         value = self.model_criterions[model_key][moyenne][crit_key][i]
+                        if crit_key == ELBO_KEY:
+                            value = -value
                         if isinstance(value, torch.Tensor):
                             values[crit_key] = [value.item()]
                         else:
