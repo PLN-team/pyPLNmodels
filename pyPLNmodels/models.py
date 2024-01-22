@@ -3777,10 +3777,14 @@ class ZIPln(_model):
         if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                    self._latent_prob,
+                    torch.tensor([0]).to(DEVICE),
+                    out=self._latent_prob,
                 )
                 self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                    self._latent_prob,
+                    torch.tensor([1]).to(DEVICE),
+                    out=self._latent_prob,
                 )
                 self._latent_prob *= self._dirac
 

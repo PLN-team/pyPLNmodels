@@ -1171,4 +1171,4 @@ def mat_to_vec(matc, p, q):
 
 
 def _log1pexp(t):
-    return torch.logaddexp(torch.tensor([0]), t)
+    return torch.logaddexp(torch.tensor([0]).to(DEVICE), t)
