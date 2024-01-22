@@ -622,7 +622,9 @@ class _model(ABC):
         fig.update_traces(diagonal_visible=False)
         fig.show()
 
-    def plot_pca_correlation_circle(self, variables_names, indices_of_variables=None):
+    def plot_pca_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
         """
         Visualizes variables using PCA and plots a correlation circle.
 
@@ -633,6 +635,8 @@ class _model(ABC):
             indices_of_variables : Optional[List[int]], optional
                 A list of indices corresponding to the variables.
                 If None, indices are determined based on `column_endog`, by default None
+            title : str
+                An additional title for the plot.
 
         Raises
         ------
@@ -662,7 +666,9 @@ class _model(ABC):
                 raise ValueError(
                     f"Number of variables {len(indices_of_variables)} should be the same as the number of variables_names {len(variables_names)}"
                 )
-        plot_correlation_circle(self.transform(), variables_names, indices_of_variables)
+        plot_correlation_circle(
+            self.transform(), variables_names, indices_of_variables, title=title
+        )
 
     @property
     def _latent_var(self) -> torch.Tensor:
@@ -2963,7 +2969,9 @@ class PlnPCA(_model):
         self, variables_names: List[str], indices_of_variables=None
     ):
         super().plot_pca_correlation_circle(
-            variables_names=variables_names, indices_of_variables=indices_of_variables
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            title=f", which are {self.rank} dimensional.",
         )
 
     @property

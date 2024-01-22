@@ -1225,7 +1225,7 @@ def plot_correlation_arrows(axs, ccircle, variables_names):
         axs.text(corr1 / 2, corr2 / 2, variables_names[i])
 
 
-def plot_correlation_circle(X, variables_names, indices_of_variables):
+def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     """
     Plot a correlation circle for principal component analysis (PCA).
 
@@ -1237,6 +1237,8 @@ def plot_correlation_circle(X, variables_names, indices_of_variables):
         List of names for the variables corresponding to columns in X.
     indices_of_variables : list
         List of indices of the variables to be considered in the plot.
+    title : str
+        Additional title on the plot.
 
     Returns
     -------
@@ -1245,6 +1247,7 @@ def plot_correlation_circle(X, variables_names, indices_of_variables):
     Xstd = StandardScaler().fit_transform(X)
     pca = PCA(n_components=2)
     Xpca = pca.fit_transform(Xstd)
+    explained_ratio = pca.explained_variance_ratio_
 
     ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
 
@@ -1257,8 +1260,9 @@ def plot_correlation_circle(X, variables_names, indices_of_variables):
             (0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5
         )
         axs.add_patch(circle)
-        axs.set_xlabel("PCA 1")
-        axs.set_ylabel("PCA 2")
+        axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0], 3))}")
+        axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1], 3))}")
+        axs.set_title(f"Correlation circle on the transformed variables{title}")
 
     plt.tight_layout()
     plt.show()
