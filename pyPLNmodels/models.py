@@ -3750,16 +3750,13 @@ class ZIPln(_model):
         self._project_latent_prob()
 
     def _project_latent_prob(self):
-        """
-        Project the latent probability since it must be between 0 and 1.
-        """
-        if self._use_closed_form_prob is False:
+        if self.use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]).to(DEVICE)
+                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
                 )
                 self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]).to(DEVICE)
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
                 )
                 self._latent_prob *= self._dirac
 
@@ -3889,17 +3886,6 @@ class ZIPln(_model):
             list_parameters.append(self._coef)
             list_parameters.append(self._coef_inflation)
         return list_parameters
-
-    def _update_closed_forms(self):
-        if self.use_closed_form_prob is False:
-            with torch.no_grad():
-                self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
-                )
-                self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
-                )
-                self._latent_prob *= self._dirac
 
     @property
     @_add_doc(_model)
