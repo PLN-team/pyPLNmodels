@@ -3138,8 +3138,7 @@ class PlnPCA(_model):
         str
             The additional methods string.
         """
-        string = " .projected_latent_variables"
-        return string
+        pass
 
     @property
     def covariance(self) -> torch.Tensor:
@@ -3944,6 +3943,43 @@ class ZIPln(_model):
         if self._use_closed_form_prob is False:
             latent_param["latent_prob"] = self.latent_prob
         return latent_param
+
+    @property
+    def _additional_methods_string(self):
+        """
+        Abstract property representing the additional methods string.
+        """
+        return "visualize_latent_prob()."
+
+    def visualize_latent_prob(self, indices_of_samples=None, indices_of_variables=None):
+        latent_prob = self.latent_prob
+        fig, ax = plt.subplots(figsize=(20, 20))
+        if indices_of_samples is None:
+            if self.n_samples > 1000:
+                mess = "Visualization of the whole dataset not possible "
+                mess += f"as n_samples ={self.n_samples} is too big (>1000). "
+                mess += "Please provide the argument 'indices_of_samples', "
+                mess += "with the needed samples number."
+                raise ValueError(mess)
+            indices_of_samples = np.arange(self.n_samples)
+        elif indices_of_variables is None:
+            if self.dim > 1000:
+                mess = "Visualization of all variables not possible "
+                mess += f"as dim ={self.dim} is too big(>1000). "
+                mess += "Please provide the argument 'indices_of_variables', "
+                mess += "with the needed variables number."
+                raise ValueError(mess)
+            indices_of_variables = np.arange(self.dim)
+        latent_prob = latent_prob[indices_of_samples][:, indices_of_variables].squeeze()
+        sns.heatmap(latent_prob, ax=ax)
+        ax.set_title("Latent probability to be zero inflated.")
+        ax.set_xlabel("Variable number")
+        ax.set_ylabel("Sample number")
+        # indices = (np.arange(0,len(indices_of_samples), len(indices_of_samples)/94)).astype(int)
+        # indices = indices_of_samples[indices]
+        # ax.set_yticklabels([str(index) for index in indices ])
+        # ax.set_xticklabels(indices_of_variables)
+        plt.show()
 
     def grad_M(self):
         if self.use_closed_form_prob is True:
