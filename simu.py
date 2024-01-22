@@ -66,7 +66,7 @@ _moyennes_XB = np.linspace(0, 6, 6)
 chosen_moyennes = _moyennes_XB
 
 _mean_infla = 0.2
-_nb_bootstrap = 7
+_nb_bootstrap = 5
 
 
 KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
@@ -96,27 +96,30 @@ def get_dict_models(endog, exog, offsets):
 
 n = 100
 dim = 25
-title = rf"n={n},p={dim},d=1,$\pi \approx 0.2$"
+title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
 
 def get_plnparam(mean_xb, mean_infla):
-    plnparam = get_simulation_parameters(add_const=True, nb_cov=0, zero_inflated=True)
+    plnparam = get_simulation_parameters(
+        add_const=True, nb_cov=0, zero_inflated=True, n_samples=n
+    )
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
     plnparam._coef_inflation += logit(mean_infla) - logit(
         torch.mean(torch.sigmoid(plnparam._coef_inflation)).cpu()
     )
+    # plnparam._offsets *=0
     return plnparam
 
 
 def get_data(_plnparam, seed):
     endog = sample_pln(_plnparam, seed=seed)
     print("XB", torch.mean(_plnparam.exog @ _plnparam.coef))
-    print("Xcoef", torch.mean(torch.sigmoid(_plnparam.exog @ _plnparam.coef_inflation)))
+    print("pi", torch.mean(torch.sigmoid(_plnparam.exog @ _plnparam.coef_inflation)))
 
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit(nb_max_iteration=3000, tol=0)
+        model.fit()
     return dict_models
 
 
@@ -240,36 +243,6 @@ class one_plot:
                 ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
                 ax.legend([], [], frameon=False)
                 ax.set_xlabel(r"Moyenne $XB$")
-        # for crit_key in CRITERION_KEYS:
-        #     # sns.boxplot(x = self.moyennes_XB, y = , hue = KEY_MODELS)
-        #     for model_key in KEY_MODELS:
-        #         var = [
-        #             np.std(self.model_criterions[model_key][moyenne][crit_key])
-        #             for moyenne in self.moyennes_XB
-        #         ]
-        #         to_plot = [
-        #             np.mean(self.model_criterions[model_key][moyenne][crit_key])
-        #             for moyenne in self.moyennes_XB
-        #         ]
-        #         quantile = ss.t.ppf(0.975, df=0.975)
-        #         if crit_key != ELBO_KEY:
-        #             plots[crit_key].plot(
-        #                 self.moyennes_XB,
-        #                 np.array(to_plot)
-        #                 + quantile * np.array(var) / math.sqrt(self.nb_bootstrap),
-        #                 color=COLORS[model_key],
-        #                 linestyle="--",
-        #             )
-        #             plots[crit_key].plot(
-        #                 self.moyennes_XB,
-        #                 np.array(to_plot)
-        #                 - quantile * np.array(var) / math.sqrt(self.nb_bootstrap),
-        #                 color=COLORS[model_key],
-        #                 linestyle="--",
-        #             )
-        #         plots[crit_key].plot(
-        #             self.moyennes_XB, to_plot, label=LABEL_DICT[model_key], color=COLORS[model_key]
-        #         )
 
         plots[REC_KEY].legend()
         fig.suptitle(title)
