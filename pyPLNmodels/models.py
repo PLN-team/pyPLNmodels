@@ -3394,7 +3394,7 @@ class ZIPln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        use_closed_form_prob: bool = False,
+        use_closed_form_prob: bool = True,
     ):
         """
         Initializes the ZIPln class.
@@ -3420,7 +3420,7 @@ class ZIPln(_model):
             is launched.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
-            Default is False.
+            Default is True.
         Raises
         ------
         ValueError
@@ -3479,7 +3479,7 @@ class ZIPln(_model):
         offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        use_closed_form_prob: bool = False,
+        use_closed_form_prob: bool = True,
     ):
         """
         Create a ZIPln instance from a formula and data.
@@ -3501,7 +3501,7 @@ class ZIPln(_model):
             Whether to take the log of offsets. Defaults to False.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
-            Default is False.
+            Default is True.
         Returns
         -------
         A ZIPln object
