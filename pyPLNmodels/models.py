@@ -3750,7 +3750,7 @@ class ZIPln(_model):
         self._project_latent_prob()
 
     def _project_latent_prob(self):
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
                     self._latent_prob, torch.tensor([0]), out=self._latent_prob
@@ -3979,7 +3979,7 @@ class ZIPln(_model):
         plt.show()
 
     def grad_M(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -3999,7 +3999,7 @@ class ZIPln(_model):
         return first + second + added
 
     def grad_S(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4019,7 +4019,7 @@ class ZIPln(_model):
         return first + sec + third
 
     def grad_theta(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4033,7 +4033,7 @@ class ZIPln(_model):
         A += added
         second = -un_moins_prob * A
         grad_no_closed_form = -self._exog.T @ second
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             XB_zero = self._exog @ self._coef_inflation
@@ -4088,7 +4088,7 @@ class ZIPln(_model):
         return a + b + c + d + e + f
 
     def grad_theta_0(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4096,7 +4096,7 @@ class ZIPln(_model):
             torch.exp(self._exog @ self._coef_inflation)
             / (1 + torch.exp(self._exog @ self._coef_inflation))
         )
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             grad_closed_form = self.gradients_closed_form_thetas(
@@ -4105,7 +4105,7 @@ class ZIPln(_model):
             return grad_closed_form + grad_no_closed_form
 
     def grad_C(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4149,7 +4149,7 @@ class ZIPln(_model):
         Diag = (first * second) * torch.eye(self.dim)
         last_grad = Diag @ self._components
         grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             s_rond_s = self._latent_sqrt_var**2
@@ -4242,7 +4242,7 @@ class ZIPln(_model):
             return grad_closed_form + grad_no_closed_form
 
     def grad_rho(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
