@@ -1251,7 +1251,7 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
 
     ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
     print("TEST")
-    print(sorted(plt.style.availabel))
+    print(sorted(plt.style.available))
 
     with plt.style.context(("seaborn-whitegrid")):
         fig, axs = plt.subplots(figsize=(6, 6))
