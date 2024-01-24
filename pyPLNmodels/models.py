@@ -1005,13 +1005,6 @@ class _model(ABC):
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
-            if key == "latent_prob":
-                if torch.max(value) > 1 or torch.min(value) < 0:
-                    if (
-                        torch.norm(self.dirac * self.latent_prob - self.latent_prob)
-                        > 0.0001
-                    ):
-                        raise Exception("Error is here")
             if isinstance(value, torch.Tensor):
                 pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
@@ -3394,7 +3387,7 @@ class ZIPln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        use_closed_form_prob: bool = False,
+        use_closed_form_prob: bool = True,
     ):
         """
         Initializes the ZIPln class.
@@ -3420,7 +3413,7 @@ class ZIPln(_model):
             is launched.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
-            Default is False.
+            Default is True.
         Raises
         ------
         ValueError
@@ -3479,7 +3472,7 @@ class ZIPln(_model):
         offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        use_closed_form_prob: bool = False,
+        use_closed_form_prob: bool = True,
     ):
         """
         Create a ZIPln instance from a formula and data.
@@ -3501,7 +3494,7 @@ class ZIPln(_model):
             Whether to take the log of offsets. Defaults to False.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
-            Default is False.
+            Default is True.
         Returns
         -------
         A ZIPln object
@@ -3750,7 +3743,7 @@ class ZIPln(_model):
         self._project_latent_prob()
 
     def _project_latent_prob(self):
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
                     self._latent_prob, torch.tensor([0]), out=self._latent_prob
@@ -3796,6 +3789,8 @@ class ZIPln(_model):
 
     @property
     def latent_prob(self):
+        if self._use_closed_form_prob is True:
+            return self.closed_formula_latent_prob
         return self._cpu_attribute_or_none("_latent_prob")
 
     @latent_prob.setter
@@ -3822,7 +3817,7 @@ class ZIPln(_model):
         """
         The closed form for the latent probability.
         """
-        return closed_formula_latent_prob(
+        return _closed_formula_latent_prob(
             self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
         )
 
@@ -3979,7 +3974,7 @@ class ZIPln(_model):
         plt.show()
 
     def grad_M(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -3999,7 +3994,7 @@ class ZIPln(_model):
         return first + second + added
 
     def grad_S(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4019,7 +4014,7 @@ class ZIPln(_model):
         return first + sec + third
 
     def grad_theta(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4033,7 +4028,7 @@ class ZIPln(_model):
         A += added
         second = -un_moins_prob * A
         grad_no_closed_form = -self._exog.T @ second
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             XB_zero = self._exog @ self._coef_inflation
@@ -4088,7 +4083,7 @@ class ZIPln(_model):
         return a + b + c + d + e + f
 
     def grad_theta_0(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4096,7 +4091,7 @@ class ZIPln(_model):
             torch.exp(self._exog @ self._coef_inflation)
             / (1 + torch.exp(self._exog @ self._coef_inflation))
         )
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             grad_closed_form = self.gradients_closed_form_thetas(
@@ -4105,7 +4100,7 @@ class ZIPln(_model):
             return grad_closed_form + grad_no_closed_form
 
     def grad_C(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4149,7 +4144,7 @@ class ZIPln(_model):
         Diag = (first * second) * torch.eye(self.dim)
         last_grad = Diag @ self._components
         grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             s_rond_s = self._latent_sqrt_var**2
@@ -4242,7 +4237,7 @@ class ZIPln(_model):
             return grad_closed_form + grad_no_closed_form
 
     def grad_rho(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
