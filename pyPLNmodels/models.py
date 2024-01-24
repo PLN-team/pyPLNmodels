@@ -11,7 +11,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import plotly.express as px
-from mlxtend.plotting import plot_pca_correlation_graph
 import matplotlib
 from scipy import stats
 
@@ -34,6 +33,7 @@ from ._utils import (
     _add_doc,
     vec_to_mat,
     mat_to_vec,
+    plot_correlation_circle,
 )
 
 from ._initialization import (
@@ -391,7 +391,10 @@ class _model(ABC):
         ------
         ValueError
             If the batch_size is greater than the number of samples, or not int.
+            If 'nb_max_iteration' is not an int.
         """
+        if not isinstance(nb_max_iteration, int):
+            raise ValueError("The argument 'nb_max_iteration' should be an int.")
         self._print_beginning_message()
         self._beginning_time = time.time()
         self._batch_size = self._handle_batch_size(batch_size)
@@ -619,9 +622,11 @@ class _model(ABC):
         fig.update_traces(diagonal_visible=False)
         fig.show()
 
-    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
+    def plot_pca_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
         """
-        Visualizes variables using PCA and plots a correlation graph.
+        Visualizes variables using PCA and plots a correlation circle.
 
         Parameters
         ----------
@@ -630,6 +635,8 @@ class _model(ABC):
             indices_of_variables : Optional[List[int]], optional
                 A list of indices corresponding to the variables.
                 If None, indices are determined based on `column_endog`, by default None
+            title : str
+                An additional title for the plot.
 
         Raises
         ------
@@ -659,21 +666,9 @@ class _model(ABC):
                 raise ValueError(
                     f"Number of variables {len(indices_of_variables)} should be the same as the number of variables_names {len(variables_names)}"
                 )
-
-        n_components = 2
-        pca = self.sk_PCA(n_components=n_components)
-        variables = self.transform()
-        proj_variables = pca.transform(variables)
-        ## the package is not correctly printing the variance ratio
-        figure, correlation_matrix = plot_pca_correlation_graph(
-            variables[:, indices_of_variables],
-            variables_names=variables_names,
-            X_pca=proj_variables,
-            explained_variance=pca.explained_variance_ratio_,
-            dimensions=(1, 2),
-            figure_axis_size=10,
+        plot_correlation_circle(
+            self.transform(), variables_names, indices_of_variables, title=title
         )
-        plt.show()
 
     @property
     def _latent_var(self) -> torch.Tensor:
@@ -1010,13 +1005,6 @@ class _model(ABC):
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
-            if key == "latent_prob":
-                if torch.max(value) > 1 or torch.min(value) < 0:
-                    if (
-                        torch.norm(self.dirac * self.latent_prob - self.latent_prob)
-                        > 0.0001
-                    ):
-                        raise Exception("Error is here")
             if isinstance(value, torch.Tensor):
                 pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
@@ -1203,7 +1191,7 @@ class _model(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_graph(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_circle(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
 
     def sigma(self):
         """
@@ -1617,11 +1605,11 @@ class Pln(_model):
         >>> data = {"endog": endog}
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
-        >>> pln.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        >>> pln.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
         """,
     )
-    def plot_pca_correlation_graph(self, variables_names, indices_of_variables=None):
-        super().plot_pca_correlation_graph(
+    def plot_pca_correlation_circle(self, variables_names, indices_of_variables=None):
+        super().plot_pca_correlation_circle(
             variables_names=variables_names, indices_of_variables=indices_of_variables
         )
 
@@ -2967,14 +2955,16 @@ class PlnPCA(_model):
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
-        >>> plnpca.plot_pca_correlation_graph(["a","b"], indices_of_variables = [4,8])
+        >>> plnpca.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
         """,
     )
-    def plot_pca_correlation_graph(
+    def plot_pca_correlation_circle(
         self, variables_names: List[str], indices_of_variables=None
     ):
-        super().plot_pca_correlation_graph(
-            variables_names=variables_names, indices_of_variables=indices_of_variables
+        super().plot_pca_correlation_circle(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            title=f", which are {self.rank} dimensional.",
         )
 
     @property
@@ -3141,8 +3131,7 @@ class PlnPCA(_model):
         str
             The additional methods string.
         """
-        string = " .projected_latent_variables"
-        return string
+        pass
 
     @property
     def covariance(self) -> torch.Tensor:
@@ -3398,7 +3387,7 @@ class ZIPln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        use_closed_form_prob: bool = False,
+        use_closed_form_prob: bool = True,
     ):
         """
         Initializes the ZIPln class.
@@ -3424,7 +3413,7 @@ class ZIPln(_model):
             is launched.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
-            Default is False.
+            Default is True.
         Raises
         ------
         ValueError
@@ -3483,7 +3472,7 @@ class ZIPln(_model):
         offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
-        use_closed_form_prob: bool = False,
+        use_closed_form_prob: bool = True,
     ):
         """
         Create a ZIPln instance from a formula and data.
@@ -3505,7 +3494,7 @@ class ZIPln(_model):
             Whether to take the log of offsets. Defaults to False.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
-            Default is False.
+            Default is True.
         Returns
         -------
         A ZIPln object
@@ -3687,8 +3676,8 @@ class ZIPln(_model):
 
     def _endog_predictions(self):
         return torch.exp(
-            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
-        ) * (1 - self._latent_prob)
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_var**2
+        ) * (1 - self.latent_prob)
 
     @property
     def coef_inflation(self):
@@ -3754,16 +3743,13 @@ class ZIPln(_model):
         self._project_latent_prob()
 
     def _project_latent_prob(self):
-        """
-        Project the latent probability since it must be between 0 and 1.
-        """
         if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]).to(DEVICE)
+                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
                 )
                 self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]).to(DEVICE)
+                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
                 )
                 self._latent_prob *= self._dirac
 
@@ -3803,6 +3789,8 @@ class ZIPln(_model):
 
     @property
     def latent_prob(self):
+        if self._use_closed_form_prob is True:
+            return self.closed_formula_latent_prob
         return self._cpu_attribute_or_none("_latent_prob")
 
     @latent_prob.setter
@@ -3829,7 +3817,7 @@ class ZIPln(_model):
         """
         The closed form for the latent probability.
         """
-        return closed_formula_latent_prob(
+        return _closed_formula_latent_prob(
             self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
         )
 
@@ -3948,8 +3936,45 @@ class ZIPln(_model):
             latent_param["latent_prob"] = self.latent_prob
         return latent_param
 
+    @property
+    def _additional_methods_string(self):
+        """
+        Abstract property representing the additional methods string.
+        """
+        return "visualize_latent_prob()."
+
+    def visualize_latent_prob(self, indices_of_samples=None, indices_of_variables=None):
+        latent_prob = self.latent_prob
+        fig, ax = plt.subplots(figsize=(20, 20))
+        if indices_of_samples is None:
+            if self.n_samples > 1000:
+                mess = "Visualization of the whole dataset not possible "
+                mess += f"as n_samples ={self.n_samples} is too big (>1000). "
+                mess += "Please provide the argument 'indices_of_samples', "
+                mess += "with the needed samples number."
+                raise ValueError(mess)
+            indices_of_samples = np.arange(self.n_samples)
+        elif indices_of_variables is None:
+            if self.dim > 1000:
+                mess = "Visualization of all variables not possible "
+                mess += f"as dim ={self.dim} is too big(>1000). "
+                mess += "Please provide the argument 'indices_of_variables', "
+                mess += "with the needed variables number."
+                raise ValueError(mess)
+            indices_of_variables = np.arange(self.dim)
+        latent_prob = latent_prob[indices_of_samples][:, indices_of_variables].squeeze()
+        sns.heatmap(latent_prob, ax=ax)
+        ax.set_title("Latent probability to be zero inflated.")
+        ax.set_xlabel("Variable number")
+        ax.set_ylabel("Sample number")
+        # indices = (np.arange(0,len(indices_of_samples), len(indices_of_samples)/94)).astype(int)
+        # indices = indices_of_samples[indices]
+        # ax.set_yticklabels([str(index) for index in indices ])
+        # ax.set_xticklabels(indices_of_variables)
+        plt.show()
+
     def grad_M(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -3969,7 +3994,7 @@ class ZIPln(_model):
         return first + second + added
 
     def grad_S(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -3989,7 +4014,7 @@ class ZIPln(_model):
         return first + sec + third
 
     def grad_theta(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4003,7 +4028,7 @@ class ZIPln(_model):
         A += added
         second = -un_moins_prob * A
         grad_no_closed_form = -self._exog.T @ second
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             XB_zero = self._exog @ self._coef_inflation
@@ -4058,7 +4083,7 @@ class ZIPln(_model):
         return a + b + c + d + e + f
 
     def grad_theta_0(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4066,7 +4091,7 @@ class ZIPln(_model):
             torch.exp(self._exog @ self._coef_inflation)
             / (1 + torch.exp(self._exog @ self._coef_inflation))
         )
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             grad_closed_form = self.gradients_closed_form_thetas(
@@ -4075,7 +4100,7 @@ class ZIPln(_model):
             return grad_closed_form + grad_no_closed_form
 
     def grad_C(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob
@@ -4119,7 +4144,7 @@ class ZIPln(_model):
         Diag = (first * second) * torch.eye(self.dim)
         last_grad = Diag @ self._components
         grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
-        if self.use_closed_form_prob is False:
+        if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
             s_rond_s = self._latent_sqrt_var**2
@@ -4212,7 +4237,7 @@ class ZIPln(_model):
             return grad_closed_form + grad_no_closed_form
 
     def grad_rho(self):
-        if self.use_closed_form_prob is True:
+        if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
             latent_prob = self._latent_prob

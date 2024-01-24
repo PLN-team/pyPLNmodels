@@ -102,28 +102,31 @@ def test_transform(zi):
     assert z.shape == w.shape == zi.endog.shape
 
 
-@pytest.mark.parametrize("model", dict_fixtures["sim_model_instance"])
-@filter_models(["ZIPln"])
-def test_batch(model):
-    pln_param = get_simulation_parameters(zero_inflated=True, n_samples=1000)
-    # pln_param._coef += 5
+def test_mse():
+    n_samples = 300
+    pln_param = get_simulation_parameters(
+        zero_inflated=True, n_samples=n_samples, nb_cov=0
+    )
+    pln_param._coef += 6
     endog = sample_pln(pln_param, seed=0, return_latent=False)
     exog = pln_param.exog
     offsets = pln_param.offsets
     covariance = pln_param.covariance
     coef = pln_param.coef
     coef_inflation = pln_param.coef_inflation
-    endog, exog, offsets, covariance, coef, coef_inflation = get_simulated_count_data(
-        zero_inflated=True, return_true_param=True, n_samples=1000
-    )
-    zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
-    zi.fit(batch_size=20)
+    zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=True)
+    zi.fit()
     mse_covariance = MSE(zi.covariance.cpu() - covariance.cpu())
     mse_coef = MSE(zi.coef.cpu() - coef.cpu())
     mse_coef_infla = MSE(zi.coef_inflation.cpu() - coef_inflation.cpu())
-    assert mse_coef < 3
-    assert mse_coef_infla < 3
-    assert mse_covariance < 1
-    zi.show()
-    print(zi)
-    zi.fit()
+    assert mse_coef < 0.05
+    assert mse_coef_infla < 0.08
+    assert mse_covariance < 0.3
+
+
+@pytest.mark.parametrize("model", dict_fixtures["sim_model_instance"])
+@filter_models(["ZIPln"])
+def test_batch(model):
+    model.batch_size = 20
+    model.fit()
+    print(model)
