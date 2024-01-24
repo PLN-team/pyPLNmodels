@@ -3676,8 +3676,8 @@ class ZIPln(_model):
 
     def _endog_predictions(self):
         return torch.exp(
-            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
-        ) * (1 - self._latent_prob)
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_var**2
+        ) * (1 - self.latent_prob)
 
     @property
     def coef_inflation(self):
