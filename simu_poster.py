@@ -35,6 +35,7 @@ LABEL_DICT = {
     STD_CLOSED_KEY: "Standard",
     STD_FREE_KEY: "Standard",
 }
+COLOR_MODELS = {ENH_CLOSED_KEY: "blue", STD_CLOSED_KEY: "red"}
 
 REC_KEY = "Reconstruction_error"
 B_KEY = "MSE_B"
@@ -239,15 +240,23 @@ class one_plot:
         for ax in axes:
             ax.set_yscale("log")
         data = self.data
+        palette = {
+            LABEL_DICT[model_key]: COLOR_MODELS[model_key] for model_key in KEY_MODELS
+        }
         for crit_key in CRITERION_KEYS:
             sns.boxplot(
-                data=data, x="moyenne", y=crit_key, hue="model_name", ax=plots[crit_key]
+                data=data,
+                x="moyenne",
+                y=crit_key,
+                hue="model_name",
+                ax=plots[crit_key],
+                palette=palette,
             )
         for ax in axes:
             ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
             ax.legend([], [], frameon=False)
             ax.set_ylabel("")
-            ax.set_xlabel(r"Moyenne $XB$", fontsize="30")
+            ax.set_xlabel(r"Mean $\mu$", fontsize="30")
             ax.tick_params(axis="y", labelsize=20)
             ax.set_xticklabels(
                 np.round(self.chosen_moyennes).astype(int), fontsize="25"
