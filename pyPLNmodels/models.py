@@ -1005,13 +1005,6 @@ class _model(ABC):
         os.makedirs(path, exist_ok=True)
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
-            if key == "latent_prob":
-                if torch.max(value) > 1 or torch.min(value) < 0:
-                    if (
-                        torch.norm(self.dirac * self.latent_prob - self.latent_prob)
-                        > 0.0001
-                    ):
-                        raise Exception("Error is here")
             if isinstance(value, torch.Tensor):
                 pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
@@ -3796,6 +3789,8 @@ class ZIPln(_model):
 
     @property
     def latent_prob(self):
+        if self._use_closed_form_prob is True:
+            return self.closed_formula_latent_prob
         return self._cpu_attribute_or_none("_latent_prob")
 
     @latent_prob.setter
@@ -3822,7 +3817,7 @@ class ZIPln(_model):
         """
         The closed form for the latent probability.
         """
-        return closed_formula_latent_prob(
+        return _closed_formula_latent_prob(
             self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
         )
 
