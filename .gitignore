@@ -161,5 +161,6 @@ tests/docstrings_examples/*
 tests/getting_started/*
 tests/readme_examples/*
 # tests/test_getting_started.py
-Getting_started.py
+# Getting_started.py
 new_model.py
+results_simu/*
