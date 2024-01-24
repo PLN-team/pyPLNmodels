@@ -1250,8 +1250,10 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     explained_ratio = pca.explained_variance_ratio_
 
     ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
+    print("TEST")
+    print(sorted(plt.style.available))
 
-    with plt.style.context(("seaborn-whitegrid")):
+    with plt.style.context(("seaborn-v0_8-whitegrid")):
         fig, axs = plt.subplots(figsize=(6, 6))
         plot_correlation_arrows(axs, ccircle, variables_names)
 
