@@ -3850,8 +3850,13 @@ class ZIPln(_model):
         """
         The closed form for the latent probability.
         """
-        return closed_formula_latent_prob(
-            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
+        return _closed_formula_latent_prob(
+            self._exog,
+            self._coef,
+            self._offsets,
+            self._coef_inflation,
+            self._covariance,
+            self._dirac,
         )
 
     def compute_elbo(self):
