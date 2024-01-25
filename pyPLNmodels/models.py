@@ -3818,7 +3818,26 @@ class ZIPln(_model):
         The closed form for the latent probability.
         """
         return _closed_formula_latent_prob(
-            self._exog, self._coef, self._coef_inflation, self._covariance, self._dirac
+            self._exog,
+            self._coef,
+            self._offsets,
+            self._coef_inflation,
+            self._covariance,
+            self._dirac,
+        )
+
+    @property
+    def closed_formula_latent_prob_b(self):
+        """
+        The closed form for the latent probability for the batch.
+        """
+        return _closed_formula_latent_prob(
+            self._exog_b,
+            self._coef,
+            self._offsets_b,
+            self._coef_inflation,
+            self._covariance,
+            self._dirac_b,
         )
 
     def compute_elbo(self):
@@ -3841,13 +3860,7 @@ class ZIPln(_model):
 
     def _compute_elbo_b(self):
         if self._use_closed_form_prob is True:
-            latent_prob_b = _closed_formula_latent_prob(
-                self._exog_b,
-                self._coef,
-                self._coef_inflation,
-                self._covariance,
-                self._dirac_b,
-            )
+            latent_prob_b = self.closed_formula_latent_prob_b
         else:
             latent_prob_b = self._latent_prob_b
         return elbo_zi_pln(
