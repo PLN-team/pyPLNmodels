@@ -581,29 +581,32 @@ class PlnParameters:
         coef: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         exog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
-        coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame, None] = None,
+        n_samples: int,
     ):
         """
         Instantiate all the needed parameters to sample from the PLN model.
 
         Parameters
         ----------
-        components : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
+        components : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Components of size (p, rank)
-        coef : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Coefficient of size (d, p)
-        exog : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None(keyword-only)
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None(keyword-only)
             Covariates, size (n, d) or None
-        offsets : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
             Offset, size (n, p)
-        coef_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame, None], optional(keyword-only)
-            Coefficient for zero-inflation model, size (d, p) or None. Default is None.
+        n_samples : int
+            The number of samples that will be produced.
+        Raises
+
         """
         self._components = _format_data(components)
         self._coef = _format_data(coef)
         self._exog = _format_data(exog)
         self._offsets = _format_data(offsets)
         self._coef_inflation = _format_data(coef_inflation)
+        self._n_samples = n_samples
         if self._coef is not None:
             _check_two_dimensions_are_equal(
                 "components",
@@ -622,6 +625,9 @@ class PlnParameters:
                 0,
                 1,
             )
+            if self._offsets.shape[0] != self._n_samples:
+                msg = f"offsets should have size {self._n_samples} for dimension 0."
+                raise ValueError(msg)
         if self._exog is not None:
             _check_two_dimensions_are_equal(
                 "offsets",
@@ -645,6 +651,51 @@ class PlnParameters:
                     raise RuntimeError(
                         f"Expected all arrays to be 2-dimensional, got {len(array.shape)}"
                     )
+
+    class ZIPlnParameters(PlnParameters):
+        def __init__(
+            self,
+            *,
+            components: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+            coef: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+            exog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+            offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+            coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame, None],
+            inflation_formula="colum-wise",
+        ):
+            """
+            Instantiate all the needed parameters to sample from the PLN model.
+
+            Parameters
+            ----------
+            components : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
+                Components of size (p, rank)
+            coef : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
+                Coefficient of size (d, p)
+            exog : : Union[torch.Tensor, np.ndarray, pd.DataFrame] or None(keyword-only)
+                Covariates, size (n, d) or None
+            offsets : : Union[torch.Tensor, np.ndarray, pd.DataFrame](keyword-only)
+                Offset, size (n, p)
+            coef_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+                Coefficient for zero-inflation model, size (d, p) or (n,d).
+            inflation_formula : {"column-wise", "row-wise","global"}
+                Which formula should the inflation be.
+            """
+            super().__init__(
+                components=components, coef=coef, exog=exog, offsets=offsets
+            )
+            self._coef_inflation = _format_data(coef_inflation)
+            # if inflation_formula == "column-wise":
+            # expected =
+
+            _check_two_dimensions_are_equal(
+                "exog",
+                "coef",
+                self._exog.shape[1],
+                self._coef.shape[0],
+                1,
+                0,
+            )
 
     @property
     def covariance(self):
