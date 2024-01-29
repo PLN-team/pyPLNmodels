@@ -62,5 +62,6 @@ build-doc = ["sphinx","sphinx_rtd_theme"]
 Repository = "https://github.com/PLN-team/pyPLNmodels"
 Documentation = "https://bbatardiere.pages.mia.inra.fr/pyplnmodels"
 
+
 [tool.setuptools]
 py-modules = ["pyPLNmodels"]

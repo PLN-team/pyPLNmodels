@@ -112,5 +112,4 @@ def _closed_formula_latent_prob(exog, coef, offsets, coef_infla, cov, dirac):
     pi = torch.sigmoid(XB_zero)
     diag = torch.diag(cov)
     full_diag = diag.expand(exog.shape[0], -1)
-    # return torch.sigmoid(XB_zero - torch.log(phi(XB + 0*offsets, full_diag))) * dirac
     return torch.sigmoid(XB_zero - torch.log(phi(XB + offsets, full_diag))) * dirac
