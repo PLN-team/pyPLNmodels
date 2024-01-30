@@ -557,7 +557,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         if zero_inflated is True:
-            msg = "Can not instantiate a zero inflate model without covariates."
+            msg = "Can not instantiate a zero inflate model without exog."
             msg += " Please give at least an intercept by setting add_const to True"
             raise ValueError(msg)
         coef = None
