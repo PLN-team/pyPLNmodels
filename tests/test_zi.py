@@ -6,7 +6,7 @@ from tests.conftest import dict_fixtures
 from tests.utils import filter_models, MSE
 
 
-from pyPLNmodels import get_simulated_count_data
+from pyPLNmodels import get_zipln_simulated_count_data
 
 
 @pytest.mark.parametrize("zi", dict_fixtures["loaded_and_fitted_model"])
@@ -74,7 +74,15 @@ def test_find_right_covariance_coef_and_infla():
     covariance = zipln_param.covariance
     coef = zipln_param.coef
     coef_inflation = zipln_param.coef_inflation
-    endog, exog, offsets, covariance, coef, coef_inflation = get_simulated_count_data(
+    (
+        endog,
+        exog,
+        exog_infla,
+        offsets,
+        covariance,
+        coef,
+        coef_inflation,
+    ) = get_zipln_simulated_count_data(
         return_true_param=True, n_samples=1000, zero_inflation_formula="column-wise"
     )
     zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
