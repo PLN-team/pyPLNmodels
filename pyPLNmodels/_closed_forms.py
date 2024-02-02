@@ -1,5 +1,5 @@
 from typing import Optional
-from ._utils import phi
+from pyPLNmodels._utils import phi
 
 import torch  # pylint:disable=[C0114]
 

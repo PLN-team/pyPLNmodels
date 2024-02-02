@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pyPLNmodels import get_simulation_parameters, sample_pln, ZIPln
+from pyPLNmodels import get_simulation_parameters, sample_pln, ZIPln, sample_zipln
 from tests.conftest import dict_fixtures
 from tests.utils import filter_models, MSE
 
@@ -64,16 +64,18 @@ def test_no_exog_not_possible(model):
 
 
 def test_find_right_covariance_coef_and_infla():
-    pln_param = get_simulation_parameters(zero_inflated=True, n_samples=1000)
+    zipln_param = get_simulation_parameters(
+        n_samples=1000, zero_inflation_formula="column-wise"
+    )
     # pln_param._coef += 5
-    endog = sample_pln(pln_param, seed=0, return_latent=False)
-    exog = pln_param.exog
-    offsets = pln_param.offsets
-    covariance = pln_param.covariance
-    coef = pln_param.coef
-    coef_inflation = pln_param.coef_inflation
+    endog = sample_zipln(zipln_param, seed=0, return_latent=False)
+    exog = zipln_param.exog
+    offsets = zipln_param.offsets
+    covariance = zipln_param.covariance
+    coef = zipln_param.coef
+    coef_inflation = zipln_param.coef_inflation
     endog, exog, offsets, covariance, coef, coef_inflation = get_simulated_count_data(
-        zero_inflated=True, return_true_param=True, n_samples=1000
+        return_true_param=True, n_samples=1000, zero_inflation_formula="column-wise"
     )
     zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=False)
     zi.fit()
@@ -104,16 +106,16 @@ def test_transform(zi):
 
 def test_mse():
     n_samples = 300
-    pln_param = get_simulation_parameters(
-        zero_inflated=True, n_samples=n_samples, nb_cov=0
+    zipln_param = get_simulation_parameters(
+        zero_inflation_formula="column-wise", n_samples=n_samples, nb_cov=1
     )
-    pln_param._coef += 6
-    endog = sample_pln(pln_param, seed=0, return_latent=False)
-    exog = pln_param.exog
-    offsets = pln_param.offsets
-    covariance = pln_param.covariance
-    coef = pln_param.coef
-    coef_inflation = pln_param.coef_inflation
+    zipln_param._coef += 6
+    endog = sample_pln(zipln_param, seed=0, return_latent=False)
+    exog = zipln_param.exog
+    offsets = zipln_param.offsets
+    covariance = zipln_param.covariance
+    coef = zipln_param.coef
+    coef_inflation = zipln_param.coef_inflation
     zi = ZIPln(endog, exog=exog, offsets=offsets, use_closed_form_prob=True)
     zi.fit()
     mse_covariance = MSE(zi.covariance.cpu() - covariance.cpu())
