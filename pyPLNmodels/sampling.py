@@ -598,7 +598,7 @@ def get_zipln_simulated_count_data(
     nb_cov_inflation: int = 0,
     return_true_param: bool = False,
     add_const: bool = True,
-    add_const_inflation: bool = False,
+    add_const_inflation: bool = True,
     zero_inflation_formula: {"global", "column-wise", "row-wise"} = "global",
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
