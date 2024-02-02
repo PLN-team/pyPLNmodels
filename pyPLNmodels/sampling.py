@@ -89,7 +89,11 @@ def _get_simulation_coef_cov_offsets_coefzi(
     prev_state = torch.random.get_rng_state()
     if nb_cov_inflation == 0:
         if zero_inflation_formula == "global":
-            exog_inflation = None
+            if add_const_inflation is True:
+                msg = "If the zero_inflation_formula is global, you can not have add_const_inflation=True."
+                raise ValueError(msg)
+            else:
+                exog_inflation = None
         elif zero_inflation_formula in ["row-wise", "column-wise"]:
             if add_const_inflation is False:
                 raise ValueError(
@@ -112,7 +116,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
                 "nb_cov_inflation should be 0 if the zero_inflation_formula is global."
             )
         elif zero_inflation_formula == "column-wise":
-            exog_inflatio = torch.randint(
+            exog_inflation = torch.randint(
                 low=-1,
                 high=2,
                 size=(n_samples, nb_cov_inflation),
@@ -388,7 +392,11 @@ class ZIPlnParameters(PlnParameters):
                 0,
             )
         if zero_inflation_formula == "global":
-            if isinstance(coef_inflation, float) is False:
+            if coef_inflation.shape != (1,):
+                msg = "If the zero_inflation_formula is global, the "
+                msg += "zero_inflation_formula should be a tensor of size 1."
+                raise ValueError(msg)
+            if coef_inflation.item() < 0 or coef_inflation.item() > 1:
                 msg = "If the zero_inflation_formula is global, the coef_inflation should be between 0 and 1."
                 raise ValueError(msg)
 
@@ -505,10 +513,6 @@ def sample_zipln(
     See also :func:`-pyPLNmodels.ZIPlnParameters`
     See also :func:`-pyPLNmodels.sample_pln`
     """
-    if zipln_param.__class__.__name__ == "PlnParameters":
-        msg = "Got PlnParameters instead of ZIPlnParameters, please set inflation "
-        msg += "by setting zero_inflation_formula to an argument in get_simulated_count_data"
-        raise ValueError(msg)
     print("ZIPln is sampled")
     proba_inflation = zipln_param.proba_inflation
     ksi = torch.bernoulli(proba_inflation)
@@ -523,17 +527,14 @@ def sample_zipln(
     return endog
 
 
-def get_simulated_count_data(
+def get_pln_simulated_count_data(
     *,
     n_samples: int = 100,
     dim: int = 25,
     rank: int = 5,
     nb_cov: int = 1,
-    nb_cov_inflation: int = 0,
     return_true_param: bool = False,
     add_const: bool = True,
-    add_const_inflation: bool = False,
-    zero_inflation_formula: {None, "global", "column-wise", "row-wise"} = None,
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -548,18 +549,11 @@ def get_simulated_count_data(
     rank : int, optional(keyword-only)
         Rank of the covariance matrix, by default 5.
     add_const : bool, optional(keyword-only)
-        If True, will add a vector of ones. Default is True
+        If True, will add a vector of ones in the exog. Default is True
     nb_cov : int, optional(keyword-only)
-        Number of exog, by default 1.
-    nb_cov_inflation : int, optional(keyword-only)
         Number of exog, by default 1.
     return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
-    zero_inflation_formula : {None, "global", "column-wise","row-wise"}
-        If None, coef_inflation will be None.
-        If "global", will return one global coefficient.
-        If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
-        If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 
@@ -569,12 +563,81 @@ def get_simulated_count_data(
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
             Tuple containing endog, exog, and offsets.
     else:
-        if zero_inflation_formula is not None:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-                Tuple containing endog, exog, offsets, covariance, coef, coef_inflation .
-        else:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-                Tuple containing endog, exog, offsets, covariance, coef.
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+            Tuple containing endog, exog, offsets, covariance, coef.
+
+    """
+    param = get_simulation_parameters(
+        n_samples=n_samples,
+        dim=dim,
+        nb_cov=nb_cov,
+        nb_cov_inflation=0,
+        rank=rank,
+        add_const=add_const,
+        add_const_inflation=False,
+        zero_inflation_formula=None,
+    )
+    endog = sample_pln(param, seed=seed, return_latent=False)
+    if return_true_param:
+        return (
+            endog,
+            param.exog,
+            param.offsets,
+            param.covariance,
+            param.coef,
+        )
+    return endog, param.exog, param.offsets
+
+
+def get_zipln_simulated_count_data(
+    *,
+    n_samples: int = 100,
+    dim: int = 25,
+    rank: int = 5,
+    nb_cov: int = 1,
+    nb_cov_inflation: int = 0,
+    return_true_param: bool = False,
+    add_const: bool = True,
+    add_const_inflation: bool = False,
+    zero_inflation_formula: {"global", "column-wise", "row-wise"} = "global",
+    seed: int = 0,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Get simulated count data from the PlnPCA model.
+
+    Parameters
+    ----------
+    n_samples : int, optional(keyword-only)
+        Number of samples, by default 100.
+    dim : int, optional(keyword-only)
+        Dimension, by default 25.
+    rank : int, optional(keyword-only)
+        Rank of the covariance matrix, by default 5.
+    add_const : bool, optional(keyword-only)
+        If True, will add a vector of ones to the exog. Default is True.
+    add_const_inflation : bool, optional(keyword-only)
+        If True, will add a vector of ones to the exog_inflation. Default is True.
+    nb_cov : int, optional(keyword-only)
+        Number of exog, by default 1.
+    nb_cov_inflation : int, optional(keyword-only)
+        Number of exog, by default 1.
+    return_true_param : bool, optional(keyword-only)
+        Whether to return the true parameters of the model, by default False.
+    zero_inflation_formula : {"global", "column-wise","row-wise"}
+        If "global", will return one global coefficient.
+        If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
+        If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+    seed : int, optional(keyword-only)
+        Seed value for random number generation, by default 0.
+
+    Returns
+    -------
+    if return_true_param is False:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+            Tuple containing endog, exog,exog_infla, offsets.
+    else:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+            Tuple containing endog, exog, exog_infla, offsets, covariance, coef, coef_inflation .
 
     """
     param = get_simulation_parameters(
@@ -587,33 +650,18 @@ def get_simulated_count_data(
         add_const_inflation=add_const_inflation,
         zero_inflation_formula=zero_inflation_formula,
     )
-    isinflated = param.__class__.__name__ == "ZIPlnParameters"
-    if isinflated:
-        endog = sample_zipln(param)
-    else:
-        endog = sample_pln(param, seed=seed, return_latent=False)
-    if isinflated:
-        if return_true_param is True:
-            return (
-                endog,
-                param.exog,
-                param.exog_inflation,
-                param.offsets,
-                param.covariance,
-                param.coef,
-                param.coef_inflation,
-            )
-        else:
-            return endog, param.exog, param.offsets
-    if return_true_param:
+    endog = sample_zipln(param)
+    if return_true_param is True:
         return (
             endog,
             param.exog,
+            param.exog_inflation,
             param.offsets,
             param.covariance,
             param.coef,
+            param.coef_inflation,
         )
-    return endog, param.exog, param.offsets
+    return endog, param.exog, param.exog_inflation, param.offsets
 
 
 def get_real_count_data(
@@ -718,6 +766,10 @@ def get_simulation_parameters(
         add_const_inflation,
         zero_inflation_formula,
     )
+    if add_const_inflation is True and zero_inflation_formula is None:
+        warnings.warn(
+            "add const_inflation set to True but no zero inflation is sampled."
+        )
     components = _get_simulation_components(dim, rank)
     if coef_inflation is None:
         print("Pln model will be sampled.")
