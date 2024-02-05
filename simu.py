@@ -1,6 +1,7 @@
 from os.path import exists
 from tqdm import tqdm
 import seaborn as sns
+from matplotlib.legend_handler import HandlerTuple
 
 from pyPLNmodels import (
     get_real_count_data,
@@ -30,7 +31,7 @@ STD_FREE_KEY = "standard_free"
 
 
 LABEL_DICT = {
-    ENH_CLOSED_KEY: "Enhanced analytic",
+    ENH_CLOSED_KEY: "Enhanced Analytic",
     ENH_FREE_KEY: "Enhanced",
     STD_CLOSED_KEY: "Standard Analytic",
     STD_FREE_KEY: "Standard",
@@ -44,29 +45,37 @@ ELBO_KEY = "ELBO"
 B0_KEY = "MSE_B0"
 
 
+# LEGEND_DICT = {
+#     REC_KEY: "Reconstruction_error",
+#     B_KEY: r"$\|\|\hat{\beta} - \beta\| \|^2_2$",
+#     SIGMA_KEY: r"$\|\|\hat{\Sigma} - \Sigma\|\|^2_2$",
+#     B0_KEY: r"$\|\|\hat{B}^0 - B^0\|\|^2_2$",
+#     ELBO_KEY: "Negative ELBO (Lower the better)",
+#     PI_KEY: r"$\|\|\hat{\pi} - \pi\|\|_1$",
+# }
+
 LEGEND_DICT = {
     REC_KEY: "Reconstruction_error",
-    B_KEY: r"$\|\hat{\beta} - \beta \|^2_2$",
-    SIGMA_KEY: r"$\|\hat{\Sigma} - \Sigma\|^2_2$",
-    B0_KEY: r"$\|\hat{B}^0 - B^0\|^2_2$",
+    B_KEY: r"MSE($\hat{\beta} - \beta^{\bigstar}$)",
+    SIGMA_KEY: r"MSE($\hat{\Sigma} - \Sigma^{\bigstar}$)",
+    B0_KEY: r"MSE($\hat{B}^0 - B^{0\bigstar}$)",
     ELBO_KEY: "Negative ELBO (Lower the better)",
-    PI_KEY: r"$\|\hat{\pi} - \pi\|_1$",
+    PI_KEY: r"MAE($\hat{\pi} - \pi^{\bigstar}$)",
 }
-
-CRITERION_KEYS = [REC_KEY, SIGMA_KEY, B_KEY, PI_KEY, ELBO_KEY, B0_KEY]
+CRITERION_KEYS = [ELBO_KEY, REC_KEY, SIGMA_KEY, B_KEY, PI_KEY, B0_KEY]
 COLORS = {
     ENH_FREE_KEY: "cornflowerblue",
     ENH_CLOSED_KEY: "darkblue",
-    STD_CLOSED_KEY: "darkred",
     STD_FREE_KEY: "lightcoral",
+    STD_CLOSED_KEY: "darkred",
 }
 
-_moyennes_XB = np.linspace(0, 6, 6)
+_moyennes_XB = np.linspace(0, 5, 5)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
-_mean_infla = 0.2
-_nb_bootstrap = 8
+_mean_infla = 0.4
+_nb_bootstrap = 10
 
 
 KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
@@ -94,7 +103,7 @@ def get_dict_models(endog, exog, offsets):
     return sim_models
 
 
-n = 100
+n = 800
 dim = 25
 title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
@@ -204,7 +213,10 @@ class one_plot:
         for model_key in KEY_MODELS:
             for moyenne in self.chosen_moyennes:
                 for i in range(self.nb_bootstrap):
-                    values = {"model_name": [model_key], "moyenne": [moyenne]}
+                    values = {
+                        "model_name": [LABEL_DICT[model_key]],
+                        "moyenne": [moyenne],
+                    }
                     for crit_key in CRITERION_KEYS:
                         value = self.model_criterions[model_key][moyenne][crit_key][i]
                         if crit_key == ELBO_KEY:
@@ -218,37 +230,75 @@ class one_plot:
         return data
 
     def plot_results(self):
-        fig, axes = plt.subplots(2, 3, figsize=(20, 20))
+        fig, axes = plt.subplots(2, 3, figsize=(30, 15))
         plots = {}
-        plots[REC_KEY] = axes[0, 0]
-        plots[REC_KEY].set_title("Reconstruction error")
+        plots[REC_KEY] = axes[1, 1]
+        plots[REC_KEY].set_title("Reconstruction error", fontsize=22)
         plots[SIGMA_KEY] = axes[0, 1]
-        plots[SIGMA_KEY].set_title(LEGEND_DICT[SIGMA_KEY])
+        plots[SIGMA_KEY].set_title(LEGEND_DICT[SIGMA_KEY], fontsize=22)
         plots[B_KEY] = axes[0, 2]
-        plots[B_KEY].set_title(LEGEND_DICT[B_KEY])
-        plots[PI_KEY] = axes[1, 0]
-        plots[PI_KEY].set_title(LEGEND_DICT[PI_KEY])
-        plots[B0_KEY] = axes[1, 1]
-        plots[B0_KEY].set_title(LEGEND_DICT[B0_KEY])
-        plots[ELBO_KEY] = axes[1, 2]
-        plots[ELBO_KEY].set_title(LEGEND_DICT[ELBO_KEY])
-        for axe in axes:
-            for ax in axe:
-                ax.set_yscale("log")
+        plots[B_KEY].set_title(LEGEND_DICT[B_KEY], fontsize=22)
+        plots[PI_KEY] = axes[1, 2]
+        plots[PI_KEY].set_title(LEGEND_DICT[PI_KEY], fontsize=22)
+        plots[B0_KEY] = axes[0, 0]
+        plots[B0_KEY].set_title(LEGEND_DICT[B0_KEY], fontsize=22)
+        plots[ELBO_KEY] = axes[1, 0]
+        plots[ELBO_KEY].set_title(LEGEND_DICT[ELBO_KEY], fontsize=22)
+        for key, plot in plots.items():
+            if key != ELBO_KEY:
+                plot.set_yscale("log")
+            else:
+                pass
+                # plot.set_yscale("symlog")
+        # for axe in axes:
+        #     for ax in axe:
+        #         ax.set_yscale("log")
+        # plots[ELBO_KEY].set_yscale("symlog")
         data = self.data
         for crit_key in CRITERION_KEYS:
+            palette = {
+                LABEL_DICT[model_key]: COLORS[model_key] for model_key in KEY_MODELS
+            }
+            data["moyenne"] = np.round(data["moyenne"], 2)
+            # if crit_key != "ELBO":
             sns.boxplot(
-                data=data, x="moyenne", y=crit_key, hue="model_name", ax=plots[crit_key]
+                data=data,
+                x="moyenne",
+                y=crit_key,
+                hue="model_name",
+                ax=plots[crit_key],
+                palette=palette,
+                boxprops={"alpha": 0.4},
             )
+            sns.stripplot(
+                data=data,
+                x="moyenne",
+                y=crit_key,
+                hue="model_name",
+                dodge=True,
+                ax=plots[crit_key],
+                palette=palette,
+            )
+            plots[crit_key].tick_params(axis="y", labelsize=22)
         for axe in axes:
             for ax in axe:
-                ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+                ax.tick_params(axis="both", labelsize=22)
+                ax.set_ylabel("")
                 ax.legend([], [], frameon=False)
-                ax.set_xlabel(r"Moyenne $XB$")
+                ax.set_xlabel(r"Mean $XB$", fontsize=22)
 
-        plots[REC_KEY].legend()
-        fig.suptitle(title)
-        plt.savefig("simu.pdf", format="pdf")
+        # for crit_key in CRITERION_KEYS:
+        # plots[B0_KEY].tick_params(axis = "y", labelsize = 18)
+        # plots["ELBO"].tick_params(axis = "both", labelsize = 1)
+        ax = plots[B0_KEY]
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(
+            handles=[handles[0], handles[2], handles[1], handles[3]],
+            labels=LABEL_DICT.values(),
+            handler_map={tuple: HandlerTuple(ndivide=None)},
+            fontsize=12,
+        )
+        plt.savefig("simu.png", format="png")
         plt.show()
 
 

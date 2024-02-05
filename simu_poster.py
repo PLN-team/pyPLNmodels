@@ -30,9 +30,9 @@ STD_FREE_KEY = "standard_free"
 
 
 LABEL_DICT = {
-    ENH_CLOSED_KEY: "Enhanced",
+    ENH_CLOSED_KEY: "Enhanced Analytic",
     ENH_FREE_KEY: "Enhanced",
-    STD_CLOSED_KEY: "Standard",
+    STD_CLOSED_KEY: "Standard Analytic",
     STD_FREE_KEY: "Standard",
 }
 COLOR_MODELS = {ENH_CLOSED_KEY: "blue", STD_CLOSED_KEY: "red"}
@@ -253,7 +253,7 @@ class one_plot:
                 palette=palette,
             )
         for ax in axes:
-            ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+            # ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
             ax.legend([], [], frameon=False)
             ax.set_ylabel("")
             ax.set_xlabel(r"Mean $\mu$", fontsize="30")

@@ -124,7 +124,3 @@ def test_batch(model):
         assert mse_coef < 0.1
     elif model.nb_cov == 0:
         assert model.coef is None
-
-
-def test_raise_error_on_zero_counts():
-    model = Pln()
