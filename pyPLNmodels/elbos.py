@@ -214,7 +214,6 @@ def elbo_zi_pln(
         torch.tensor of size 1 with a gradient.
     """
     covariance = components @ (components.T)
-    print("covariance", torch.sum(covariance))
     if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
         raise RuntimeError("Latent probability error.")
     n_samples, dim = endog.shape
