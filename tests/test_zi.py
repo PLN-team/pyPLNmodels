@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pyPLNmodels import get_simulation_parameters, sample_pln, ZIPln, sample_zipln
+from pyPLNmodels import get_simulation_parameters, ZIPln, sample_zipln
 from tests.conftest import dict_fixtures
 from tests.utils import filter_models, MSE
 
@@ -118,7 +118,7 @@ def test_mse():
         zero_inflation_formula="column-wise", n_samples=n_samples, nb_cov=1
     )
     zipln_param._coef += 6
-    endog = sample_pln(zipln_param, seed=0, return_latent=False)
+    endog = sample_zipln(zipln_param, seed=0, return_latent=False)
     exog = zipln_param.exog
     offsets = zipln_param.offsets
     covariance = zipln_param.covariance
@@ -140,3 +140,49 @@ def test_batch(model):
     model.batch_size = 20
     model.fit()
     print(model)
+
+
+def test_zi_columns():
+    n_samples = 100
+    zipln_param = get_simulation_parameters(
+        zero_inflation_formula="column-wise", n_samples=n_samples, nb_cov_inflation=1
+    )
+    endog = sample_zipln(zipln_param)
+    exog = zipln_param.exog
+    exog_inflation = zipln_param.exog_inflation
+    offsets = zipln_param.offsets
+    zi = ZIPln(endog, exog=exog, exog_inflation=exog_inflation, offsets=offsets)
+
+
+def test_zi_global():
+    n_samples = 150
+    zipln_param = get_simulation_parameters(
+        zero_inflation_formula="global",
+        n_samples=n_samples,
+        nb_cov_inflation=0,
+        dim=50,
+        add_const_inflation=False,
+    )
+    zipln_param._coef += 6
+    zipln_param._coef_inflation
+    endog = sample_zipln(zipln_param)
+    exog = zipln_param.exog
+    exog_inflation = zipln_param.exog_inflation
+    offsets = zipln_param.offsets
+    print("true_coef", zipln_param._coef_inflation)
+    zi = ZIPln(
+        endog,
+        exog=exog,
+        exog_inflation=exog_inflation,
+        offsets=offsets,
+        zero_inflation_formula="global",
+        add_const_inflation=False,
+        use_closed_form_prob=False,
+        true_coef=zipln_param._coef_inflation,
+    )
+    zi.fit()
+    print("latent_prob", zi.latent_prob)
+    print("mine", zi.proba_inflation)
+    print("coef mie", zi._coef_inflation)
+    print("true", zipln_param.proba_inflation)
+    x
