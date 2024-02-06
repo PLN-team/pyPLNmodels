@@ -494,14 +494,14 @@ class _model(ABC):
             if torch.sum(torch.isnan(loss)):
                 raise ValueError("The ELBO contains nan values.")
             loss.backward()
-            coef_inflation = torch.mean(self._latent_prob)
-            print("non zero", torch.sum(self._latent_prob > 0))
-            print("np", self.n_samples * self.dim)
-            print(
-                "grad",
-                torch.sum(self._latent_prob)
-                - self.n_samples * self.dim * (1 - torch.sigmoid(-coef_inflation)),
-            )
+            # coef_inflation = torch.mean(self._latent_prob)
+            # print("non zero", torch.sum(self._latent_prob > 0))
+            # print("np", self.n_samples * self.dim)
+            # print(
+            #     "grad",
+            #     torch.sum(self._latent_prob)
+            #     - self.n_samples * self.dim * (1 - torch.sigmoid(-coef_inflation)),
+            # )
             # print('othr', torch.sum(self._latent_prob)- self.n_samples*self.dim*(1 - torch.sigmoid(-self._coef_inflation)))
             elbo += loss.item()
             self.optim.step()
@@ -3461,6 +3461,7 @@ class ZIPln(_model):
         >>> print(zi)
         """
         self.true_coef = true_coef
+        print("true_coef in init", self.true_coef)
         self._use_closed_form_prob = use_closed_form_prob
         super().__init__(
             endog=endog,
@@ -3650,8 +3651,10 @@ class ZIPln(_model):
                     self.n_samples, self.nb_cov_infla
                 ).to(DEVICE)
             else:
-                self._coef_inflation = torch.logit(self.true_coef)
-                # self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
+                if self.true_coef is not None:
+                    self._coef_inflation = self.true_coef
+                else:
+                    self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
 
             # for j in range(self.exog.shape[1]):
             #     Y_j = self._endog[:,j].numpy()
