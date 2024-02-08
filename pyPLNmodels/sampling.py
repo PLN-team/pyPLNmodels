@@ -117,8 +117,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
             )
         elif zero_inflation_formula == "column-wise":
             exog_inflation = torch.randint(
-                low=-1,
-                high=2,
+                low=1,
+                high=3,
                 size=(n_samples, nb_cov_inflation),
                 dtype=torch.float64,
                 device="cpu",
@@ -129,8 +129,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
                 )
         elif zero_inflation_formula == "row-wise":
             exog_inflation = torch.randint(
-                low=-1,
-                high=2,
+                low=1,
+                high=3,
                 size=(nb_cov_inflation, dim),
                 dtype=torch.float64,
                 device="cpu",
@@ -403,10 +403,10 @@ class ZIPlnParameters(PlnParameters):
     @property
     def proba_inflation(self):
         if self._zero_inflation_formula == "column-wise":
-            return _sigmoid(self.exog_inflation @ self.coef_inflation)
+            return _sigmoid(self._exog_inflation @ self._coef_inflation)
         elif self._zero_inflation_formula == "row-wise":
-            return _sigmoid(self.coef_inflation @ self.exog_inflation)
-        return torch.sigmoid(self.coef_inflation)
+            return _sigmoid(self._coef_inflation @ self._exog_inflation)
+        return torch.sigmoid(self._coef_inflation)
 
     @property
     def coef_inflation(self):
@@ -522,7 +522,6 @@ def sample_zipln(
     else:
         ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
-    xb = zipln_param.exog @ (zipln_param.coef)
     endog = (1 - ksi) * pln_endog
     if return_latent is True:
         if return_pln is True:

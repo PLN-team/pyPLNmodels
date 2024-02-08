@@ -21,11 +21,11 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-_moyennes_XB = np.linspace(4, 5, 2)
+_moyennes_XB = np.linspace(4, 5, 1)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
-_mean_infla = 0.22
+_mean_infla = 0.24
 _nb_bootstrap = 1
 
 n = 350
@@ -148,10 +148,18 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         add_const_inflation=add_const_inflation,
     )
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
-    plnparam._coef_inflation += logit(mean_infla) - logit(
-        torch.mean(torch.sigmoid(plnparam._coef_inflation)).cpu()
+    infl = torch.clone(plnparam._coef_inflation)
+    Y = torch.ones(plnparam.n_samples, plnparam.dim) * torch.tensor([0.99])
+    plnparam._exog_inflation = torch.inverse((infl.T) @ infl) @ (infl.T) @ (Y)
+    print("true", Y)
+    print("mine", infl @ plnparam._exog_inflation)
+    print("shape exog", plnparam._exog_inflation.shape)
+    print(
+        "mean plnparam",
+        torch.mean(plnparam._coef_inflation @ (plnparam._exog_inflation)),
     )
-
+    print("mean plnparam", torch.mean(plnparam.proba_inflation))
+    x
     plnparam._offsets *= 0
     return plnparam
 
@@ -230,9 +238,6 @@ class one_plot:
                 )
             )
             results_model[ELBO_KEY].append(model_fitted.elbo)
-            print("first", model_fitted.coef_inflation)
-            print("other", B0)
-            x
             results_model[B0_KEY].append(MSE(model_fitted.coef_inflation - B0.cpu()))
 
     def save_criterions(self):
