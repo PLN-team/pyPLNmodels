@@ -19,7 +19,12 @@ from pyPLNmodels._closed_forms import (
     _closed_formula_covariance,
     _closed_formula_latent_prob,
 )
-from pyPLNmodels.elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
+from pyPLNmodels.elbos import (
+    elbo_plnpca,
+    elbo_zi_pln,
+    profiled_elbo_pln,
+    elbo_brute_zipln,
+)
 from pyPLNmodels._utils import (
     _CriterionArgs,
     _format_data,
