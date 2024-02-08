@@ -7,7 +7,7 @@ from pyPLNmodels import (
     get_real_count_data,
     ZIPln,
     Pln,
-    get_simulated_count_data,
+    get_zipln_simulated_count_data,
     get_simulation_parameters,
     sample_pln,
 )
