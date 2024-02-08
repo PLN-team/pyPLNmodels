@@ -70,11 +70,11 @@ COLORS = {
     STD_CLOSED_KEY: "darkred",
 }
 
-_moyennes_XB = np.linspace(1, 5, 3)
+_moyennes_XB = np.linspace(2, 5, 4)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
-_mean_infla = 0.2
+_mean_infla = 0.22
 _nb_bootstrap = 2
 
 
@@ -89,34 +89,49 @@ def MAE(t):
     return torch.mean(torch.abs(t))
 
 
-def get_dict_models(endog, exog, offsets):
+def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
     sim_models = {
         ENH_FREE_KEY: ZIPln(
-            endog, exog=exog, offsets=offsets, add_const_inflation=True
+            endog,
+            exog=exog,
+            offsets=offsets,
+            add_const_inflation=False,
+            exog_inflation=exog_inflation,
+            zero_inflation_formula=inflation_formula,
         ),
         ENH_CLOSED_KEY: ZIPln(
             endog,
             exog=exog,
             offsets=offsets,
-            use_closed_form_prob=Tru,
-            add_const_inflation=Truee,
+            use_closed_form_prob=True,
+            add_const_inflation=False,
+            exog_inflation=exog_inflation,
+            zero_inflation_formula=inflation_formula,
         ),
         STD_FREE_KEY: Brute_ZIPln(
-            endog, exog=exog, offsets=offsets, add_const_inflation=True
+            endog,
+            exog=exog,
+            offsets=offsets,
+            add_const_inflation=False,
+            exog_inflation=exog_inflation,
+            zero_inflation_formula=inflation_formula,
         ),
         STD_CLOSED_KEY: Brute_ZIPln(
             endog,
             exog=exog,
             offsets=offsets,
             use_closed_form_prob=True,
-            add_const_inflation=True,
+            add_const_inflation=False,
+            exog_inflation=exog_inflation,
+            zero_inflation_formula=inflation_formula,
         ),
     }
     return sim_models
 
 
-n = 300
-dim = 25
+n = 350
+dim = 300
+inflation_formula = "row-wise"
 title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
 
@@ -135,10 +150,10 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         add_const_inflation=add_const_inflation,
     )
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
-    if inflation_formula != "global":
-        plnparam._coef_inflation += logit(mean_infla) - logit(
-            torch.mean(torch.sigmoid(plnparam._coef_inflation)).cpu()
-        )
+    plnparam._coef_inflation += logit(mean_infla) - logit(
+        torch.mean(torch.sigmoid(plnparam._coef_inflation)).cpu()
+    )
+
     plnparam._offsets *= 0
     return plnparam
 
@@ -151,16 +166,19 @@ def get_data(_plnparam, seed):
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit(nb_max_iteration=10)
+        model.fit()
     return dict_models
 
 
 class one_plot:
-    def __init__(self, moyennes_XB, mean_infla, chosen_moyennes, nb_bootstrap):
+    def __init__(
+        self, moyennes_XB, mean_infla, chosen_moyennes, nb_bootstrap, inflation_formula
+    ):
         self.moyennes_XB = moyennes_XB
         self.chosen_moyennes = chosen_moyennes
         self.mean_infla = mean_infla
         self.nb_bootstrap = nb_bootstrap
+        self.inflation_formula = inflation_formula
         self.model_criterions = {
             key_model: {
                 moyenne: {
@@ -179,7 +197,11 @@ class one_plot:
     def simulate_mean(self, _plnparam, i):
         endog = sample_zipln(_plnparam, seed=i)
         dict_models = get_dict_models(
-            endog, exog=_plnparam.exog, offsets=_plnparam.offsets
+            endog,
+            exog=_plnparam.exog,
+            offsets=_plnparam.offsets,
+            exog_inflation=_plnparam.exog_inflation,
+            inflation_formula=self.inflation_formula,
         )
         fit_models(dict_models)
         return dict_models
@@ -192,7 +214,9 @@ class one_plot:
         else:
             print("Simulating")
             for moyenne in tqdm(self.moyennes_XB):
-                plnparam = get_plnparam(moyenne, self.mean_infla, "column-wise")
+                plnparam = get_plnparam(
+                    moyenne, self.mean_infla, self.inflation_formula
+                )
                 Sigma = plnparam.covariance
                 B = plnparam.coef
                 B0 = plnparam.coef_inflation
@@ -208,8 +232,6 @@ class one_plot:
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
             results_model[SIGMA_KEY].append(MSE(model_fitted.covariance - Sigma.cpu()))
             results_model[B_KEY].append(MSE(model_fitted.coef - B.cpu()))
-            print("Bo shape", B0.shape)
-            print("model shape", model_fitted.coef_inflation.shape)
             results_model[PI_KEY].append(
                 MAE(
                     torch.sigmoid(model_fitted.coef_inflation) - torch.sigmoid(B0).cpu()
@@ -228,7 +250,12 @@ class one_plot:
 
     @property
     def name_file(self):
-        return str(self.moyennes_XB) + str(self.nb_bootstrap) + str(self.mean_infla)
+        return (
+            str(self.moyennes_XB)
+            + str(self.nb_bootstrap)
+            + str(self.mean_infla)
+            + self.inflation_formula
+        )
 
     @property
     def data(self):
@@ -327,6 +354,8 @@ class one_plot:
         plt.show()
 
 
-op = one_plot(_moyennes_XB, _mean_infla, chosen_moyennes, _nb_bootstrap)
+op = one_plot(
+    _moyennes_XB, _mean_infla, chosen_moyennes, _nb_bootstrap, inflation_formula
+)
 op.simulate()
 op.plot_results()

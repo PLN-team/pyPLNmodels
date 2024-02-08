@@ -406,7 +406,7 @@ class ZIPlnParameters(PlnParameters):
             return _sigmoid(self.exog_inflation @ self.coef_inflation)
         elif self._zero_inflation_formula == "row-wise":
             return _sigmoid(self.coef_inflation @ self.exog_inflation)
-        return self.coef_inflation
+        return torch.sigmoid(self.coef_inflation)
 
     @property
     def coef_inflation(self):
@@ -524,6 +524,7 @@ def sample_zipln(
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
     print("mean endog 1", torch.min(pln_endog.sum(axis=1)))
     endog = (1 - ksi) * pln_endog
+    print("mean endog inflated", torch.min(endog.sum(axis=1)))
     if return_latent is True:
         if return_pln is True:
             return endog, gaussian, ksi, pln_endog

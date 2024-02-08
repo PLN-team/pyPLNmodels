@@ -894,11 +894,13 @@ def _get_coherent_inflation_inits(
 def _check_shape_exog_infla(exog_inflation, inflation_formula, n_samples, dim):
     if inflation_formula == "column-wise":
         if exog_inflation.shape[0] != n_samples:
+            msg = "Your formula inflation is {inflation_formula}."
             msg = f"exog_inflation should have shape ({n_samples},_), got"
             msg += f" {exog_inflation.shape} shape for exog_inflation."
             raise ValueError(msg)
     else:
         if exog_inflation.shape[1] != dim:
+            msg = "Your formula inflation is {inflation_formula}."
             msg = f"exog_inflation should have shape (_,{dim}), got"
             msg += f" {exog_inflation.shape} shape for exog_inflation."
             raise ValueError(msg)

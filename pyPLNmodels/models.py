@@ -19,7 +19,12 @@ from pyPLNmodels._closed_forms import (
     _closed_formula_covariance,
     _closed_formula_latent_prob,
 )
-from pyPLNmodels.elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
+from pyPLNmodels.elbos import (
+    elbo_plnpca,
+    elbo_zi_pln,
+    profiled_elbo_pln,
+    elbo_brute_zipln,
+)
 from pyPLNmodels._utils import (
     _CriterionArgs,
     _format_data,
@@ -1264,6 +1269,17 @@ class _model(ABC):
             The directory name.
         """
         return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}"
+
+    @property
+    def reconstruction_error(self):
+        """Recontstruction error between the predictions and the endog."""
+        predictions = self._endog_predictions().ravel().cpu().detach()
+        return torch.mean((predictions - self._endog.ravel()) ** 2)
+
+    @property
+    def elbo(self):
+        """Alias for loglike"""
+        return self.loglike
 
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
@@ -3952,7 +3968,7 @@ class ZIPln(_model):
             latent_prob,
             self._components,
             self._coef,
-            self._coef_inflation,
+            self._xinflacoefinfla,
             self._dirac,
         )
 
@@ -4444,6 +4460,6 @@ class Brute_ZIPln(ZIPln):
             latent_prob_b,
             self._components,
             self._coef,
-            self._coef_inflation,
+            self._xinflacoefinfla_b,
             self._dirac_b,
         )

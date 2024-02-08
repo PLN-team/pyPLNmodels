@@ -101,15 +101,15 @@ def _closed_formula_pi(
     return torch._sigmoid(poiss_param + torch.mm(exog, _coef_inflation)) * dirac
 
 
-def _closed_formula_latent_prob(exog, coef, offsets, coef_infla, cov, dirac):
+def _closed_formula_latent_prob(exog, coef, offsets, xinflacoef_infla, cov, dirac):
     if exog is not None:
         XB = exog @ coef
-        XB_zero = exog @ coef_infla
     else:
-        XB_zero = 0
         XB = 0
-    XB_zero = exog @ coef_infla
-    pi = torch.sigmoid(XB_zero)
+    pi = torch.sigmoid(xinflacoef_infla)
     diag = torch.diag(cov)
     full_diag = diag.expand(exog.shape[0], -1)
-    return torch.sigmoid(XB_zero - torch.log(phi(XB + offsets, full_diag))) * dirac
+    return (
+        torch.sigmoid(xinflacoef_infla - torch.log(phi(XB + offsets, full_diag)))
+        * dirac
+    )
