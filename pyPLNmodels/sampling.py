@@ -157,8 +157,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
             exog = None
     else:
         exog = torch.randint(
-            low=-1,
-            high=2,
+            low=1,
+            high=3,
             size=(n_samples, nb_cov),
             dtype=torch.float64,
             device="cpu",
@@ -168,7 +168,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
     if exog is None:
         coef = None
     else:
-        coef = torch.randn(exog.shape[1], dim, device="cpu")
+        coef = torch.randn(exog.shape[1], dim, device="cpu") + 0.3
     offsets = torch.randint(
         low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
     )
@@ -522,9 +522,8 @@ def sample_zipln(
     else:
         ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
-    print("mean endog 1", torch.min(pln_endog.sum(axis=1)))
+    xb = zipln_param.exog @ (zipln_param.coef)
     endog = (1 - ksi) * pln_endog
-    print("mean endog inflated", torch.min(endog.sum(axis=1)))
     if return_latent is True:
         if return_pln is True:
             return endog, gaussian, ksi, pln_endog

@@ -28,6 +28,10 @@ chosen_moyennes = _moyennes_XB
 _mean_infla = 0.22
 _nb_bootstrap = 1
 
+n = 350
+dim = 301
+inflation_formula = "row-wise"
+title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
 import pickle
 
@@ -129,12 +133,6 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
     return sim_models
 
 
-n = 350
-dim = 300
-inflation_formula = "row-wise"
-title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
-
-
 def get_plnparam(mean_xb, mean_infla, inflation_formula):
     if inflation_formula == "global":
         nb_cov = 0
@@ -156,12 +154,6 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
 
     plnparam._offsets *= 0
     return plnparam
-
-
-def get_data(_plnparam, seed):
-    endog = sample_zipln(_plnparam, seed=seed)
-    print("XB", torch.mean(_plnparam.exog @ _plnparam.coef))
-    print("pi", torch.mean(torch.sigmoid(_plnparam.exog @ _plnparam.coef_inflation)))
 
 
 def fit_models(dict_models):
