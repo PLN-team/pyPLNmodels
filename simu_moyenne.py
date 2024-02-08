@@ -155,7 +155,6 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
     infl = torch.clone(plnparam._coef_inflation)
     xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T))) - infl
     plnparam._coef_inflation += xxxt_inv_moins_b
-    print("mean proba", torch.mean(plnparam.proba_inflation))
     plnparam._offsets *= 0
     return plnparam
 

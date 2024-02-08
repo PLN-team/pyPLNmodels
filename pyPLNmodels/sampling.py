@@ -127,6 +127,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
                 exog_inflation = torch.cat(
                     (exog_inflation, torch.ones(n_samples, 1)), axis=1
                 )
+
         elif zero_inflation_formula == "row-wise":
             exog_inflation = torch.randint(
                 low=1,
@@ -141,9 +142,16 @@ def _get_simulation_coef_cov_offsets_coefzi(
         if zero_inflation_formula == "column-wise":
             coef_inflation = torch.randn(exog_inflation.shape[1], dim, device="cpu")
         elif zero_inflation_formula == "row-wise":
-            coef_inflation = torch.randn(
-                n_samples, exog_inflation.shape[0], device="cpu"
+            Y = torch.logit(
+                torch.linspace(0.3, 0.6, n_samples).unsqueeze(1)
+                * torch.ones(n_samples, dim)
             )
+            Y += torch.randn(n_samples, dim) / 2
+            X = exog_inflation
+            xxxt_inv_moins_b = (
+                Y @ (X.T) @ (torch.inverse(X @ (X.T)))
+            )  # - coef_inflation
+            coef_inflation = xxxt_inv_moins_b
         else:
             coef_inflation = torch.Tensor([0.2])
     else:
@@ -522,6 +530,7 @@ def sample_zipln(
     else:
         ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
+    print("proba infla", torch.mean(proba_inflation))
     endog = (1 - ksi) * pln_endog
     if return_latent is True:
         if return_pln is True:

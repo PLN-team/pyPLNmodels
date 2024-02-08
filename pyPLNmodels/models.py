@@ -420,8 +420,6 @@ class _model(ABC):
                 stop_condition = True
             if verbose and self.nb_iteration_done % 50 == 1:
                 self._print_stats()
-                sns.heatmap(self.covariance)
-                plt.show()
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -3662,7 +3660,6 @@ class ZIPln(_model):
         super()._smart_init_coef()
         if not hasattr(self, "_covariance"):
             self._components = _init_components(self._endog, self.dim)
-            sns.heatmap(self.covariance)
 
         if not hasattr(self, "_coef_inflation"):
             if self._zero_inflation_formula == "column-wise":

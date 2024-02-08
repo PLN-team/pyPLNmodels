@@ -169,13 +169,14 @@ def train_zi(formula):
         nb_cov_inflation = 0
         add_const_inflation = False
     elif formula in ["column-wise", "row-wise"]:
-        nb_cov_inflation = 1
+        nb_cov_inflation = 3
         add_const_inflation = True
+    print("zero inflation", formula)
     zipln_param = get_simulation_parameters(
         zero_inflation_formula=formula,
         n_samples=n_samples,
         nb_cov_inflation=nb_cov_inflation,
-        dim=50,
+        dim=80,
         add_const_inflation=add_const_inflation,
     )
     zipln_param._coef += 4
@@ -192,7 +193,7 @@ def train_zi(formula):
         add_const_inflation=False,
         use_closed_form_prob=False,
     )
-    zi.fit()
+    zi.fit(do_smart_init=False)
     return zi, zipln_param
 
 
@@ -212,11 +213,30 @@ def test_zicolumn():
     assert mae(zi.covariance - zipln_param.covariance) < 0.4
 
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
 def test_zirow():
     zi, zipln_param = train_zi("row-wise")
     assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.15
-    print("coefinfla", zipln_param.coef_inflation)
-    print("mine", zi._coef_inflation)
+    # print('proba infla',zipln_param.proba_inflation )
+    # print('my proba infla', zi.proba_inflation)
+    # print("true", zipln_param.coef_inflation)
+    # print("mine", zi._coef_inflation)
+    # print('diff', zipln_param.proba_inflation - zi.proba_inflation)
+    fig, axes = plt.subplots(4)
+    totake = torch.abs(zi.coef_inflation.sum(axis=1)) < 3
+
+    first = zi.coef_inflation[totake]
+    second = zipln_param.coef_inflation[totake]
+    sns.heatmap(zi.proba_inflation.detach(), ax=axes[0])
+    sns.heatmap(zipln_param.proba_inflation, ax=axes[1])
+    print("first shape", first.shape)
+    print("second shape", second.shape)
+    sns.heatmap(first > -0.25, ax=axes[2])
+    sns.heatmap(second > -0.25, ax=axes[3])
+    plt.show()
     x
     assert mae(zi.coef - zipln_param.coef) < 0.3
     assert mae(zi.covariance - zipln_param.covariance) < 0.3
