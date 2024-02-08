@@ -11,7 +11,6 @@ from pyPLNmodels._utils import (
     _check_two_tensors_dimensions_are_equal,
     _format_data,
     _sigmoid,
-    _check_formula,
 )
 
 
@@ -365,7 +364,7 @@ class ZIPlnParameters(PlnParameters):
                 self._coef_inflation = coef_inflation
         else:
             self._coef_inflation = _format_data(coef_inflation)
-        _check_formula(zero_inflation_formula)
+        self._check_formula(zero_inflation_formula)
         self._zero_inflation_formula = zero_inflation_formula
         self._exog_inflation = _format_data(exog_inflation)
         if zero_inflation_formula == "column-wise":
@@ -422,6 +421,12 @@ class ZIPlnParameters(PlnParameters):
         Inflation coefficient of the model.
         """
         return self._exog_inflation
+
+    def _check_formula(self, zero_inflation_formula):
+        list_available = ["column-wise", "row-wise", "global"]
+        if zero_inflation_formula not in list_available:
+            msg = f"Wrong inflation formula, got {zero_inflation_formula}, expected one of {list_available}"
+            raise ValueError(msg)
 
     def nb_cov_inflation(self):
         if self._zero_inflation_formula == "column-wise":

@@ -34,10 +34,6 @@ from pyPLNmodels._utils import (
     vec_to_mat,
     mat_to_vec,
     plot_correlation_circle,
-    _check_formula,
-    _add_const_to_exog,
-    _get_coherent_inflation_inits,
-    _check_shape_exog_infla,
 )
 
 from pyPLNmodels._initialization import (
@@ -78,7 +74,7 @@ class _model(ABC):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
@@ -124,7 +120,7 @@ class _model(ABC):
         formula: str,
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
     ):
@@ -452,17 +448,17 @@ class _model(ABC):
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
-        self.to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
         if self._exog is not None:
-            exog_b = torch.index_select(self._exog, 0, self.to_take)
+            exog_b = torch.index_select(self._exog, 0, to_take)
         else:
             exog_b = None
         return (
-            torch.index_select(self._endog, 0, self.to_take),
+            torch.index_select(self._endog, 0, to_take),
             exog_b,
-            torch.index_select(self._offsets, 0, self.to_take),
-            torch.index_select(self._latent_mean, 0, self.to_take),
-            torch.index_select(self._latent_sqrt_var, 0, self.to_take),
+            torch.index_select(self._offsets, 0, to_take),
+            torch.index_select(self._latent_mean, 0, to_take),
+            torch.index_select(self._latent_sqrt_var, 0, to_take),
         )
 
     @property
@@ -494,15 +490,6 @@ class _model(ABC):
             if torch.sum(torch.isnan(loss)):
                 raise ValueError("The ELBO contains nan values.")
             loss.backward()
-            # coef_inflation = torch.mean(self._latent_prob)
-            # print("non zero", torch.sum(self._latent_prob > 0))
-            # print("np", self.n_samples * self.dim)
-            # print(
-            #     "grad",
-            #     torch.sum(self._latent_prob)
-            #     - self.n_samples * self.dim * (1 - torch.sigmoid(-coef_inflation)),
-            # )
-            # print('othr', torch.sum(self._latent_prob)- self.n_samples*self.dim*(1 - torch.sigmoid(-self._coef_inflation)))
             elbo += loss.item()
             self.optim.step()
         self._project_parameters()
@@ -1467,7 +1454,7 @@ class Pln(_model):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
@@ -1504,7 +1491,7 @@ class Pln(_model):
         formula: str,
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
     ):
@@ -1962,7 +1949,7 @@ class PlnPCAcollection:
         *,
         exog: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
         offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
@@ -2019,7 +2006,7 @@ class PlnPCAcollection:
         formula: str,
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
@@ -2808,7 +2795,7 @@ class PlnPCA(_model):
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         rank: int = 5,
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
@@ -2852,7 +2839,7 @@ class PlnPCA(_model):
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         rank: int = 5,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
@@ -3395,16 +3382,12 @@ class ZIPln(_model):
         endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        exog_inflation: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        offsets_formula: {"zero", "logsum"} = "zero",
-        zero_inflation_formula: {"column-wise", "row-wise", "global"} = "column-wise",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
-        add_const_inflation: bool = True,
         use_closed_form_prob: bool = True,
-        true_coef=None,
     ):
         """
         Initializes the ZIPln class.
@@ -3415,29 +3398,18 @@ class ZIPln(_model):
             The count data.
         exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The covariate data. Defaults to None.
-        exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
-            The covariate data for the inflation part. Defaults to None. If None,
-            will automatically add a vector of one if zero_inflation_formula is
-            either "column-wise" or "row-wise".
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
         offsets_formula : str, optional(keyword-only)
-            The formula for offsets. Defaults to "zero". Can be also "logsum"
-            where we take the logarithm of the sum (of each line) of the counts.
+            The formula for offsets. Defaults to "zero". Can be also "logsum" where we take the logarithm of the sum (of each line) of the counts.
             Overriden (useless) if offsets is not None.
-        zero_inflation_formula: str {"column-wise", "row-wise", "global"}
-            The modelling of the zero_inflation. Either "column-wise", "row-wise"
-            or "global". Default to "column-wise".
         dict_initialization : dict, optional(keyword-only)
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
         add_const : bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
-        add_const_inflation : bool, optional(keyword-only)
-            Whether to add a column of one in the exog_inflation. Defaults to True.
-            If exog_inflation is None and zero_inflation_formula is not "global",
-            add_const_inflation is set to True anyway and a warnings
+            If exog is None, add_const is set to True anyway and a warnings
             is launched.
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
@@ -3460,9 +3432,12 @@ class ZIPln(_model):
         >>> zi.fit()
         >>> print(zi)
         """
-        self.true_coef = true_coef
-        print("true_coef in init", self.true_coef)
         self._use_closed_form_prob = use_closed_form_prob
+        if exog is None and add_const is False:
+            msg = "No covariates has been given. An intercept is added since "
+            msg += "a ZIPln must have at least an intercept."
+            warnings.warn(msg)
+            add_const = True
         super().__init__(
             endog=endog,
             exog=exog,
@@ -3472,31 +3447,6 @@ class ZIPln(_model):
             take_log_offsets=take_log_offsets,
             add_const=add_const,
         )
-        _check_formula(zero_inflation_formula)
-        exog_inflation = _format_data(exog_inflation)
-        exog_inflation, add_const_inflation = _get_coherent_inflation_inits(
-            zero_inflation_formula, exog_inflation, add_const_inflation
-        )
-        if zero_inflation_formula != "global" and exog_inflation is not None:
-            _check_shape_exog_infla(
-                exog_inflation, zero_inflation_formula, self.n_samples, self.dim
-            )
-        if zero_inflation_formula == "global":
-            self._exog_inflation = None
-        else:
-            if add_const_inflation is True:
-                if zero_inflation_formula == "column-wise":
-                    self._exog_inflation = _add_const_to_exog(
-                        exog_inflation, 0, self.n_samples
-                    )
-                else:
-                    self._exog_inflation = _add_const_to_exog(
-                        exog_inflation, 1, self.dim
-                    )
-            else:
-                self._exog_inflation = exog_inflation
-
-        self._zero_inflation_formula = zero_inflation_formula
 
     def _extract_batch(self, batch):
         super()._extract_batch(batch)
@@ -3506,11 +3456,11 @@ class ZIPln(_model):
 
     def _return_batch(self, indices, beginning, end):
         pln_batch = super()._return_batch(indices, beginning, end)
-        dirac_b = torch.index_select(self._dirac, 0, self.to_take)
-        batch = pln_batch + (dirac_b,)
+        to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        batch = pln_batch + (torch.index_select(self._dirac, 0, to_take),)
         if self._use_closed_form_prob is False:
-            to_return = torch.index_select(self._latent_prob, 0, self.to_take)
-            return batch + (torch.index_select(self._latent_prob, 0, self.to_take),)
+            to_return = torch.index_select(self._latent_prob, 0, to_take)
+            return batch + (torch.index_select(self._latent_prob, 0, to_take),)
         return batch
 
     @classmethod
@@ -3519,7 +3469,7 @@ class ZIPln(_model):
         formula: str,
         data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        offsets_formula: {"zero", "logsum"} = "zero",
+        offsets_formula: str = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         use_closed_form_prob: bool = True,
@@ -3621,14 +3571,6 @@ class ZIPln(_model):
     def _description(self):
         return "full covariance model and zero-inflation."
 
-    @property
-    def nb_cov_infla(self):
-        if self._zero_inflation_formula == "global":
-            return None
-        elif self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation.shape[1]
-        return self._exog_inflation.shape[0]
-
     def _random_init_model_parameters(self):
         self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
         self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
@@ -3642,20 +3584,7 @@ class ZIPln(_model):
             self._components = _init_components(self._endog, self.dim)
 
         if not hasattr(self, "_coef_inflation"):
-            if self._zero_inflation_formula == "column-wise":
-                self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(
-                    DEVICE
-                )
-            elif self._zero_inflation_formula == "row-wise":
-                self._coef_inflation = torch.randn(
-                    self.n_samples, self.nb_cov_infla
-                ).to(DEVICE)
-            else:
-                if self.true_coef is not None:
-                    self._coef_inflation = self.true_coef
-                else:
-                    self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
-
+            self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
             # for j in range(self.exog.shape[1]):
             #     Y_j = self._endog[:,j].numpy()
             #     offsets_j = self.offsets[:,j].numpy()
@@ -3761,18 +3690,6 @@ class ZIPln(_model):
             The coefficients or None.
         """
         return self._cpu_attribute_or_none("_coef_inflation")
-
-    @property
-    def exog_inflation(self):
-        """
-        Property representing the exog of the inflation.
-
-        Returns
-        -------
-        torch.Tensor or None
-            The exog_inflation or None.
-        """
-        return self._cpu_attribute_or_none("_exog_inflation")
 
     @coef_inflation.setter
     @_array2tensor
@@ -3904,7 +3821,7 @@ class ZIPln(_model):
             self._exog,
             self._coef,
             self._offsets,
-            self._xinflacoefinfla,
+            self._coef_inflation,
             self._covariance,
             self._dirac,
         )
@@ -3918,7 +3835,7 @@ class ZIPln(_model):
             self._exog_b,
             self._coef,
             self._offsets_b,
-            self._xinflacoefinfla_b,
+            self._coef_inflation,
             self._covariance,
             self._dirac_b,
         )
@@ -3941,35 +3858,11 @@ class ZIPln(_model):
             self._dirac,
         )
 
-    @property
-    def _xinflacoefinfla_b(self):
-        if self._zero_inflation_formula == "global":
-            return self._coef_inflation
-        if self._zero_inflation_formula == "column-wise":
-            exog_infla_b = torch.index_select(self._exog_inflation, 0, self.to_take)
-            return exog_infla_b @ self._coef_inflation
-        coef_infla_b = torch.index_select(self._coef_inflation, 0, self.to_take)
-        return coef_infla_b @ self._exog_inflation
-
-    @property
-    def _xinflacoefinfla(self):
-        if self._zero_inflation_formula == "global":
-            return self._coef_inflation
-        elif self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation @ self._coef_inflation
-        elif self._zero_inflation_formula == "row-wise":
-            return self._coef_inflation @ self._exog_inflation
-
-    @property
-    def proba_inflation(self):
-        return torch.sigmoid(self._xinflacoefinfla)
-
     def _compute_elbo_b(self):
         if self._use_closed_form_prob is True:
             latent_prob_b = self.closed_formula_latent_prob_b
         else:
             latent_prob_b = self._latent_prob_b
-
         return elbo_zi_pln(
             self._endog_b,
             self._exog_b,
@@ -3979,16 +3872,9 @@ class ZIPln(_model):
             latent_prob_b,
             self._components,
             self._coef,
-            self._xinflacoefinfla_b,
+            self._coef_inflation,
             self._dirac_b,
         )
-
-    @property
-    def xinflacoefinfla(self):
-        if self._zero_inflation_formula == "global":
-            return self._coef_inflation
-        if self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation
 
     @property
     def number_of_parameters(self):
@@ -4002,12 +3888,11 @@ class ZIPln(_model):
             self._latent_sqrt_var,
             self._components,
         ]
-        if self.true_coef is None:
-            list_parameters.append(self._coef_inflation)
         if self._use_closed_form_prob is False:
             list_parameters.append(self._latent_prob)
         if self._exog is not None:
             list_parameters.append(self._coef)
+            list_parameters.append(self._coef_inflation)
         return list_parameters
 
     @property

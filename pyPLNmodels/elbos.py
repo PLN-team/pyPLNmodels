@@ -194,7 +194,7 @@ def elbo_zi_pln(
     latent_prob,
     components,
     coef,
-    x_infla_coef_infla,
+    coef_inflation,
     dirac,
 ):
     """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated PLN model.
@@ -209,15 +209,7 @@ def elbo_zi_pln(
         pi: torch.tensor. Variational parameter with size (n,p)
         covariance: torch.tensor. Model parameter with size (p,p)
         coef: torch.tensor. Model parameter with size (d,p)
-        x_infla_coef_infla: torch.Tensor.
-            Has size 1 if zero_inflation_formula is "global".
-            Has size (n,p) else. This coefficient corresponds
-            to X0@B0 if zero_inflation_formula is "column-wise"
-            , B0@X0  if zero_inflation_formula is "row-wise"
-            and only one coef if zero_inflation_formula is
-            "global".
-
-
+        coef_inflation: torch.tensor. Model parameter with size (d,p)
     Returns:
         torch.tensor of size 1 with a gradient.
     """
@@ -229,8 +221,10 @@ def elbo_zi_pln(
     o_plus_m = offsets + latent_mean
     if exog is None:
         XB = torch.zeros_like(endog)
+        x_coef_inflation = torch.zeros_like(endog)
     else:
         XB = exog @ coef
+        x_coef_inflation = exog @ coef_inflation
 
     m_minus_xb = latent_mean - XB
 
@@ -244,8 +238,8 @@ def elbo_zi_pln(
     un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
     un_moins_rho_m_moins_xb_outer = un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
     inside_b = -1 / 2 * Omega * un_moins_rho_m_moins_xb_outer
-    inside_c = torch.multiply(latent_prob, x_infla_coef_infla) - _log1pexp(
-        x_infla_coef_infla
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - _log1pexp(
+        x_coef_inflation
     )
     log_diag = torch.log(torch.diag(covariance))
     log_S_term = torch.sum(
