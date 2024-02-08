@@ -522,6 +522,7 @@ def sample_zipln(
     else:
         ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
+    print("mean endog 1", torch.min(pln_endog.sum(axis=1)))
     endog = (1 - ksi) * pln_endog
     if return_latent is True:
         if return_pln is True:

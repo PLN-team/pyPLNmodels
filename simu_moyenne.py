@@ -9,7 +9,7 @@ from pyPLNmodels import (
     Pln,
     get_zipln_simulated_count_data,
     get_simulation_parameters,
-    sample_pln,
+    sample_zipln,
 )
 from pyPLNmodels.models import Brute_ZIPln
 import matplotlib.pyplot as plt
@@ -70,7 +70,7 @@ COLORS = {
     STD_CLOSED_KEY: "darkred",
 }
 
-_moyennes_XB = np.linspace(0, 5, 3)
+_moyennes_XB = np.linspace(1, 5, 3)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
@@ -91,19 +91,31 @@ def MAE(t):
 
 def get_dict_models(endog, exog, offsets):
     sim_models = {
-        ENH_FREE_KEY: ZIPln(endog, exog=exog, offsets=offsets),
-        ENH_CLOSED_KEY: ZIPln(
-            endog, exog=exog, offsets=offsets, use_closed_form_prob=True
+        ENH_FREE_KEY: ZIPln(
+            endog, exog=exog, offsets=offsets, add_const_inflation=True
         ),
-        STD_FREE_KEY: Brute_ZIPln(endog, exog=exog, offsets=offsets),
+        ENH_CLOSED_KEY: ZIPln(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            use_closed_form_prob=Tru,
+            add_const_inflation=Truee,
+        ),
+        STD_FREE_KEY: Brute_ZIPln(
+            endog, exog=exog, offsets=offsets, add_const_inflation=True
+        ),
         STD_CLOSED_KEY: Brute_ZIPln(
-            endog, exog=exog, offsets=offsets, use_closed_form_prob=True
+            endog,
+            exog=exog,
+            offsets=offsets,
+            use_closed_form_prob=True,
+            add_const_inflation=True,
         ),
     }
     return sim_models
 
 
-n = 800
+n = 300
 dim = 25
 title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
@@ -117,7 +129,7 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         add_const_inflation = True
     plnparam = get_simulation_parameters(
         add_const=True,
-        nb_cov=nb_cov,
+        nb_cov_inflation=nb_cov,
         zero_inflation_formula=inflation_formula,
         n_samples=n,
         add_const_inflation=add_const_inflation,
@@ -132,14 +144,14 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
 
 
 def get_data(_plnparam, seed):
-    endog = sample_pln(_plnparam, seed=seed)
+    endog = sample_zipln(_plnparam, seed=seed)
     print("XB", torch.mean(_plnparam.exog @ _plnparam.coef))
     print("pi", torch.mean(torch.sigmoid(_plnparam.exog @ _plnparam.coef_inflation)))
 
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit()
+        model.fit(nb_max_iteration=10)
     return dict_models
 
 
@@ -165,7 +177,7 @@ class one_plot:
         }
 
     def simulate_mean(self, _plnparam, i):
-        endog = sample_pln(_plnparam, seed=i)
+        endog = sample_zipln(_plnparam, seed=i)
         dict_models = get_dict_models(
             endog, exog=_plnparam.exog, offsets=_plnparam.offsets
         )
@@ -196,6 +208,8 @@ class one_plot:
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
             results_model[SIGMA_KEY].append(MSE(model_fitted.covariance - Sigma.cpu()))
             results_model[B_KEY].append(MSE(model_fitted.coef - B.cpu()))
+            print("Bo shape", B0.shape)
+            print("model shape", model_fitted.coef_inflation.shape)
             results_model[PI_KEY].append(
                 MAE(
                     torch.sigmoid(model_fitted.coef_inflation) - torch.sigmoid(B0).cpu()
