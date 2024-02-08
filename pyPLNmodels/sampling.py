@@ -515,7 +515,12 @@ def sample_zipln(
     """
     print("ZIPln is sampled")
     proba_inflation = zipln_param.proba_inflation
-    ksi = torch.bernoulli(proba_inflation)
+    if zipln_param._zero_inflation_formula == "global":
+        ksi = torch.bernoulli(
+            torch.ones(zipln_param.n_samples, zipln_param.dim) * proba_inflation
+        )
+    else:
+        ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
     endog = (1 - ksi) * pln_endog
     if return_latent is True:
