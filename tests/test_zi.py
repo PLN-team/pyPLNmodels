@@ -196,7 +196,7 @@ def train_zi(formula):
     return zi, zipln_param
 
 
-def test_zi_global():
+def test_ziglobal():
     zi, zipln_param = train_zi("global")
     assert mae(zi.coef_inflation - zipln_param.coef_inflation) < 0.15
     assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.03
@@ -204,7 +204,7 @@ def test_zi_global():
     assert mae(zi.covariance - zipln_param.covariance) < 0.3
 
 
-def test_zi_column():
+def test_zicolumn():
     zi, zipln_param = train_zi("column-wise")
     assert mae(zi.coef_inflation - zipln_param.coef_inflation) < 0.3
     assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.06
@@ -212,8 +212,11 @@ def test_zi_column():
     assert mae(zi.covariance - zipln_param.covariance) < 0.4
 
 
-def test_zi_row():
+def test_zirow():
     zi, zipln_param = train_zi("row-wise")
     assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.15
+    print("coefinfla", zipln_param.coef_inflation)
+    print("mine", zi._coef_inflation)
+    x
     assert mae(zi.coef - zipln_param.coef) < 0.3
     assert mae(zi.covariance - zipln_param.covariance) < 0.3
