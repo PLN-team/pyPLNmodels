@@ -21,12 +21,12 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-_moyennes_XB = np.linspace(4, 5, 1)
+_moyennes_XB = np.linspace(4, 5, 3)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
 _mean_infla = 0.24
-_nb_bootstrap = 1
+_nb_bootstrap = 2
 
 n = 350
 dim = 301
@@ -148,18 +148,14 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         add_const_inflation=add_const_inflation,
     )
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
-    infl = torch.clone(plnparam._coef_inflation)
-    Y = torch.ones(plnparam.n_samples, plnparam.dim) * torch.tensor([0.99])
-    plnparam._exog_inflation = torch.inverse((infl.T) @ infl) @ (infl.T) @ (Y)
-    print("true", Y)
-    print("mine", infl @ plnparam._exog_inflation)
-    print("shape exog", plnparam._exog_inflation.shape)
-    print(
-        "mean plnparam",
-        torch.mean(plnparam._coef_inflation @ (plnparam._exog_inflation)),
+    Y = torch.ones(plnparam.n_samples, plnparam.dim) * torch.logit(
+        torch.tensor([_mean_infla])
     )
-    print("mean plnparam", torch.mean(plnparam.proba_inflation))
-    x
+    X = torch.clone(plnparam._exog_inflation)
+    infl = torch.clone(plnparam._coef_inflation)
+    xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T))) - infl
+    plnparam._coef_inflation += xxxt_inv_moins_b
+    print("mean proba", torch.mean(plnparam.proba_inflation))
     plnparam._offsets *= 0
     return plnparam
 
