@@ -2,6 +2,7 @@ import sys
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
 import pandas as pd
+import torch
 
 from pyPLNmodels import load_model, load_plnpcacollection
 from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection, ZIPln
@@ -14,6 +15,9 @@ from tests.import_data import (
     data_sim_0cov,
     data_sim_2cov,
     data_real,
+    data_zi_g,
+    data_zi_c,
+    data_zi_r,
 )
 
 
@@ -29,15 +33,26 @@ endog_real = data_real["endog"]
 endog_real = pd.DataFrame(endog_real)
 endog_real.columns = [f"var_{i}" for i in range(endog_real.shape[1])]
 
+endog_zi_g = data_zi_g["endog"]
+exog_zi_g = data_zi_g["exog"]
+exog_inflation_g = data_zi_g["exog_inflation"]
+offsets_zi_g = data_zi_g["offsets"]
+
+
+endog_zi_c = data_zi_c["endog"]
+exog_zi_c = data_zi_c["exog"]
+exog_inflation_c = data_zi_c["exog_inflation"]
+offsets_zi_c = data_zi_c["offsets"]
+
+endog_zi_r = data_zi_r["endog"]
+exog_zi_r = data_zi_r["exog"]
+exog_inflation_r = data_zi_r["exog_inflation"]
+offsets_zi_r = data_zi_r["offsets"]
+
 
 def add_fixture_to_dict(my_dict, string_fixture):
     my_dict[string_fixture] = [lf(string_fixture)]
     return my_dict
-
-
-# zi = ZIPln(endog_sim_2cov, exog = exog_sim_2cov)
-# zi.fit()
-# print(zi)
 
 
 def add_list_of_fixture_to_dict(
@@ -119,6 +134,183 @@ params = [convenientpln, convenient_PlnPCA, convenient_PlnPCAcollection, conveni
 dict_fixtures = {}
 
 
+def get_zi_array(formula_inflation, data):
+    zi = ZIPln(
+        data["endog"],
+        exog=data["exog"],
+        exog_inflation=data["exog_inflation"],
+        offsets=data["offsets"],
+        zero_inflation_formula=formula_inflation,
+        add_const=False,
+        add_const_inflation=False,
+    )
+    return zi
+
+
+@pytest.fixture
+def simulated_zi_global_array():
+    return get_zi_array("global", data_zi_g)
+
+
+@pytest.fixture
+def simulated_zi_column_array():
+    return get_zi_array("column-wise", data_zi_c)
+
+
+@pytest.fixture
+def simulated_zi_row_array():
+    return get_zi_array("row-wise", data_zi_r)
+
+
+sim_zi_global_instance_array = ["simulated_zi_global_array"]
+sim_zi_column_instance_array = ["simulated_zi_column_array"]
+sim_zi_row_instance_array = ["simulated_zi_row_array"]
+sim_zi_instances_array = (
+    sim_zi_global_instance_array
+    + sim_zi_row_instance_array
+    + sim_zi_column_instance_array
+)
+instances = instances + sim_zi_instances_array
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_global_instance_array", sim_zi_global_instance_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_row_instance_array", sim_zi_row_instance_array
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_instance_array", sim_zi_column_instance_array
+)
+
+
+@pytest.fixture
+def simulated_fitted_zi_global_array(simulated_zi_global_array):
+    simulated_zi_global_array.fit()
+    return simulated_zi_global_array
+
+
+@pytest.fixture
+def simulated_fitted_zi_column_array(simulated_zi_column_array):
+    simulated_zi_column_array.fit()
+    return simulated_zi_column_array
+
+
+@pytest.fixture
+def simulated_fitted_zi_row_array(simulated_zi_row_array):
+    simulated_zi_row_array.fit()
+    return simulated_zi_row_array
+
+
+sim_zi_global_fitted_array = ["simulated_fitted_zi_global_array"]
+sim_zi_row_fitted_array = ["simulated_fitted_zi_row_array"]
+sim_zi_column_fitted_array = ["simulated_fitted_zi_column_array"]
+
+simulated_zi_fitted_array = (
+    sim_zi_global_fitted_array + sim_zi_row_fitted_array + sim_zi_column_fitted_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "simulated_zi_fitted_array", simulated_zi_fitted_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_global_fitted_array", sim_zi_global_fitted_array
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_row_fitted_array", sim_zi_row_fitted_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_fitted_array", sim_zi_column_fitted_array
+)
+
+
+@pytest.fixture
+def simulated_zi_column_formula():
+    zi = ZIPln.from_formula("endog~1+exog", data=data_zi_c)
+    return zi
+
+
+@pytest.fixture
+def simulated_loaded_zi_global_array(simulated_fitted_zi_global_array):
+    simulated_fitted_zi_global_array.save()
+    return generate_new_model(
+        simulated_fitted_zi_global_array,
+        endog_zi_g,
+        exog=exog_zi_g,
+        exog_inflation=exog_inflation_g,
+        offsets=offsets_zi_g,
+        zero_inflation_formula="global",
+        add_const=False,
+        add_const_inflation=False,
+    )
+
+
+@pytest.fixture
+def simulated_loaded_zi_column_array(simulated_fitted_zi_column_array):
+    simulated_fitted_zi_column_array.save()
+    return generate_new_model(
+        simulated_fitted_zi_column_array,
+        endog_zi_c,
+        exog=exog_zi_c,
+        exog_inflation=exog_inflation_c,
+        offsets=offsets_zi_c,
+        zero_inflation_formula="column-wise",
+        add_const=False,
+        add_const_inflation=False,
+    )
+
+
+@pytest.fixture
+def simulated_loaded_zi_row_array(simulated_fitted_zi_row_array):
+    simulated_fitted_zi_row_array.save()
+    return generate_new_model(
+        simulated_fitted_zi_row_array,
+        endog_zi_r,
+        exog=exog_zi_r,
+        exog_inflation=exog_inflation_r,
+        offsets=offsets_zi_r,
+        zero_inflation_formula="row-wise",
+        add_const=False,
+        add_const_inflation=False,
+    )
+
+
+sim_zi_global_loaded_array = ["simulated_loaded_zi_global_array"]
+sim_zi_row_loaded_array = ["simulated_loaded_zi_row_array"]
+sim_zi_column_loaded_array = ["simulated_loaded_zi_column_array"]
+
+simulated_zi_loaded = (
+    sim_zi_global_loaded_array + sim_zi_row_loaded_array + sim_zi_column_loaded_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "simulated_zi_loaded_array", simulated_zi_loaded
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_global_loaded_array", sim_zi_global_loaded_array
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_row_loaded_array", sim_zi_row_loaded_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_loaded_array", sim_zi_column_loaded_array
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_loaded", simulated_zi_loaded
+)
+
+
+@pytest.fixture
+def simulated_fitted_zi_column_formula(simulated_zi_column_formula):
+    simulated_zi_column_formula.fit()
+    return simulated_zi_column_formula
+
+
 @pytest.fixture(params=params)
 def simulated_model_0cov_array(request):
     cls = request.param
@@ -187,6 +379,7 @@ sim_model_0cov_instance = [
     "simulated_model_0cov_array",
     "simulated_model_0cov_formula",
 ]
+
 
 instances = sim_model_0cov_instance + instances
 
@@ -390,18 +583,26 @@ dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "real_model_loaded", real_model_loaded
 )
 
-sim_loaded_model = sim_model_0cov_loaded + sim_model_2cov_loaded
+sim_loaded_pln_model = sim_model_0cov_loaded + sim_model_2cov_loaded
+sim_fitted_pln_model = sim_model_0cov_fitted + sim_model_2cov_fitted
+sim_loaded_and_fitted_pln = sim_loaded_pln_model + sim_fitted_pln_model
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_loaded_and_fitted_pln", sim_loaded_and_fitted_pln
+)
+
+sim_loaded_model = sim_model_0cov_loaded + sim_model_2cov_loaded + simulated_zi_loaded
 
 loaded_model = real_model_loaded + sim_loaded_model
 dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "loaded_model", loaded_model)
 
-simulated_model_fitted = sim_model_0cov_fitted + sim_model_2cov_fitted
+simulated_model_fitted = (
+    sim_model_0cov_fitted + sim_model_2cov_fitted + simulated_zi_fitted_array
+)
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "simulated_model_fitted", simulated_model_fitted
 )
 fitted_model = real_model_fitted + simulated_model_fitted
 dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "fitted_model", fitted_model)
-
 
 loaded_and_fitted_sim_model = simulated_model_fitted + sim_loaded_model
 loaded_and_fitted_real_model = real_model_fitted + real_model_loaded

@@ -1,5 +1,6 @@
 import pytest
 import torch
+import numpy as np
 
 from pyPLNmodels import get_simulation_parameters, ZIPln, sample_zipln
 from tests.conftest import dict_fixtures
@@ -7,6 +8,14 @@ from tests.utils import filter_models, MSE
 
 
 from pyPLNmodels import get_zipln_simulated_count_data
+
+
+def mae(t):
+    return torch.mean(torch.abs(t))
+
+
+def mse(t):
+    return torch.mean(t**2)
 
 
 @pytest.mark.parametrize("zi", dict_fixtures["loaded_and_fitted_model"])
@@ -154,18 +163,22 @@ def test_zi_columns():
     zi = ZIPln(endog, exog=exog, exog_inflation=exog_inflation, offsets=offsets)
 
 
-def test_zi_global():
-    n_samples = 250
-    formula = "column-wise"
+def train_zi(formula):
+    n_samples = 100
+    if formula == "global":
+        nb_cov_inflation = 0
+        add_const_inflation = False
+    elif formula in ["column-wise", "row-wise"]:
+        nb_cov_inflation = 1
+        add_const_inflation = True
     zipln_param = get_simulation_parameters(
         zero_inflation_formula=formula,
         n_samples=n_samples,
-        nb_cov_inflation=1,
+        nb_cov_inflation=nb_cov_inflation,
         dim=50,
-        add_const_inflation=False,
+        add_const_inflation=add_const_inflation,
     )
-    zipln_param._coef += 6
-    zipln_param._coef_inflation
+    zipln_param._coef += 4
     endog = sample_zipln(zipln_param)
     exog = zipln_param.exog
     exog_inflation = zipln_param.exog_inflation
@@ -178,22 +191,29 @@ def test_zi_global():
         zero_inflation_formula=formula,
         add_const_inflation=False,
         use_closed_form_prob=False,
-        true_coef=zipln_param._coef_inflation,
     )
     zi.fit()
-    print("zi coef inflation", zi._coef_inflation)
-    x
-    # print("latent_prob zi", zi.latent_prob)
-    print("proba_inflation mine", zi.proba_inflation)
-    print("true proba infla", zipln_param.proba_inflation)
-    print("coef mine", zi._coef_inflation)
-    print("true coef ", zipln_param._coef_inflation)
-    print(
-        "mae coef",
-        torch.mean(torch.abs(zi._coef_inflation - zipln_param._coef_inflation)),
-    )
-    print(
-        "mae proba",
-        torch.mean(torch.abs(zi.proba_inflation - zipln_param.proba_inflation)),
-    )
-    x
+    return zi, zipln_param
+
+
+def test_zi_global():
+    zi, zipln_param = train_zi("global")
+    assert mae(zi.coef_inflation - zipln_param.coef_inflation) < 0.15
+    assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.03
+    assert mae(zi.coef - zipln_param.coef) < 0.1
+    assert mae(zi.covariance - zipln_param.covariance) < 0.3
+
+
+def test_zi_column():
+    zi, zipln_param = train_zi("column-wise")
+    assert mae(zi.coef_inflation - zipln_param.coef_inflation) < 0.3
+    assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.06
+    assert mae(zi.coef - zipln_param.coef) < 0.4
+    assert mae(zi.covariance - zipln_param.covariance) < 0.4
+
+
+def test_zi_row():
+    zi, zipln_param = train_zi("row-wise")
+    assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.15
+    assert mae(zi.coef - zipln_param.coef) < 0.3
+    assert mae(zi.covariance - zipln_param.covariance) < 0.3
