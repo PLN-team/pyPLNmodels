@@ -292,13 +292,7 @@ def _format_model_param(
         )
     exog = _format_data(exog)
     if add_const is True:
-        if exog is None:
-            exog = torch.ones(endog.shape[0], 1).to(DEVICE)
-        else:
-            if _has_null_variance(exog) is False:
-                exog = torch.concat(
-                    (exog, torch.ones(endog.shape[0]).unsqueeze(1)), dim=1
-                ).to(DEVICE)
+        _add_const_to_exog(exog, axis=0, length=endog.shape[0])
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of endog")
@@ -847,3 +841,64 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
 
     plt.tight_layout()
     plt.show()
+
+
+def _check_formula(zero_inflation_formula):
+    list_available = ["column-wise", "row-wise", "global"]
+    if zero_inflation_formula not in list_available:
+        msg = f"Wrong inflation formula, got {zero_inflation_formula}, expected one of {list_available}"
+        raise ValueError(msg)
+
+
+def _add_const_to_exog(exog, axis, length):
+    if axis == 0:
+        dim_concat = 1
+        ones = torch.ones(length, 1)
+        has_null_var = _has_null_variance(exog) if exog is not None else None
+    elif axis == 1:
+        dim_concat = 0
+        ones = torch.ones(1, length)
+        has_null_var = _has_null_variance(exog.T) if exog is not None else None
+    if has_null_var is False:
+        exog = torch.concat((exog, ones), dim=dim_concat)
+    elif has_null_var is None:
+        exog = ones
+    return exog
+
+
+def _get_coherent_inflation_inits(
+    inflation_formula, exog_inflation, add_const_inflation
+):
+    if inflation_formula in {"column-wise", "row-wise"}:
+        if exog_inflation is None and add_const_inflation is False:
+            msg = "No exog_inflation has been given and the "
+            msg += f"zero_inflation_formula is set to {inflation_formula}. "
+            msg += "add_const_inflation is set to True since a ZIPln"
+            msg += "must have at least an intercept for the exog_inflation."
+            warnings.warn(msg)
+            add_const_inflation = True
+    else:
+        if exog_inflation is not None:
+            msg = "exog_inflation useless as zero_inflation_formula is"
+            msg += " global. exog_inflation set to None"
+            warnings.warn(msg)
+            exog_inflation = None
+        if add_const_inflation is True:
+            msg = "add_const_inflation=True useless as zero_inflation_formula is"
+            msg += " global. Set to False."
+            warnings.warn(msg)
+            add_const_inflation = False
+    return exog_inflation, add_const_inflation
+
+
+def _check_shape_exog_infla(exog_inflation, inflation_formula, n_samples, dim):
+    if inflation_formula == "column-wise":
+        if exog_inflation.shape[0] != n_samples:
+            msg = f"exog_inflation should have shape ({n_samples},_), got"
+            msg += f" {exog_inflation.shape} shape for exog_inflation."
+            raise ValueError(msg)
+    else:
+        if exog_inflation.shape[1] != dim:
+            msg = f"exog_inflation should have shape (_,{dim}), got"
+            msg += f" {exog_inflation.shape} shape for exog_inflation."
+            raise ValueError(msg)
