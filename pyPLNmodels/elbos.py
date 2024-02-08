@@ -1,6 +1,6 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import _log_stirling, _trunc_log, _log1pexp
-from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
+from pyPLNmodels._utils import _log_stirling, _trunc_log, _log1pexp
+from pyPLNmodels._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 from typing import Optional
 
