@@ -487,8 +487,8 @@ class _model(ABC):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
-            if torch.sum(torch.isnan(loss)):
-                raise ValueError("The ELBO contains nan values.")
+            if torch.sum(torch.isnan(loss) + loss.isinf()):
+                raise ValueError("The ELBO contains nan or inf values.")
             loss.backward()
             elbo += loss.item()
             self.optim.step()
@@ -847,6 +847,11 @@ class _model(ABC):
             self._criterion_args._elbos_list.append(self.compute_elbo().item())
             self._criterion_args.running_times.append(time.time() - t0)
         return self.n_samples * self._elbos_list[-1]
+
+    @property
+    def elbo(self):
+        """Alias for loglike"""
+        return self.loglike
 
     @property
     def BIC(self):
@@ -1279,20 +1284,32 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
-        predictions = self._endog_predictions().ravel().cpu().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
-        sns.scatterplot(x=self.endog.ravel(), y=predictions, hue=colors, ax=ax)
+        predictions = self._endog_predictions().ravel().cpu().detach()
+        endog_ravel = self.endog.ravel()
+        rec_error = torch.mean((endog_ravel - predictions) ** 2).numpy()
+        sns.scatterplot(x=endog_ravel, y=predictions, hue=colors, ax=ax)
         max_y = int(torch.max(self.endog.ravel()).item())
         y = np.linspace(0, max_y, max_y)
         ax.plot(y, y, c="red")
         ax.set_yscale("log")
+        ax.set_title(
+            f"Expected counts vs counts, reconstruction error = {np.round(rec_error, 4)}"
+        )
         ax.set_xscale("log")
         ax.set_ylabel("Predicted values")
         ax.set_xlabel("Counts")
         ax.legend()
         plt.show()
         return ax
+
+    @property
+    def reconstruction_error(self):
+        """Reconstruction error of the counts"""
+        predictions = self._endog_predictions().ravel().cpu().detach()
+        endog_ravel = self.endog.ravel()
+        return torch.mean((endog_ravel - predictions) ** 2)
 
     def _print_beginning_message(self):
         """
@@ -3746,10 +3763,14 @@ class ZIPln(_model):
         if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                    self._latent_prob,
+                    torch.tensor([0]).to(DEVICE),
+                    out=self._latent_prob,
                 )
                 self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                    self._latent_prob,
+                    torch.tensor([1]).to(DEVICE),
+                    out=self._latent_prob,
                 )
                 self._latent_prob *= self._dirac
 
@@ -4298,3 +4319,23 @@ class ZIPln(_model):
         full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
         seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
         return first + second + third + fourth + fifth + sixth + seventh
+
+
+class Brute_ZIPln(ZIPln):
+    def _compute_elbo_b(self):
+        if self._use_closed_form_prob is True:
+            latent_prob_b = self.closed_formula_latent_prob_b
+        else:
+            latent_prob_b = self._latent_prob_b
+        return elbo_brute_zipln(
+            self._endog_b,
+            self._exog_b,
+            self._offsets_b,
+            self._latent_mean_b,
+            self._latent_sqrt_var_b,
+            latent_prob_b,
+            self._components,
+            self._coef,
+            self._coef_inflation,
+            self._dirac_b,
+        )
