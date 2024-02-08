@@ -1,6 +1,6 @@
 import torch  # pylint:disable=[C0114]
-from ._utils import _log_stirling, _trunc_log, _log1pexp
-from ._closed_forms import _closed_formula_covariance, _closed_formula_coef
+from pyPLNmodels._utils import _log_stirling, _trunc_log, _log1pexp
+from pyPLNmodels._closed_forms import _closed_formula_covariance, _closed_formula_coef
 
 from typing import Optional
 
@@ -194,7 +194,7 @@ def elbo_zi_pln(
     latent_prob,
     components,
     coef,
-    coef_inflation,
+    x_coef_inflation,
     dirac,
 ):
     """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated PLN model.
@@ -221,10 +221,8 @@ def elbo_zi_pln(
     o_plus_m = offsets + latent_mean
     if exog is None:
         XB = torch.zeros_like(endog)
-        x_coef_inflation = torch.zeros_like(endog)
     else:
         XB = exog @ coef
-        x_coef_inflation = exog @ coef_inflation
 
     m_minus_xb = latent_mean - XB
 
@@ -266,13 +264,6 @@ def elbo_zi_pln(
     third = torch.sum(inside_d + inside_f)
     third += n_samples * dim / 2
     res = first + second + third
-    # if torch.sum(res.isinf()):
-    #     print('a', torch.sum(inside_a.isinf()))
-    #     print('b', torch.sum(inside_b.isinf()))
-    #     print('c', torch.sum(inside_c.isinf()))
-    #     print('d', torch.sum(inside_d.isinf()))
-    #     print('e', torch.sum(inside_e.isinf()))
-    #     print('f', torch.sum(inside_f.isinf()))
     return res
 
 
@@ -285,7 +276,7 @@ def elbo_brute_zipln(
     latent_prob,
     components,
     coef,
-    coef_inflation,
+    x_coef_inflation,
     dirac,
 ):
     covariance = components @ (components.T)
@@ -296,10 +287,8 @@ def elbo_brute_zipln(
     o_plus_m = offsets + latent_mean
     if exog is None:
         XB = torch.zeros_like(endog)
-        x_coef_inflation = torch.zeros_like(endog)
     else:
         XB = exog @ coef
-        x_coef_inflation = exog @ coef_inflation
 
     m_minus_xb = latent_mean - XB
 
