@@ -70,12 +70,12 @@ COLORS = {
     STD_CLOSED_KEY: "darkred",
 }
 
-_moyennes_XB = np.linspace(0, 5, 5)
+_moyennes_XB = np.linspace(0, 5, 3)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
-_mean_infla = 0.4
-_nb_bootstrap = 10
+_mean_infla = 0.2
+_nb_bootstrap = 2
 
 
 KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
@@ -108,15 +108,26 @@ dim = 25
 title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
 
-def get_plnparam(mean_xb, mean_infla):
+def get_plnparam(mean_xb, mean_infla, inflation_formula):
+    if inflation_formula == "global":
+        nb_cov = 0
+        add_const_inflation = False
+    else:
+        nb_cov = 2
+        add_const_inflation = True
     plnparam = get_simulation_parameters(
-        add_const=True, nb_cov=0, zero_inflated=True, n_samples=n
+        add_const=True,
+        nb_cov=nb_cov,
+        zero_inflation_formula=inflation_formula,
+        n_samples=n,
+        add_const_inflation=add_const_inflation,
     )
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
-    plnparam._coef_inflation += logit(mean_infla) - logit(
-        torch.mean(torch.sigmoid(plnparam._coef_inflation)).cpu()
-    )
-    # plnparam._offsets *=0
+    if inflation_formula != "global":
+        plnparam._coef_inflation += logit(mean_infla) - logit(
+            torch.mean(torch.sigmoid(plnparam._coef_inflation)).cpu()
+        )
+    plnparam._offsets *= 0
     return plnparam
 
 
@@ -169,7 +180,7 @@ class one_plot:
         else:
             print("Simulating")
             for moyenne in tqdm(self.moyennes_XB):
-                plnparam = get_plnparam(moyenne, self.mean_infla)
+                plnparam = get_plnparam(moyenne, self.mean_infla, "column-wise")
                 Sigma = plnparam.covariance
                 B = plnparam.coef
                 B0 = plnparam.coef_inflation
