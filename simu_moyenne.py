@@ -21,6 +21,13 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
+_moyennes_XB = np.linspace(4, 5, 2)
+# chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
+chosen_moyennes = _moyennes_XB
+
+_mean_infla = 0.22
+_nb_bootstrap = 1
+
 
 import pickle
 
@@ -69,13 +76,6 @@ COLORS = {
     STD_FREE_KEY: "lightcoral",
     STD_CLOSED_KEY: "darkred",
 }
-
-_moyennes_XB = np.linspace(2, 5, 4)
-# chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-chosen_moyennes = _moyennes_XB
-
-_mean_infla = 0.22
-_nb_bootstrap = 2
 
 
 KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
@@ -238,6 +238,9 @@ class one_plot:
                 )
             )
             results_model[ELBO_KEY].append(model_fitted.elbo)
+            print("first", model_fitted.coef_inflation)
+            print("other", B0)
+            x
             results_model[B0_KEY].append(MSE(model_fitted.coef_inflation - B0.cpu()))
 
     def save_criterions(self):
