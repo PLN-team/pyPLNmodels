@@ -21,12 +21,25 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-_moyennes_XB = np.linspace(4, 5, 3)
+_moyennes_XB = np.linspace(3, 5, 3)
+_moyennes_proba = np.linspace(0.2, 0.7, 2)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-chosen_moyennes = _moyennes_XB
+_mean_infla = 0.26
+_mean_xb = 2
 
-_mean_infla = 0.25
 _nb_bootstrap = 2
+
+
+viz = "poisson"
+if viz == "poisson":
+    _moyennes = _moyennes_XB
+    _mean_sim = _mean_infla
+elif viz == "proba":
+    _moyennes = _moyennes_proba
+    _mean_sim = _mean_xb
+
+
+chosen_moyennes = _moyennes
 
 n = 350
 dim = 301
@@ -54,6 +67,8 @@ SIGMA_KEY = "MSE_SIGMA"
 PI_KEY = "MAE_PI"
 ELBO_KEY = "ELBO"
 B0_KEY = "MSE_B0"
+
+VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 
 
 # LEGEND_DICT = {
@@ -148,9 +163,11 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         add_const_inflation=add_const_inflation,
         mean_infla=mean_infla,
     )
-    print("proba", torch.mean(plnparam.proba_inflation))
-    x
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
+    print("mean xb:", mean_xb)
+    print("mean vector", torch.mean(plnparam.gaussian_mean))
+    print("proba", torch.mean(plnparam.proba_inflation))
+    y
     plnparam._offsets *= 0
 
     return plnparam
@@ -164,13 +181,30 @@ def fit_models(dict_models):
 
 class one_plot:
     def __init__(
-        self, moyennes_XB, mean_infla, chosen_moyennes, nb_bootstrap, inflation_formula
+        self,
+        moyennes,
+        mean_XB_or_prob,
+        chosen_moyennes,
+        nb_bootstrap,
+        inflation_formula,
+        viz,
     ):
-        self.moyennes_XB = moyennes_XB
+        self.moyennes = moyennes
         self.chosen_moyennes = chosen_moyennes
-        self.mean_infla = mean_infla
         self.nb_bootstrap = nb_bootstrap
         self.inflation_formula = inflation_formula
+        if viz not in ["poisson", "proba"]:
+            raise ValueError("Wrong visualization")
+        if viz == "proba":
+            for moyenne in moyennes:
+                if moyenne < 0 or moyenne > 1:
+                    raise ValueError("Wrong viz for the moyenne")
+        if viz == "poisson":
+            self.mean_infla = mean_XB_or_prob
+        else:
+            self.mean_xb = mean_XB_or_prob
+
+        self.viz = viz
         self.model_criterions = {
             key_model: {
                 moyenne: {
@@ -181,7 +215,7 @@ class one_plot:
                     ELBO_KEY: [],
                     B0_KEY: [],
                 }
-                for moyenne in self.moyennes_XB
+                for moyenne in self.moyennes
             }
             for key_model in KEY_MODELS
         }
@@ -205,10 +239,15 @@ class one_plot:
                 self.model_criterions = pickle.load(fp)
         else:
             print("Simulating")
-            for moyenne in tqdm(self.moyennes_XB):
-                plnparam = get_plnparam(
-                    moyenne, self.mean_infla, self.inflation_formula
-                )
+            for moyenne in tqdm(self.moyennes):
+                if self.viz == "poisson":
+                    plnparam = get_plnparam(
+                        moyenne, self.mean_infla, self.inflation_formula
+                    )
+                else:
+                    plnparam = get_plnparam(
+                        self.mean_xb, moyenne, self.inflation_formula
+                    )
                 Sigma = plnparam.covariance
                 B = plnparam.coef
                 B0 = plnparam.coef_inflation
@@ -243,9 +282,9 @@ class one_plot:
     @property
     def name_file(self):
         return (
-            str(self.moyennes_XB)
+            str(self.moyennes)
             + str(self.nb_bootstrap)
-            + str(self.mean_infla)
+            + self.viz
             + self.inflation_formula
         )
 
@@ -293,11 +332,6 @@ class one_plot:
                 plot.set_yscale("log")
             else:
                 pass
-                # plot.set_yscale("symlog")
-        # for axe in axes:
-        #     for ax in axe:
-        #         ax.set_yscale("log")
-        # plots[ELBO_KEY].set_yscale("symlog")
         data = self.data
         for crit_key in CRITERION_KEYS:
             palette = {
@@ -329,7 +363,7 @@ class one_plot:
                 ax.tick_params(axis="both", labelsize=22)
                 ax.set_ylabel("")
                 ax.legend([], [], frameon=False)
-                ax.set_xlabel(r"Mean $XB$", fontsize=22)
+                ax.set_xlabel(VIZ_LABEL[self.viz], fontsize=22)
 
         # for crit_key in CRITERION_KEYS:
         # plots[B0_KEY].tick_params(axis = "y", labelsize = 18)
@@ -347,7 +381,12 @@ class one_plot:
 
 
 op = one_plot(
-    _moyennes_XB, _mean_infla, chosen_moyennes, _nb_bootstrap, inflation_formula
+    _moyennes,
+    _mean_sim,
+    chosen_moyennes,
+    _nb_bootstrap,
+    inflation_formula,
+    viz="poisson",
 )
 op.simulate()
 op.plot_results()

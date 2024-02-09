@@ -147,15 +147,28 @@ def _get_simulation_coef_cov_offsets_coefzi(
             * torch.ones(n_samples, dim)
         )
         # Y += torch.randint(n_samples, dim) / 5
+        print("Y:", Y)
         if zero_inflation_formula == "column-wise":
-            coef_inflation = torch.randn(exog_inflation.shape[1], dim, device="cpu")
+            coef_inflation = torch.randint(
+                low=1,
+                high=3,
+                size=(nb_cov_inflation, dim),
+                dtype=torch.float64,
+                device="cpu",
+            )
+            if add_const_inflation is True:
+                coef_inflation = torch.cat((coef_inflation, torch.ones(1, dim)), axis=0)
             X = coef_inflation
-            xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
-            exog_inflation = xxxt_inv_moins_b
+            xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
+            exog_inflation = xxxt_inv_xtY
+            xb = exog_inflation @ coef_inflation
         elif zero_inflation_formula == "row-wise":
             X = exog_inflation
-            xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
-            coef_inflation = xxxt_inv_moins_b
+            xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
+            coef_inflation = xxxt_inv_xtY
+            xb = coef_inflation @ exog_inflation
+            print("XB", xb)
+            print("diff", torch.norm(xb - Y))
         else:
             coef_inflation = torch.logit(torch.Tensor([mean_infla]))
     else:
@@ -276,6 +289,13 @@ class PlnParameters:
         if self._exog is None:
             return 0
         return self._exog.shape[1]
+
+    @property
+    def gaussian_mean(self):
+        """return the mean of the gaussian"""
+        if self.exog is None:
+            return None
+        return self.exog @ self.coef
 
     @property
     def n_samples(self):
