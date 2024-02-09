@@ -52,6 +52,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
     add_const: bool,
     add_const_inflation: bool,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"},
+    mean_infla: float,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -139,21 +140,24 @@ def _get_simulation_coef_cov_offsets_coefzi(
             if add_const_inflation is True:
                 exog_inflation = torch.cat((exog_inflation, torch.ones(1, dim)), axis=0)
     if zero_inflation_formula is not None:
+        start = mean_infla - 0.1
+        end = mean_infla + 0.1
+        Y = torch.logit(
+            torch.linspace(start, end, n_samples).unsqueeze(1)
+            * torch.ones(n_samples, dim)
+        )
+        # Y += torch.randint(n_samples, dim) / 5
         if zero_inflation_formula == "column-wise":
             coef_inflation = torch.randn(exog_inflation.shape[1], dim, device="cpu")
+            X = coef_inflation
+            xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
+            exog_inflation = xxxt_inv_moins_b
         elif zero_inflation_formula == "row-wise":
-            Y = torch.logit(
-                torch.linspace(0.3, 0.6, n_samples).unsqueeze(1)
-                * torch.ones(n_samples, dim)
-            )
-            Y += torch.randn(n_samples, dim) / 2
             X = exog_inflation
-            xxxt_inv_moins_b = (
-                Y @ (X.T) @ (torch.inverse(X @ (X.T)))
-            )  # - coef_inflation
+            xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
             coef_inflation = xxxt_inv_moins_b
         else:
-            coef_inflation = torch.Tensor([0.2])
+            coef_inflation = torch.logit(torch.Tensor([mean_infla]))
     else:
         coef_inflation = None
 
@@ -403,9 +407,6 @@ class ZIPlnParameters(PlnParameters):
             if coef_inflation.shape != (1,):
                 msg = "If the zero_inflation_formula is global, the "
                 msg += "zero_inflation_formula should be a tensor of size 1."
-                raise ValueError(msg)
-            if coef_inflation.item() < 0 or coef_inflation.item() > 1:
-                msg = "If the zero_inflation_formula is global, the coef_inflation should be between 0 and 1."
                 raise ValueError(msg)
 
     @property
@@ -729,6 +730,7 @@ def get_simulation_parameters(
     add_const: bool = True,
     add_const_inflation: bool = False,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"} = None,
+    mean_infla=None,
 ) -> Union[PlnParameters, ZIPlnParameters]:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -779,6 +781,7 @@ def get_simulation_parameters(
         add_const,
         add_const_inflation,
         zero_inflation_formula,
+        mean_infla,
     )
     if add_const_inflation is True and zero_inflation_formula is None:
         warnings.warn(

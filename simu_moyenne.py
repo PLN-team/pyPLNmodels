@@ -25,12 +25,12 @@ _moyennes_XB = np.linspace(4, 5, 3)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 chosen_moyennes = _moyennes_XB
 
-_mean_infla = 0.24
+_mean_infla = 0.25
 _nb_bootstrap = 2
 
 n = 350
 dim = 301
-inflation_formula = "row-wise"
+inflation_formula = "column-wise"
 title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
 
 import pickle
@@ -135,33 +135,30 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
 
 def get_plnparam(mean_xb, mean_infla, inflation_formula):
     if inflation_formula == "global":
-        nb_cov = 0
+        nb_cov_infla = 0
         add_const_inflation = False
     else:
-        nb_cov = 2
+        nb_cov_infla = 0
         add_const_inflation = True
     plnparam = get_simulation_parameters(
         add_const=True,
-        nb_cov_inflation=nb_cov,
+        nb_cov_inflation=nb_cov_infla,
         zero_inflation_formula=inflation_formula,
         n_samples=n,
         add_const_inflation=add_const_inflation,
+        mean_infla=mean_infla,
     )
+    print("proba", torch.mean(plnparam.proba_inflation))
+    x
     plnparam._coef += mean_xb - torch.mean(plnparam._coef)
-    Y = torch.ones(plnparam.n_samples, plnparam.dim) * torch.logit(
-        torch.tensor([_mean_infla])
-    )
-    X = torch.clone(plnparam._exog_inflation)
-    infl = torch.clone(plnparam._coef_inflation)
-    xxxt_inv_moins_b = Y @ (X.T) @ (torch.inverse(X @ (X.T))) - infl
-    plnparam._coef_inflation += xxxt_inv_moins_b
     plnparam._offsets *= 0
+
     return plnparam
 
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit()
+        model.fit(tol=0.00001)
     return dict_models
 
 
