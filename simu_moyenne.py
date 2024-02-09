@@ -21,16 +21,23 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-_moyennes_XB = np.linspace(3, 5, 3)
-_moyennes_proba = np.linspace(0.2, 0.7, 2)
+if torch.cuda.is_available():
+    device = "cuda"
+else:
+    device = "cpu"
+device = "cpu"
+
+viz = "proba"
+_moyennes_XB = np.linspace(1, 5, 5)
+_moyennes_proba = np.linspace(0.2, 0.5, 6)
+print("moyennes proba", _moyennes_proba)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.26
-_mean_xb = 2
+_mean_xb = 3
 
 _nb_bootstrap = 2
 
 
-viz = "poisson"
 if viz == "poisson":
     _moyennes = _moyennes_XB
     _mean_sim = _mean_infla
@@ -41,10 +48,14 @@ elif viz == "proba":
 
 chosen_moyennes = _moyennes
 
-n = 350
-dim = 301
+n = 1500
+dim = 1000
 inflation_formula = "column-wise"
-title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
+if viz == "poisson":
+    title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
+else:
+    title = rf"n={n},p={dim},d=1,$XB \approx {_mean_xb}$"
+
 
 import pickle
 
@@ -97,7 +108,7 @@ COLORS = {
 }
 
 
-KEY_MODELS = [ENH_CLOSED_KEY, ENH_FREE_KEY, STD_FREE_KEY, STD_CLOSED_KEY]
+KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY]
 
 
 def MSE(t):
@@ -117,6 +128,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             add_const_inflation=False,
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
+            use_closed_form_prob=False,
         ),
         ENH_CLOSED_KEY: ZIPln(
             endog,
@@ -134,6 +146,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             add_const_inflation=False,
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
+            use_closed_form_prob=False,
         ),
         STD_CLOSED_KEY: Brute_ZIPln(
             endog,
@@ -156,6 +169,7 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         nb_cov_infla = 0
         add_const_inflation = True
     plnparam = get_simulation_parameters(
+        nb_cov=1,
         add_const=True,
         nb_cov_inflation=nb_cov_infla,
         zero_inflation_formula=inflation_formula,
@@ -163,19 +177,23 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         add_const_inflation=add_const_inflation,
         mean_infla=mean_infla,
     )
-    plnparam._coef += mean_xb - torch.mean(plnparam._coef)
-    print("mean xb:", mean_xb)
-    print("mean vector", torch.mean(plnparam.gaussian_mean))
+    plnparam._coef[0, :] = torch.ones(plnparam.dim).to(device)
+    Y = torch.randn(plnparam.n_samples, plnparam.dim) / 3 + mean_xb
+    Y = Y.to(device)
+    X = plnparam._coef.to(device)
+    xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
+    plnparam._exog = xxxt_inv_xtY
+    print("mean XB", torch.mean(plnparam.gaussian_mean))
     print("proba", torch.mean(plnparam.proba_inflation))
-    y
+    print("mean infla", mean_infla)
     plnparam._offsets *= 0
-
     return plnparam
 
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit(tol=0.00001)
+        model.fit(tol=0.000001)
+        # model.fit(nb_max_iteration = 10)
     return dict_models
 
 
@@ -282,10 +300,11 @@ class one_plot:
     @property
     def name_file(self):
         return (
-            str(self.moyennes)
+            f"{self.moyennes[0]}_{self.moyennes[len(self.moyennes)-1]}_{len(self.moyennes)}"
             + str(self.nb_bootstrap)
             + self.viz
             + self.inflation_formula
+            + f"n_{n}_dim_{dim}"
         )
 
     @property
@@ -338,7 +357,6 @@ class one_plot:
                 LABEL_DICT[model_key]: COLORS[model_key] for model_key in KEY_MODELS
             }
             data["moyenne"] = np.round(data["moyenne"], 2)
-            # if crit_key != "ELBO":
             sns.boxplot(
                 data=data,
                 x="moyenne",
@@ -370,23 +388,31 @@ class one_plot:
         # plots["ELBO"].tick_params(axis = "both", labelsize = 1)
         ax = plots[B0_KEY]
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(
-            handles=[handles[0], handles[2], handles[1], handles[3]],
-            labels=LABEL_DICT.values(),
-            handler_map={tuple: HandlerTuple(ndivide=None)},
-            fontsize=12,
+        ax.legend()
+        # ax.legend(
+        #     handles=[handles[0], handles[1], handles[2], handles[3]],
+        #     labels=LABEL_DICT.values(),
+        #     handler_map={tuple: HandlerTuple(ndivide=None)},
+        #     fontsize=12,
+        # )
+        # fig.suptitle(title)
+        plt.savefig(f"simu{self.inflation_formula}_{self.name_file}.png", format="png")
+        # plt.show()
+
+
+def launch_formulas(_moyennes, _mean_sim, chosen_moyennes, _nb_bootstrap, viz):
+    for inflation_formula in tqdm(["column-wise", "row-wise", "global"]):
+        op = one_plot(
+            _moyennes,
+            _mean_sim,
+            chosen_moyennes,
+            _nb_bootstrap,
+            inflation_formula,
+            viz=viz,
         )
-        plt.savefig("simu.png", format="png")
-        plt.show()
+        op.simulate()
+        op.plot_results()
+    plt.show()
 
 
-op = one_plot(
-    _moyennes,
-    _mean_sim,
-    chosen_moyennes,
-    _nb_bootstrap,
-    inflation_formula,
-    viz="poisson",
-)
-op.simulate()
-op.plot_results()
+launch_formulas(_moyennes, _mean_sim, chosen_moyennes, _nb_bootstrap, viz)

@@ -220,11 +220,6 @@ import matplotlib.pyplot as plt
 def test_zirow():
     zi, zipln_param = train_zi("row-wise")
     assert mae(zi.proba_inflation - zipln_param.proba_inflation) < 0.15
-    # print('proba infla',zipln_param.proba_inflation )
-    # print('my proba infla', zi.proba_inflation)
-    # print("true", zipln_param.coef_inflation)
-    # print("mine", zi._coef_inflation)
-    # print('diff', zipln_param.proba_inflation - zi.proba_inflation)
     fig, axes = plt.subplots(4)
     totake = torch.abs(zi.coef_inflation.sum(axis=1)) < 3
 

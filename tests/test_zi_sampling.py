@@ -18,7 +18,7 @@ NB_COV: int = 1
 
 def test_warning_get_simulation_parameters():
     with pytest.warns(UserWarning):
-        param = get_simulation_parameters(add_const_inflation=True)
+        param = get_simulation_parameters(add_const_inflation=True, dim=100)
 
 
 def test_get_simulation_parameters_column_wise():
