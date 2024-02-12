@@ -860,7 +860,7 @@ def _add_const_to_exog(exog, axis, length):
         ones = torch.ones(1, length)
         has_null_var = _has_null_variance(exog.T) if exog is not None else None
     if has_null_var is False:
-        exog = torch.concat((exog, ones), dim=dim_concat)
+        exog = torch.concat((exog.cpu(), ones.cpu()), dim=dim_concat)
     elif has_null_var is None:
         exog = ones
     return exog

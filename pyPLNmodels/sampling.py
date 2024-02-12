@@ -39,7 +39,7 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
         components[
             column_number * block_size : (column_number + 1) * block_size, column_number
         ] = 1
-    components += torch.randn(dim, rank) / 8
+    # components += torch.randn(dim, rank) / 8
     torch.random.set_rng_state(prev_state)
     return components.to("cpu")
 
@@ -140,14 +140,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
             if add_const_inflation is True:
                 exog_inflation = torch.cat((exog_inflation, torch.ones(1, dim)), axis=0)
     if zero_inflation_formula is not None:
-        start = mean_infla - 0.1
-        end = mean_infla + 0.1
-        Y = torch.logit(
-            torch.linspace(start, end, n_samples).unsqueeze(1)
-            * torch.ones(n_samples, dim)
-        )
-        # Y += torch.randint(n_samples, dim) / 5
-        print("Y:", Y)
+        random = torch.randint(-1, 2, size=(n_samples, dim)) / 8
+        Y = torch.logit(mean_infla + random)
         if zero_inflation_formula == "column-wise":
             coef_inflation = torch.randint(
                 low=1,
@@ -161,14 +155,10 @@ def _get_simulation_coef_cov_offsets_coefzi(
             X = coef_inflation
             xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
             exog_inflation = xxxt_inv_xtY
-            xb = exog_inflation @ coef_inflation
         elif zero_inflation_formula == "row-wise":
             X = exog_inflation
             xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
             coef_inflation = xxxt_inv_xtY
-            xb = coef_inflation @ exog_inflation
-            print("XB", xb)
-            print("diff", torch.norm(xb - Y))
         else:
             coef_inflation = torch.logit(torch.Tensor([mean_infla]))
     else:
@@ -182,8 +172,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
             exog = None
     else:
         exog = torch.randint(
-            low=1,
-            high=3,
+            low=0,
+            high=2,
             size=(n_samples, nb_cov),
             dtype=torch.float64,
             device="cpu",
@@ -314,28 +304,32 @@ class PlnParameters:
         """
         Components of the model.
         """
-        return self._components
+        return self._components.cpu()
 
     @property
     def offsets(self):
         """
         Data offsets.
         """
-        return self._offsets
+        return self._offsets.cpu()
 
     @property
     def coef(self):
         """
         Coef of the model.
         """
-        return self._coef
+        if self._coef is None:
+            return None
+        return self._coef.cpu()
 
     @property
     def exog(self):
         """
         Data exog.
         """
-        return self._exog
+        if self._exog is None:
+            return None
+        return self._exog.cpu()
 
 
 def _check_one_dimension(
@@ -502,7 +496,10 @@ def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Ten
     else:
         XB = torch.matmul(pln_param.exog, pln_param.coef)
 
-    gaussian = torch.mm(torch.randn(n_samples, rank), pln_param.components.T) + XB
+    gaussian = (
+        torch.mm(torch.randn(n_samples, rank, device="cpu"), pln_param.components.T)
+        + XB
+    )
     parameter = torch.exp(pln_param.offsets + gaussian)
     endog = torch.poisson(parameter)
 
@@ -546,12 +543,12 @@ def sample_zipln(
     proba_inflation = zipln_param.proba_inflation
     if zipln_param._zero_inflation_formula == "global":
         ksi = torch.bernoulli(
-            torch.ones(zipln_param.n_samples, zipln_param.dim) * proba_inflation
-        )
+            torch.ones(zipln_param.n_samples, zipln_param.dim).cpu()
+            * proba_inflation.cpu()
+        ).cpu()
     else:
-        ksi = torch.bernoulli(proba_inflation)
+        ksi = torch.bernoulli(proba_inflation).cpu()
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
-    print("proba infla", torch.mean(proba_inflation))
     endog = (1 - ksi) * pln_endog
     if return_latent is True:
         if return_pln is True:
@@ -750,7 +747,7 @@ def get_simulation_parameters(
     add_const: bool = True,
     add_const_inflation: bool = False,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"} = None,
-    mean_infla=None,
+    mean_infla=0.2,
 ) -> Union[PlnParameters, ZIPlnParameters]:
     """
     Generate simulation parameters for a Poisson-lognormal model.

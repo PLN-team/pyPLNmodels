@@ -756,7 +756,7 @@ class _model(ABC):
         """
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
-            sigma = sigma[:400, :400]
+            sigma = self.covariance[:400, :400]
             sns.heatmap(self.covariance[:400, :400].cpu(), ax=ax)
         else:
             sns.heatmap(self.covariance.cpu(), ax=ax)
@@ -1272,7 +1272,7 @@ class _model(ABC):
     def reconstruction_error(self):
         """Recontstruction error between the predictions and the endog."""
         predictions = self._endog_predictions().ravel().cpu().detach()
-        return torch.mean((predictions - self._endog.ravel()) ** 2)
+        return torch.mean((predictions - self._endog.ravel().cpu()) ** 2)
 
     @property
     def elbo(self):
@@ -1698,7 +1698,7 @@ class Pln(_model):
 
     def _endog_predictions(self):
         return torch.exp(
-            self._offsets + self._latent_mean + 1 / 2 * self._latent_sqrt_var**2
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_var**2
         )
 
     def _get_max_components(self):
@@ -3497,7 +3497,7 @@ class ZIPln(_model):
                 if zero_inflation_formula == "column-wise":
                     self._exog_inflation = _add_const_to_exog(
                         exog_inflation, 0, self.n_samples
-                    )
+                    ).to(DEVICE)
                 else:
                     self._exog_inflation = _add_const_to_exog(
                         exog_inflation, 1, self.dim
@@ -3639,7 +3639,13 @@ class ZIPln(_model):
 
     @property
     def _description(self):
-        return "full covariance model and zero-inflation."
+        msg = "full covariance model and zero-inflation with"
+        msg += f"{self._zero_inflation_formula} inflation"
+        if self._use_closed_form_prob is True:
+            msg += f" and closed form for latent prob."
+        else:
+            msg += f" and NO closed form for latent prob."
+        return msg
 
     @property
     def nb_cov_infla(self):
@@ -3650,7 +3656,7 @@ class ZIPln(_model):
         return self.exog_inflation.shape[0]
 
     def _random_init_model_parameters(self):
-        self._coef_inflation = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
         self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
         self._components = torch.randn(self.dim, self.dim).to(DEVICE)
 
@@ -3764,8 +3770,10 @@ class ZIPln(_model):
 
     def _endog_predictions(self):
         return torch.exp(
-            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_var**2
-        ) * (1 - self.latent_prob)
+            self.offsets.cpu()
+            + self.latent_mean.cpu()
+            + 1 / 2 * self.latent_sqrt_var**2
+        ) * (1 - self.latent_prob.cpu())
 
     @property
     def coef_inflation(self):
@@ -3857,10 +3865,14 @@ class ZIPln(_model):
         if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
-                    self._latent_prob, torch.tensor([0]), out=self._latent_prob
+                    self._latent_prob,
+                    torch.tensor([0]).to(DEVICE),
+                    out=self._latent_prob,
                 )
                 self._latent_prob = torch.minimum(
-                    self._latent_prob, torch.tensor([1]), out=self._latent_prob
+                    self._latent_prob,
+                    torch.tensor([1]).to(DEVICE),
+                    out=self._latent_prob,
                 )
                 self._latent_prob *= self._dirac
 
@@ -3901,7 +3913,7 @@ class ZIPln(_model):
     @property
     def latent_prob(self):
         if self._use_closed_form_prob is True:
-            return self.closed_formula_latent_prob
+            return self.closed_formula_latent_prob.detach().cpu()
         return self._cpu_attribute_or_none("_latent_prob")
 
     @latent_prob.setter
@@ -4443,6 +4455,16 @@ class ZIPln(_model):
 
 
 class Brute_ZIPln(ZIPln):
+    @property
+    def _description(self):
+        msg = "full covariance model and brute zero-inflation with"
+        msg += f" {self._zero_inflation_formula} inflation"
+        if self._use_closed_form_prob is True:
+            msg += " and closed form for latent prob."
+        else:
+            msg += " and NO closed form for latent prob."
+        return msg
+
     def _compute_elbo_b(self):
         if self._use_closed_form_prob is True:
             latent_prob_b = self.closed_formula_latent_prob_b

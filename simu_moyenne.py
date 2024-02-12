@@ -35,7 +35,7 @@ print("moyennes proba", _moyennes_proba)
 _mean_infla = 0.26
 _mean_xb = 3
 
-_nb_bootstrap = 2
+_nb_bootstrap = 10
 
 
 if viz == "poisson":
@@ -51,10 +51,6 @@ chosen_moyennes = _moyennes
 n = 1500
 dim = 1000
 inflation_formula = "column-wise"
-if viz == "poisson":
-    title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$"
-else:
-    title = rf"n={n},p={dim},d=1,$XB \approx {_mean_xb}$"
 
 
 import pickle
@@ -395,8 +391,18 @@ class one_plot:
         #     handler_map={tuple: HandlerTuple(ndivide=None)},
         #     fontsize=12,
         # )
-        # fig.suptitle(title)
-        plt.savefig(f"simu{self.inflation_formula}_{self.name_file}.png", format="png")
+        if viz == "poisson":
+            title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$_{self.inflation_formula}"
+        else:
+            title = (
+                rf"n={n},p={dim},d=1,$XB \approx {_mean_xb}$_{self.inflation_formula}"
+            )
+        fig.suptitle(title)
+        doss_viz = "poisson_viz" if self.viz == "poisson" else "proba_viz"
+        plt.savefig(
+            f"figures/{doss_viz}/simu{self.inflation_formula}_{self.name_file}.png",
+            format="png",
+        )
         # plt.show()
 
 
