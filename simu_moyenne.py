@@ -27,7 +27,7 @@ else:
     device = "cpu"
 device = "cpu"
 
-viz = "proba"
+viz = "poisson"
 _moyennes_XB = np.linspace(1, 5, 5)
 _moyennes_proba = np.linspace(0.2, 0.5, 6)
 print("moyennes proba", _moyennes_proba)
@@ -46,7 +46,7 @@ elif viz == "proba":
     _mean_sim = _mean_xb
 
 
-chosen_moyennes = _moyennes
+chosen_moyennes = _moyennes[:-1]
 
 n = 1500
 dim = 1000
@@ -384,13 +384,17 @@ class one_plot:
         # plots["ELBO"].tick_params(axis = "both", labelsize = 1)
         ax = plots[B0_KEY]
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend()
-        # ax.legend(
-        #     handles=[handles[0], handles[1], handles[2], handles[3]],
-        #     labels=LABEL_DICT.values(),
-        #     handler_map={tuple: HandlerTuple(ndivide=None)},
-        #     fontsize=12,
-        # )
+        # ax.legend()
+        ax.legend(
+            handles=[handles[0], handles[1], handles[2], handles[3]],
+            labels=labels,
+            handler_map={tuple: HandlerTuple(ndivide=None)},
+            fontsize=12,
+        )
+        ax_b = plots[B_KEY]
+        ax_y = plots[REC_KEY]
+        ax_y.set_ylim(0.1, 10)
+        ax_b.set_ylim(10 ** (-2), 1)
         if viz == "poisson":
             title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$_{self.inflation_formula}"
         else:

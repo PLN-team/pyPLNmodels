@@ -476,7 +476,9 @@ sim_model_2cov_instance = [
     "simulated_model_2cov_array",
     "simulated_model_2cov_formula",
 ]
-sim_model_instance = sim_model_0cov_instance + sim_model_2cov_instance
+sim_model_instance = (
+    sim_model_0cov_instance + sim_model_2cov_instance + sim_zi_instances_array
+)
 
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_model_instance", sim_model_instance

@@ -1243,8 +1243,10 @@ class _model(ABC):
         - If `exog` is provided, it should have the shape `(_, nb_cov)`, where `nb_cov` is the number of exog.
         - The predicted values are obtained by multiplying the exog by the coefficients.
         """
+        exog = _format_data(exog)
         if exog is not None and self.nb_cov == 0:
-            raise AttributeError("No exog in the model, can't predict")
+            msg = "No exog in the model, can't predict with exog"
+            raise AttributeError(msg)
         if exog is None:
             if self.exog is None:
                 print("No exog in the model.")
@@ -3650,19 +3652,29 @@ class ZIPln(_model):
     @property
     def nb_cov_infla(self):
         if self._zero_inflation_formula == "global":
-            return None
+            return 0
         elif self._zero_inflation_formula == "column-wise":
             return self.exog_inflation.shape[1]
         return self.exog_inflation.shape[0]
 
     def _random_init_model_parameters(self):
-        self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
-        self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        if self._zero_inflation_formula == "global":
+            self._coef_inflation = torch.tensor([0.5])
+        elif self._zero_inflation_formula == "row-wise":
+            self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla).to(
+                DEVICE
+            )
+        elif self._zero_inflation_formula == "column-wise":
+            self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
+
+        if self.nb_cov == 0:
+            self._coef = None
+        else:
+            self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
         self._components = torch.randn(self.dim, self.dim).to(DEVICE)
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
-        # init of _coef.
         super()._smart_init_coef()
         if not hasattr(self, "_covariance"):
             self._components = _init_components(self._endog, self.dim)
@@ -4059,14 +4071,14 @@ class ZIPln(_model):
         }
 
     def predict_prob_inflation(
-        self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+        self, exog_infla: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None
     ):
         """
         Method for estimating the probability of a zero coming from the zero inflated component.
 
         Parameters
         ----------
-        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+        exog_infla : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The exog.
 
         Returns
@@ -4082,15 +4094,29 @@ class ZIPln(_model):
         Notes
         -----
         - The mean sigmoid(exog @ coef_inflation) is returned.
-        - `exog` should have the shape `(_, nb_cov)`, where `nb_cov` is the number of exog variables.
+        - `exog_infla` should have the shape `(_, nb_cov)`, where `nb_cov` is the number of exog variables.
         """
-        if exog is not None and self.nb_cov == 0:
-            raise AttributeError("No exog in the model, can't predict")
-        if exog.shape[-1] != self.nb_cov:
-            error_string = f"X has wrong shape ({exog.shape}). Should"
-            error_string += f" be (_, {self.nb_cov})."
-            raise RuntimeError(error_string)
-        return torch.sigmoid(exog @ self.coef_inflation)
+        exog_infla = _format_data(exog_infla)
+        if self._zero_inflation_formula == "global":
+            if exog_infla is not None:
+                msg = "Can t predict with exog_infla. Exog_infla should be None"
+                raise AttributeError(msg)
+            return torch.sigmoid(self.coef_inflation)
+
+        if self._zero_inflation_formula == "column-wise":
+            if exog_infla.shape[-1] != self.nb_cov_infla:
+                error_string = f"X has wrong shape:({exog_infla.shape}). Should"
+                error_string += f" be (_, {self.nb_cov_infla})."
+                raise RuntimeError(error_string)
+            xb = exog_infla @ self.coef_inflation
+
+        if self._zero_inflation_formula == "row-wise":
+            if exog_infla.shape != self._exog_inflation.shape:
+                error_string = f"X has wrong shape:({exog_infla.shape}). Should"
+                error_string += f" be ({self._exog_inflation.shape})."
+                raise RuntimeError(error_string)
+            xb = self.coef_inflation @ exog_infla
+        return torch.sigmoid(xb)
 
     @property
     @_add_doc(_model)

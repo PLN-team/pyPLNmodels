@@ -102,13 +102,16 @@ def _closed_formula_pi(
 
 
 def _closed_formula_latent_prob(exog, coef, offsets, xinflacoef_infla, cov, dirac):
+    """
+    Closed formula for the latent probability using the lambert function.
+    """
     if exog is not None:
         XB = exog @ coef
     else:
         XB = 0
     pi = torch.sigmoid(xinflacoef_infla)
     diag = torch.diag(cov)
-    full_diag = diag.expand(exog.shape[0], -1)
+    full_diag = diag.expand(dirac.shape[0], -1)
     return (
         torch.sigmoid(xinflacoef_infla - torch.log(phi(XB + offsets, full_diag)))
         * dirac
