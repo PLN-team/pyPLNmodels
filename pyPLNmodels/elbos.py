@@ -162,7 +162,6 @@ def elbo_pln(
         XB = torch.zeros_like(endog)
     else:
         XB = exog @ coef
-    # print('XB:', XB)
     m_minus_xb = latent_mean - XB
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
     A = torch.exp(offsets_plus_m + s_rond_s / 2)

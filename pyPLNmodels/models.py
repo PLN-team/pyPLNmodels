@@ -242,7 +242,7 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = self.sk_PCA(n_components=2)
-        proj_variables = pca.transform(self.latent_variables)
+        proj_variables = pca.transform(self.transform())
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
@@ -1299,6 +1299,8 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
+        else:
+            to_show = False
         predictions = self._endog_predictions().ravel().cpu().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
@@ -1307,11 +1309,16 @@ class _model(ABC):
         y = np.linspace(0, max_y, max_y)
         ax.plot(y, y, c="red")
         ax.set_yscale("log")
+        ax.set_title(
+            f"Reconstruction error:{np.round(self.reconstruction_error.item(), 3)}"
+        )
         ax.set_xscale("log")
         ax.set_ylabel("Predicted values")
         ax.set_xlabel("Counts")
+        ax.set_ylim(top=max_y, bottom=0.001)
         ax.legend()
-        plt.show()
+        if to_show is True:
+            plt.show()
         return ax
 
     def _print_beginning_message(self):
@@ -3571,6 +3578,11 @@ class ZIPln(_model):
         >>> endog = get_real_count_data()
         >>> data = {"endog": endog}
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+
+        >>> from pyPLNmodels import ZIPln, get_real_count_data
+        >>> endog = get_real_count_data()
+        >>> data = {"endog": endog}
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         msg = "exog_inflation are set to exog. If you need different exog_inflation, do not use the "
@@ -3655,7 +3667,7 @@ class ZIPln(_model):
 
     def _random_init_model_parameters(self):
         if self._zero_inflation_formula == "global":
-            self._coef_inflation = torch.tensor([0.5])
+            self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
         elif self._zero_inflation_formula == "row-wise":
             self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla).to(
                 DEVICE
@@ -3698,14 +3710,15 @@ class ZIPln(_model):
     def _random_init_latent_parameters(self):
         self._latent_mean = torch.randn(self.n_samples, self.dim).to(DEVICE)
         self._latent_sqrt_var = torch.randn(self.n_samples, self.dim).to(DEVICE)
-        self._latent_prob = (
-            (
-                torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
-                * self._dirac
+        if self._use_closed_form_prob is False:
+            self._latent_prob = (
+                (
+                    torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
+                    * self._dirac
+                )
+                .double()
+                .to(DEVICE)
             )
-            .double()
-            .to(DEVICE)
-        )
 
     def _smart_init_latent_parameters(self):
         self._random_init_latent_parameters()
@@ -4496,7 +4509,7 @@ class ZIPln(_model):
                 the number of variables in the dataset.
         """
         n_components = self._threshold_n_components(n_components)
-        _, array = self.latent_variables
+        array = self.latent_prob.detach().cpu()
         _scatter_pca_matrix(array.numpy(), n_components, self.dim, colors)
 
 

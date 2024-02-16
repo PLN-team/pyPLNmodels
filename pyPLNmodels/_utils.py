@@ -293,7 +293,9 @@ def _format_model_param(
         )
     exog = _format_data(exog)
     if add_const is True:
-        exog = _add_const_to_exog(exog, axis=0, length=endog.shape[0])
+        exog = _add_const_to_exog(exog, axis=0, length=endog.shape[0]).to(DEVICE)
+    if exog is not None:
+        _check_full_rank_exog(exog)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of endog")
@@ -903,7 +905,7 @@ def _check_shape_exog_infla(exog_inflation, inflation_formula, n_samples, dim):
             raise ValueError(msg)
 
 
-def _scatter_pca_matrix(array, n_components, dim, colors=None):
+def _scatter_pca_matrix(array, n_components, dim, colors):
     """
     Generates a scatter matrix plot based on Principal Component Analysis (PCA) on
     the given array.
@@ -950,3 +952,14 @@ def _scatter_pca_matrix(array, n_components, dim, colors=None):
     else:
         fig = sns.pairplot(data)
     plt.show()
+
+
+def _check_full_rank_exog(exog):
+    mat = exog.T @ exog
+    d = mat.shape[1]
+    rank = torch.linalg.matrix_rank(mat)
+    if rank != d:
+        msg = "Input matrix exog does not have full rank. "
+        msg += "You may consider to remove one or more variables"
+        msg += " or set add_const to False it that is not already the case."
+        raise ValueError(msg)
