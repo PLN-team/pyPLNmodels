@@ -823,23 +823,20 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     explained_ratio = pca.explained_variance_ratio_
 
     ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
-    print("TEST")
-    print(sorted(plt.style.available))
 
-    with plt.style.context(("seaborn-v0_8-whitegrid")):
-        fig, axs = plt.subplots(figsize=(6, 6))
-        plot_correlation_arrows(axs, ccircle, variables_names)
+    plt.style.use("seaborn-whitegrid")
+    fig, axs = plt.subplots(figsize=(6, 6))
+    plot_correlation_arrows(axs, ccircle, variables_names)
 
-        # Draw the unit circle, for clarity
-        circle = Circle(
-            (0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5
-        )
-        axs.add_patch(circle)
-        axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0], 3))}")
-        axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1], 3))}")
-        axs.set_title(f"Correlation circle on the transformed variables{title}")
+    # Draw the unit circle, for clarity
+    circle = Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
+    axs.add_patch(circle)
+    axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0], 3))}")
+    axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1], 3))}")
+    axs.set_title(f"Correlation circle on the transformed variables{title}")
+    # plt.ion()
 
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 
