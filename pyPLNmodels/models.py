@@ -43,6 +43,7 @@ from pyPLNmodels._utils import (
     _add_const_to_exog,
     _get_coherent_inflation_inits,
     _check_shape_exog_infla,
+    _scatter_pca_matrix,
 )
 
 from pyPLNmodels._initialization import (
@@ -587,24 +588,29 @@ class _model(ABC):
         """
         return (self.latent_sqrt_var**2).detach()
 
-    def scatter_pca_matrix(self, n_components=None, color=None):
+    def scatter_pca_matrix(self, n_components=None, colors=None):
         """
-        Generates a scatter matrix plot based on Principal Component Analysis (PCA).
+        Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.
 
         Parameters
         ----------
             n_components (int, optional): The number of components to consider for plotting.
-                If not specified, the maximum number of components will be used.
+                If not specified, the maximum number of components will be used. Note that
+                it will not display more than 10 graphs.
                 Defaults to None.
 
-            color (str, np.ndarray): An array with one label for each
+            colors (np.ndarray): An array with one label for each
                 sample in the endog property of the object.
                 Defaults to None.
         Raises
         ------
             ValueError: If the number of components requested is greater than the number of variables in the dataset.
         """
+        n_components = self._threshold_n_components(n_components)
+        array = self.transform().numpy()
+        _scatter_pca_matrix(array, n_components, self.dim, colors)
 
+    def _threshold_n_components(self, n_components):
         if n_components is None:
             n_components = self._get_max_components()
 
@@ -612,23 +618,13 @@ class _model(ABC):
             raise ValueError(
                 f"You ask more components ({n_components}) than variables ({self.dim})"
             )
-        pca = self.sk_PCA(n_components=n_components)
-        latent_variables = self.transform()
-        proj_variables = pca.transform(latent_variables)
-        components = torch.from_numpy(pca.components_)
-        labels = {
-            str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
-            for i in range(n_components)
-        }
-        proj_variables
-        fig = px.scatter_matrix(
-            proj_variables,
-            dimensions=range(n_components),
-            color=color,
-            labels=labels,
-        )
-        fig.update_traces(diagonal_visible=False)
-        fig.show()
+        if n_components > 10:
+            msg = f"Can not display a scatter matrix with {n_components}*"
+            msg += f"{n_components} = {n_components*n_components} graphs."
+            msg += f" Setting the number of components to 10."
+            warnings.warn(msg)
+            n_components = 10
+        return n_components
 
     def plot_pca_correlation_circle(
         self, variables_names, indices_of_variables=None, title: str = ""
@@ -1618,8 +1614,8 @@ class Pln(_model):
         >>> pln.scatter_pca_matrix(n_components = 5)
         """,
     )
-    def scatter_pca_matrix(self, n_components=None, color=None):
-        super().scatter_pca_matrix(n_components=n_components, color=color)
+    def scatter_pca_matrix(self, n_components=None, colors=None):
+        super().scatter_pca_matrix(n_components=n_components, colors=colors)
 
     @_add_doc(
         _model,
@@ -2968,8 +2964,8 @@ class PlnPCA(_model):
         >>> plnpca.scatter_pca_matrix(n_components = 5)
         """,
     )
-    def scatter_pca_matrix(self, n_components=None, color=None):
-        super().scatter_pca_matrix(n_components=n_components, color=color)
+    def scatter_pca_matrix(self, n_components=None, colors=None):
+        super().scatter_pca_matrix(n_components=n_components, colors=colors)
 
     @_add_doc(
         _model,
@@ -3641,7 +3637,7 @@ class ZIPln(_model):
 
     @property
     def _description(self):
-        msg = "full covariance model and zero-inflation with"
+        msg = "full covariance model and zero-inflation with "
         msg += f"{self._zero_inflation_formula} inflation"
         if self._use_closed_form_prob is True:
             msg += f" and closed form for latent prob."
@@ -4478,6 +4474,30 @@ class ZIPln(_model):
         full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
         seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
         return first + second + third + fourth + fifth + sixth + seventh
+
+    def scatter_pca_matrix_prob(self, n_components=None, colors=None):
+        """
+        Generates a scatter matrix plot based on Principal Component Analysis (PCA)
+        on the latent probabilitiess.
+
+        Parameters
+        ----------
+            n_components (int, optional): The number of components to consider for plotting.
+                If not specified, the maximum number of components will be used. Note that
+                it will not display more than 10 graphs.
+                Defaults to None.
+
+            colors (np.ndarray): An array with one label for each
+                sample in the endog property of the object.
+                Defaults to None.
+        Raises
+        ------
+            ValueError: If the number of components requested is greater than
+                the number of variables in the dataset.
+        """
+        n_components = self._threshold_n_components(n_components)
+        _, array = self.latent_variables
+        _scatter_pca_matrix(array.numpy(), n_components, self.dim, colors)
 
 
 class Brute_ZIPln(ZIPln):

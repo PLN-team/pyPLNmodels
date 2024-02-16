@@ -11,6 +11,7 @@ import torch.linalg as TLA
 from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
+import seaborn as sns
 from patsy import dmatrices
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -292,7 +293,7 @@ def _format_model_param(
         )
     exog = _format_data(exog)
     if add_const is True:
-        _add_const_to_exog(exog, axis=0, length=endog.shape[0])
+        exog = _add_const_to_exog(exog, axis=0, length=endog.shape[0])
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of endog")
@@ -642,7 +643,6 @@ def _handle_data(
         column_endog = endog.columns
     else:
         column_endog = None
-
     endog, exog, offsets = _format_model_param(
         endog, exog, offsets, offsets_formula, take_log_offsets, add_const
     )
@@ -904,3 +904,52 @@ def _check_shape_exog_infla(exog_inflation, inflation_formula, n_samples, dim):
             msg = f"exog_inflation should have shape (_,{dim}), got"
             msg += f" {exog_inflation.shape} shape for exog_inflation."
             raise ValueError(msg)
+
+
+def _scatter_pca_matrix(array, n_components, dim, colors=None):
+    """
+    Generates a scatter matrix plot based on Principal Component Analysis (PCA) on
+    the given array.
+
+    Parameters
+    ----------
+    array: (np.ndarray): The array on which we will perform pca and then visualize.
+
+    n_components (int, optional): The number of components to consider for plotting.
+        If not specified, the maximum number of components will be used. Note that
+        it will not display more than 10 graphs.
+        Defaults to None.
+
+    colors (np.ndarray): An array with one label for each
+        sample in the endog property of the object.
+        Defaults to None.
+    Raises
+    ------
+    ValueError: If the number of components requested is greater than the number of variables in the dataset.
+    """
+
+    if n_components > dim:
+        raise ValueError(
+            f"You ask more components ({n_components}) than variables ({dim})"
+        )
+    if n_components > 10:
+        msg = f"Can not display a scatter matrix with {n_components}*"
+        msg += f"{n_components} = {n_components*n_components} graphs."
+        msg += f" Setting the number of components to 10."
+        warnings.warn(msg)
+        n_components = 10
+    pca = PCA(n_components=n_components)
+    proj_variables = pca.fit_transform(array)
+    components = torch.from_numpy(pca.components_)
+    labels = {
+        str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
+        for i in range(n_components)
+    }
+    data = pd.DataFrame(proj_variables)
+    data.columns = labels.values()
+    if colors is not None:
+        data["labels"] = colors
+        fig = sns.pairplot(data, hue="labels")
+    else:
+        fig = sns.pairplot(data)
+    plt.show()
