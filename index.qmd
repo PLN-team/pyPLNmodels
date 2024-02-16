@@ -1,0 +1,121 @@
+---
+title: "Quarto Basics"
+format:
+  html:
+    code-fold: false
+jupyter: python3
+---
+
+
+# Hello World
+
+
+```{python}
+#| cache: true
+import pandas as pd
+import torch
+from sklearn.preprocessing import OneHotEncoder
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
+
+from pyPLNmodels import ZIPln, Pln, PlnPCA, load_model
+```
+
+## Prepare the data
+```{python}
+counts_orig = pd.read_csv("data_mahendra/counts.tsv", delimiter="\t")
+counts = counts_orig.drop(columns=["Sample"])
+cov = pd.read_csv("data_mahendra/metadata.tsv", delimiter="\t")[
+    ["site", "time", "lineage"]
+]
+encoder = OneHotEncoder(drop = "first") ### remove useless covariates
+hot_cov = encoder.fit_transform(cov).toarray()
+hot_cov = torch.from_numpy(hot_cov)
+```
+
+
+## Fit the ZIPln
+I load a previous fitted model as it took some time.
+
+
+```{python}
+zi = ZIPln(
+    counts,
+    exog=hot_cov,
+    offsets=None,
+    exog_inflation=hot_cov,
+    add_const = True,
+    add_const_inflation=True,
+    zero_inflation_formula = "column-wise",
+    dict_initialization=load_model("ZIPln_nbcov_8_dim_1209"),
+)
+# zi.fit(do_smart_init = False)
+```
+
+## Fitting a Kmeans on the latent means
+
+```{python}
+latent = zi.latent_mean
+km = KMeans(n_clusters = 10).fit(latent)
+labels = km.labels_
+```
+
+## Visualize the latent means (i.e. $Z|Y$)
+
+```{python}
+zi.viz(colors = labels)
+```
+
+
+## What about Pln without zero inflation ?
+```{python}
+pln = Pln(counts, exog = hot_cov, offsets = None)
+pln.fit(tol = 0.000001)
+_ = pln.viz(colors = labels)
+```
+
+## What about PlnPCA without zero inflation ?
+
+```{python}
+pca = PlnPCA(counts, exog = hot_cov, offsets = None, rank = 15)
+pca.fit(do_smart_init = False, tol = 0.000001)
+_ = pca.viz( colors = labels)
+```
+
+
+## What about ZIPln without covariates on the zero inflation ?
+
+```{python}
+
+zi_nocov = ZIPln(
+    counts,
+    exog=hot_cov,
+    offsets=None,
+    exog_inflation=None,
+    add_const = True,
+    add_const_inflation=False,
+    zero_inflation_formula = "global"
+)
+zi_nocov.fit(tol = 1, do_smart_init = False)
+_ = zi_nocov.viz(colors = labels)
+```
+
+## Reconstruction errors
+```{python}
+fig, axes = plt.subplots(4, figsize = (20,20))
+ax_zi = axes[0]
+ax_pln = axes[1]
+ax_plnpca = axes[2]
+ax_zi_global = axes[3]
+zi.plot_expected_vs_true(ax = ax_zi)
+pln.plot_expected_vs_true(ax = ax_pln)
+pca.plot_expected_vs_true(ax = ax_plnpca)
+zi_nocov.plot_expected_vs_true(ax = ax_zi_global)
+
+plt.show()
+
+
+```
