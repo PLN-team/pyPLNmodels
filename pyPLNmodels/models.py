@@ -594,6 +594,11 @@ class _model(ABC):
             return 0
         return self._exog @ self._coef
 
+    @property
+    def mean_gaussian(self):
+        """Unconditional mean of the latent variable Z."""
+        return self._mean_gaussian.detach().cpu()
+
     def scatter_pca_matrix(self, n_components=None, colors=None):
         """
         Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.
@@ -1276,7 +1281,6 @@ class _model(ABC):
     def reconstruction_error(self):
         """Recontstruction error between the predictions and the endog."""
         predictions = self._endog_predictions().ravel().cpu().detach()
-        return torch.mean(torch.abs(predictions - self._endog.ravel().cpu()))
         return torch.mean((predictions - self._endog.ravel().cpu()) ** 2)
 
     @property
@@ -1300,7 +1304,6 @@ class _model(ABC):
         -------
         matplotlib.axes.Axes
             The matplotlib axis.
-        >>>
         """
         if self._fitted is None:
             raise RuntimeError("Please fit the model before.")
@@ -3534,6 +3537,21 @@ class ZIPln(_model):
             return batch + (torch.index_select(self._latent_prob, 0, self.to_take),)
         return batch
 
+    @_add_doc(
+        _model,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import ZIPln, get_microcosm
+            >>> endog, exog = get_microcosm()
+            >>> zi = ZIPln(endog, exog = exog, add_const = True)
+            >>> zi.fit()
+            >>> zi.viz()
+            >>> plt.show()
+            """,
+    )
+    def viz(self, ax=None, colors=None, show_cov: bool = False):
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+
     @classmethod
     def from_formula(
         cls,
@@ -3581,9 +3599,9 @@ class ZIPln(_model):
         :func:`pyPLNmodels.ZIPln.__init__`
         Examples
         --------
-        >>> from pyPLNmodels import ZIPln, get_real_count_data
-        >>> endog = get_real_count_data()
-        >>> data = {"endog": endog}
+        >>> from pyPLNmodels import ZIPln, get_microcosm
+        >>> endog, exog = get_microcosm()
+        >>> data = {"endog": endog, "exog", exog}
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
 
         >>> from pyPLNmodels import ZIPln, get_real_count_data
@@ -3797,7 +3815,7 @@ class ZIPln(_model):
 
         return (
             1 - self.latent_prob
-        ) * self.latent_mean + self._mean_gaussian * self.latent_prob
+        ) * self.latent_mean + self.mean_gaussian * self.latent_prob
 
     def _endog_predictions(self):
         return torch.exp(

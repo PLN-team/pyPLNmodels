@@ -30,7 +30,6 @@ device = "cpu"
 viz = "poisson"
 _moyennes_XB = np.linspace(1, 5, 5)
 _moyennes_proba = np.linspace(0.2, 0.5, 6)
-print("moyennes proba", _moyennes_proba)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.26
 _mean_xb = 3

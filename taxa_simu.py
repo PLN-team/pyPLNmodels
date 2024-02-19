@@ -18,12 +18,6 @@ cov = pd.read_csv("data_mahendra/metadata.tsv", delimiter="\t")[
 encoder = OneHotEncoder(drop="first")
 hot_cov = encoder.fit_transform(cov).toarray()
 hot_cov = torch.from_numpy(hot_cov)
-# print('rank hot_cov', torch.linalg.matrix_rank(hot_cov))
-# print('inverse hot cov', torch.inverse(hot_cov))
-
-## Comment interpreter la meilleure viz de zero inflation ? ZI met le "bon" M_i, i.e. M_i a 5, mais prédit zéro ! Il n'est pas contraint d'avoir un M_i faible pour avoir une basse erreur de reconstruction
-## Au contraire, PLN est obligé d'avoir un M_i faible pour avoir prédire un compte faible. Au final, on a plus ou moins la même reconstruction, mais pas du tout la meme visualization !
-## ZI n'est pas contraint d'avoir un Z|Y proche de Y quand il vaut zero !
 
 
 fig, axes = plt.subplots(4)
@@ -35,8 +29,6 @@ ax_plnpca = axes[3]
 
 def viz(model, colors=None, ax=None):
     latent = model.transform()
-    latent = torch.clone(torch.from_numpy(counts.values))
-    latent = torch.log(latent + (latent == 0))
     pca = PCA(n_components=2)
     latent = pca.fit_transform(latent)
     if ax is None:
