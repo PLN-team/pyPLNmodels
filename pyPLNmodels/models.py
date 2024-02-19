@@ -31,10 +31,12 @@ from pyPLNmodels._utils import (
     _nice_string_of_dict,
     _plot_ellipse,
     _check_data_shape,
-    _extract_data_from_formula,
+    _extract_data_from_formula_no_infla,
+    _extract_data_from_formula_with_infla,
     _get_dict_initialization,
     _array2tensor,
     _handle_data,
+    _handle_data_with_inflation,
     _add_doc,
     vec_to_mat,
     mat_to_vec,
@@ -152,7 +154,7 @@ class _model(ABC):
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
         """
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
             endog,
             exog=exog,
@@ -247,10 +249,8 @@ class _model(ABC):
         y = proj_variables[:, 1]
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
-            sk_components = torch.from_numpy(pca.components_).to(DEVICE)
-            covariances = (
-                self._get_pca_low_dim_covariances(sk_components).cpu().detach()
-            )
+            sk_components = torch.from_numpy(pca.components_)
+            covariances = self._get_pca_low_dim_covariances(sk_components).detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
         plt.show()
@@ -361,9 +361,9 @@ class _model(ABC):
             self._random_init_latent_parameters()
         print("Initialization finished")
 
-    def _put_parameters_to_device(self):
+    def _set_requiring_grad_true(self):
         """
-        Move parameters to the cGPU device if present.
+        Move parameters to the GPU device if present.
         """
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
@@ -411,7 +411,7 @@ class _model(ABC):
             self._init_parameters(do_smart_init)
         elif len(self._criterion_args.running_times) > 0:
             self._beginning_time -= self._criterion_args.running_times[-1]
-        self._put_parameters_to_device()
+        self._set_requiring_grad_true()
         self._handle_optimizer(lr)
         stop_condition = False
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
@@ -457,7 +457,7 @@ class _model(ABC):
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
-        self.to_take = torch.tensor(indices[beginning:end]).to(DEVICE)
+        self.to_take = torch.tensor(indices[beginning:end])
         if self._exog is not None:
             exog_b = torch.index_select(self._exog, 0, self.to_take)
         else:
@@ -545,7 +545,7 @@ class _model(ABC):
            If the number of components asked is greater than the number of dimensions.
         """
         pca = self.sk_PCA(n_components=n_components)
-        return pca.transform(self.latent_variables.cpu())
+        return pca.transform(self.latent_variables)
 
     def sk_PCA(self, n_components=None):
         """
@@ -573,7 +573,7 @@ class _model(ABC):
             )
         latent_variables = self.transform()
         pca = PCA(n_components=n_components)
-        pca.fit(latent_variables.cpu())
+        pca.fit(latent_variables)
         return pca
 
     @property
@@ -597,7 +597,7 @@ class _model(ABC):
     @property
     def mean_gaussian(self):
         """Unconditional mean of the latent variable Z."""
-        return self._mean_gaussian.detach().cpu()
+        return self._mean_gaussian.detach()
 
     def scatter_pca_matrix(self, n_components=None, colors=None):
         """
@@ -764,9 +764,9 @@ class _model(ABC):
         if self.dim > 400:
             warnings.warn("Only displaying the first 400 variables.")
             sigma = self.covariance[:400, :400]
-            sns.heatmap(self.covariance[:400, :400].cpu(), ax=ax)
+            sns.heatmap(self.covariance[:400, :400], ax=ax)
         else:
-            sns.heatmap(self.covariance.cpu(), ax=ax)
+            sns.heatmap(self.covariance, ax=ax)
         ax.set_title("Covariance Matrix")
         plt.legend()
         if savefig:
@@ -940,7 +940,7 @@ class _model(ABC):
         torch.Tensor or None
             The coefficients or None.
         """
-        return self._cpu_attribute_or_none("_coef")
+        return self._attribute_or_none("_coef")
 
     @property
     def latent_mean(self):
@@ -952,7 +952,7 @@ class _model(ABC):
         torch.Tensor or None
             The latent mean or None if it has not yet been initialized.
         """
-        return self._cpu_attribute_or_none("_latent_mean")
+        return self._attribute_or_none("_latent_mean")
 
     @property
     def latent_sqrt_var(self):
@@ -964,7 +964,7 @@ class _model(ABC):
         torch.Tensor or None
             The latent variance or None.
         """
-        return self._cpu_attribute_or_none("_latent_sqrt_var")
+        return self._attribute_or_none("_latent_sqrt_var")
 
     @latent_mean.setter
     @_array2tensor
@@ -986,9 +986,9 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
             )
-        self._latent_mean = latent_mean.to(DEVICE)
+        self._latent_mean = latent_mean
 
-    def _cpu_attribute_or_none(self, attribute_name):
+    def _attribute_or_none(self, attribute_name):
         """
         Get the CPU attribute or return None.
 
@@ -1005,7 +1005,7 @@ class _model(ABC):
         if hasattr(self, attribute_name):
             attr = getattr(self, attribute_name)
             if isinstance(attr, torch.Tensor):
-                return attr.detach().cpu()
+                return attr.detach()
             return attr
         return None
 
@@ -1024,7 +1024,7 @@ class _model(ABC):
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
             if isinstance(value, torch.Tensor):
-                pd.DataFrame(np.array(value.cpu().detach())).to_csv(
+                pd.DataFrame(np.array(value.detach())).to_csv(
                     filename, header=None, index=None
                 )
             elif value is not None:
@@ -1042,7 +1042,7 @@ class _model(ABC):
         torch.Tensor or None
             The endog or None.
         """
-        return self._cpu_attribute_or_none("_endog")
+        return self._attribute_or_none("_endog")
 
     @property
     def offsets(self):
@@ -1054,7 +1054,7 @@ class _model(ABC):
         torch.Tensor or None
             The offsets or None.
         """
-        return self._cpu_attribute_or_none("_offsets")
+        return self._attribute_or_none("_offsets")
 
     @property
     def exog(self):
@@ -1066,7 +1066,7 @@ class _model(ABC):
         torch.Tensor or None
             The exog or None.
         """
-        return self._cpu_attribute_or_none("_exog")
+        return self._attribute_or_none("_exog")
 
     @endog.setter
     @_array2tensor
@@ -1280,8 +1280,8 @@ class _model(ABC):
     @property
     def reconstruction_error(self):
         """Recontstruction error between the predictions and the endog."""
-        predictions = self._endog_predictions().ravel().cpu().detach()
-        return torch.mean((predictions - self._endog.ravel().cpu()) ** 2)
+        predictions = self._endog_predictions().ravel().detach()
+        return torch.mean((predictions - self._endog.ravel()) ** 2)
 
     @property
     def elbo(self):
@@ -1309,9 +1309,10 @@ class _model(ABC):
             raise RuntimeError("Please fit the model before.")
         if ax is None:
             ax = plt.gca()
+            to_show = True
         else:
             to_show = False
-        predictions = self._endog_predictions().ravel().cpu().detach()
+        predictions = self._endog_predictions().ravel().detach()
         if colors is not None:
             colors = np.repeat(np.array(colors), repeats=self.dim).ravel()
         sns.scatterplot(x=self.endog.ravel(), y=predictions, hue=colors, ax=ax)
@@ -1450,8 +1451,8 @@ class Pln(_model):
 
     Examples
     --------
-    >>> from pyPLNmodels import Pln, get_real_count_data
-    >>> endog, labels = get_real_count_data(return_labels = True)
+    >>> from pyPLNmodels import Pln, load_scrna
+    >>> endog, labels = load_scrna(return_labels = True)
     >>> pln = Pln(endog,add_const = True)
     >>> pln.fit()
     >>> print(pln)
@@ -1472,8 +1473,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> endog= get_real_count_data()
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> endog= load_scrna()
             >>> pln = Pln(endog, add_const = True)
             >>> pln.fit()
             >>> print(pln)
@@ -1510,9 +1511,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> endog = get_real_count_data()
-            >>> data = {"endog": endog}
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> data = load_scrna(for_formula = True)
             >>> pln = Pln.from_formula("endog ~ 1", data = data)
         """,
         returns="""
@@ -1543,8 +1543,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> endog = load_scrna()
         >>> pln = Pln(endog,add_const = True)
         >>> pln.fit()
         >>> print(pln)
@@ -1573,8 +1573,8 @@ class Pln(_model):
         _model,
         example="""
             >>> import matplotlib.pyplot as plt
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> endog, labels = load_scrna(return_labels = True)
             >>> pln = Pln(endog,add_const = True)
             >>> pln.fit()
             >>> pln.plot_expected_vs_true()
@@ -1590,8 +1590,8 @@ class Pln(_model):
         _model,
         example="""
             >>> import matplotlib.pyplot as plt
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> endog, labels = load_scrna(return_labels = True)
             >>> pln = Pln(endog,add_const = True)
             >>> pln.fit()
             >>> pln.viz()
@@ -1608,9 +1608,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog = get_real_count_data()
-        >>> data = {"endog": endog}
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna(for_formula = True)
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pca_proj = pln.pca_projected_latent_variables()
@@ -1623,9 +1622,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog = get_real_count_data()
-        >>> data = {"endog": endog}
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna(for_formula = True)
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.scatter_pca_matrix(n_components = 5)
@@ -1637,9 +1635,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog = get_real_count_data()
-        >>> data = {"endog": endog}
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna(for_formula = True)
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
@@ -1657,8 +1654,8 @@ class Pln(_model):
             The transformed endog (latent variables of the model).
         """,
         example="""
-              >>> from pyPLNmodels import Pln, get_real_count_data
-              >>> endog = get_real_count_data()
+              >>> from pyPLNmodels import Pln, load_scrna
+              >>> endog = load_scrna()
               >>> data = {"endog": endog}
               >>> pln = Pln.from_formula("endog ~ 1", data = data)
               >>> pln.fit()
@@ -1692,7 +1689,7 @@ class Pln(_model):
             The coefficients or None.
         """
         if hasattr(self, "_latent_mean") and hasattr(self, "_exog") and self.nb_cov > 0:
-            return self._coef.detach().cpu()
+            return self._coef.detach()
         return None
 
     @coef.setter
@@ -1820,7 +1817,7 @@ class Pln(_model):
                 "n_samples",
             ]
         ):
-            return self._covariance.cpu().detach()
+            return self._covariance.detach()
         return None
 
     @covariance.setter
@@ -1838,9 +1835,7 @@ class Pln(_model):
 
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
-            )
+            self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self.dim))
 
     @_add_doc(_model)
     def _smart_init_model_parameters(self):
@@ -1872,16 +1867,14 @@ class Pln(_model):
 
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
-            )
+            self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self.dim))
 
     @property
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import Pln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> endog, labels = load_scrna(return_labels = True)
         >>> pln = Pln(endog,add_const = True)
         >>> pln.fit()
         >>> print(pln.latent_variables.shape)
@@ -1893,8 +1886,8 @@ class Pln(_model):
     @_add_doc(
         _model,
         example="""
-            >>> from pyPLNmodels import Pln, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> endog, labels = load_scrna(return_labels = True)
             >>> pln = Pln(endog,add_const = True)
             >>> pln.fit()
             >>> elbo = pln.compute_elbo()
@@ -1941,7 +1934,7 @@ class Pln(_model):
     def _random_init_latent_parameters(self):
         self._random_init_latent_sqrt_var()
         if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+            self._latent_mean = torch.ones((self.n_samples, self.dim))
 
     @property
     @_add_doc(_model)
@@ -1955,8 +1948,8 @@ class PlnPCAcollection:
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, get_simulation_parameters, sample_pln
-    >>> endog, labels = get_real_count_data(return_labels = True)
+    >>> from pyPLNmodels import PlnPCAcollection, load_scrna, get_simulation_parameters, sample_pln
+    >>> endog, labels = load_scrna(return_labels = True)
     >>> data = {"endog": endog}
     >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,8, 12])
     >>> plnpcas.fit()
@@ -2074,8 +2067,8 @@ class PlnPCAcollection:
             The created PlnPCAcollection instance.
         Examples
         --------
-        >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import PlnPCAcollection, load_scrna
+        >>> endog = load_scrna()
         >>> data = {"endog": endog}
         >>> pca_col = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,6])
         See also
@@ -2083,7 +2076,7 @@ class PlnPCAcollection:
         :class:`~pyPLNmodels.PlnPCA`
         :func:`~pyPLNmodels.PlnPCAcollection.__init__`
         """
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
             endog,
             exog=exog,
@@ -2783,8 +2776,8 @@ class PlnPCA(_model):
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCA, get_real_count_data, get_simulation_parameters, sample_pln
-    >>> endog, labels = get_real_count_data(return_labels = True)
+    >>> from pyPLNmodels import PlnPCA, load_scrna, get_simulation_parameters, sample_pln
+    >>> endog, labels = load_scrna(return_labels = True)
     >>> data = {"endog": endog}
     >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
     >>> pca.fit()
@@ -2813,8 +2806,8 @@ class PlnPCA(_model):
                 The rank of the approximation, by default 5.
             """,
         example="""
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> endog= get_real_count_data()
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> endog= load_scrna()
             >>> pca = PlnPCA(endog, add_const = True)
             >>> pca.fit()
             >>> print(pca)
@@ -2857,8 +2850,8 @@ class PlnPCA(_model):
                 The rank of the approximation, by default 5.
             """,
         example="""
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> endog = get_real_count_data()
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> endog = load_scrna()
             >>> data = {"endog": endog}
             >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
         """,
@@ -2879,7 +2872,7 @@ class PlnPCA(_model):
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
     ):
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
             endog,
             exog=exog,
@@ -2893,8 +2886,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> endog = load_scrna()
         >>> plnpca = PlnPCA(endog,add_const = True, rank = 6)
         >>> plnpca.fit()
         >>> print(plnpca)
@@ -2923,8 +2916,8 @@ class PlnPCA(_model):
         _model,
         example="""
             >>> import matplotlib.pyplot as plt
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> endog, labels = load_scrna(return_labels = True)
             >>> plnpca = PlnPCA(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.plot_expected_vs_true()
@@ -2940,8 +2933,8 @@ class PlnPCA(_model):
         _model,
         example="""
             >>> import matplotlib.pyplot as plt
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> endog, labels = load_scrna(return_labels = True)
             >>> plnpca = PlnPCA(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.viz()
@@ -2958,8 +2951,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> endog = load_scrna()
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
@@ -2973,8 +2966,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> endog = load_scrna()
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
@@ -2987,8 +2980,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> endog = load_scrna()
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
@@ -3008,8 +3001,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> endog = load_scrna()
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
@@ -3017,7 +3010,7 @@ class PlnPCA(_model):
         """,
     )
     def latent_mean(self) -> torch.Tensor:
-        return self._cpu_attribute_or_none("_latent_mean")
+        return self._attribute_or_none("_latent_mean")
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
@@ -3030,10 +3023,7 @@ class PlnPCA(_model):
         else:
             XB = 0
         return torch.exp(
-            self._offsets
-            + XB
-            + self.latent_variables.to(DEVICE)
-            + 1 / 2 * covariance_a_posteriori
+            self._offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
@@ -3092,7 +3082,7 @@ class PlnPCA(_model):
         torch.Tensor
             The exog tensor.
         """
-        return self._cpu_attribute_or_none("_exog")
+        return self._attribute_or_none("_exog")
 
     @exog.setter
     @_array2tensor
@@ -3200,7 +3190,7 @@ class PlnPCA(_model):
                 torch.sum(torch.square(self._latent_sqrt_var), dim=0)
             )
             cov_latent /= self.n_samples
-            return (self._components @ cov_latent @ self._components.T).cpu().detach()
+            return (self._components @ cov_latent @ self._components.T).detach()
         return None
 
     @property
@@ -3225,14 +3215,14 @@ class PlnPCA(_model):
         torch.Tensor
             The projected latent variables.
         """
-        return torch.mm(self.latent_variables, self.ortho_components).detach().cpu()
+        return torch.mm(self.latent_variables, self.ortho_components).detach()
 
     @property
     def ortho_components(self):
         """
         Orthogonal components of the model.
         """
-        return torch.linalg.qr(self._components, "reduced")[0].cpu()
+        return torch.linalg.qr(self._components, "reduced")[0]
 
     @property
     def components(self) -> torch.Tensor:
@@ -3244,7 +3234,7 @@ class PlnPCA(_model):
         torch.Tensor
             The components.
         """
-        return self._cpu_attribute_or_none("_components")
+        return self._attribute_or_none("_components")
 
     @components.setter
     @_array2tensor
@@ -3281,8 +3271,8 @@ class PlnPCA(_model):
             The transformed endog (latent variables of the model).
         """,
         example="""
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> endog= get_real_count_data()
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> endog= load_scrna()
             >>> pca = PlnPCA(endog, add_const = True)
             >>> pca.fit()
             >>> transformed_endog_low_dim = pca.transform()
@@ -3300,8 +3290,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import PlnPCA, get_real_count_data
-        >>> endog = get_real_count_data(return_labels=False)
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> endog = load_scrna(return_labels=False)
         >>> pca = PlnPCA(endog,add_const = True)
         >>> pca.fit()
         >>> print(pca.latent_variables.shape)
@@ -3313,8 +3303,8 @@ class PlnPCA(_model):
     @_add_doc(
         _model,
         example="""
-            >>> from pyPLNmodels import PlnPCA, get_real_count_data
-            >>> endog = get_real_count_data(return_labels = False)
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> endog = load_scrna(return_labels = False)
             >>> pca = PlnPCA(endog,add_const = True)
             >>> pca.fit()
             >>> elbo = pca.compute_elbo()
@@ -3348,7 +3338,7 @@ class PlnPCA(_model):
     @_add_doc(_model)
     def _random_init_model_parameters(self):
         super()._random_init_coef()
-        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
+        self._components = torch.randn((self.dim, self._rank))
 
     @_add_doc(_model)
     def _smart_init_model_parameters(self):
@@ -3362,29 +3352,21 @@ class PlnPCA(_model):
         """
         Randomly initialize the latent parameters.
         """
-        self._latent_sqrt_var = (
-            1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-        )
-        self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
+        self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self._rank))
+        self._latent_mean = torch.ones((self.n_samples, self._rank))
 
     @_add_doc(_model)
     def _smart_init_latent_parameters(self):
         if not hasattr(self, "_latent_mean"):
-            self._latent_mean = (
-                _init_latent_mean(
-                    self._endog,
-                    self._exog,
-                    self._offsets,
-                    self._coef,
-                    self._components,
-                )
-                .to(DEVICE)
-                .detach()
-            )
+            self._latent_mean = _init_latent_mean(
+                self._endog,
+                self._exog,
+                self._offsets,
+                self._coef,
+                self._components,
+            ).detach()
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = (
-                1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
-            )
+            self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self._rank))
 
     @property
     @_add_doc(_model)
@@ -3477,8 +3459,8 @@ class ZIPln(_model):
         :func:`pyPLNmodels.ZIPln.from_formula`
         Examples
         --------
-        >>> from pyPLNmodels import ZIPln, get_real_count_data
-        >>> endog= get_real_count_data()
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> endog= load_scrna()
         >>> zi = ZIPln(endog, add_const = True)
         >>> zi.fit()
         >>> print(zi)
@@ -3489,36 +3471,23 @@ class ZIPln(_model):
         (
             self._endog,
             self._exog,
+            self._exog_inflation,
             self._offsets,
             self.column_endog,
-        ) = _handle_data(
-            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+            self._dirac,
+        ) = _handle_data_with_inflation(
+            endog,
+            exog,
+            exog_inflation,
+            offsets,
+            offsets_formula,
+            self._zero_inflation_formula,
+            take_log_offsets,
+            add_const,
+            add_const_inflation,
         )
         self._fitted = False
         self._criterion_args = _CriterionArgs()
-        self._dirac = self._endog == 0
-        exog_inflation = _format_data(exog_inflation)
-        exog_inflation, add_const_inflation = _get_coherent_inflation_inits(
-            zero_inflation_formula, exog_inflation, add_const_inflation
-        )
-        if zero_inflation_formula != "global" and exog_inflation is not None:
-            _check_shape_exog_infla(
-                exog_inflation, zero_inflation_formula, self.n_samples, self.dim
-            )
-        if zero_inflation_formula == "global":
-            self._exog_inflation = None
-        else:
-            if add_const_inflation is True:
-                if zero_inflation_formula == "column-wise":
-                    self._exog_inflation = _add_const_to_exog(
-                        exog_inflation, 0, self.n_samples
-                    ).to(DEVICE)
-                else:
-                    self._exog_inflation = _add_const_to_exog(
-                        exog_inflation, 1, self.dim
-                    )
-            else:
-                self._exog_inflation = exog_inflation
         if dict_initialization is not None:
             self._set_init_parameters(dict_initialization)
 
@@ -3541,8 +3510,8 @@ class ZIPln(_model):
         _model,
         example="""
             >>> import matplotlib.pyplot as plt
-            >>> from pyPLNmodels import ZIPln, get_microcosm
-            >>> endog, exog = get_microcosm()
+            >>> from pyPLNmodels import ZIPln, load_microcosm
+            >>> endog, exog = load_microcosm()
             >>> zi = ZIPln(endog, exog = exog, add_const = True)
             >>> zi.fit()
             >>> zi.viz()
@@ -3599,26 +3568,31 @@ class ZIPln(_model):
         :func:`pyPLNmodels.ZIPln.__init__`
         Examples
         --------
-        >>> from pyPLNmodels import ZIPln, get_microcosm
-        >>> endog, exog = get_microcosm()
-        >>> data = {"endog": endog, "exog", exog}
+        >>> from pyPLNmodels import ZIPln, load_microcosm
+        >>> data = load_microcosm(for_formula = True)
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
 
-        >>> from pyPLNmodels import ZIPln, get_real_count_data
-        >>> endog = get_real_count_data()
-        >>> data = {"endog": endog}
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> data = load_scrna(for_formula = True)
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         """
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
-        msg = "exog_inflation are set to exog. If you need different exog_inflation, do not use the "
-        msg += "from formula method."
-        print(msg)
+        if "|" not in formula:
+            msg = "exog_inflation are set to exog (if any). If you need different exog_inflation, "
+            msg += "specify it with a | like in the following: exog ~ 1 | x + y "
+            print(msg)
+            endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
+            exog_infla = exog
+        else:
+            endog, exog, exog_infla, offsets = _extract_data_from_formula_with_infla(
+                formula, data
+            )
         return cls(
             endog,
             exog=exog,
-            exog_inflation=exog,
+            exog_inflation=exog_infla,
             offsets=offsets,
             offsets_formula=offsets_formula,
+            zero_inflation_formula=zero_inflation_formula,
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
@@ -3629,8 +3603,8 @@ class ZIPln(_model):
     @_add_doc(
         _model,
         example="""
-        >>> from pyPLNmodels import ZIPln, get_real_count_data
-        >>> endog = get_real_count_data()
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> endog = load_scrna()
         >>> zi = ZIPln(endog,add_const = True)
         >>> zi.fit()
         >>> print(zi)
@@ -3659,8 +3633,8 @@ class ZIPln(_model):
         _model,
         example="""
             >>> import matplotlib.pyplot as plt
-            >>> from pyPLNmodels import ZIPln, get_real_count_data
-            >>> endog, labels = get_real_count_data(return_labels = True)
+            >>> from pyPLNmodels import ZIPln, load_scrna
+            >>> endog, labels = load_scrna(return_labels = True)
             >>> zi = ZIPln(endog,add_const = True)
             >>> zi.fit()
             >>> zi.plot_expected_vs_true()
@@ -3692,19 +3666,19 @@ class ZIPln(_model):
 
     def _random_init_model_parameters(self):
         if self._zero_inflation_formula == "global":
-            self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
+            self._coef_inflation = torch.tensor([0.5])
         elif self._zero_inflation_formula == "row-wise":
             self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla).to(
                 DEVICE
             )
         elif self._zero_inflation_formula == "column-wise":
-            self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
+            self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim)
 
         if self.nb_cov == 0:
             self._coef = None
         else:
-            self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
-        self._components = torch.randn(self.dim, self.dim).to(DEVICE)
+            self._coef = torch.randn(self.nb_cov, self.dim)
+        self._components = torch.randn(self.dim, self.dim)
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
@@ -3718,11 +3692,9 @@ class ZIPln(_model):
                     DEVICE
                 )
             elif self._zero_inflation_formula == "row-wise":
-                self._coef_inflation = torch.randn(
-                    self.n_samples, self.nb_cov_infla
-                ).to(DEVICE)
+                self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla)
             else:
-                self._coef_inflation = torch.tensor([0.0]).to(DEVICE)
+                self._coef_inflation = torch.tensor([0.0])
 
             # for j in range(self.exog.shape[1]):
             #     Y_j = self._endog[:,j].numpy()
@@ -3733,17 +3705,12 @@ class ZIPln(_model):
             #     self._coef_inflation[:,j] = zip_training_results.params[1]
 
     def _random_init_latent_parameters(self):
-        self._latent_mean = torch.randn(self.n_samples, self.dim).to(DEVICE)
-        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim).to(DEVICE)
+        self._latent_mean = torch.randn(self.n_samples, self.dim)
+        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         if self._use_closed_form_prob is False:
             self._latent_prob = (
-                (
-                    torch.empty(self.n_samples, self.dim).uniform_(0, 1).to(DEVICE)
-                    * self._dirac
-                )
-                .double()
-                .to(DEVICE)
-            )
+                torch.empty(self.n_samples, self.dim).uniform_(0, 1) * self._dirac
+            ).double()
 
     def _smart_init_latent_parameters(self):
         self._random_init_latent_parameters()
@@ -3773,7 +3740,7 @@ class ZIPln(_model):
         torch.Tensor
             The components.
         """
-        return self._cpu_attribute_or_none("_components")
+        return self._attribute_or_none("_components")
 
     @property
     def latent_variables(self) -> tuple([torch.Tensor, torch.Tensor]):
@@ -3788,8 +3755,8 @@ class ZIPln(_model):
             and zero inflated latent variables of size (n_samples, dim).
         Examples
         --------
-        >>> from pyPLNmodels import ZIPln, get_real_count_data
-        >>> endog, labels = get_real_count_data(return_labels = True)
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> endog, labels = load_scrna(return_labels = True)
         >>> zi = ZIPln(endog,add_const = True)
         >>> zi.fit()
         >>> latent_mean, latent_inflated = zi.latent_variables
@@ -3819,10 +3786,8 @@ class ZIPln(_model):
 
     def _endog_predictions(self):
         return torch.exp(
-            self.offsets.cpu()
-            + self.latent_mean.cpu()
-            + 1 / 2 * self.latent_sqrt_var**2
-        ) * (1 - self.latent_prob.cpu())
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_var**2
+        ) * (1 - self.latent_prob)
 
     @property
     def coef_inflation(self):
@@ -3834,7 +3799,7 @@ class ZIPln(_model):
         torch.Tensor or None
             The coefficients or None.
         """
-        return self._cpu_attribute_or_none("_coef_inflation")
+        return self._attribute_or_none("_coef_inflation")
 
     @property
     def exog_inflation(self):
@@ -3846,7 +3811,7 @@ class ZIPln(_model):
         torch.Tensor or None
             The exog_inflation or None.
         """
-        return self._cpu_attribute_or_none("_exog_inflation")
+        return self._attribute_or_none("_exog_inflation")
 
     @coef_inflation.setter
     @_array2tensor
@@ -3915,12 +3880,12 @@ class ZIPln(_model):
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
                     self._latent_prob,
-                    torch.tensor([0]).to(DEVICE),
+                    torch.tensor([0]),
                     out=self._latent_prob,
                 )
                 self._latent_prob = torch.minimum(
                     self._latent_prob,
-                    torch.tensor([1]).to(DEVICE),
+                    torch.tensor([1]),
                     out=self._latent_prob,
                 )
                 self._latent_prob *= self._dirac
@@ -3935,7 +3900,7 @@ class ZIPln(_model):
         Optional[torch.Tensor]
             The covariance tensor or None if components are not present.
         """
-        return self._cpu_attribute_or_none("_covariance")
+        return self._attribute_or_none("_covariance")
 
     @components.setter
     @_array2tensor
@@ -3962,8 +3927,8 @@ class ZIPln(_model):
     @property
     def latent_prob(self):
         if self._use_closed_form_prob is True:
-            return self.closed_formula_latent_prob.detach().cpu()
-        return self._cpu_attribute_or_none("_latent_prob")
+            return self.closed_formula_latent_prob.detach()
+        return self._attribute_or_none("_latent_prob")
 
     @latent_prob.setter
     @_array2tensor
@@ -4537,7 +4502,7 @@ class ZIPln(_model):
                 the number of variables in the dataset.
         """
         n_components = self._threshold_n_components(n_components)
-        array = self.latent_prob.detach().cpu()
+        array = self.latent_prob.detach()
         _scatter_pca_matrix(array.numpy(), n_components, self.dim, colors)
 
 

@@ -170,7 +170,42 @@ sim_zi_instances_array = (
     + sim_zi_row_instance_array
     + sim_zi_column_instance_array
 )
+
 instances = instances + sim_zi_instances_array
+
+
+@pytest.fixture
+def simulated_zi_column_formula():
+    zi = ZIPln.from_formula("endog~1+exog", data=data_zi_c)
+    return zi
+
+
+@pytest.fixture
+def simulated_zi_global_formula():
+    zi = ZIPln.from_formula(
+        "endog~1 + exog", data=data_zi_g, zero_inflation_formula="global"
+    )
+    return zi
+
+
+@pytest.fixture
+def simulated_zi_row_formula():
+    zi = ZIPln.from_formula(
+        "endog~1 + exog | 1", data=data_zi_r, zero_inflation_formula="row-wise"
+    )
+    return zi
+
+
+sim_zi_global_instance_formula = ["simulated_zi_global_formula"]
+sim_zi_column_instance_formula = ["simulated_zi_column_formula"]
+sim_zi_row_instance_formula = ["simulated_zi_row_formula"]
+
+sim_zi_instances_formula = (
+    sim_zi_global_instance_formula
+    + sim_zi_row_instance_formula
+    + sim_zi_column_instance_formula
+)
+instances = instances + sim_zi_instances_formula
 
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_zi_global_instance_array", sim_zi_global_instance_array
@@ -181,6 +216,17 @@ dict_fixtures = add_list_of_fixture_to_dict(
 )
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_zi_column_instance_array", sim_zi_column_instance_array
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_row_instance_formula", sim_zi_row_instance_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_instance_formula", sim_zi_column_instance_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_global_formula", sim_zi_global_instance_formula
 )
 
 
@@ -227,9 +273,47 @@ dict_fixtures = add_list_of_fixture_to_dict(
 
 
 @pytest.fixture
-def simulated_zi_column_formula():
-    zi = ZIPln.from_formula("endog~1+exog", data=data_zi_c)
-    return zi
+def simulated_fitted_zi_global_formula(simulated_zi_global_formula):
+    simulated_zi_global_formula.fit()
+    return simulated_zi_global_formula
+
+
+@pytest.fixture
+def simulated_fitted_zi_column_formula(simulated_zi_column_formula):
+    simulated_zi_column_formula.fit()
+    return simulated_zi_column_formula
+
+
+@pytest.fixture
+def simulated_fitted_zi_row_formula(simulated_zi_row_formula):
+    simulated_zi_row_formula.fit()
+    return simulated_zi_row_formula
+
+
+sim_zi_global_fitted_formula = ["simulated_fitted_zi_global_formula"]
+sim_zi_row_fitted_formula = ["simulated_fitted_zi_row_formula"]
+sim_zi_column_fitted_formula = ["simulated_fitted_zi_column_formula"]
+
+simulated_zi_fitted_formula = (
+    sim_zi_global_fitted_formula
+    + sim_zi_row_fitted_formula
+    + sim_zi_column_fitted_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "simulated_zi_fitted_formula", simulated_zi_fitted_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_global_fitted_formula", sim_zi_global_fitted_formula
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_row_fitted_formula", sim_zi_row_fitted_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_fitted_formula", sim_zi_column_fitted_formula
+)
 
 
 @pytest.fixture
@@ -281,12 +365,12 @@ sim_zi_global_loaded_array = ["simulated_loaded_zi_global_array"]
 sim_zi_row_loaded_array = ["simulated_loaded_zi_row_array"]
 sim_zi_column_loaded_array = ["simulated_loaded_zi_column_array"]
 
-simulated_zi_loaded = (
+simulated_zi_loaded_array = (
     sim_zi_global_loaded_array + sim_zi_row_loaded_array + sim_zi_column_loaded_array
 )
 
 dict_fixtures = add_list_of_fixture_to_dict(
-    dict_fixtures, "simulated_zi_loaded_array", simulated_zi_loaded
+    dict_fixtures, "simulated_zi_loaded_array", simulated_zi_loaded_array
 )
 
 dict_fixtures = add_list_of_fixture_to_dict(
@@ -301,7 +385,70 @@ dict_fixtures = add_list_of_fixture_to_dict(
 )
 
 dict_fixtures = add_list_of_fixture_to_dict(
-    dict_fixtures, "sim_zi_loaded", simulated_zi_loaded
+    dict_fixtures, "sim_zi_loaded_array", simulated_zi_loaded_array
+)
+
+
+@pytest.fixture
+def simulated_loaded_zi_global_formula(simulated_fitted_zi_global_formula):
+    simulated_fitted_zi_global_formula.save()
+    return generate_new_model(
+        simulated_fitted_zi_global_formula,
+        "endog ~ 1 + exog",
+        data_zi_g,
+        zero_inflation_formula="global",
+    )
+
+
+@pytest.fixture
+def simulated_loaded_zi_column_formula(simulated_fitted_zi_column_formula):
+    simulated_fitted_zi_column_formula.save()
+    return generate_new_model(
+        simulated_fitted_zi_column_formula,
+        "endog ~ 1 + exog",
+        data_zi_c,
+        zero_inflation_formula="column-wise",
+    )
+
+
+@pytest.fixture
+def simulated_loaded_zi_row_formula(simulated_fitted_zi_row_formula):
+    simulated_fitted_zi_row_formula.save()
+    return generate_new_model(
+        simulated_fitted_zi_row_formula,
+        "endog ~ 1 + exog | 1",
+        data_zi_r,
+        zero_inflation_formula="row-wise",
+    )
+
+
+sim_zi_global_loaded_formula = ["simulated_loaded_zi_global_formula"]
+sim_zi_row_loaded_formula = ["simulated_loaded_zi_row_formula"]
+sim_zi_column_loaded_formula = ["simulated_loaded_zi_column_formula"]
+
+simulated_zi_loaded_formula = (
+    sim_zi_global_loaded_formula
+    + sim_zi_row_loaded_formula
+    + sim_zi_column_loaded_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "simulated_zi_loaded_formula", simulated_zi_loaded_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_global_loaded_formula", sim_zi_global_loaded_formula
+)
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_row_loaded_formula", sim_zi_row_loaded_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_column_loaded_formula", sim_zi_column_loaded_formula
+)
+
+dict_fixtures = add_list_of_fixture_to_dict(
+    dict_fixtures, "sim_zi_loaded_formula", simulated_zi_loaded_formula
 )
 
 
@@ -309,6 +456,12 @@ dict_fixtures = add_list_of_fixture_to_dict(
 def simulated_fitted_zi_column_formula(simulated_zi_column_formula):
     simulated_zi_column_formula.fit()
     return simulated_zi_column_formula
+
+
+@pytest.fixture
+def simulated_fitted_zi_row_formula(simulated_zi_row_formula):
+    simulated_zi_row_formula.fit()
+    return simulated_zi_row_formula
 
 
 @pytest.fixture(params=params)
@@ -592,13 +745,21 @@ dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_loaded_and_fitted_pln", sim_loaded_and_fitted_pln
 )
 
-sim_loaded_model = sim_model_0cov_loaded + sim_model_2cov_loaded + simulated_zi_loaded
+sim_loaded_model = (
+    sim_model_0cov_loaded
+    + sim_model_2cov_loaded
+    + simulated_zi_loaded_array
+    + simulated_zi_loaded_formula
+)
 
 loaded_model = real_model_loaded + sim_loaded_model
 dict_fixtures = add_list_of_fixture_to_dict(dict_fixtures, "loaded_model", loaded_model)
 
 simulated_model_fitted = (
-    sim_model_0cov_fitted + sim_model_2cov_fitted + simulated_zi_fitted_array
+    sim_model_0cov_fitted
+    + sim_model_2cov_fitted
+    + simulated_zi_fitted_array
+    + simulated_zi_fitted_formula
 )
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "simulated_model_fitted", simulated_model_fitted

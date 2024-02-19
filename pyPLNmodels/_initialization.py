@@ -61,9 +61,9 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     """
     log_y = torch.log(endog + (endog == 0) * math.exp(-2))
     pca = PCA(n_components=rank)
-    pca.fit(log_y.detach().cpu())
+    pca.fit(log_y.detach())
     pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
-    return torch.from_numpy(pca_comp).to(DEVICE)
+    return torch.from_numpy(pca_comp)
 
 
 def _init_latent_mean(
@@ -105,7 +105,7 @@ def _init_latent_mean(
     torch.Tensor
         The initialized latent mean with size (n,rank)
     """
-    mode = torch.randn(endog.shape[0], components.shape[1], device=DEVICE)
+    mode = torch.randn(endog.shape[0], components.shape[1])
     mode.requires_grad_(True)
     optimizer = torch.optim.Rprop([mode], lr=lr)
     crit = 2 * eps
@@ -280,9 +280,7 @@ class _PoissonReg:
             Whether to print intermediate information during fitting (default is False).
 
         """
-        beta = torch.rand(
-            (exog.shape[1], Y.shape[1]), device=DEVICE, requires_grad=True
-        )
+        beta = torch.rand((exog.shape[1], Y.shape[1]), requires_grad=True)
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         grad_norm = 2 * tol  # Criterion

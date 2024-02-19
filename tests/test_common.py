@@ -46,16 +46,14 @@ def test_verbose(any_instance_model):
 @filter_models(pln_and_plnpca)
 def test_find_right_covariance(simulated_fitted_pln_model):
     if simulated_fitted_pln_model.nb_cov == 0:
-        true_covariance = true_sim_0cov["Sigma"].cpu()
+        true_covariance = true_sim_0cov["Sigma"]
     elif simulated_fitted_pln_model.nb_cov == 2:
-        true_covariance = true_sim_2cov["Sigma"].cpu()
+        true_covariance = true_sim_2cov["Sigma"]
     else:
         raise ValueError(
             f"Not the right numbers of covariance({simulated_fitted_pln_model.nb_cov})"
         )
-    mse_covariance = MSE(
-        simulated_fitted_pln_model.covariance.cpu() - true_covariance.cpu()
-    )
+    mse_covariance = MSE(simulated_fitted_pln_model.covariance - true_covariance)
     assert mse_covariance < 0.5
 
 
@@ -77,7 +75,7 @@ def test_right_covariance_shape(real_fitted_and_loaded_model):
 def test_find_right_coef(simulated_fitted_any_model):
     if simulated_fitted_any_model.nb_cov == 2:
         true_coef = true_sim_2cov["beta"]
-        mse_coef = MSE(simulated_fitted_any_model.coef.cpu() - true_coef.cpu())
+        mse_coef = MSE(simulated_fitted_any_model.coef - true_coef)
         assert mse_coef < 0.1
     elif simulated_fitted_any_model.nb_cov == 0:
         assert simulated_fitted_any_model.coef is None
@@ -120,7 +118,7 @@ def test_batch(model):
     model.show(display=False)
     if model.nb_cov == 2:
         true_coef = true_sim_2cov["beta"]
-        mse_coef = MSE(model.coef.cpu() - true_coef.cpu())
+        mse_coef = MSE(model.coef - true_coef)
         assert mse_coef < 0.1
     elif model.nb_cov == 0:
         assert model.coef is None

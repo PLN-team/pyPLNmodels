@@ -41,7 +41,7 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
         ] = 1
     # components += torch.randn(dim, rank) / 8
     torch.random.set_rng_state(prev_state)
-    return components.to("cpu")
+    return components
 
 
 def _get_simulation_coef_cov_offsets_coefzi(
@@ -122,7 +122,6 @@ def _get_simulation_coef_cov_offsets_coefzi(
                 high=3,
                 size=(n_samples, nb_cov_inflation),
                 dtype=torch.float64,
-                device="cpu",
             )
             if add_const_inflation is True:
                 exog_inflation = torch.cat(
@@ -135,7 +134,6 @@ def _get_simulation_coef_cov_offsets_coefzi(
                 high=3,
                 size=(nb_cov_inflation, dim),
                 dtype=torch.float64,
-                device="cpu",
             )
             if add_const_inflation is True:
                 exog_inflation = torch.cat((exog_inflation, torch.ones(1, dim)), axis=0)
@@ -148,7 +146,6 @@ def _get_simulation_coef_cov_offsets_coefzi(
                 high=3,
                 size=(nb_cov_inflation, dim),
                 dtype=torch.float64,
-                device="cpu",
             )
             if add_const_inflation is True:
                 coef_inflation = torch.cat((coef_inflation, torch.ones(1, dim)), axis=0)
@@ -176,17 +173,14 @@ def _get_simulation_coef_cov_offsets_coefzi(
             high=2,
             size=(n_samples, nb_cov),
             dtype=torch.float64,
-            device="cpu",
         )
         if add_const is True:
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         coef = None
     else:
-        coef = torch.randn(exog.shape[1], dim, device="cpu") + 0.3
-    offsets = torch.randint(
-        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
-    )
+        coef = torch.randn(exog.shape[1], dim) + 0.3
+    offsets = torch.randint(low=0, high=2, size=(n_samples, dim), dtype=torch.float64)
     torch.random.set_rng_state(prev_state)
     return coef, exog, exog_inflation, offsets, coef_inflation
 
@@ -304,14 +298,14 @@ class PlnParameters:
         """
         Components of the model.
         """
-        return self._components.cpu()
+        return self._components
 
     @property
     def offsets(self):
         """
         Data offsets.
         """
-        return self._offsets.cpu()
+        return self._offsets
 
     @property
     def coef(self):
@@ -320,7 +314,7 @@ class PlnParameters:
         """
         if self._coef is None:
             return None
-        return self._coef.cpu()
+        return self._coef
 
     @property
     def exog(self):
@@ -329,7 +323,7 @@ class PlnParameters:
         """
         if self._exog is None:
             return None
-        return self._exog.cpu()
+        return self._exog
 
 
 def _check_one_dimension(
@@ -496,10 +490,7 @@ def sample_pln(pln_param, *, seed: int = None, return_latent=False) -> torch.Ten
     else:
         XB = torch.matmul(pln_param.exog, pln_param.coef)
 
-    gaussian = (
-        torch.mm(torch.randn(n_samples, rank, device="cpu"), pln_param.components.T)
-        + XB
-    )
+    gaussian = torch.mm(torch.randn(n_samples, rank), pln_param.components.T) + XB
     parameter = torch.exp(pln_param.offsets + gaussian)
     endog = torch.poisson(parameter)
 
@@ -543,11 +534,10 @@ def sample_zipln(
     proba_inflation = zipln_param.proba_inflation
     if zipln_param._zero_inflation_formula == "global":
         ksi = torch.bernoulli(
-            torch.ones(zipln_param.n_samples, zipln_param.dim).cpu()
-            * proba_inflation.cpu()
-        ).cpu()
+            torch.ones(zipln_param.n_samples, zipln_param.dim) * proba_inflation
+        )
     else:
-        ksi = torch.bernoulli(proba_inflation).cpu()
+        ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
     endog = (1 - ksi) * pln_endog
     if return_latent is True:
@@ -588,7 +578,6 @@ def get_pln_simulated_count_data(
         Whether to return the true parameters of the model, by default False.
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
-
     Returns
     -------
     if return_true_param is False:
@@ -694,47 +683,6 @@ def get_zipln_simulated_count_data(
             param.coef_inflation,
         )
     return endog, param.exog, param.exog_inflation, param.offsets
-
-
-def get_real_count_data(
-    *, n_samples: int = 469, dim: int = 200, return_labels: bool = False
-) -> np.ndarray:
-    """
-    Get real count data from the scMARK dataset.
-
-    Parameters
-    ----------
-    n_samples : int, optional(keyword-only)
-        Number of samples, by default max_samples.
-    dim : int, optional(keyword-only)
-        Dimension, by default max_dim.
-    return_labels: bool, optional(keyword-only)
-        If True, will return the labels of the count data
-    Returns
-    -------
-    np.ndarray
-        Real count data and labels if return_labels is True.
-    """
-    max_samples = 469
-    max_dim = 200
-    if n_samples > max_samples:
-        warnings.warn(
-            f"\nTaking the whole max_samples samples of the dataset. Requested:n_samples={n_samples}, returned:{max_samples}"
-        )
-        n_samples = max_samples
-    if dim > max_dim:
-        warnings.warn(
-            f"\nTaking the whole max_dim variables. Requested:dim={dim}, returned:{max_dim}"
-        )
-        dim = max_dim
-    endog_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
-    endog = pd.read_csv(endog_stream).values[:n_samples, :dim]
-    print(f"Returning dataset of size {endog.shape}")
-    if return_labels is False:
-        return endog
-    labels_stream = pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
-    labels = np.array(pd.read_csv(labels_stream).values[:n_samples].squeeze())
-    return endog, labels
 
 
 def get_simulation_parameters(

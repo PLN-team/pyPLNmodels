@@ -80,9 +80,9 @@ def test_batch(collection):
     else:
         raise ValueError(f"Not the right numbers of covariance({collection.nb_cov})")
     for model in collection.values():
-        mse_covariance = MSE(model.covariance.cpu() - true_covariance.cpu())
+        mse_covariance = MSE(model.covariance - true_covariance)
         if true_coef is not None:
-            mse_coef = MSE(model.coef.cpu() - true_coef.cpu())
+            mse_coef = MSE(model.coef - true_coef)
             assert mse_coef < 0.35
         assert mse_covariance < 0.25
     collection.fit()

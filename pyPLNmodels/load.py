@@ -19,8 +19,8 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
         A dictionary containing the loaded model.
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCA, Pln, get_real_count_data, load_model
-    >>> endog= get_real_count_data()
+    >>> from pyPLNmodels import PlnPCA, Pln, load_scrna, load_model
+    >>> endog= load_scrna()
     >>> pca = PlnPCA(endog, add_const = True)
     >>> pca.fit()
     >>> pca.save()
@@ -99,8 +99,8 @@ def load_plnpcacollection(
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCAcollection, get_real_count_data, load_plnpcacollection
-    >>> endog = get_real_count_data()
+    >>> from pyPLNmodels import PlnPCAcollection, load_scrna, load_plnpcacollection
+    >>> endog = load_scrna()
     >>> pcas = PlnPCAcollection(endog, add_const = True, ranks = [4,5,6])
     >>> pcas.fit()
     >>> pcas.save()

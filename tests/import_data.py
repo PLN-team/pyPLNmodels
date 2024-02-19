@@ -4,7 +4,7 @@ import torch
 from pyPLNmodels import (
     get_pln_simulated_count_data,
     get_zipln_simulated_count_data,
-    get_real_count_data,
+    load_scrna,
 )
 
 if torch.cuda.is_available():
@@ -41,7 +41,7 @@ data_sim_2cov = {
     "exog": exog_sim_2cov,
     "offsets": offsets_sim_2cov,
 }
-endog_real, labels_real = get_real_count_data(return_labels=True, n_samples=100, dim=50)
+endog_real, labels_real = load_scrna(return_labels=True, n_samples=100, dim=50)
 data_real = {"endog": endog_real}
 
 
