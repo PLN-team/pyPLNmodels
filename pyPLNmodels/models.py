@@ -3794,14 +3794,10 @@ class ZIPln(_model):
         """
         if return_latent_prob is True:
             return self.latent_variables
-        # return self.latent_mean
-        # return self._mean_gaussian
 
-        print("nb one", (self.latent_prob > 0.95).numpy().mean())
         return (
             1 - self.latent_prob
         ) * self.latent_mean + self._mean_gaussian * self.latent_prob
-        return self.latent_mean
 
     def _endog_predictions(self):
         return torch.exp(
