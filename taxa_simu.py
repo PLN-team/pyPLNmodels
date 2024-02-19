@@ -8,6 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, MiniBatchKMeans, HDBSCAN
 from sklearn.mixture import GaussianMixture
+from sklearn.decomposition import PCA
 
 counts_orig = pd.read_csv("data_mahendra/counts.tsv", delimiter="\t")
 counts = counts_orig.drop(columns=["Sample"])
@@ -20,8 +21,34 @@ hot_cov = torch.from_numpy(hot_cov)
 # print('rank hot_cov', torch.linalg.matrix_rank(hot_cov))
 # print('inverse hot cov', torch.inverse(hot_cov))
 
+## Comment interpreter la meilleure viz de zero inflation ? ZI met le "bon" M_i, i.e. M_i a 5, mais prédit zéro ! Il n'est pas contraint d'avoir un M_i faible pour avoir une basse erreur de reconstruction
+## Au contraire, PLN est obligé d'avoir un M_i faible pour avoir prédire un compte faible. Au final, on a plus ou moins la même reconstruction, mais pas du tout la meme visualization !
+## ZI n'est pas contraint d'avoir un Z|Y proche de Y quand il vaut zero !
 
-dict_init = load_model("ZIPln_nbcov_8_dim_1209")
+
+fig, axes = plt.subplots(4)
+ax_zi = axes[0]
+ax_zi_global = axes[1]
+ax_pln = axes[2]
+ax_plnpca = axes[3]
+
+
+def viz(model, colors=None, ax=None):
+    latent = model.transform()
+    latent = torch.clone(torch.from_numpy(counts.values))
+    latent = torch.log(latent + (latent == 0))
+    pca = PCA(n_components=2)
+    latent = pca.fit_transform(latent)
+    if ax is None:
+        to_show = True
+    else:
+        to_show = False
+    sns.scatterplot(x=latent[:, 0], y=latent[:, 1], hue=colors, ax=ax)
+    if to_show is True:
+        plt.show()
+
+
+dict_init = load_model("zicov")
 zi = ZIPln(
     counts,
     exog=hot_cov,
@@ -32,27 +59,53 @@ zi = ZIPln(
     zero_inflation_formula="column-wise",
     dict_initialization=dict_init,
 )
-zi.fit(do_smart_init=False, tol=0.0001)
-
+latent_zi = zi.latent_mean
 
 latent = zi.transform()
 skpca = zi.sk_PCA(n_components=2)
 latent = skpca.transform(latent)
 km = KMeans(n_clusters=10).fit(latent)
 labels = km.labels_
-# zi.scatter_pca_matrix(n_components = 2, colors = labels)
 
-zi_nocov = ZIPln(
+
+viz(zi, ax=ax_zi, colors=labels)
+# zi.fit(do_smart_init=False, tol=0.0001)
+# zi.save("zicov")
+# print('reconstructed zi', zi._endog_predictions())
+mask = counts > 0
+print(
+    "reconstructionpln ",
+    np.mean((zi._endog_predictions().numpy() - counts)[mask] ** 2).mean(),
+)
+
+dict_init_pln = load_model("pln")
+pln = Pln(counts, exog=hot_cov, offsets=None, dict_initialization=dict_init_pln)
+viz(pln, ax=ax_pln, colors=labels)
+print(
+    "reconstructionpln ",
+    np.mean((pln._endog_predictions().numpy() - counts)[mask] ** 2).mean(),
+)
+
+# zi.scatter_pca_matrix(n_components = 2, colors = labels)
+# zi.viz()
+
+dict_init_nocov = load_model("zinocov")
+zi_global = ZIPln(
     counts,
     exog=hot_cov,
     offsets=None,
     # exog_inflation=hot_cov,
     add_const=True,
     add_const_inflation=True,
-    zero_inflation_formula="global"
-    # dict_initialization=dict_init,
+    zero_inflation_formula="global",
+    dict_initialization=dict_init_nocov,
 )
-zi_nocov.fit(do_smart_init=False, tol=0.00001)
+viz(zi_global, ax=ax_zi_global, colors=labels)
+# zi_global.viz()
+# zi_global.fit(do_smart_init=False, tol=0.00001)
+# zi_global.save("zinocov")
+
+
 # gm = GaussianMixture(n_components = 10).fit(latent)
 # labels = gm.predict(latent)
 # mkm = MiniBatchKMeans(n_clusters = 10).fit(latent)
@@ -62,45 +115,23 @@ zi_nocov.fit(do_smart_init=False, tol=0.00001)
 # zi.viz( colors = labels)
 # zi.save()
 # zi.scatter_pca_matrix(n_components = 5)
-pca = PlnPCA(counts, exog=hot_cov, offsets=None, rank=15)
-pca.fit(do_smart_init=False, tol=1)
-# pca.viz( colors = labels)
+dict_init_pca = load_model("pca")
+pca = PlnPCA(
+    counts, exog=hot_cov, offsets=None, rank=15, dict_initialization=dict_init_pca
+)
+# pca.viz()
+viz(pca, ax=ax_plnpca, colors=labels)
 
-pln = Pln(counts, exog=hot_cov, offsets=None)
-pln.fit(tol=0.000001)
+# pca.fit(do_smart_init=False, tol=0.00001)
+# pca.save("pca")
+# pca.viz( colors = labels)
+# pln.fit(tol=0.000001)
+# pln.save("pln")
 # pln.viz(colors = labels)
 
-fig, axes = plt.subplots(4)
-ax_zi = axes[0]
-ax_pln = axes[1]
-ax_plnpca = axes[2]
-ax_zi_global = axes[3]
-zi.plot_expected_vs_true(ax=ax_zi)
-pln.plot_expected_vs_true(ax=ax_pln)
-pca.plot_expected_vs_true(ax=ax_plnpca)
-zi_nocov.plot_expected_vs_true(ax=ax_zi_global)
+# zi.plot_expected_vs_true(ax=ax_zi)
+# pln.plot_expected_vs_true(ax=ax_pln)
+# pca.plot_expected_vs_true(ax=ax_plnpca)
+# zi_global.plot_expected_vs_true(ax=ax_zi_global)
 
 plt.show()
-
-
-# zi.show()
-# zi.save()
-# zi.show()
-# sns.heatmap(zi.latent_prob)
-# plt.show()
-# zi.plot_expected_vs_true()
-# zi.plot_pca_correlation_circle(indices_of_variables = [1,2,3], variables_names = ["1","2","3"] )
-# zi.pca_projected_latent_variables(n_components = 2)
-# print('counts shape', counts.shape)
-# print('orig columns length', counts.columns)
-# covariance = pd.DataFrame(
-#     zi.covariance.numpy(), columns=counts.columns, index=counts.columns
-# )
-# covariance.to_csv("covariance.csv")
-# prob_pd = pd.DataFrame(zi.latent_prob.numpy(), columns=counts.columns)
-# prob_pd = prob_pd.set_index(counts_orig["Sample"], "Sample")
-# prob_pd.to_csv("latent_probability.csv")
-# print('prob pb ', prob_pd)
-# prob_pd.to_csv("latent_probability.csv")
-# print(cov)
-# print(zi.covariance)

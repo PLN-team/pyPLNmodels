@@ -588,6 +588,12 @@ class _model(ABC):
         """
         return (self.latent_sqrt_var**2).detach()
 
+    @property
+    def _mean_gaussian(self):
+        if self._exog is None:
+            return 0
+        return self._exog @ self._coef
+
     def scatter_pca_matrix(self, n_components=None, colors=None):
         """
         Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.
@@ -1270,6 +1276,7 @@ class _model(ABC):
     def reconstruction_error(self):
         """Recontstruction error between the predictions and the endog."""
         predictions = self._endog_predictions().ravel().cpu().detach()
+        return torch.mean(torch.abs(predictions - self._endog.ravel().cpu()))
         return torch.mean((predictions - self._endog.ravel().cpu()) ** 2)
 
     @property
@@ -3787,6 +3794,13 @@ class ZIPln(_model):
         """
         if return_latent_prob is True:
             return self.latent_variables
+        # return self.latent_mean
+        # return self._mean_gaussian
+
+        print("nb one", (self.latent_prob > 0.95).numpy().mean())
+        return (
+            1 - self.latent_prob
+        ) * self.latent_mean + self._mean_gaussian * self.latent_prob
         return self.latent_mean
 
     def _endog_predictions(self):
@@ -3840,7 +3854,7 @@ class ZIPln(_model):
         """
         if coef_inflation.shape != self._shape_coef_infla:
             raise ValueError(
-                f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef_inflation.shape[0], coef_inflation.shape[1]}"
+                f"Wrong shape for the coef. Expected {self._shape_coef_infla}, got {coef_inflation.shape}"
             )
         self._coef_inflation = coef_inflation
 
