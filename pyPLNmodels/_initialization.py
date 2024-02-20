@@ -334,7 +334,6 @@ class ZIP:
             loss.backward()
             optim.step()
             optim.zero_grad()
-            print("loss:,", loss)
 
 
 class _PoissonReg:
