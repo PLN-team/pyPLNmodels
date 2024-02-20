@@ -17,6 +17,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from matplotlib.patches import Circle
 
+from pyPLNmodels.lambert import lambertw
+
 
 torch.set_default_dtype(torch.float64)
 
@@ -790,7 +792,8 @@ def d_varpsi_x1(mu, sigma2):
 
 def phi(mu, sigma2):
     y = sigma2 * torch.exp(mu)
-    lamby = lambert(y)
+    lamby = lambertw(y)
+    # lamby = lambert(y)
     log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
 
@@ -829,7 +832,6 @@ def mat_to_vec(matc, p, q):
 
 def _log1pexp(t):
     mask = t > 10
-    mask += t < -10
     return torch.where(
         mask,
         t,
