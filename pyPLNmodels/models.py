@@ -53,6 +53,7 @@ from pyPLNmodels._initialization import (
     _init_components,
     _init_coef,
     _init_latent_mean,
+    _init_coef_coef_inflation,
 )
 
 if torch.cuda.is_available():
@@ -337,12 +338,6 @@ class _model(ABC):
             self._coef = None
         self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
 
-    def _smart_init_latent_parameters(self):
-        """
-        Initialize latent parameters smartly.
-        """
-        pass
-
     def _init_parameters(self, do_smart_init: bool):
         """
         Initialize model parameters.
@@ -497,6 +492,7 @@ class _model(ABC):
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             if torch.sum(torch.isnan(loss)):
+                print("loss:", loss)
                 raise ValueError("The ELBO contains nan values.")
             loss.backward()
             elbo += loss.item()
@@ -3390,6 +3386,33 @@ class PlnPCA(_model):
 
 
 class ZIPln(_model):
+    """
+    Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation
+    modelled as row-wise (one inflation parameter per sample), column-wise
+    (one inflation per variable) or global (one and only one inflation parameter).
+    Fitting such a model is slower than fitting a Pln.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import ZIPln, Pln, load_microcosm
+    >>> endog, exog = load_microcosm() # microcosm are higly zero-inflated (96% of zeros)
+    >>> zi = ZIPln(endog, exog = exog, exog_inflation = exog)
+    >>> zi.fit()
+    >>> zi.viz()
+    >>> # Here Pln is not appropriate:
+    >>> pln = Pln(endog, exog = exog)
+    >>> pln.fit()
+    >>> pln.viz()
+
+    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
+    >>> param = get_simulation_parameters()
+    >>> endog = sample_pln(param)
+    >>> data = {"endog": endog}
+    >>> pln = Pln.from_formula("endog ~ 1", data)
+    >>> pln.fit()
+    >>> print(pln)
+    """
+
     _NAME = "ZIPln"
 
     _latent_prob: torch.Tensor
@@ -3682,27 +3705,20 @@ class ZIPln(_model):
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
-        super()._smart_init_coef()
+        # super()._smart_init_coef()
+        coef, coef_inflation = _init_coef_coef_inflation(
+            self.endog,
+            self.exog,
+            self.exog_inflation,
+            self.offsets,
+            self._zero_inflation_formula,
+        )
+        if not hasattr(self, "_coef_inflation"):
+            self._coef_inflation = coef_inflation
+        if not hasattr(self, "_coef"):
+            self._coef = coef
         if not hasattr(self, "_covariance"):
             self._components = _init_components(self._endog, self.dim)
-
-        if not hasattr(self, "_coef_inflation"):
-            if self._zero_inflation_formula == "column-wise":
-                self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(
-                    DEVICE
-                )
-            elif self._zero_inflation_formula == "row-wise":
-                self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla)
-            else:
-                self._coef_inflation = torch.tensor([0.0])
-
-            # for j in range(self.exog.shape[1]):
-            #     Y_j = self._endog[:,j].numpy()
-            #     offsets_j = self.offsets[:,j].numpy()
-            #     exog = self.exog[:,j].unsqueeze(1).numpy()
-            #     undzi = ZeroInflatedPoisson(endog=Y_j,exog = exog, exog_infl = exog, inflation='logit', offset = offsets_j)
-            #     zip_training_results = undzi.fit()
-            #     self._coef_inflation[:,j] = zip_training_results.params[1]
 
     def _random_init_latent_parameters(self):
         self._latent_mean = torch.randn(self.n_samples, self.dim)
