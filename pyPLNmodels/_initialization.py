@@ -2,6 +2,7 @@ import torch
 import math
 from typing import Optional
 from pyPLNmodels._utils import _log_stirling
+from statsmodels.discrete.count_model import ZeroInflatedPoisson
 import time
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -60,9 +61,14 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
         Initialization of components of size (p,rank)
     """
     log_y = torch.log(endog + (endog == 0) * math.exp(-2))
-    pca = PCA(n_components=rank)
+    max_dim = min(rank, endog.shape[0])
+    pca = PCA(n_components=max_dim)
     pca.fit(log_y.detach())
     pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
+    if rank > max_dim:
+        nb_missing = rank - max_dim
+        adding = np.random.randn(endog.shape[1], nb_missing) / rank
+        pca_comp = np.concatenate((pca_comp, adding), axis=1)
     return torch.from_numpy(pca_comp)
 
 
@@ -178,6 +184,44 @@ def _init_coef(
     return poiss_reg.beta
 
 
+def _init_coef_coef_inflation(
+    endog: torch.Tensor,
+    exog: torch.Tensor,
+    exog_inflation,
+    offsets: torch.Tensor,
+    zero_inflation_formula,
+) -> torch.Tensor:
+    """
+    Initialize the coefficient for the ZIPln model using
+    Zero Inflated Poisson regression model.
+
+    Parameters
+    ----------
+    endog : torch.Tensor
+        Samples with size (n, p)
+    exog : torch.Tensor
+        Covariates, size (n, d)
+    exog_infla : torch.Tensor
+        Covariates for the inflation, size (n, d)
+    offsets : torch.Tensor
+        Offset, size (n, p)
+    zero_inflation_formula: str {"column-wise", "row-wise", "global"}
+        The modelling of the zero_inflation. Either "column-wise", "row-wise"
+        or "global".
+    Returns
+    -------
+    tuple (torch.Tensor or None, torch.Tensor) or None
+        Coefficient of size (d, p) or None if exog is None.
+        torch.Tensor of size (d,p)
+    """
+    if exog is None:
+        coef_infla = torch.randn(exog_inflation.shape[1], endog.shape[1])
+        return None, coef_infla
+    zip = ZIP(endog, exog, exog_inflation, offsets, zero_inflation_formula)
+    zip.fit()
+    return zip.coef, zip.coef_inflation
+
+
 def log_posterior(
     endog: torch.Tensor,
     exog: torch.Tensor,
@@ -228,6 +272,69 @@ def log_posterior(
         -torch.exp(log_lambda) + log_lambda * endog - _log_stirling(endog), axis=-1
     )
     return first_term + second_term
+
+
+class ZIP:
+    def __init__(self, endog, exog, exog_inflation, offsets, zero_inflation_formula):
+        self.endog = endog
+        self.exog = exog
+        self.exog_inflation = exog_inflation
+        self.offsets = offsets
+        self.zero_inflation_formula = zero_inflation_formula
+
+        self.r0 = torch.mean((endog == 0).double(), axis=0)
+        self.ybarre = torch.mean(endog, axis=0)
+
+        self.dim = self.endog.shape[1]
+        self.d = exog.shape[1]
+        self.n_samples = endog.shape[0]
+
+        if self.zero_inflation_formula == "column-wise":
+            self.d0 = exog_inflation.shape[1]
+            self.coef_inflation = torch.randn(self.d0, self.dim).requires_grad_(True)
+        elif self.zero_inflation_formula == "row-wise":
+            self.d0 = exog_inflation.shape[0]
+            self.coef_inflation = torch.randn(self.n_samples, self.d0).requires_grad_(
+                True
+            )
+        else:
+            self.d0 = None
+            self.coef_inflation = torch.zeros([0]).requires_grad_(True)
+        self.coef = torch.randn(self.d, self.dim).requires_grad_(True)
+
+    @property
+    def mean_poisson(self):
+        return torch.exp(self.offsets + self.exog @ self.coef)
+
+    @property
+    def mean_inflation(self):
+        if self.zero_inflation_formula == "column-wise":
+            mean = self.exog_inflation @ self.coef_inflation
+        elif self.zero_inflation_formula == "row-wise":
+            mean = self.coef_inflation @ self.exog_inflation
+        else:
+            mean = self.coef_inflation
+        return torch.sigmoid(mean)
+
+    def loglike(self, lam, pi):
+        first_term = (
+            self.n_samples * self.r0 * torch.log(pi + (1 - pi) * torch.exp(-lam))
+        )
+        second_term = self.n_samples * (1 - self.r0) * (
+            torch.log(1 - pi) - lam
+        ) + self.n_samples * self.ybarre * torch.log(lam)
+        return first_term + second_term
+
+    def fit(self, nb_iter=100):
+        optim = torch.optim.Rprop([self.coef, self.coef_inflation])
+        for i in range(nb_iter):
+            mean_poisson = self.mean_poisson
+            mean_inflation = self.mean_inflation
+            loss = -torch.mean(self.loglike(self.mean_poisson, self.mean_inflation))
+            loss.backward()
+            optim.step()
+            optim.zero_grad()
+            print("loss:,", loss)
 
 
 class _PoissonReg:
