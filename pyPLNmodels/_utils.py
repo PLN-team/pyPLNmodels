@@ -542,6 +542,7 @@ def _extract_data_from_formula_no_infla(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
+    # data["exog"][0,:] = torch.ones(data["endog"].shape[0])
     dmatrix = dmatrices(formula, data=data)
     endog = dmatrix[0]
     exog = dmatrix[1]
@@ -1056,6 +1057,8 @@ def _check_full_rank_exog(exog):
         msg = "Input matrix exog does not have full rank. "
         msg += "You may consider to remove one or more variables"
         msg += " or set add_const to False it that is not already the case."
+        msg += " You can also set 0 + exog in the formula to avoid adding  "
+        msg += "an intercept."
         raise ValueError(msg)
 
 

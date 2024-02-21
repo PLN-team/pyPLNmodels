@@ -712,7 +712,7 @@ def get_simulation_parameters(
             as a exog.
         nb_cov_inflation : int, optional(keyword-only)
             The number of exog for the inflation part.
-            If 0, will not add zero-inflation. Default is zero
+            If 0, will not add zero-inflation. Default is zero.
         rank : int, optional(keyword-only)
             The rank of the data components, by default 5.
         add_const : bool, optional(keyword-only)

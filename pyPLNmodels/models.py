@@ -3404,13 +3404,13 @@ class ZIPln(_model):
     >>> pln.fit()
     >>> pln.viz()
 
-    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
-    >>> param = get_simulation_parameters()
-    >>> endog = sample_pln(param)
-    >>> data = {"endog": endog}
-    >>> pln = Pln.from_formula("endog ~ 1", data)
-    >>> pln.fit()
-    >>> print(pln)
+    >>> from pyPLNmodels import ZIPln, get_simulation_parameters, sample_zipln
+    >>> param = get_simulation_parameters(nb_cov_inflation = 1, zero_inflation_formula = "column-wise")
+    >>> endog = sample_zipln(param)
+    >>> data = {"endog": endog, "exog": param.exog, "exog_infla": param.exog_inflation}
+    >>> zi = ZIPln.from_formula("endog ~ 0 + exog | 0+ exog_infla", data)
+    >>> zi.fit()
+    >>> print(zi)
     """
 
     _NAME = "ZIPln"
@@ -3457,7 +3457,8 @@ class ZIPln(_model):
             The modelling of the zero_inflation. Either "column-wise", "row-wise"
             or "global". Default to "column-wise".
         dict_initialization : dict, optional(keyword-only)
-            The initialization dictionary. Defaults to None.
+            The initialization dictionary loading a previously saved model.
+            Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
         add_const : bool, optional(keyword-only)
@@ -3472,8 +3473,6 @@ class ZIPln(_model):
             Default is True.
         Raises
         ------
-        ValueError
-            If the batch_size is greater than the number of samples, or not int.
         Returns
         -------
         A ZIPln object
@@ -3601,7 +3600,7 @@ class ZIPln(_model):
         """
         if "|" not in formula:
             msg = "exog_inflation are set to exog (if any). If you need different exog_inflation, "
-            msg += "specify it with a | like in the following: exog ~ 1 | x + y "
+            msg += "specify it with a | like in the following: endog ~ 1 +x | x + y "
             print(msg)
             endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
             exog_infla = exog
@@ -3630,6 +3629,12 @@ class ZIPln(_model):
         >>> endog = load_scrna()
         >>> zi = ZIPln(endog,add_const = True)
         >>> zi.fit()
+        >>> print(zi)
+
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> endog = load_scrna()
+        >>> zi = ZIPln(endog,add_const = True)
+        >>> zi.fit(batch_size = 20, nb_max_iteration = 500, verbose = True)
         >>> print(zi)
         """,
     )
@@ -3681,6 +3686,10 @@ class ZIPln(_model):
 
     @property
     def nb_cov_infla(self):
+        """
+        Number of covariates for the inflation part in the model.
+        If the zero_inflation_formula is "global", return 0.
+        """
         if self._zero_inflation_formula == "global":
             return 0
         elif self._zero_inflation_formula == "column-wise":
@@ -3705,7 +3714,10 @@ class ZIPln(_model):
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
-        # super()._smart_init_coef()
+        """
+        Zero Inflated Poisson is fitted for the coef and coef_inflation.
+        For the components, PCA on the log counts.
+        """
         coef, coef_inflation = _init_coef_coef_inflation(
             self.endog,
             self.exog,
@@ -3729,7 +3741,10 @@ class ZIPln(_model):
             ).double()
 
     def _smart_init_latent_parameters(self):
-        self._random_init_latent_parameters()
+        self._latent_mean = torch.clone(self._exog_inflation @ self._coef_inflation)
+        self.latent_sqrt_var = torch.randn(self.n_samples, self.dim)
+        if self._use_closed_form_prob is False:
+            self._latent_prob = torch.clone(self.proba_inflation * self._dirac)
 
     @property
     def _covariance(self):
@@ -3783,7 +3798,9 @@ class ZIPln(_model):
 
     def transform(self, return_latent_prob=False):
         """
-        Method for transforming the endog. Can be seen as a normalization of the endog.
+        Method for transforming the endog. Can be seen as a
+        normalization of the endog. Can return a the latent probability
+        if required.
 
         Parameters
         ----------
@@ -3840,17 +3857,19 @@ class ZIPln(_model):
         Parameters
         ----------
         coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-            The coefficients.
+            The coefficients of size (nb_cov_inflation,dim) if zero_inflation_formula
+            is "column-wise", (n_samples, nb_cov_inflation) if zero_inflation_formula
+            is "row-wsie" and a scalar if zero_inflation_formula is "global".
 
         Raises
         ------
         ValueError
-            If the shape of the coef is incorrect.
+            If the shape of the coef_inflation is incorrect.
         """
         if coef_inflation.shape != self._shape_coef_infla:
-            raise ValueError(
-                f"Wrong shape for the coef. Expected {self._shape_coef_infla}, got {coef_inflation.shape}"
-            )
+            msg = "Wrong shape for the coef_inflation. Expected "
+            msg += f"{self._shape_coef_infla}, got {coef_inflation.shape}"
+            raise ValueError()
         self._coef_inflation = coef_inflation
 
     @property
@@ -3880,11 +3899,12 @@ class ZIPln(_model):
         Raises
         ------
         ValueError
-            If the shape of the latent variance is incorrect.
+            If the shape of the latent variance is incorrect
+            (i.e. should be (n_samples, dim)).
         """
-        if latent_sqrt_var.shape != (self.n_samples, self.dim):
+        if latent_sqrt_var.shape != self.endog.shape:
             raise ValueError(
-                f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
+                f"Wrong shape. Expected {self.endog.shape}, got {latent_sqrt_var.shape}"
             )
         self._latent_sqrt_var = latent_sqrt_var
 
@@ -3892,6 +3912,7 @@ class ZIPln(_model):
         self._project_latent_prob()
 
     def _project_latent_prob(self):
+        """Ensure the latent probabilites stays in [0,1]."""
         if self._use_closed_form_prob is False:
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
@@ -3932,7 +3953,8 @@ class ZIPln(_model):
         Raises
         ------
         ValueError
-            If the components have an invalid shape.
+            If the components have an invalid shape
+            (i.e. should be (dim,dim)).
         """
         if components.shape != (self.dim, self.dim):
             raise ValueError(
@@ -3942,6 +3964,10 @@ class ZIPln(_model):
 
     @property
     def latent_prob(self):
+        """
+        The latent probability i.e. the probabilities that the zero inflation
+        component is 0 given Y.
+        """
         if self._use_closed_form_prob is True:
             return self.closed_formula_latent_prob.detach()
         return self._attribute_or_none("_latent_prob")
@@ -3949,6 +3975,29 @@ class ZIPln(_model):
     @latent_prob.setter
     @_array2tensor
     def latent_prob(self, latent_prob: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the latent_probabilities.
+
+        Parameters
+        ----------
+        latent_prob : torch.Tensor
+            The latent_probabilities to set.
+
+        Raises
+        ------
+        ValueError
+            If the latent_prob have an invalid shape
+            (i.e. should be (n_samples,dim)), or
+            if you assign probabilites greater than 1 or lower
+            than 0, and if you assign non-zero probabilities
+            to non-zero counts.
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> endog, labels = load_scrna(return_labels = True)
+        >>> zi = ZIPln(endog,add_const = True)
+        >>> zi.fit()
+        >>> latent_prob = zi.latent_prob
+        >>> zi.latent_prob = latent_prob*0.5
+        """
         if self._use_closed_form_prob is True:
             raise ValueError(
                 "Can not set the latent prob when the closed form is used."
@@ -3969,6 +4018,7 @@ class ZIPln(_model):
     def closed_formula_latent_prob(self):
         """
         The closed form for the latent probability.
+        Uses the exponential moment of a log gaussian variable.
         """
         return _closed_formula_latent_prob(
             self._exog,
@@ -3983,6 +4033,7 @@ class ZIPln(_model):
     def closed_formula_latent_prob_b(self):
         """
         The closed form for the latent probability for the batch.
+        Uses the exponential moment of a log gaussian variable.
         """
         return _closed_formula_latent_prob(
             self._exog_b,
@@ -3993,6 +4044,21 @@ class ZIPln(_model):
             self._dirac_b,
         )
 
+    @_add_doc(
+        _model,
+        example="""
+            >>> from pyPLNmodels import ZIPln, load_scrna
+            >>> endog = load_scrna()
+            >>> zi = ZIPln(endog,add_const = True)
+            >>> zi.fit()
+            >>> elbo = zi.compute_elbo()
+            >>> print("elbo", elbo)
+            >>> print("loglike/n", zi.loglike/zi.n_samples)
+            """,
+        see_also="""
+        :func:`pyPLNmodels.elbos.elbo_zi_pln`
+        """,
+    )
     def compute_elbo(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
@@ -4013,6 +4079,10 @@ class ZIPln(_model):
 
     @property
     def _xinflacoefinfla_b(self):
+        """Computes the term exog_infla_b @ coef_infla
+        or coef_infla_b @ exog_infla depending on the
+        zero_inflation_formula.
+        """
         if self._zero_inflation_formula == "global":
             return self._coef_inflation
         if self._zero_inflation_formula == "column-wise":
@@ -4023,6 +4093,10 @@ class ZIPln(_model):
 
     @property
     def _xinflacoefinfla(self):
+        """Computes the term exog_infla @ coef_infla
+        or coef_infla @ exog_infla depending on the
+        zero_inflation_formula.
+        """
         if self._zero_inflation_formula == "global":
             return self._coef_inflation
         elif self._zero_inflation_formula == "column-wise":
@@ -4032,6 +4106,11 @@ class ZIPln(_model):
 
     @property
     def proba_inflation(self):
+        """
+        Probability of observing a zero inflation.
+        Even if the counts are non-zero, the probability of observing
+        a zero inflation can be positive.
+        """
         return torch.sigmoid(self._xinflacoefinfla)
 
     def _compute_elbo_b(self):
@@ -4055,11 +4134,16 @@ class ZIPln(_model):
 
     @property
     def xinflacoefinfla(self):
+        """Computes the term exog_infla @ coef_infla
+        or coef_infla @ exog_infla depending on the
+        zero_inflation_formula.
+        """
         if self._zero_inflation_formula == "global":
             return self._coef_inflation
         if self._zero_inflation_formula == "column-wise":
             return self._exog_inflation
 
+    @_add_doc(_model)
     @property
     def number_of_parameters(self):
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
@@ -4155,6 +4239,7 @@ class ZIPln(_model):
         return "visualize_latent_prob()."
 
     def visualize_latent_prob(self, indices_of_samples=None, indices_of_variables=None):
+        """Visualize the latent probabilities via a heatmap."""
         latent_prob = self.latent_prob
         fig, ax = plt.subplots(figsize=(20, 20))
         if indices_of_samples is None:
@@ -4184,7 +4269,31 @@ class ZIPln(_model):
         # ax.set_xticklabels(indices_of_variables)
         plt.show()
 
-    def grad_M(self):
+    def scatter_pca_matrix_prob(self, n_components=None, colors=None):
+        """
+        Generates a scatter matrix plot based on Principal Component Analysis (PCA)
+        on the latent probabilitiess.
+
+        Parameters
+        ----------
+            n_components (int, optional): The number of components to consider for plotting.
+                If not specified, the maximum number of components will be used. Note that
+                it will not display more than 10 graphs.
+                Defaults to None.
+
+            colors (np.ndarray): An array with one label for each
+                sample in the endog property of the object.
+                Defaults to None.
+        Raises
+        ------
+            ValueError: If the number of components requested is greater than
+                the number of variables in the dataset.
+        """
+        n_components = self._threshold_n_components(n_components)
+        array = self.latent_prob.detach()
+        _scatter_pca_matrix(array.numpy(), n_components, self.dim, colors)
+
+    def _grad_M(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
@@ -4204,7 +4313,7 @@ class ZIPln(_model):
         added = -full_diag_omega * latent_prob * un_moins_prob * (MmoinsXB)
         return first + second + added
 
-    def grad_S(self):
+    def _grad_S(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
@@ -4224,7 +4333,7 @@ class ZIPln(_model):
         third = -self._latent_sqrt_var * K
         return first + sec + third
 
-    def grad_theta(self):
+    def _grad_theta(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
@@ -4247,10 +4356,10 @@ class ZIPln(_model):
             full_diag = diag.expand(self._exog.shape[0], -1)
             XB = self._exog @ self._coef
             derivative = d_h_x2(XB_zero, XB, full_diag, self._dirac)
-            grad_closed_form = self.gradients_closed_form_thetas(derivative)
+            grad_closed_form = self._gradients_closed_form_thetas(derivative)
             return grad_closed_form + grad_no_closed_form
 
-    def gradients_closed_form_thetas(self, derivative):
+    def _gradients_closed_form_thetas(self, derivative):
         Omega = torch.inverse(self._covariance)
         MmoinsXB = self._latent_mean - self._exog @ self._coef
         s_rond_s = self._latent_sqrt_var**2
@@ -4293,7 +4402,7 @@ class ZIPln(_model):
         f = first_f + second_f + new_f
         return a + b + c + d + e + f
 
-    def grad_theta_0(self):
+    def _grad_theta_0(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
@@ -4305,12 +4414,12 @@ class ZIPln(_model):
         if self._use_closed_form_prob is False:
             return grad_no_closed_form
         else:
-            grad_closed_form = self.gradients_closed_form_thetas(
+            grad_closed_form = self._gradients_closed_form_thetas(
                 latent_prob * (1 - latent_prob)
             )
             return grad_closed_form + grad_no_closed_form
 
-    def grad_C(self):
+    def _grad_C(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
@@ -4447,7 +4556,7 @@ class ZIPln(_model):
             grad_closed_form = a + b + c + d + e + f
             return grad_closed_form + grad_no_closed_form
 
-    def grad_rho(self):
+    def _grad_rho(self):
         if self._use_closed_form_prob is True:
             latent_prob = self.closed_formula_latent_prob
         else:
@@ -4496,30 +4605,6 @@ class ZIPln(_model):
         full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
         seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
         return first + second + third + fourth + fifth + sixth + seventh
-
-    def scatter_pca_matrix_prob(self, n_components=None, colors=None):
-        """
-        Generates a scatter matrix plot based on Principal Component Analysis (PCA)
-        on the latent probabilitiess.
-
-        Parameters
-        ----------
-            n_components (int, optional): The number of components to consider for plotting.
-                If not specified, the maximum number of components will be used. Note that
-                it will not display more than 10 graphs.
-                Defaults to None.
-
-            colors (np.ndarray): An array with one label for each
-                sample in the endog property of the object.
-                Defaults to None.
-        Raises
-        ------
-            ValueError: If the number of components requested is greater than
-                the number of variables in the dataset.
-        """
-        n_components = self._threshold_n_components(n_components)
-        array = self.latent_prob.detach()
-        _scatter_pca_matrix(array.numpy(), n_components, self.dim, colors)
 
 
 class Brute_ZIPln(ZIPln):
