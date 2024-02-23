@@ -1411,7 +1411,7 @@ class _model(ABC):
 
     @property
     @abstractmethod
-    def number_of_parameters(self):
+    def number_of_parameters(self) -> int:
         """
         Number of parameters of the model.
         """
@@ -1782,7 +1782,7 @@ class Pln(_model):
         self._latent_sqrt_var = latent_sqrt_var
 
     @property
-    def number_of_parameters(self):
+    def number_of_parameters(self) -> int:
         """
         Property representing the number of parameters.
 
@@ -3730,7 +3730,7 @@ class ZIPln(_model):
         if not hasattr(self, "_coef"):
             self._coef = coef
         if not hasattr(self, "_covariance"):
-            self._components = _init_components(self._endog, self.dim)
+            self._components = torch.clone(_init_components(self._endog, self.dim))
 
     def _random_init_latent_parameters(self):
         self._latent_mean = torch.randn(self.n_samples, self.dim)
@@ -3741,7 +3741,12 @@ class ZIPln(_model):
             ).double()
 
     def _smart_init_latent_parameters(self):
-        self._latent_mean = torch.clone(self._exog_inflation @ self._coef_inflation)
+        if self._zero_inflation_formula == "global":
+            self._latent_mean = torch.clone(self._xinflacoefinfla) * torch.ones(
+                self.n_samples, self.dim
+            )
+        else:
+            self._latent_mean = torch.clone(self._xinflacoefinfla)
         self.latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         if self._use_closed_form_prob is False:
             self._latent_prob = torch.clone(self.proba_inflation * self._dirac)
@@ -3869,7 +3874,7 @@ class ZIPln(_model):
         if coef_inflation.shape != self._shape_coef_infla:
             msg = "Wrong shape for the coef_inflation. Expected "
             msg += f"{self._shape_coef_infla}, got {coef_inflation.shape}"
-            raise ValueError()
+            raise ValueError(msg)
         self._coef_inflation = coef_inflation
 
     @property
@@ -4143,9 +4148,9 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "column-wise":
             return self._exog_inflation
 
-    @_add_doc(_model)
     @property
-    def number_of_parameters(self):
+    @_add_doc(_model)
+    def number_of_parameters(self) -> int:
         return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
 
     @property
@@ -4605,6 +4610,22 @@ class ZIPln(_model):
         full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
         seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
         return first + second + third + fourth + fifth + sixth + seventh
+
+    @property
+    def _directory_name(self):
+        """
+        Property representing the directory name.
+
+        Returns
+        -------
+        str
+            The directory name.
+        """
+        return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}_nbcovinfla_{self.nb_cov_infla}_zero_infla_{self.writable_zero_formula}"
+
+    @property
+    def writable_zero_formula(self):
+        return self._zero_inflation_formula.replace("-", "")
 
 
 class Brute_ZIPln(ZIPln):

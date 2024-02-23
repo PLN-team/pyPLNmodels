@@ -183,7 +183,7 @@ def simulated_zi_column_formula():
 @pytest.fixture
 def simulated_zi_global_formula():
     zi = ZIPln.from_formula(
-        "endog~1 + exog", data=data_zi_g, zero_inflation_formula="global"
+        "endog~0 + exog", data=data_zi_g, zero_inflation_formula="global"
     )
     return zi
 
@@ -191,7 +191,7 @@ def simulated_zi_global_formula():
 @pytest.fixture
 def simulated_zi_row_formula():
     zi = ZIPln.from_formula(
-        "endog~1 + exog | 1", data=data_zi_r, zero_inflation_formula="row-wise"
+        "endog~0 + exog | 1", data=data_zi_r, zero_inflation_formula="row-wise"
     )
     return zi
 
@@ -394,7 +394,7 @@ def simulated_loaded_zi_global_formula(simulated_fitted_zi_global_formula):
     simulated_fitted_zi_global_formula.save()
     return generate_new_model(
         simulated_fitted_zi_global_formula,
-        "endog ~ 1 + exog",
+        "endog ~ 0 + exog",
         data_zi_g,
         zero_inflation_formula="global",
     )
@@ -405,7 +405,7 @@ def simulated_loaded_zi_column_formula(simulated_fitted_zi_column_formula):
     simulated_fitted_zi_column_formula.save()
     return generate_new_model(
         simulated_fitted_zi_column_formula,
-        "endog ~ 1 + exog",
+        "endog ~ 0 + exog | 1",
         data_zi_c,
         zero_inflation_formula="column-wise",
     )
@@ -416,7 +416,7 @@ def simulated_loaded_zi_row_formula(simulated_fitted_zi_row_formula):
     simulated_fitted_zi_row_formula.save()
     return generate_new_model(
         simulated_fitted_zi_row_formula,
-        "endog ~ 1 + exog | 1",
+        "endog ~ 0 + exog | 1",
         data_zi_r,
         zero_inflation_formula="row-wise",
     )
@@ -450,18 +450,6 @@ dict_fixtures = add_list_of_fixture_to_dict(
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "sim_zi_loaded_formula", simulated_zi_loaded_formula
 )
-
-
-@pytest.fixture
-def simulated_fitted_zi_column_formula(simulated_zi_column_formula):
-    simulated_zi_column_formula.fit()
-    return simulated_zi_column_formula
-
-
-@pytest.fixture
-def simulated_fitted_zi_row_formula(simulated_zi_row_formula):
-    simulated_zi_row_formula.fit()
-    return simulated_zi_row_formula
 
 
 @pytest.fixture(params=params)

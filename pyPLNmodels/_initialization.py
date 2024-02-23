@@ -187,9 +187,9 @@ def _init_coef(
 def _init_coef_coef_inflation(
     endog: torch.Tensor,
     exog: torch.Tensor,
-    exog_inflation,
+    exog_inflation: torch.Tensor,
     offsets: torch.Tensor,
-    zero_inflation_formula,
+    zero_inflation_formula: str,
 ) -> torch.Tensor:
     """
     Initialize the coefficient for the ZIPln model using
@@ -215,11 +215,16 @@ def _init_coef_coef_inflation(
         torch.Tensor of size (d,p)
     """
     if exog is None:
-        coef_infla = torch.randn(exog_inflation.shape[1], endog.shape[1])
+        if zero_inflation_formula == "global":
+            coef_infla = torch.tensor([0.0])
+        elif zero_inflation_formula == "row-wise":
+            coef_infla = torch.randn(endog.shape[0], exog_inflation.shape[0])
+        else:
+            coef_infla = torch.randn(exog_inflation.shape[1], endog.shape[1])
         return None, coef_infla
     zip = ZIP(endog, exog, exog_inflation, offsets, zero_inflation_formula)
     zip.fit()
-    return zip.coef, zip.coef_inflation
+    return zip.coef.detach(), zip.coef_inflation.detach()
 
 
 def log_posterior(
@@ -299,7 +304,7 @@ class ZIP:
             )
         else:
             self.d0 = None
-            self.coef_inflation = torch.zeros([0]).requires_grad_(True)
+            self.coef_inflation = torch.Tensor([0.0]).requires_grad_(True)
         self.coef = torch.randn(self.d, self.dim).requires_grad_(True)
 
     @property

@@ -542,8 +542,13 @@ def _extract_data_from_formula_no_infla(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
-    # data["exog"][0,:] = torch.ones(data["endog"].shape[0])
-    dmatrix = dmatrices(formula, data=data)
+    try:
+        dmatrix = dmatrices(formula, data=data)
+    except ValueError as err:
+        print("Error returned by patsy from the building of formula: ", err)
+        msg = "You probably set endog ~ exog  with exog = None"
+        raise ValueError(msg)
+
     endog = dmatrix[0]
     exog = dmatrix[1]
     if exog.size == 0:
