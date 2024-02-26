@@ -4361,9 +4361,7 @@ class ZIPln(_model):
         un_moins_prob = 1 - latent_prob
         first = un_moins_prob * (
             self._endog
-            - torch.exp(
-                self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2
-            )
+            - torch.exp(self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2)
         )
         MmoinsXB = self._latent_mean - self._exog @ self._coef
         A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
