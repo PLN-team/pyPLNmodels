@@ -119,8 +119,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
             )
         elif zero_inflation_formula == "column-wise":
             exog_inflation = torch.randint(
-                low=1,
-                high=3,
+                low=0,
+                high=2,
                 size=(n_samples, nb_cov_inflation),
                 dtype=torch.float64,
             )
@@ -174,6 +174,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
             size=(n_samples, nb_cov),
             dtype=torch.float64,
         )
+        print("exog:", exog)
+        x
         if add_const is True:
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
@@ -757,6 +759,9 @@ def get_simulation_parameters(
             "add const_inflation set to True but no zero inflation is sampled."
         )
     components = _get_simulation_components(dim, rank)
+    sigma = components @ (components.T)
+    sigma += torch.eye(components.shape[0])
+    components = torch.linalg.cholesky(sigma)
     if coef_inflation is None:
         print("Pln model will be sampled.")
         return PlnParameters(

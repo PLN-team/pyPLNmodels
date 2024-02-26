@@ -4,7 +4,7 @@ import seaborn as sns
 from matplotlib.legend_handler import HandlerTuple
 
 from pyPLNmodels import (
-    get_real_count_data,
+    # get_real_count_data,
     ZIPln,
     Pln,
     get_zipln_simulated_count_data,
@@ -28,13 +28,13 @@ else:
 device = "cpu"
 
 viz = "poisson"
-_moyennes_XB = np.linspace(1, 5, 5)
-_moyennes_proba = np.linspace(0.2, 0.5, 6)
+_moyennes_XB = np.linspace(1, 5, 3)
+_moyennes_proba = np.linspace(0.2, 0.5, 4)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-_mean_infla = 0.26
-_mean_xb = 3
+_mean_infla = 0.25
+_mean_xb = 2
 
-_nb_bootstrap = 10
+_nb_bootstrap = 2
 
 
 if viz == "poisson":
@@ -47,8 +47,8 @@ elif viz == "proba":
 
 chosen_moyennes = _moyennes[:-1]
 
-n = 1500
-dim = 1000
+n = 150
+dim = 20
 inflation_formula = "column-wise"
 
 
@@ -187,7 +187,7 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit(tol=0.000001)
+        model.fit(tol=0.01, nb_max_iteration=10)
         # model.fit(nb_max_iteration = 10)
     return dict_models
 
