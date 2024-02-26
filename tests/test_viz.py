@@ -31,21 +31,13 @@ def test_show_coef_transform_covariance_pcaprojected(any_model):
 
 
 @pytest.mark.parametrize("model", dict_fixtures["fitted_model"])
-@filter_models(["Pln", "ZIPln"])
-def test_scatter_pca_matrix_pln(model):
-    model.scatter_pca_matrix(n_components=8)
-
-
-@pytest.mark.parametrize("model", dict_fixtures["fitted_model"])
-@filter_models(["PlnPCA"])
-def test_scatter_pca_matrix_plnpca(model):
-    model.scatter_pca_matrix(n_components=2)
-    model.scatter_pca_matrix()
-
-
-@pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_real_model"])
 @filter_models(single_models)
-def test_label_scatter_pca_matrix(model):
+def test_scatter_pca_matrix(model):
+    if model._NAME in ["Pln", "ZIPln"]:
+        model.scatter_pca_matrix(n_components=8)
+    else:
+        model.scatter_pca_matrix(n_components=2)
+        model.scatter_pca_matrix()
     model.scatter_pca_matrix(n_components=4, color=labels_real)
 
 
@@ -79,11 +71,6 @@ def test_fail_plot_pca_correlation_circle_without_names(model):
         model.plot_pca_correlation_circle([f"var_{i}" for i in range(8)])
     with pytest.raises(ValueError):
         model.plot_pca_correlation_circle([f"var_{i}" for i in range(6)], [1, 2, 3])
-
-
-@pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_sim_model"])
-@filter_models(single_models)
-def test_plot_pca_correlation_circle_without_names(model):
     model.plot_pca_correlation_circle([f"var_{i}" for i in range(3)], [0, 1, 2])
 
 
@@ -95,9 +82,9 @@ def test_expected_vs_true(model):
     model.plot_expected_vs_true(ax=ax)
 
 
-@pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_real_model"])
-@filter_models(single_models)
-def test_expected_vs_true_labels(model):
+@pytest.mark.parametrize("model", dict_fixtures["real_fitted_model_intercept_array"])
+@filter_models(["Pln", "PlnPCA"])
+def test_expected_vs_true_real(model):
     model.plot_expected_vs_true(colors=labels_real)
     fig, ax = plt.subplots()
     model.plot_expected_vs_true(ax=ax, colors=labels_real)

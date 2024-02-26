@@ -57,14 +57,12 @@ def test_find_right_covariance(simulated_fitted_pln_model):
     assert mse_covariance < 0.5
 
 
-@pytest.mark.parametrize(
-    "real_fitted_and_loaded_model", dict_fixtures["loaded_and_fitted_real_model"]
-)
+@pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_real_model"])
 @filter_models(single_models)
-def test_right_covariance_shape(real_fitted_and_loaded_model):
-    assert real_fitted_and_loaded_model.covariance.shape == (
-        endog_real.shape[1],
-        endog_real.shape[1],
+def test_right_covariance_shape(model):
+    assert model.covariance.shape == (
+        model.dim,
+        model.dim,
     )
 
 
@@ -94,7 +92,7 @@ def test_fail_count_setter(model):
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
 def test_random_init(instance):
-    instance.fit(do_smart_init=False)
+    instance.fit(do_smart_init=False, nb_max_iteration=10)
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])

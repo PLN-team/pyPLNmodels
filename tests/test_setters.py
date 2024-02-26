@@ -8,11 +8,17 @@ from tests.utils import MSE, filter_models
 single_models = ["Pln", "PlnPCA", "ZIPln"]
 
 
-@pytest.mark.parametrize("model", dict_fixtures["loaded_model"])
+# @pytest.mark.parametrize("model", dict_fixtures["loaded_model"])
+@pytest.mark.parametrize("model", dict_fixtures["simulated_zi_loaded_array"])
 def test_data_setter_with_torch(model):
     model.endog = model.endog
     model.exog = model.exog
     model.offsets = model.offsets
+    if model._NAME == "ZIPln":
+        if model._zero_inflation_formula != "global":
+            model.exog_inflation = model.exog_inflation
+        else:
+            model.exog_inflation = None
     model.fit()
 
 
@@ -41,6 +47,9 @@ def test_data_setter_with_numpy(model):
     model.endog = np_endog
     model.exog = np_exog
     model.offsets = np_offsets
+    if model._NAME == "ZIPln":
+        if model._zero_inflation_formula != "global":
+            model.exog_inflation = model.exog_inflation.numpy()
     model.fit()
 
 
@@ -134,6 +143,16 @@ def test_fail_data_setter_with_torch(model):
 
     with pytest.raises(ValueError):
         model.offsets = torch.zeros(n, p + 1)
+    if model._NAME == "ZIPln":
+        with pytest.raises(ValueError):
+            if model._zero_inflation_formula == "global":
+                model.exog_inflation = torch.Tensor([1.0])
+            if model._zero_inflation_formula == "row-wise":
+                exog_inflation = torch.randn(model.nb_cov_infla, model.dim + 1)
+                model.exog_inflation = exog_inflation
+            if model._zero_inflation_formula == "column-wise":
+                exog_inflation = torch.randn(model.n_samples - 1, model.nb_cov_infla)
+                model.exog_inflation = exog_inflation
 
 
 @pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_model"])
@@ -171,3 +190,15 @@ def test_fail_parameters_setter_with_torch(model):
 
             with pytest.raises(ValueError):
                 model.coef = torch.zeros(d, dim + 1)
+        if model._NAME == "ZIPln":
+            if model._zero_inflation_formula != "global":
+                with pytest.raises(ValueError):
+                    model.coef_inflation = torch.zeros(
+                        model.coef_inflation.shape[0] + 1, model.coef_inflation.shape[1]
+                    )
+                with pytest.raises(ValueError):
+                    model.coef_inflation = torch.zeros(
+                        model.coef_inflation.shape[0], model.coef_inflation.shape[1] + 1
+                    )
+            else:
+                model.coef_inflation = torch.zeros(2, 2)

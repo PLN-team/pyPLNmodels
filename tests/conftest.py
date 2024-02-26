@@ -176,7 +176,7 @@ instances = instances + sim_zi_instances_array
 
 @pytest.fixture
 def simulated_zi_column_formula():
-    zi = ZIPln.from_formula("endog~1+exog", data=data_zi_c)
+    zi = ZIPln.from_formula("endog~0+exog | 1", data=data_zi_c)
     return zi
 
 
@@ -749,6 +749,8 @@ simulated_model_fitted = (
     + simulated_zi_fitted_array
     + simulated_zi_fitted_formula
 )
+
+
 dict_fixtures = add_list_of_fixture_to_dict(
     dict_fixtures, "simulated_model_fitted", simulated_model_fitted
 )

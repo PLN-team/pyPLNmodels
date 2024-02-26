@@ -46,7 +46,7 @@ def test_get_simulation_parameters_global():
         zero_inflation_formula="global", nb_cov_inflation=0, add_const_inflation=0
     )
     assert param.exog_inflation is None
-    assert param.coef_inflation < 1 and param.coef_inflation > 0
+    assert param.proba_inflation < 1 and param.proba_inflation > 0
 
 
 def test_fails_get_simulation_parameters_global():

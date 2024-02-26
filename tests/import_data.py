@@ -70,7 +70,7 @@ data_real = {"endog": endog_real}
     coef_infla_c,
 ) = get_zipln_simulated_count_data(
     add_const=False,
-    nb_cov=1,
+    nb_cov=2,
     add_const_inflation=True,
     zero_inflation_formula="column-wise",
     return_true_param=True,
