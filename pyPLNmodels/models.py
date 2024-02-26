@@ -337,7 +337,7 @@ class _model(ABC):
         """
         if self.nb_cov == 0:
             self._coef = None
-        self._coef = torch.randn((self.nb_cov, self.dim), device=DEVICE)
+        self._coef = torch.randn((self.nb_cov, self.dim))
 
     def _init_parameters(self, do_smart_init: bool):
         """
@@ -363,6 +363,7 @@ class _model(ABC):
         """
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
+            parameter = parameter.to(DEVICE)
 
     def fit(
         self,
@@ -447,7 +448,16 @@ class _model(ABC):
             batch = self._return_batch(
                 indices, i * self._batch_size, (i + 1) * self._batch_size
             )
+            # Move the parameters to GPU
+            for parameter in batch:
+                if parameter is not None:
+                    parameter = parameter.to(DEVICE)
             yield batch
+            # remove parameters from GPU to free space.
+            if DEVICE != "cpu":
+                for parameter in batch:
+                    if parameter is not None:
+                        parameter = parameter.to("cpu")
         # Last batch
         if self._last_batch_size != 0:
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
@@ -940,7 +950,7 @@ class _model(ABC):
         torch.Tensor or None
             The coefficients or None.
         """
-        return self._attribute_or_none("_coef")
+        return self._cpu_attribute_or_none("_coef")
 
     @property
     def latent_mean(self):
@@ -952,7 +962,7 @@ class _model(ABC):
         torch.Tensor or None
             The latent mean or None if it has not yet been initialized.
         """
-        return self._attribute_or_none("_latent_mean")
+        return self._cpu_attribute_or_none("_latent_mean")
 
     @property
     def latent_sqrt_var(self):
@@ -964,7 +974,7 @@ class _model(ABC):
         torch.Tensor or None
             The latent variance or None.
         """
-        return self._attribute_or_none("_latent_sqrt_var")
+        return self._cpu_attribute_or_none("_latent_sqrt_var")
 
     @latent_mean.setter
     @_array2tensor
@@ -988,7 +998,7 @@ class _model(ABC):
             )
         self._latent_mean = latent_mean
 
-    def _attribute_or_none(self, attribute_name):
+    def _cpu_attribute_or_none(self, attribute_name):
         """
         Get the CPU attribute or return None.
 
@@ -1005,7 +1015,7 @@ class _model(ABC):
         if hasattr(self, attribute_name):
             attr = getattr(self, attribute_name)
             if isinstance(attr, torch.Tensor):
-                return attr.detach()
+                return attr.detach().cpu()
             return attr
         return None
 
@@ -1042,7 +1052,7 @@ class _model(ABC):
         torch.Tensor or None
             The endog or None.
         """
-        return self._attribute_or_none("_endog")
+        return self._cpu_attribute_or_none("_endog")
 
     @property
     def offsets(self):
@@ -1054,7 +1064,7 @@ class _model(ABC):
         torch.Tensor or None
             The offsets or None.
         """
-        return self._attribute_or_none("_offsets")
+        return self._cpu_attribute_or_none("_offsets")
 
     @property
     def exog(self):
@@ -1066,7 +1076,7 @@ class _model(ABC):
         torch.Tensor or None
             The exog or None.
         """
-        return self._attribute_or_none("_exog")
+        return self._cpu_attribute_or_none("_exog")
 
     @endog.setter
     @_array2tensor
@@ -3010,7 +3020,7 @@ class PlnPCA(_model):
         """,
     )
     def latent_mean(self) -> torch.Tensor:
-        return self._attribute_or_none("_latent_mean")
+        return self._cpu_attribute_or_none("_latent_mean")
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
@@ -3082,7 +3092,7 @@ class PlnPCA(_model):
         torch.Tensor
             The exog tensor.
         """
-        return self._attribute_or_none("_exog")
+        return self._cpu_attribute_or_none("_exog")
 
     @exog.setter
     @_array2tensor
@@ -3234,7 +3244,7 @@ class PlnPCA(_model):
         torch.Tensor
             The components.
         """
-        return self._attribute_or_none("_components")
+        return self._cpu_attribute_or_none("_components")
 
     @components.setter
     @_array2tensor
@@ -3780,7 +3790,7 @@ class ZIPln(_model):
         torch.Tensor
             The components.
         """
-        return self._attribute_or_none("_components")
+        return self._cpu_attribute_or_none("_components")
 
     @property
     def latent_variables(self) -> tuple([torch.Tensor, torch.Tensor]):
@@ -3841,7 +3851,7 @@ class ZIPln(_model):
         torch.Tensor or None
             The coefficients or None.
         """
-        return self._attribute_or_none("_coef_inflation")
+        return self._cpu_attribute_or_none("_coef_inflation")
 
     @property
     def exog_inflation(self):
@@ -3853,7 +3863,7 @@ class ZIPln(_model):
         torch.Tensor or None
             The exog_inflation or None.
         """
-        return self._attribute_or_none("_exog_inflation")
+        return self._cpu_attribute_or_none("_exog_inflation")
 
     @exog_inflation.setter
     @_array2tensor
@@ -3975,7 +3985,7 @@ class ZIPln(_model):
         Optional[torch.Tensor]
             The covariance tensor or None if components are not present.
         """
-        return self._attribute_or_none("_covariance")
+        return self._cpu_attribute_or_none("_covariance")
 
     @components.setter
     @_array2tensor
@@ -4008,7 +4018,7 @@ class ZIPln(_model):
         """
         if self._use_closed_form_prob is True:
             return self.closed_formula_latent_prob.detach()
-        return self._attribute_or_none("_latent_prob")
+        return self._cpu_attribute_or_none("_latent_prob")
 
     @latent_prob.setter
     @_array2tensor
@@ -4126,7 +4136,7 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "column-wise":
             exog_infla_b = torch.index_select(self._exog_inflation, 0, self.to_take)
             return exog_infla_b @ self._coef_inflation
-        coef_infla_b = torch.index_select(self._coef_inflation, 0, self.to_take)
+        coef_infla_b = torch.index_select(self._coef_inflation.cpu(), 0, self.to_take)
         return coef_infla_b @ self._exog_inflation
 
     @property
@@ -4140,7 +4150,7 @@ class ZIPln(_model):
         elif self._zero_inflation_formula == "column-wise":
             return self._exog_inflation @ self._coef_inflation
         elif self._zero_inflation_formula == "row-wise":
-            return self._coef_inflation @ self._exog_inflation
+            return self._coef_inflation.cpu() @ self._exog_inflation
 
     @property
     def proba_inflation(self):

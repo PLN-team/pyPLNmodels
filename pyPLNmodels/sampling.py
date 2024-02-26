@@ -139,24 +139,32 @@ def _get_simulation_coef_cov_offsets_coefzi(
             if add_const_inflation is True:
                 exog_inflation = torch.cat((exog_inflation, torch.ones(1, dim)), axis=0)
     if zero_inflation_formula is not None:
-        random = torch.randint(-1, 2, size=(n_samples, dim)) / 8
-        Y = torch.logit(mean_infla + random)
-        if zero_inflation_formula == "column-wise":
-            coef_inflation = torch.randint(
-                low=1,
-                high=3,
-                size=(nb_cov_inflation, dim),
-                dtype=torch.float64,
+        if zero_inflation_formula in ["column-wise", "row-wise"]:
+            if nb_cov_inflation > 0:
+                exog_inflation = torch.randint(
+                    low=0,
+                    high=2,
+                    size=(n_samples, nb_cov_inflation),
+                    dtype=torch.float64,
+                )
+                exog_inflation -= (exog_inflation == 0) * torch.ones(
+                    exog_inflation.shape
+                )
+                if add_const_inflation is True:
+                    exog_inflation = torch.cat(
+                        (exog_inflation, torch.ones(n_samples, 1)), axis=1
+                    )
+            else:
+                exog_inflation = torch.ones(n_samples, 1)
+
+            coef_inflation = torch.randn(exog_inflation.shape[1], dim) / np.sqrt(
+                nb_cov_inflation + 1
             )
-            if add_const_inflation is True:
-                coef_inflation = torch.cat((coef_inflation, torch.ones(1, dim)), axis=0)
-            X = coef_inflation
-            xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
-            exog_inflation = xxxt_inv_xtY
-        elif zero_inflation_formula == "row-wise":
-            X = exog_inflation
-            xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
-            coef_inflation = xxxt_inv_xtY
+            coef_inflation += -torch.mean(coef_inflation) + torch.logit(
+                torch.tensor([mean_infla])
+            )
+            if zero_inflation_formula == "row-wise":
+                coef_inflation, exog_inflation = exog_inflation, coef_inflation
         else:
             coef_inflation = torch.logit(torch.Tensor([mean_infla]))
     else:
@@ -174,14 +182,13 @@ def _get_simulation_coef_cov_offsets_coefzi(
             size=(n_samples, nb_cov),
             dtype=torch.float64,
         )
-        print("exog:", exog)
-        x
+        exog -= (exog == 0) * torch.ones(exog.shape)
         if add_const is True:
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         coef = None
     else:
-        coef = torch.randn(exog.shape[1], dim) + 0.3
+        coef = torch.randn(exog.shape[1], dim) / np.sqrt(nb_cov + 1)
     offsets = torch.randint(low=0, high=2, size=(n_samples, dim), dtype=torch.float64)
     torch.random.set_rng_state(prev_state)
     return coef, exog, exog_inflation, offsets, coef_inflation
@@ -326,6 +333,23 @@ class PlnParameters:
         if self._exog is None:
             return None
         return self._exog
+
+    def _set_gaussian_mean(self, mean_gaussian: float):
+        self._coef += -torch.mean(self._coef) + mean_gaussian
+
+    def _set_mean_proba(self, mean_proba: float):
+        if mean_proba > 1 or mean_proba < 0:
+            raise ValueError("The mean should be a probability (0<p<1).")
+        if self._zero_inflation_formula == "column-wise":
+            self._coef_inflation += -torch.mean(self._coef_inflation) + torch.logit(
+                torch.tensor([mean_proba])
+            )
+        elif self._zero_inflation_formula == "row-wise":
+            self._exog_inflation += -torch.mean(self._exog_inflation) + torch.logit(
+                torch.tensor([mean_proba])
+            )
+        else:
+            self._coef_inflation = torch.logit(torch.tensor([mean_proba]))
 
 
 def _check_one_dimension(
@@ -761,7 +785,8 @@ def get_simulation_parameters(
     components = _get_simulation_components(dim, rank)
     sigma = components @ (components.T)
     sigma += torch.eye(components.shape[0])
-    components = torch.linalg.cholesky(sigma)
+    omega = torch.inverse(sigma)
+    components = torch.linalg.cholesky(omega)
     if coef_inflation is None:
         print("Pln model will be sampled.")
         return PlnParameters(

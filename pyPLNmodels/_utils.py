@@ -22,12 +22,6 @@ from pyPLNmodels.lambert import lambertw
 
 torch.set_default_dtype(torch.float64)
 
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-else:
-    DEVICE = torch.device("cpu")
-
-
 BETA = 0.03
 
 
@@ -731,14 +725,14 @@ def _handle_data(
     )
     _check_data_shape(endog, exog, offsets)
     samples_only_zeros = torch.sum(endog, axis=1) == 0
-    if torch.min(samples_only_zeros) < 0.5:
+    if torch.sum(samples_only_zeros) > 0.5:
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
         msg = "The following counts (index) contains only zeros and are removed."
         msg += str(samples.numpy())
         warnings.warn(msg)
         endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
     dim_only_zeros = torch.sum(endog, axis=0) == 0
-    if torch.min(dim_only_zeros) < 0.5:
+    if torch.sum(dim_only_zeros) > 0.5:
         dims = torch.arange(endog.shape[1])[dim_only_zeros]
         msg = "The following variables (index) contains only zeros and are removed."
         msg += str(dims.numpy())

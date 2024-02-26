@@ -8,11 +8,6 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import numpy as np
 
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-else:
-    DEVICE = torch.device("cpu")
-
 
 def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
     """
