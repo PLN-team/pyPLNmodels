@@ -46,6 +46,7 @@ from pyPLNmodels._utils import (
     _get_coherent_inflation_inits,
     _check_shape_exog_infla,
     _scatter_pca_matrix,
+    _check_right_exog_inflation_shape,
 )
 
 from pyPLNmodels._initialization import (
@@ -593,7 +594,10 @@ class _model(ABC):
     @property
     def mean_gaussian(self):
         """Unconditional mean of the latent variable Z."""
-        return self._mean_gaussian.detach()
+        mean_gaussian = self._mean_gaussian
+        if isinstance(mean_gaussian, int):
+            return mean_gaussian
+        return mean_gaussian.detach()
 
     def scatter_pca_matrix(self, n_components=None, colors=None):
         """
@@ -1718,7 +1722,7 @@ class Pln(_model):
         int
             The maximum number of components.
         """
-        return self.dim
+        return min(self.dim, self.n_samples)
 
     @property
     def _coef(self):
@@ -3764,7 +3768,7 @@ class ZIPln(_model):
         int
             The maximum number of components.
         """
-        return self.dim
+        return min(self.dim, self.n_samples)
 
     @property
     def components(self) -> torch.Tensor:
@@ -3851,6 +3855,33 @@ class ZIPln(_model):
         """
         return self._attribute_or_none("_exog_inflation")
 
+    @exog_inflation.setter
+    @_array2tensor
+    def exog_inflation(
+        self, exog_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the exog_inflation property.
+
+        Parameters
+        ----------
+        exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The exog for the inflation part.
+        """
+        # _check_data_shape(self.endog, exog, self.offsets)
+        _check_right_exog_inflation_shape(
+            exog_inflation, self.n_samples, self.dim, self._zero_inflation_formula
+        )
+        self._exog_inflation = exog_inflation
+        print("Setting coef_inflation to initialization")
+        _, self._coef_inflation = _init_coef_coef_inflation(
+            self.endog,
+            self.exog,
+            self.exog_inflation,
+            self.offsets,
+            self._zero_inflation_formula,
+        )
+
     @coef_inflation.setter
     @_array2tensor
     def coef_inflation(
@@ -3871,19 +3902,21 @@ class ZIPln(_model):
         ValueError
             If the shape of the coef_inflation is incorrect.
         """
-        if coef_inflation.shape != self._shape_coef_infla:
+        if not self._has_right_coef_infla_shape(coef_inflation.shape):
             msg = "Wrong shape for the coef_inflation. Expected "
             msg += f"{self._shape_coef_infla}, got {coef_inflation.shape}"
             raise ValueError(msg)
         self._coef_inflation = coef_inflation
 
+    def _has_right_coef_infla_shape(self, shape):
+        if self._zero_inflation_formula == "global":
+            return shape.numel() < 2
+        return shape == self._shape_coef_infla
+
     @property
     def _shape_coef_infla(self):
         if self._zero_inflation_formula == "global":
-            return (
-                1,
-                1,
-            )
+            return torch.Size([])
         if self._zero_inflation_formula == "column-wise":
             return (self.nb_cov_infla, self.dim)
         return (self.n_samples, self.nb_cov_infla)
@@ -4241,7 +4274,19 @@ class ZIPln(_model):
         """
         Abstract property representing the additional methods string.
         """
-        return "visualize_latent_prob()."
+        return ".visualize_latent_prob(), .scatter_pca_matrix_prob(), .predict_prob_inflation() "
+
+    @property
+    def _additional_properties_string(self) -> str:
+        """
+        Property representing the additional properties string.
+
+        Returns
+        -------
+        str
+            The additional properties string.
+        """
+        return ".projected_latent_variables, .latent_prob, .proba_inflation"
 
     def visualize_latent_prob(self, indices_of_samples=None, indices_of_variables=None):
         """Visualize the latent probabilities via a heatmap."""

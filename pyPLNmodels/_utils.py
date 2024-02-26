@@ -663,26 +663,7 @@ def _handle_data_with_inflation(
     if zero_inflation_formula == "row-wise" and exog_inflation is not None:
         if torch.count_nonzero(exog_inflation - 1) == 0:
             exog_inflation = torch.ones(1, endog.shape[1])
-    samples_only_zeros = torch.sum(endog, axis=1) == 0
-    if torch.min(samples_only_zeros) < 0.5:
-        samples = torch.arange(endog.shape[0])[samples_only_zeros]
-        msg = "The following counts (index) contains only zeros and are removed."
-        msg += str(samples.numpy())
-        warnings.warn(msg)
-        endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
-    dim_only_zeros = torch.sum(endog, axis=0) == 0
-    if torch.min(dim_only_zeros) < 0.5:
-        dims = torch.arange(endog.shape[1])[dim_only_zeros]
-        msg = "The following variables (index) contains only zeros and are removed."
-        msg += str(dims.numpy())
-        warnings.warn(msg)
-        endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
     if zero_inflation_formula != "global" and exog_inflation is not None:
-        if zero_inflation_formula == "column-wise":
-            exog_inflation = exog_inflation[~samples_only_zeros, :]
-        else:
-            exog_inflation = exog_inflation[:, ~dim_only_zeros]
-
         _check_shape_exog_infla(
             exog_inflation, zero_inflation_formula, endog.shape[0], endog.shape[1]
         )
@@ -749,6 +730,20 @@ def _handle_data(
         endog, exog, offsets, offsets_formula, take_log_offsets, add_const
     )
     _check_data_shape(endog, exog, offsets)
+    samples_only_zeros = torch.sum(endog, axis=1) == 0
+    if torch.min(samples_only_zeros) < 0.5:
+        samples = torch.arange(endog.shape[0])[samples_only_zeros]
+        msg = "The following counts (index) contains only zeros and are removed."
+        msg += str(samples.numpy())
+        warnings.warn(msg)
+        endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
+    dim_only_zeros = torch.sum(endog, axis=0) == 0
+    if torch.min(dim_only_zeros) < 0.5:
+        dims = torch.arange(endog.shape[1])[dim_only_zeros]
+        msg = "The following variables (index) contains only zeros and are removed."
+        msg += str(dims.numpy())
+        warnings.warn(msg)
+        endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
     return endog, exog, offsets, column_endog
 
 
@@ -1079,3 +1074,22 @@ def threshold_samples_and_dim(max_samples, max_dim, n_samples, dim):
         )
         dim = max_dim
     return n_samples, dim
+
+
+def _check_right_exog_inflation_shape(
+    exog_inflation, n_samples, dim, zero_inflation_formula
+):
+    if zero_inflation_formula == "global":
+        if exog_inflation is not None:
+            msg = "Can not set the exog_inflation to a value of the "
+            msg += "zero inflation is 'global'."
+            raise ValueError(msg)
+
+    if zero_inflation_formula == "row-wise":
+        if exog_inflation.shape[1] != dim:
+            msg = f"Shape should be (_,{dim}), got shape{exog_inflation.shape}."
+            raise ValueError(msg)
+    if zero_inflation_formula == "column-wise":
+        if exog_inflation.shape[0] != n_samples:
+            msg = f"Shape should be ({n_samples},_), got shape{exog_inflation.shape}."
+            raise ValueError(msg)

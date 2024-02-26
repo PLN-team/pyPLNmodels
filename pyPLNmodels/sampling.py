@@ -88,6 +88,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         Tuple containing offsets, exog, and coefficients.
     """
     prev_state = torch.random.get_rng_state()
+    torch.random.manual_seed(0)
     if nb_cov_inflation == 0:
         if zero_inflation_formula == "global":
             if add_const_inflation is True:
@@ -161,7 +162,6 @@ def _get_simulation_coef_cov_offsets_coefzi(
     else:
         coef_inflation = None
 
-    torch.random.manual_seed(0)
     if nb_cov == 0:
         if add_const is True:
             exog = torch.ones(n_samples, 1)
@@ -531,6 +531,9 @@ def sample_zipln(
     See also :func:`-pyPLNmodels.sample_pln`
     """
     print("ZIPln is sampled")
+    prev_state = torch.random.get_rng_state()
+    if seed is not None:
+        torch.random.manual_seed(seed)
     proba_inflation = zipln_param.proba_inflation
     if zipln_param._zero_inflation_formula == "global":
         ksi = torch.bernoulli(
@@ -540,6 +543,7 @@ def sample_zipln(
         ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
     endog = (1 - ksi) * pln_endog
+    torch.random.set_rng_state(prev_state)
     if return_latent is True:
         if return_pln is True:
             return endog, gaussian, ksi, pln_endog
