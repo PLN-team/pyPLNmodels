@@ -45,7 +45,7 @@ from pyPLNmodels._utils import (
     _add_const_to_exog,
     _get_coherent_inflation_inits,
     _check_shape_exog_infla,
-    _scatter_pca_matrix,
+    _pca_pairplot,
     _check_right_exog_inflation_shape,
 )
 
@@ -218,7 +218,7 @@ class _model(ABC):
 
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
-        Visualize the latent variables with a classic PCA.
+        Visualize the gaussian latent variables with a classic PCA.
 
         Parameters
         ----------
@@ -238,14 +238,44 @@ class _model(ABC):
         Any
             The matplotlib axis.
         """
-        if ax is None:
-            ax = plt.gca()
+        variables = self.transform()
+        return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
+
+    def _viz_variables(
+        self, variables, *, ax=None, colors=None, show_cov: bool = False
+    ):
+        """
+        Visualize variables with a classic PCA.
+
+        Parameters
+        ----------
+        variables: torch.Tensor
+            The variables that need to be visualize
+        ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+        colors : Optional[np.ndarray], optional(keyword-only)
+            The colors to use for plotting, by default None.
+        show_cov: bool, Optional(keyword-only)
+            If True, will display ellipses with right covariances. Default is False.
+        Raises
+        ------
+        RuntimeError
+            If the rank is less than 2.
+
+        Returns
+        -------
+        Any
+            The matplotlib axis.
+        """
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
-        pca = self.sk_PCA(n_components=2)
+        pca = PCA(n_components=2)
+        pca.fit(variables)
         proj_variables = pca.transform(self.transform())
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
+        if ax is None:
+            ax = plt.gca()
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)
@@ -606,7 +636,7 @@ class _model(ABC):
             return mean_gaussian
         return mean_gaussian.detach()
 
-    def scatter_pca_matrix(self, n_components=None, colors=None):
+    def pca_pairplot(self, n_components=None, colors=None):
         """
         Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.
 
@@ -626,7 +656,7 @@ class _model(ABC):
         """
         n_components = self._threshold_n_components(n_components)
         array = self.transform().numpy()
-        _scatter_pca_matrix(array, n_components, self.dim, colors)
+        _pca_pairplot(array, n_components, self.dim, colors)
 
     def _threshold_n_components(self, n_components):
         if n_components is None:
@@ -1216,7 +1246,7 @@ class _model(ABC):
         str
             The string representation of the useful methods.
         """
-        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_circle(), .viz(), .scatter_pca_matrix(), .plot_expected_vs_true()"
+        return ".show(), .transform(), .sigma(), .predict(), .pca_projected_latent_variables(), .plot_pca_correlation_circle(), .viz(), .pca_pairplot(), .plot_expected_vs_true()"
 
     def sigma(self):
         """
@@ -1633,11 +1663,11 @@ class Pln(_model):
         >>> data = load_scrna(for_formula = True)
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
-        >>> pln.scatter_pca_matrix(n_components = 5)
+        >>> pln.pca_pairplot(n_components = 5)
         """,
     )
-    def scatter_pca_matrix(self, n_components=None, colors=None):
-        super().scatter_pca_matrix(n_components=n_components, colors=colors)
+    def pca_pairplot(self, n_components=None, colors=None):
+        super().pca_pairplot(n_components=n_components, colors=colors)
 
     @_add_doc(
         _model,
@@ -2975,11 +3005,11 @@ class PlnPCA(_model):
         >>> data = {"endog": endog}
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
-        >>> plnpca.scatter_pca_matrix(n_components = 5)
+        >>> plnpca.pca_pairplot(n_components = 5)
         """,
     )
-    def scatter_pca_matrix(self, n_components=None, colors=None):
-        super().scatter_pca_matrix(n_components=n_components, colors=colors)
+    def pca_pairplot(self, n_components=None, colors=None):
+        super().pca_pairplot(n_components=n_components, colors=colors)
 
     @_add_doc(
         _model,
@@ -3685,7 +3715,7 @@ class ZIPln(_model):
     @property
     def _description(self):
         msg = "full covariance model with "
-        msg += f"{self._zero_inflation_formula} zero inflation"
+        msg += f"{self._zero_inflation_formula} zero-inflation"
         if self._use_closed_form_prob is True:
             msg += f" and closed form for latent prob."
         else:
@@ -4278,7 +4308,9 @@ class ZIPln(_model):
         """
         Abstract property representing the additional methods string.
         """
-        return ".visualize_latent_prob(), .scatter_pca_matrix_prob(), .predict_prob_inflation() "
+        return (
+            ".visualize_latent_prob(), .pca_pairplot_prob(), .predict_prob_inflation() "
+        )
 
     @property
     def _additional_properties_string(self) -> str:
@@ -4323,7 +4355,7 @@ class ZIPln(_model):
         # ax.set_xticklabels(indices_of_variables)
         plt.show()
 
-    def scatter_pca_matrix_prob(self, n_components=None, colors=None):
+    def pca_pairplot_prob(self, n_components=None, colors=None):
         """
         Generates a scatter matrix plot based on Principal Component Analysis (PCA)
         on the latent probabilitiess.
@@ -4345,7 +4377,7 @@ class ZIPln(_model):
         """
         n_components = self._threshold_n_components(n_components)
         array = self.latent_prob.detach()
-        _scatter_pca_matrix(array.numpy(), n_components, self.dim, colors)
+        _pca_pairplot(array.numpy(), n_components, self.dim, colors)
 
     def _grad_M(self):
         if self._use_closed_form_prob is True:
@@ -4673,6 +4705,27 @@ class ZIPln(_model):
     @property
     def writable_zero_formula(self):
         return self._zero_inflation_formula.replace("-", "")
+
+    def viz_prob(self, *, colors=None, ax=None):
+        """
+        Visualize the latent probabilites with a classic PCA.
+
+        Parameters
+        ----------
+        ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+        colors : Optional[np.ndarray], optional(keyword-only)
+            The colors to use for plotting, by default None.
+        Raises
+        ------
+
+        Returns
+        -------
+        Any
+            The matplotlib axis.
+        """
+        variables = self.latent_prob
+        return self._viz_variables(variables, colors=colors, ax=ax, show_cov=False)
 
 
 class Brute_ZIPln(ZIPln):

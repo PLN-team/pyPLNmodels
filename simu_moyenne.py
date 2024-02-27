@@ -28,13 +28,13 @@ else:
 device = "cpu"
 
 viz = "poisson"
-_moyennes_XB = np.linspace(1, 5, 3)
-_moyennes_proba = np.linspace(0.2, 0.5, 4)
+_moyennes_XB = np.linspace(0, 3, 7)
+_moyennes_proba = np.linspace(0.1, 0.8, 7)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-_mean_infla = 0.25
+_mean_infla = 0.30
 _mean_xb = 2
 
-_nb_bootstrap = 2
+_nb_bootstrap = 15
 
 
 if viz == "poisson":
@@ -47,8 +47,8 @@ elif viz == "proba":
 
 chosen_moyennes = _moyennes[:-1]
 
-n = 150
-dim = 20
+n = 350
+dim = 100
 inflation_formula = "column-wise"
 
 
@@ -68,11 +68,11 @@ LABEL_DICT = {
 }
 
 REC_KEY = "Reconstruction_error"
-B_KEY = "MSE_B"
-SIGMA_KEY = "MSE_SIGMA"
-PI_KEY = "MAE_PI"
+B_KEY = "RMSE_B"
+SIGMA_KEY = "RMSE_SIGMA"
+PI_KEY = "RMSE_PI"
 ELBO_KEY = "ELBO"
-B0_KEY = "MSE_B0"
+B0_KEY = "RMSE_B0"
 
 VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 
@@ -88,11 +88,11 @@ VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 
 LEGEND_DICT = {
     REC_KEY: "Reconstruction_error",
-    B_KEY: r"MSE($\hat{\beta} - \beta^{\bigstar}$)",
-    SIGMA_KEY: r"MSE($\hat{\Sigma} - \Sigma^{\bigstar}$)",
-    B0_KEY: r"MSE($\hat{B}^0 - B^{0\bigstar}$)",
+    B_KEY: r"RMSE($\hat{\beta} - \beta^{\bigstar}$)",
+    SIGMA_KEY: r"RMSE($\hat{\Omega} - \Omega^{\bigstar}$)",
+    B0_KEY: r"RMSE($\hat{B}^0 - B^{0\bigstar}$)",
     ELBO_KEY: "Negative ELBO (Lower the better)",
-    PI_KEY: r"MAE($\hat{\pi} - \pi^{\bigstar}$)",
+    PI_KEY: r"RMSE($\hat{\pi} - \pi^{\bigstar}$)",
 }
 CRITERION_KEYS = [ELBO_KEY, REC_KEY, SIGMA_KEY, B_KEY, PI_KEY, B0_KEY]
 COLORS = {
@@ -106,12 +106,8 @@ COLORS = {
 KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY]
 
 
-def MSE(t):
-    return torch.mean(t**2)
-
-
-def MAE(t):
-    return torch.mean(torch.abs(t))
+def RMSE(t):
+    return torch.sqrt(torch.mean(t**2))
 
 
 def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
@@ -120,7 +116,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             endog,
             exog=exog,
             offsets=offsets,
-            add_const_inflation=False,
+            add_const_inflation=True,
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
             use_closed_form_prob=False,
@@ -156,7 +152,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
     return sim_models
 
 
-def get_plnparam(mean_xb, mean_infla, inflation_formula):
+def get_plnparam(inflation_formula):
     if inflation_formula == "global":
         nb_cov_infla = 0
         add_const_inflation = False
@@ -170,25 +166,16 @@ def get_plnparam(mean_xb, mean_infla, inflation_formula):
         zero_inflation_formula=inflation_formula,
         n_samples=n,
         add_const_inflation=add_const_inflation,
-        mean_infla=mean_infla,
+        dim=dim,
     )
-    plnparam._coef[0, :] = torch.ones(plnparam.dim).to(device)
-    Y = torch.randn(plnparam.n_samples, plnparam.dim) / 3 + mean_xb
-    Y = Y.to(device)
-    X = plnparam._coef.to(device)
-    xxxt_inv_xtY = Y @ (X.T) @ (torch.inverse(X @ (X.T)))
-    plnparam._exog = xxxt_inv_xtY
-    print("mean XB", torch.mean(plnparam.gaussian_mean))
-    print("proba", torch.mean(plnparam.proba_inflation))
-    print("mean infla", mean_infla)
     plnparam._offsets *= 0
     return plnparam
 
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit(tol=0.01, nb_max_iteration=10)
-        # model.fit(nb_max_iteration = 10)
+        # model.fit(tol = 0, nb_max_iteration=1500)
+        model.fit(tol=0, nb_max_iteration=1000)
     return dict_models
 
 
@@ -242,6 +229,15 @@ class one_plot:
             exog_inflation=_plnparam.exog_inflation,
             inflation_formula=self.inflation_formula,
         )
+        samples_only_zeros = torch.sum(endog, axis=1) == 0
+        dim_only_zeros = torch.sum(endog, axis=0) == 0
+        for model in dict_models.values():
+            model.samples_only_zeros = samples_only_zeros
+            model.dim_only_zeros = dim_only_zeros
+
+        # sns.heatmap(torch.inverse(_plnparam.covariance))
+        # plt.title("True")
+        # plt.show()
         fit_models(dict_models)
         return dict_models
 
@@ -252,18 +248,25 @@ class one_plot:
                 self.model_criterions = pickle.load(fp)
         else:
             print("Simulating")
+            plnparam = get_plnparam(self.inflation_formula)
+            if self.viz == "poisson":
+                plnparam._set_mean_proba(self.mean_infla)
+            else:
+                plnparam._set_gaussian_mean(self.mean_xb)
+            Sigma = plnparam.covariance
             for moyenne in tqdm(self.moyennes):
                 if self.viz == "poisson":
-                    plnparam = get_plnparam(
-                        moyenne, self.mean_infla, self.inflation_formula
-                    )
+                    plnparam._set_gaussian_mean(moyenne)
+                    print("true mean gaussian", moyenne)
+                    print("true mean proba", self.mean_infla)
                 else:
-                    plnparam = get_plnparam(
-                        self.mean_xb, moyenne, self.inflation_formula
-                    )
-                Sigma = plnparam.covariance
+                    plnparam._set_mean_proba(moyenne)
+                    print("true mean gaussian", self.mean_xb)
+                    print("true mean proba", moyenne)
                 B = plnparam.coef
                 B0 = plnparam.coef_inflation
+                print("mean gaussian", torch.mean(plnparam.gaussian_mean))
+                print("mean proba", torch.mean(plnparam.proba_inflation))
                 for i in range(self.nb_bootstrap):
                     dict_models = self.simulate_mean(plnparam, i)
                     self.stock_results(dict_models, moyenne, Sigma, B, B0)
@@ -272,17 +275,32 @@ class one_plot:
     def stock_results(self, dict_models, moyenne, Sigma, B, B0):
         for key_model in KEY_MODELS:
             model_fitted = dict_models[key_model]
+            lines = ~model_fitted.samples_only_zeros
+            cols = ~model_fitted.dim_only_zeros
+            omega = torch.inverse(Sigma)[cols, cols]
+            beta = B[:, cols]
+            if model_fitted._zero_inflation_formula == "row-wise":
+                beta_0 = B0[lines, :]
+            elif model_fitted._zero_inflation_formula == "column-wise":
+                beta_0 = B0[:, cols]
+            else:
+                beta_0 = B0
             results_model = self.model_criterions[key_model][moyenne]
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
-            results_model[SIGMA_KEY].append(MSE(model_fitted.covariance - Sigma.cpu()))
-            results_model[B_KEY].append(MSE(model_fitted.coef - B.cpu()))
+            results_model[SIGMA_KEY].append(
+                RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
+            )
+            results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
             results_model[PI_KEY].append(
-                MAE(
-                    torch.sigmoid(model_fitted.coef_inflation) - torch.sigmoid(B0).cpu()
+                RMSE(
+                    torch.sigmoid(model_fitted.coef_inflation)
+                    - torch.sigmoid(beta_0).cpu()
                 )
             )
             results_model[ELBO_KEY].append(model_fitted.elbo)
-            results_model[B0_KEY].append(MSE(model_fitted.coef_inflation - B0.cpu()))
+            results_model[B0_KEY].append(
+                RMSE(model_fitted.coef_inflation - beta_0.cpu())
+            )
 
     def save_criterions(self):
         with open(self.abs_name_file, "wb") as fp:
@@ -347,6 +365,7 @@ class one_plot:
             else:
                 pass
         data = self.data
+        data.to_csv("df_simu.csv")
         for crit_key in CRITERION_KEYS:
             palette = {
                 LABEL_DICT[model_key]: COLORS[model_key] for model_key in KEY_MODELS
@@ -410,7 +429,7 @@ class one_plot:
 
 
 def launch_formulas(_moyennes, _mean_sim, chosen_moyennes, _nb_bootstrap, viz):
-    for inflation_formula in tqdm(["column-wise", "row-wise", "global"]):
+    for inflation_formula in tqdm(["row-wise", "column-wise", "global"]):
         op = one_plot(
             _moyennes,
             _mean_sim,
