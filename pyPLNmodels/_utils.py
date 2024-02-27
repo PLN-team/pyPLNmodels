@@ -727,14 +727,14 @@ def _handle_data(
     samples_only_zeros = torch.sum(endog, axis=1) == 0
     if torch.sum(samples_only_zeros) > 0.5:
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
-        msg = "The following counts (index) contains only zeros and are removed."
+        msg = "The following (index) counts contains only zeros and are removed."
         msg += str(samples.numpy())
         warnings.warn(msg)
         endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
     dim_only_zeros = torch.sum(endog, axis=0) == 0
     if torch.sum(dim_only_zeros) > 0.5:
         dims = torch.arange(endog.shape[1])[dim_only_zeros]
-        msg = "The following variables (index) contains only zeros and are removed."
+        msg = "The following (index) variables contains only zeros and are removed."
         msg += str(dims.numpy())
         warnings.warn(msg)
         endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
@@ -994,7 +994,7 @@ def _check_shape_exog_infla(exog_inflation, inflation_formula, n_samples, dim):
             raise ValueError(msg)
 
 
-def _scatter_pca_matrix(array, n_components, dim, colors):
+def _pca_pairplot(array, n_components, dim, colors):
     """
     Generates a scatter matrix plot based on Principal Component Analysis (PCA) on
     the given array.

@@ -32,13 +32,13 @@ def test_show_coef_transform_covariance_pcaprojected(any_model):
 
 @pytest.mark.parametrize("model", dict_fixtures["fitted_model"])
 @filter_models(single_models)
-def test_scatter_pca_matrix(model):
+def test_pca_pairplot(model):
     if model._NAME in ["Pln", "ZIPln"]:
-        model.scatter_pca_matrix(n_components=8)
+        model.pca_pairplot(n_components=8)
     else:
-        model.scatter_pca_matrix(n_components=2)
-        model.scatter_pca_matrix()
-    model.scatter_pca_matrix(n_components=4, color=labels_real)
+        model.pca_pairplot(n_components=2)
+        model.pca_pairplot()
+    model.pca_pairplot(n_components=4, color=labels_real)
 
 
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_model"])
