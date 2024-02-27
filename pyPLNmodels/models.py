@@ -4731,7 +4731,7 @@ class ZIPln(_model):
             The matplotlib axis.
         """
         variables = self.latent_prob
-        return _viz_variables(variables, colors=colors, ax=ax, show_cov=False)
+        return self._viz_variables(variables, colors=colors, ax=ax, show_cov=False)
 
 
 class Brute_ZIPln(ZIPln):
