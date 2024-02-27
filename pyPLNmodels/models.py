@@ -114,13 +114,10 @@ class _model(ABC):
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
         """
-        (
-            self._endog,
-            self._exog,
-            self._offsets,
-            self.column_endog,
-        ) = _handle_data(
-            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+        (self._endog, self._exog, self._offsets, self.column_endog, _, _) = (
+            _handle_data(
+                endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+            )
         )
         self._fitted = False
         self._criterion_args = _CriterionArgs()
@@ -1291,7 +1288,7 @@ class _model(ABC):
     def reconstruction_error(self):
         """Recontstruction error between the predictions and the endog."""
         predictions = self._endog_predictions().ravel().detach()
-        return torch.mean((predictions - self._endog.ravel()) ** 2)
+        return torch.sqrt(torch.mean((predictions - self._endog.ravel()) ** 2))
 
     @property
     def elbo(self):
@@ -1331,7 +1328,7 @@ class _model(ABC):
         ax.plot(y, y, c="red")
         ax.set_yscale("log")
         ax.set_title(
-            f"Reconstruction error:{np.round(self.reconstruction_error.item(), 3)}"
+            f"Reconstruction error (RMSE):{np.round(self.reconstruction_error.item(), 3)}"
         )
         ax.set_xscale("log")
         ax.set_ylabel("Predicted values")
@@ -2029,13 +2026,10 @@ class PlnPCAcollection:
         :meth:`~pyPLNmodels.PlnPCAcollection.from_formula`
         """
         self._dict_models = {}
-        (
-            self._endog,
-            self._exog,
-            self._offsets,
-            self.column_endog,
-        ) = _handle_data(
-            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+        (self._endog, self._exog, self._offsets, self.column_endog, _, _) = (
+            _handle_data(
+                endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+            )
         )
         self._fitted = False
         self._init_models(ranks, dict_of_dict_initialization, add_const=add_const)
@@ -3690,8 +3684,8 @@ class ZIPln(_model):
 
     @property
     def _description(self):
-        msg = "full covariance model and zero-inflation with "
-        msg += f"{self._zero_inflation_formula} inflation"
+        msg = "full covariance model with "
+        msg += f"{self._zero_inflation_formula} zero inflation"
         if self._use_closed_form_prob is True:
             msg += f" and closed form for latent prob."
         else:

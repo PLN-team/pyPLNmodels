@@ -646,17 +646,20 @@ def _handle_data_with_inflation(
     add_const,
     add_const_inflation,
 ):
-    endog, exog, offsets, column_endog = _handle_data(
-        endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+    endog, exog, offsets, column_endog, samples_only_zeros, dim_only_zeros = (
+        _handle_data(endog, exog, offsets, offsets_formula, take_log_offsets, add_const)
     )
     ## changing dimension if row-wise and a vector of ones
     exog_inflation = _format_data(exog_inflation)
     exog_inflation, add_const_inflation = _get_coherent_inflation_inits(
         zero_inflation_formula, exog_inflation, add_const_inflation
     )
+
     if zero_inflation_formula == "row-wise" and exog_inflation is not None:
         if torch.count_nonzero(exog_inflation - 1) == 0:
             exog_inflation = torch.ones(1, endog.shape[1])
+    if zero_inflation_formula == "column-wise":
+        exog_inflation = exog_inflation[~samples_only_zeros, :]
     if zero_inflation_formula != "global" and exog_inflation is not None:
         _check_shape_exog_infla(
             exog_inflation, zero_inflation_formula, endog.shape[0], endog.shape[1]
@@ -731,6 +734,7 @@ def _handle_data(
         msg += str(samples.numpy())
         warnings.warn(msg)
         endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
+        print(f"Now dataset of size {endog.shape}")
     dim_only_zeros = torch.sum(endog, axis=0) == 0
     if torch.sum(dim_only_zeros) > 0.5:
         dims = torch.arange(endog.shape[1])[dim_only_zeros]
@@ -738,7 +742,8 @@ def _handle_data(
         msg += str(dims.numpy())
         warnings.warn(msg)
         endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
-    return endog, exog, offsets, column_endog
+        print(f"Now dataset of size {endog.shape}")
+    return endog, exog, offsets, column_endog, samples_only_zeros, dim_only_zeros
 
 
 def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
