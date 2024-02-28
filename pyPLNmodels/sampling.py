@@ -650,7 +650,7 @@ def get_zipln_simulated_count_data(
     return_true_param: bool = False,
     add_const: bool = True,
     add_const_inflation: bool = True,
-    zero_inflation_formula: {"global", "column-wise", "row-wise"} = "global",
+    zero_inflation_formula: {"global", "column-wise", "row-wise"} = "column-wise",
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -674,10 +674,11 @@ def get_zipln_simulated_count_data(
         Number of exog, by default 1.
     return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
-    zero_inflation_formula : {"global", "column-wise","row-wise"}
-        If "global", will return one global coefficient.
+    zero_inflation_formula : {"column-wise", "global","row-wise"}
         If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
+        If "global", will return one global coefficient.
         If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+        Default is "column-wise".
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 

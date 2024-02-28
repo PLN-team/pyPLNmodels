@@ -18,6 +18,7 @@ from pyPLNmodels._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
     _closed_formula_latent_prob,
+    _closed_formula_pi,
 )
 from pyPLNmodels.elbos import (
     elbo_plnpca,
@@ -535,8 +536,12 @@ class _model(ABC):
             loss.backward()
             elbo += loss.item()
             self.optim.step()
+        sefl._update_closed_forms()
         self._project_parameters()
         return elbo / self.nb_batches
+
+    def _update_closed_forms(self):
+        pass
 
     def _extract_batch(self, batch):
         self._endog_b = batch[0]
@@ -4755,4 +4760,25 @@ class Brute_ZIPln(ZIPln):
             self._coef,
             self._xinflacoefinfla_b,
             self._dirac_b,
+        )
+
+    def _list_of_parameters_needing_gradient(self):
+        return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
+
+    def _update_closed_forms(self):
+        self._covariance = _closed_formula_covariance(
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._coef,
+            self.n_samples,
+        )
+        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
+        self._latent_prob = _closed_formula_pi(
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._dirac,
+            self._exog,
+            self._coef_inflation,
         )
