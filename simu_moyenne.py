@@ -28,9 +28,9 @@ else:
 device = "cpu"
 
 
-nb_points = 2
+nb_points = 3
 
-viz = "proba"
+viz = "poisson"
 _moyennes_XB = np.linspace(0, 3, nb_points)
 _moyennes_proba = np.linspace(0.1, 0.8, nb_points)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
@@ -48,7 +48,7 @@ elif viz == "proba":
     _mean_sim = _mean_xb
 
 
-chosen_moyennes = _moyennes[:-1]
+chosen_moyennes = _moyennes
 
 n = 350
 dim = 100
@@ -76,6 +76,7 @@ SIGMA_KEY = "RMSE_SIGMA"
 PI_KEY = "RMSE_PI"
 ELBO_KEY = "ELBO"
 B0_KEY = "RMSE_B0"
+TIME_KEY = "TIME"
 
 VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 
@@ -96,8 +97,9 @@ LEGEND_DICT = {
     B0_KEY: r"RMSE($\hat{B}^0 - B^{0\bigstar}$)",
     ELBO_KEY: "Negative ELBO (Lower the better)",
     PI_KEY: r"RMSE($\hat{\pi} - \pi^{\bigstar}$)",
+    TIME_KEY: "Time",
 }
-CRITERION_KEYS = [ELBO_KEY, REC_KEY, SIGMA_KEY, B_KEY, PI_KEY, B0_KEY]
+CRITERION_KEYS = [ELBO_KEY, REC_KEY, SIGMA_KEY, B_KEY, PI_KEY, B0_KEY, TIME_KEY]
 COLORS = {
     ENH_FREE_KEY: "cornflowerblue",
     ENH_CLOSED_KEY: "darkblue",
@@ -217,6 +219,7 @@ class one_plot:
                     PI_KEY: [],
                     ELBO_KEY: [],
                     B0_KEY: [],
+                    TIME_KEY: [],
                 }
                 for moyenne in self.moyennes
             }
@@ -304,6 +307,9 @@ class one_plot:
             results_model[B0_KEY].append(
                 RMSE(model_fitted.coef_inflation - beta_0.cpu())
             )
+            results_model[TIME_KEY].append(
+                model_fitted._criterion_args.running_times[-1]
+            )
 
     def save_criterions(self):
         with open(self.abs_name_file, "wb") as fp:
@@ -348,7 +354,7 @@ class one_plot:
         return data
 
     def plot_results(self):
-        fig, axes = plt.subplots(2, 3, figsize=(30, 15))
+        fig, axes = plt.subplots(2, 4, figsize=(30, 15))
         plots = {}
         plots[REC_KEY] = axes[1, 1]
         plots[REC_KEY].set_title("Reconstruction error", fontsize=22)
@@ -362,6 +368,8 @@ class one_plot:
         plots[B0_KEY].set_title(LEGEND_DICT[B0_KEY], fontsize=22)
         plots[ELBO_KEY] = axes[1, 0]
         plots[ELBO_KEY].set_title(LEGEND_DICT[ELBO_KEY], fontsize=22)
+        plots[TIME_KEY] = axes[0, 3]
+        plots[TIME_KEY].set_title(LEGEND_DICT[TIME_KEY], fontsize=22)
         for key, plot in plots.items():
             if key != ELBO_KEY:
                 plot.set_yscale("log")
@@ -414,8 +422,8 @@ class one_plot:
         )
         ax_b = plots[B_KEY]
         ax_y = plots[REC_KEY]
-        ax_y.set_ylim(0.1, 10)
-        ax_b.set_ylim(10 ** (-2), 1)
+        # ax_y.set_ylim(0.1, 10)
+        # ax_b.set_ylim(10 ** (-2), 1)
         if viz == "poisson":
             title = rf"n={n},p={dim},d=1,$\pi \approx {_mean_infla}$_{self.inflation_formula}"
         else:
