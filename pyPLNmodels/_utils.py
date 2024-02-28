@@ -42,6 +42,7 @@ class _CriterionArgs:
         self.normalized_elbo_list = []
         self.criterion_list = [1]
         self.criterion = 1
+        # self.previous_elbo = 1
 
     def update_criterion(self, elbo, running_time):
         self._elbos_list.append(elbo)
@@ -62,6 +63,9 @@ class _CriterionArgs:
                 / (self.running_times[-2] - self.running_times[-1])
             )
             self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
+            # self.criterion = np.abs((elbo - self.previous_elbo)/elbo)
+            # self.previous_elbo = elbo
+
             self.criterion_list.append(self.criterion)
 
     @property

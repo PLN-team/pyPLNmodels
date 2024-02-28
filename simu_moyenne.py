@@ -28,7 +28,7 @@ else:
 device = "cpu"
 
 
-nb_points = 3
+nb_points = 2
 
 viz = "poisson"
 _moyennes_XB = np.linspace(0, 3, nb_points)
@@ -77,6 +77,7 @@ PI_KEY = "RMSE_PI"
 ELBO_KEY = "ELBO"
 B0_KEY = "RMSE_B0"
 TIME_KEY = "TIME"
+NBITER_KEY = "NBITER"
 
 VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 
@@ -98,8 +99,18 @@ LEGEND_DICT = {
     ELBO_KEY: "Negative ELBO (Lower the better)",
     PI_KEY: r"RMSE($\hat{\pi} - \pi^{\bigstar}$)",
     TIME_KEY: "Time",
+    NBITER_KEY: "Number of iterations",
 }
-CRITERION_KEYS = [ELBO_KEY, REC_KEY, SIGMA_KEY, B_KEY, PI_KEY, B0_KEY, TIME_KEY]
+CRITERION_KEYS = [
+    ELBO_KEY,
+    REC_KEY,
+    SIGMA_KEY,
+    B_KEY,
+    PI_KEY,
+    B0_KEY,
+    TIME_KEY,
+    NBITER_KEY,
+]
 COLORS = {
     ENH_FREE_KEY: "cornflowerblue",
     ENH_CLOSED_KEY: "darkblue",
@@ -180,7 +191,7 @@ def get_plnparam(inflation_formula):
 def fit_models(dict_models):
     for key, model in dict_models.items():
         # model.fit(tol = 0, nb_max_iteration=1500)
-        model.fit(tol=0, nb_max_iteration=10)
+        model.fit(tol=1e-6, verbose=True)
     return dict_models
 
 
@@ -220,6 +231,7 @@ class one_plot:
                     ELBO_KEY: [],
                     B0_KEY: [],
                     TIME_KEY: [],
+                    NBITER_KEY: [],
                 }
                 for moyenne in self.moyennes
             }
@@ -310,6 +322,7 @@ class one_plot:
             results_model[TIME_KEY].append(
                 model_fitted._criterion_args.running_times[-1]
             )
+            results_model[NBITER_KEY].append(model_fitted.nb_iteration_done)
 
     def save_criterions(self):
         with open(self.abs_name_file, "wb") as fp:
@@ -370,6 +383,8 @@ class one_plot:
         plots[ELBO_KEY].set_title(LEGEND_DICT[ELBO_KEY], fontsize=22)
         plots[TIME_KEY] = axes[0, 3]
         plots[TIME_KEY].set_title(LEGEND_DICT[TIME_KEY], fontsize=22)
+        plots[NBITER_KEY] = axes[1, 3]
+        plots[NBITER_KEY].set_title(LEGEND_DICT[NBITER_KEY], fontsize=22)
         for key, plot in plots.items():
             if key != ELBO_KEY:
                 plot.set_yscale("log")
