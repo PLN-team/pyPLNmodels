@@ -4792,14 +4792,5 @@ class Brute_ZIPln(ZIPln):
 
     def _update_closed_forms(self):
         self._coef = _closed_formula_coef(self._exog, self._latent_mean)
-        if self._use_closed_form_prob is False:
-            pass
-            # self._latent_prob = _closed_formula_pi(
-            #     self._offsets,
-            #     self._latent_mean,
-            #     self._latent_sqrt_var,
-            #     self._dirac,
-            #     self._xinflacoefinfla,
-            # )
-        else:
+        if self._use_closed_form_prob is True:
             self._latent_prob = self.closed_formula_latent_prob
