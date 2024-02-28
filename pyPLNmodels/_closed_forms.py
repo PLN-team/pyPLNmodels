@@ -71,8 +71,7 @@ def _closed_formula_pi(
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
     dirac: torch.Tensor,
-    exog: torch.Tensor,
-    _coef_inflation: torch.Tensor,
+    xinflacoefinfla: torch.Tensor,
 ) -> torch.Tensor:
     """
     Compute the closed-form pi for the M step of the noPCA model.
@@ -87,10 +86,9 @@ def _closed_formula_pi(
         Variational parameter with size (n, p).
     dirac : torch.Tensor
         Dirac tensor.
-    exog : torch.Tensor
-        Covariates with size (n, d).
-    _coef_inflation : torch.Tensor
-        Inflation coefficient tensor.
+    xinflacoefinfla : torch.Tensor
+        Matrix product between the covariates and the regression
+        coefficient
 
     Returns:
     -------
@@ -98,7 +96,7 @@ def _closed_formula_pi(
         The closed-form pi with the same size as dirac.
     """
     poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_sqrt_var))
-    return torch._sigmoid(poiss_param + torch.mm(exog, _coef_inflation)) * dirac
+    return torch.sigmoid(poiss_param + xinflacoefinfla) * dirac
 
 
 def _closed_formula_latent_prob(exog, coef, offsets, xinflacoef_infla, cov, dirac):

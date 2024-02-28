@@ -115,10 +115,15 @@ class _model(ABC):
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
         """
-        (self._endog, self._exog, self._offsets, self.column_endog, _, _) = (
-            _handle_data(
-                endog, exog, offsets, offsets_formula, take_log_offsets, add_const
-            )
+        (
+            self._endog,
+            self._exog,
+            self._offsets,
+            self.column_endog,
+            _,
+            _,
+        ) = _handle_data(
+            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
         self._criterion_args = _CriterionArgs()
@@ -536,7 +541,7 @@ class _model(ABC):
             loss.backward()
             elbo += loss.item()
             self.optim.step()
-        sefl._update_closed_forms()
+        self._update_closed_forms()
         self._project_parameters()
         return elbo / self.nb_batches
 
@@ -2061,10 +2066,15 @@ class PlnPCAcollection:
         :meth:`~pyPLNmodels.PlnPCAcollection.from_formula`
         """
         self._dict_models = {}
-        (self._endog, self._exog, self._offsets, self.column_endog, _, _) = (
-            _handle_data(
-                endog, exog, offsets, offsets_formula, take_log_offsets, add_const
-            )
+        (
+            self._endog,
+            self._exog,
+            self._offsets,
+            self.column_endog,
+            _,
+            _,
+        ) = _handle_data(
+            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
         )
         self._fitted = False
         self._init_models(ranks, dict_of_dict_initialization, add_const=add_const)
@@ -4756,29 +4766,40 @@ class Brute_ZIPln(ZIPln):
             self._latent_mean_b,
             self._latent_sqrt_var_b,
             latent_prob_b,
-            self._components,
+            self._covariance,
             self._coef,
             self._xinflacoefinfla_b,
             self._dirac_b,
         )
 
-    def _list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_sqrt_var, self._coef_inflation]
-
-    def _update_closed_forms(self):
-        self._covariance = _closed_formula_covariance(
+    @property
+    def _covariance(self):
+        return _closed_formula_covariance(
             self._exog,
             self._latent_mean,
             self._latent_sqrt_var,
             self._coef,
             self.n_samples,
         )
-        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
-        self._latent_prob = _closed_formula_pi(
-            self._offsets,
+
+    @property
+    def _list_of_parameters_needing_gradient(self):
+        return [
             self._latent_mean,
             self._latent_sqrt_var,
-            self._dirac,
-            self._exog,
             self._coef_inflation,
-        )
+        ]
+
+    def _update_closed_forms(self):
+        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
+        if self._use_closed_form_prob is False:
+            pass
+            # self._latent_prob = _closed_formula_pi(
+            #     self._offsets,
+            #     self._latent_mean,
+            #     self._latent_sqrt_var,
+            #     self._dirac,
+            #     self._xinflacoefinfla,
+            # )
+        else:
+            self._latent_prob = self.closed_formula_latent_prob

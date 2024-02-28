@@ -27,14 +27,17 @@ else:
     device = "cpu"
 device = "cpu"
 
-viz = "poisson"
-_moyennes_XB = np.linspace(0, 3, 7)
-_moyennes_proba = np.linspace(0.1, 0.8, 7)
+
+nb_points = 2
+
+viz = "proba"
+_moyennes_XB = np.linspace(0, 3, nb_points)
+_moyennes_proba = np.linspace(0.1, 0.8, nb_points)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.30
 _mean_xb = 2
 
-_nb_bootstrap = 15
+_nb_bootstrap = 2
 
 
 if viz == "poisson":
@@ -175,7 +178,7 @@ def get_plnparam(inflation_formula):
 def fit_models(dict_models):
     for key, model in dict_models.items():
         # model.fit(tol = 0, nb_max_iteration=1500)
-        model.fit(tol=0, nb_max_iteration=1000)
+        model.fit(tol=0, nb_max_iteration=10)
     return dict_models
 
 

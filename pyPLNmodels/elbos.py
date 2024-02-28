@@ -273,12 +273,11 @@ def elbo_brute_zipln(
     latent_mean,
     latent_sqrt_var,
     latent_prob,
-    components,
+    covariance,
     coef,
     x_coef_inflation,
     dirac,
 ):
-    covariance = components @ (components.T)
     if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
         raise RuntimeError("Latent probability error.")
     n_samples, dim = endog.shape
@@ -306,8 +305,9 @@ def elbo_brute_zipln(
         1 - latent_prob, _trunc_log(1 - latent_prob)
     )
     e = torch.sum(inside_e)
-    _, logdet_C = torch.slogdet(components)
-    logdet = -n_samples * logdet_C
+    # _, logdet_C = torch.slogdet(components)
+    # logdet = -n_samples * logdet_C
+    logdet = -n_samples / 2 * torch.logdet(covariance)
     diag_sum_s2 = torch.diag(torch.sum(s_rond_s, axis=0))
     inside_b = -1 / 2 * Omega * (m_moins_xb_outer + diag_sum_s2)
     b = torch.sum(inside_b)
