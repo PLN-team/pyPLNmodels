@@ -46,7 +46,8 @@ zi = ZIPln(
 )
 zi.fit(nb_max_iteration=300, verbose=True)
 sns.heatmap(zi._covariance.detach())
-plt.show()
+
+plt.savefig("cov.pdf", format="pdf")
 # zi.fit(tol=0, nb_max_iteration=10000, verbose=True)
 # zi.save("zi_model")
 # print("zi shape", zi.endog.shape)

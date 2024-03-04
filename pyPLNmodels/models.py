@@ -517,6 +517,12 @@ class _model(ABC):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
+            print("norm", torch.norm(self.latent_prob))
+            print("norm", torch.norm(self.latent_mean))
+            print("norm", torch.norm(self.latent_sqrt_var))
+            print("norm", torch.norm(self._coef))
+            print("norm", torch.norm(self._covariance))
+            print("------")
             if torch.sum(torch.isnan(loss)):
                 print("loss:", loss)
                 raise ValueError("The ELBO contains nan values.")
