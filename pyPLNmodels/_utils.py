@@ -22,6 +22,12 @@ from pyPLNmodels.lambert import lambertw
 
 torch.set_default_dtype(torch.float64)
 
+
+if torch.cuda.is_available():
+    DEVICE = "cuda:0"
+else:
+    DEVICE = "cpu"
+
 BETA = 0.03
 
 
@@ -151,8 +157,8 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
 
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
     integer = torch.min(
-        torch.max(tens, torch.tensor([eps])),
-        torch.tensor([1 - eps]),
+        torch.max(tens, torch.tensor([eps], device=DEVICE)),
+        torch.tensor([1 - eps], device=DEVICE),
     )
     return torch.log(integer)
 
@@ -1096,3 +1102,7 @@ def _check_right_exog_inflation_shape(
         if exog_inflation.shape[0] != n_samples:
             msg = f"Shape should be ({n_samples},_), got shape{exog_inflation.shape}."
             raise ValueError(msg)
+
+
+def _select_index_and_device(array, dim, indices, device):
+    return torch.index_select(array, dim, indices).to(device)

@@ -48,6 +48,7 @@ from pyPLNmodels._utils import (
     _check_shape_exog_infla,
     _pca_pairplot,
     _check_right_exog_inflation_shape,
+    _select_index_and_device,
 )
 
 from pyPLNmodels._initialization import (
@@ -362,7 +363,7 @@ class _model(ABC):
         """
         Initialize coefficients smartly.
         """
-        self._coef = _init_coef(self._endog, self._exog, self._offsets)
+        self._coef = _init_coef(self._endog, self._exog, self._offsets).to(DEVICE)
 
     def _random_init_coef(self):
         """
@@ -396,7 +397,6 @@ class _model(ABC):
         """
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
-            parameter = parameter.to(DEVICE)
 
     def fit(
         self,
@@ -482,18 +482,16 @@ class _model(ABC):
                 indices, i * self._batch_size, (i + 1) * self._batch_size
             )
             # Move the parameters to GPU
-            for parameter in batch:
-                if parameter is not None:
-                    parameter = parameter.to(DEVICE)
             yield batch
-            # remove parameters from GPU to free space.
-            if DEVICE != "cpu":
-                for parameter in batch:
-                    if parameter is not None:
-                        parameter = parameter.to("cpu")
+
         # Last batch
         if self._last_batch_size != 0:
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
+
+    def move_to_device(self, batch, device):
+        for param in batch:
+            if param is not None:
+                param = param.to(device)
 
     def _return_batch(self, indices, beginning, end):
         self.to_take = torch.tensor(indices[beginning:end])
@@ -502,11 +500,11 @@ class _model(ABC):
         else:
             exog_b = None
         return (
-            torch.index_select(self._endog, 0, self.to_take),
-            exog_b,
-            torch.index_select(self._offsets, 0, self.to_take),
-            torch.index_select(self._latent_mean, 0, self.to_take),
-            torch.index_select(self._latent_sqrt_var, 0, self.to_take),
+            _select_index_and_device(self._endog, 0, self.to_take, DEVICE),
+            exog_b.to(DEVICE),
+            _select_index_and_device(self._offsets, 0, self.to_take, DEVICE),
+            _select_index_and_device(self._latent_mean, 0, self.to_take, DEVICE),
+            _select_index_and_device(self._latent_sqrt_var, 0, self.to_take, DEVICE),
         )
 
     @property
@@ -534,6 +532,7 @@ class _model(ABC):
         t = time.time()
         for batch in self._get_batch(shuffle=False):
             self._extract_batch(batch)
+            self.move_to_device(batch, DEVICE)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             if torch.sum(torch.isnan(loss)):
@@ -1796,7 +1795,7 @@ class Pln(_model):
             The covariance matrix or None.
         """
         return _closed_formula_covariance(
-            self._exog,
+            self._exog.to(DEVICE),
             self._latent_mean,
             self._latent_sqrt_var,
             self._coef,
@@ -3389,14 +3388,14 @@ class PlnPCA(_model):
     @_add_doc(_model)
     def _random_init_model_parameters(self):
         super()._random_init_coef()
-        self._components = torch.randn((self.dim, self._rank))
+        self._components = torch.randn((self.dim, self._rank)).to(DEVICE)
 
     @_add_doc(_model)
     def _smart_init_model_parameters(self):
         if not hasattr(self, "_coef"):
             super()._smart_init_coef()
         if not hasattr(self, "_components"):
-            self._components = _init_components(self._endog, self._rank)
+            self._components = _init_components(self._endog, self._rank).to(DEVICE)
 
     @_add_doc(_model)
     def _random_init_latent_parameters(self):
@@ -3576,11 +3575,15 @@ class ZIPln(_model):
 
     def _return_batch(self, indices, beginning, end):
         pln_batch = super()._return_batch(indices, beginning, end)
-        dirac_b = torch.index_select(self._dirac, 0, self.to_take)
+        dirac_b = _select_index_and_device(self._dirac, 0, self.to_take, DEVICE)
         batch = pln_batch + (dirac_b,)
         if self._use_closed_form_prob is False:
-            to_return = torch.index_select(self._latent_prob, 0, self.to_take)
-            return batch + (torch.index_select(self._latent_prob, 0, self.to_take),)
+            to_return = _select_index_and_device(
+                self._latent_prob, 0, self.to_take, DEVICE
+            )
+            return batch + (
+                _select_index_and_device(self._latent_prob, 0, self.to_take, DEVICE),
+            )
         return batch
 
     @_add_doc(
@@ -3753,19 +3756,19 @@ class ZIPln(_model):
 
     def _random_init_model_parameters(self):
         if self._zero_inflation_formula == "global":
-            self._coef_inflation = torch.tensor([0.5])
+            self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
         elif self._zero_inflation_formula == "row-wise":
             self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla).to(
                 DEVICE
             )
         elif self._zero_inflation_formula == "column-wise":
-            self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim)
+            self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
 
         if self.nb_cov == 0:
             self._coef = None
         else:
-            self._coef = torch.randn(self.nb_cov, self.dim)
-        self._components = torch.randn(self.dim, self.dim)
+            self._coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+        self._components = torch.randn(self.dim, self.dim).to(DEVICE)
 
     # should change the good initialization for _coef_inflation
     def _smart_init_model_parameters(self):
@@ -3781,11 +3784,13 @@ class ZIPln(_model):
             self._zero_inflation_formula,
         )
         if not hasattr(self, "_coef_inflation"):
-            self._coef_inflation = coef_inflation
+            self._coef_inflation = coef_inflation.to(DEVICE)
         if not hasattr(self, "_coef"):
-            self._coef = coef
+            self._coef = coef.to(DEVICE)
         if not hasattr(self, "_covariance"):
-            self._components = torch.clone(_init_components(self._endog, self.dim))
+            self._components = torch.clone(_init_components(self._endog, self.dim)).to(
+                DEVICE
+            )
 
     def _random_init_latent_parameters(self):
         self._latent_mean = torch.randn(self.n_samples, self.dim)
@@ -3804,7 +3809,7 @@ class ZIPln(_model):
             self._latent_mean = torch.clone(self._xinflacoefinfla)
         self.latent_sqrt_var = torch.randn(self.n_samples, self.dim)
         if self._use_closed_form_prob is False:
-            self._latent_prob = torch.clone(self.proba_inflation * self._dirac)
+            self._latent_prob = torch.clone(self.proba_inflation * (self._dirac))
 
     @property
     def _covariance(self):
@@ -4058,7 +4063,7 @@ class ZIPln(_model):
         component is 0 given Y.
         """
         if self._use_closed_form_prob is True:
-            return self.closed_formula_latent_prob.detach()
+            return self.closed_formula_latent_prob.detach().cpu()
         return self._cpu_attribute_or_none("_latent_prob")
 
     @latent_prob.setter
@@ -4110,12 +4115,12 @@ class ZIPln(_model):
         Uses the exponential moment of a log gaussian variable.
         """
         return _closed_formula_latent_prob(
-            self._exog,
+            self._exog.to(DEVICE),
             self._coef,
-            self._offsets,
-            self._xinflacoefinfla,
+            self._offsets.to(DEVICE),
+            self._xinflacoefinfla.to(DEVICE),
             self._covariance,
-            self._dirac,
+            self._dirac.to(DEVICE),
         )
 
     @property
@@ -4175,10 +4180,14 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             return self._coef_inflation
         if self._zero_inflation_formula == "column-wise":
-            exog_infla_b = torch.index_select(self._exog_inflation, 0, self.to_take)
+            exog_infla_b = _select_index_and_device(
+                self._exog_inflation, 0, self.to_take, DEVICE
+            )
             return exog_infla_b @ self._coef_inflation
-        coef_infla_b = torch.index_select(self._coef_inflation.cpu(), 0, self.to_take)
-        return coef_infla_b @ self._exog_inflation
+        coef_infla_b = _select_index_and_device(
+            self._coef_inflation.cpu(), 0, self.to_take, DEVICE
+        )
+        return coef_infla_b @ (self._exog_inflation.to(DEVICE))
 
     @property
     def _xinflacoefinfla(self):
@@ -4187,11 +4196,11 @@ class ZIPln(_model):
         zero_inflation_formula.
         """
         if self._zero_inflation_formula == "global":
-            return self._coef_inflation
+            return self._coef_inflation.cpu()
         elif self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation @ self._coef_inflation
+            return self._exog_inflation @ (self._coef_inflation.cpu())
         elif self._zero_inflation_formula == "row-wise":
-            return self._coef_inflation.cpu() @ self._exog_inflation
+            return self._coef_inflation.cpu() @ (self._exog_inflation)
 
     @property
     def proba_inflation(self):
@@ -4241,15 +4250,15 @@ class ZIPln(_model):
     @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         list_parameters = [
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._components,
-            self._coef_inflation,
+            self._latent_mean.to(DEVICE),
+            self._latent_sqrt_var.to(DEVICE),
+            self._components.to(DEVICE),
+            self._coef_inflation.to(DEVICE),
         ]
         if self._use_closed_form_prob is False:
-            list_parameters.append(self._latent_prob)
+            list_parameters.append(self._latent_prob.to(DEVICE))
         if self._exog is not None:
-            list_parameters.append(self._coef)
+            list_parameters.append(self._coef.to(DEVICE))
         return list_parameters
 
     @property
@@ -4777,9 +4786,9 @@ class Brute_ZIPln(ZIPln):
     @property
     def _covariance(self):
         return _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
+            self._exog.to(DEVICE),
+            self._latent_mean.to(DEVICE),
+            self._latent_sqrt_var.to(DEVICE),
             self._coef,
             self.n_samples,
         )
@@ -4793,6 +4802,8 @@ class Brute_ZIPln(ZIPln):
         ]
 
     def _update_closed_forms(self):
-        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
+        self._coef = _closed_formula_coef(
+            self._exog.to(DEVICE), self._latent_mean.to(DEVICE)
+        )
         if self._use_closed_form_prob is True:
             self._latent_prob = self.closed_formula_latent_prob

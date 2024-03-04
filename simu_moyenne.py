@@ -28,16 +28,16 @@ else:
 device = "cpu"
 
 
-nb_points = 2
+nb_points = 9
 
-viz = "poisson"
-_moyennes_XB = np.linspace(0, 3, nb_points)
+viz = "proba"
+_moyennes_XB = np.linspace(0, 5, nb_points)
 _moyennes_proba = np.linspace(0.1, 0.8, nb_points)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.30
 _mean_xb = 2
 
-_nb_bootstrap = 2
+_nb_bootstrap = 10
 
 
 if viz == "poisson":
@@ -50,8 +50,8 @@ elif viz == "proba":
 
 chosen_moyennes = _moyennes
 
-n = 350
-dim = 100
+n = 800
+dim = 800
 inflation_formula = "column-wise"
 
 
@@ -190,8 +190,8 @@ def get_plnparam(inflation_formula):
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        # model.fit(tol = 0, nb_max_iteration=1500)
-        model.fit(tol=1e-6, verbose=True)
+        model.fit(tol=0, nb_max_iteration=2000)
+        # model.fit(tol=1e-6)
     return dict_models
 
 
@@ -391,7 +391,7 @@ class one_plot:
             else:
                 pass
         data = self.data
-        data.to_csv("df_simu.csv")
+        data.to_csv(f"{self.doss_viz}_{self.inflation_formula}.csv")
         for crit_key in CRITERION_KEYS:
             palette = {
                 LABEL_DICT[model_key]: COLORS[model_key] for model_key in KEY_MODELS
@@ -446,16 +446,20 @@ class one_plot:
                 rf"n={n},p={dim},d=1,$XB \approx {_mean_xb}$_{self.inflation_formula}"
             )
         fig.suptitle(title)
-        doss_viz = "poisson_viz" if self.viz == "poisson" else "proba_viz"
         plt.savefig(
-            f"figures/{doss_viz}/simu{self.inflation_formula}_{self.name_file}.png",
+            f"figures/{self.doss_viz}/simu{self.inflation_formula}_{self.name_file}.png",
             format="png",
         )
+
+    @property
+    def doss_viz(self):
+        return "poisson_viz" if self.viz == "poisson" else "proba_viz"
+
         # plt.show()
 
 
 def launch_formulas(_moyennes, _mean_sim, chosen_moyennes, _nb_bootstrap, viz):
-    for inflation_formula in tqdm(["row-wise", "column-wise", "global"]):
+    for inflation_formula in tqdm(["column-wise", "row-wise", "global"]):
         op = one_plot(
             _moyennes,
             _mean_sim,
