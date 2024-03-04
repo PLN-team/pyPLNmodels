@@ -531,6 +531,7 @@ class _model(ABC):
             The loss value.
         """
         elbo = 0
+        t = time.time()
         for batch in self._get_batch(shuffle=False):
             self._extract_batch(batch)
             self.optim.zero_grad()
@@ -541,6 +542,7 @@ class _model(ABC):
             loss.backward()
             elbo += loss.item()
             self.optim.step()
+        print("time took", time.time() - t)
         self._update_closed_forms()
         self._project_parameters()
         return elbo / self.nb_batches
