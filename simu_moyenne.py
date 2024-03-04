@@ -21,14 +21,8 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-if torch.cuda.is_available():
-    device = "cuda"
-else:
-    device = "cpu"
-device = "cpu"
 
-
-nb_points = 9
+nb_points = 2
 
 viz = "proba"
 _moyennes_XB = np.linspace(0, 5, nb_points)
@@ -37,7 +31,7 @@ _moyennes_proba = np.linspace(0.1, 0.8, nb_points)
 _mean_infla = 0.30
 _mean_xb = 2
 
-_nb_bootstrap = 10
+_nb_bootstrap = 2
 
 
 if viz == "poisson":
@@ -190,8 +184,8 @@ def get_plnparam(inflation_formula):
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        model.fit(tol=0, nb_max_iteration=2000)
-        # model.fit(tol=1e-6)
+        # model.fit(tol=0, nb_max_iteration=2000)
+        model.fit(nb_max_iteration=5)
     return dict_models
 
 
@@ -460,6 +454,7 @@ class one_plot:
 
 def launch_formulas(_moyennes, _mean_sim, chosen_moyennes, _nb_bootstrap, viz):
     for inflation_formula in tqdm(["column-wise", "row-wise", "global"]):
+        # for inflation_formula in tqdm(["column-wise"]):
         op = one_plot(
             _moyennes,
             _mean_sim,

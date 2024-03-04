@@ -655,9 +655,18 @@ def _handle_data_with_inflation(
     take_log_offsets,
     add_const,
     add_const_inflation,
+    batch_size,
 ):
-    endog, exog, offsets, column_endog, samples_only_zeros, dim_only_zeros = (
-        _handle_data(endog, exog, offsets, offsets_formula, take_log_offsets, add_const)
+    (
+        endog,
+        exog,
+        offsets,
+        column_endog,
+        samples_only_zeros,
+        dim_only_zeros,
+        batch_size,
+    ) = _handle_data(
+        endog, exog, offsets, offsets_formula, take_log_offsets, add_const, batch_size
     )
     ## changing dimension if row-wise and a vector of ones
     exog_inflation = _format_data(exog_inflation)
@@ -684,7 +693,12 @@ def _handle_data_with_inflation(
                 exog_inflation = _add_const_to_exog(exog_inflation, 1, endog.shape[1])
 
     dirac = endog == 0
-    return endog, exog, exog_inflation, offsets, column_endog, dirac
+    onlyonebatch = batch_size == (endog.shape[0])
+    if onlyonebatch is True:
+        if exog_inflation is not None:
+            exog_inflation = exog_inflation.to(DEVICE)
+        dirac = dirac.to(DEVICE)
+    return endog, exog, exog_inflation, offsets, column_endog, dirac, batch_size
 
 
 def _remove_samples(endog, exog, offsets, samples_only_zeros):
@@ -701,6 +715,19 @@ def _remove_dims(endog, exog, offsets, dims_only_zeros):
     return endog, exog, offsets
 
 
+def _handle_batch_size(batch_size, n_samples):
+    if batch_size is None:
+        batch_size = n_samples
+
+    if batch_size > n_samples:
+        raise ValueError(
+            f"batch_size ({batch_size}) can not be greater than the number of samples ({n_samples})"
+        )
+    elif isinstance(batch_size, int) is False:
+        raise ValueError(f"batch_size should be int, got {type(batch_size)}")
+    return batch_size
+
+
 def _handle_data(
     endog,
     exog,
@@ -708,6 +735,7 @@ def _handle_data(
     offsets_formula: str,
     take_log_offsets: bool,
     add_const: bool,
+    batch_size: bool,
 ) -> tuple:
     """
     Handle the input data for the model.
@@ -720,6 +748,7 @@ def _handle_data(
         offsets_formula : The formula used for offsets.
         take_log_offsets : Indicates whether to take the logarithm of the offsets.
         add_const : Indicates whether to add a constant column to the exog.
+        batch_size: int. Raises an error if greater than endog.shape[0]
 
     Returns
     -------
@@ -727,7 +756,8 @@ def _handle_data(
 
     Raises
     ------
-        ValueError: If the shapes of endog, exog, and offsets do not match.
+        ValueError: If the shapes of endog, exog, and offsets do not match, or the batch_size is
+        greater than endog.shape[0]
     """
     if isinstance(endog, pd.DataFrame):
         column_endog = endog.columns
@@ -753,7 +783,21 @@ def _handle_data(
         warnings.warn(msg)
         endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
         print(f"Now dataset of size {endog.shape}")
-    return endog, exog, offsets, column_endog, samples_only_zeros, dim_only_zeros
+    n_samples = endog.shape[0]
+    batch_size = _handle_batch_size(batch_size, n_samples)
+    if batch_size == n_samples:
+        endog = endog.to(DEVICE)
+        exog = exog.to(DEVICE)
+        offsets = offsets.to(DEVICE)
+    return (
+        endog,
+        exog,
+        offsets,
+        column_endog,
+        samples_only_zeros,
+        dim_only_zeros,
+        batch_size,
+    )
 
 
 def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
@@ -1102,7 +1146,3 @@ def _check_right_exog_inflation_shape(
         if exog_inflation.shape[0] != n_samples:
             msg = f"Shape should be ({n_samples},_), got shape{exog_inflation.shape}."
             raise ValueError(msg)
-
-
-def _select_index_and_device(array, dim, indices, device):
-    return torch.index_select(array, dim, indices).to(device)

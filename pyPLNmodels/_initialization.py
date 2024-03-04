@@ -58,7 +58,7 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     log_y = torch.log(endog + (endog == 0) * math.exp(-2))
     max_dim = min(rank, endog.shape[0])
     pca = PCA(n_components=max_dim)
-    pca.fit(log_y.detach())
+    pca.fit(log_y.cpu().detach())
     pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
     if rank > max_dim:
         nb_missing = rank - max_dim

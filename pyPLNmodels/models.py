@@ -48,7 +48,6 @@ from pyPLNmodels._utils import (
     _check_shape_exog_infla,
     _pca_pairplot,
     _check_right_exog_inflation_shape,
-    _select_index_and_device,
 )
 
 from pyPLNmodels._initialization import (
@@ -94,6 +93,7 @@ class _model(ABC):
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         """
         Initializes the model class.
@@ -115,6 +115,9 @@ class _model(ABC):
             Whether to take the log of offsets. Defaults to False.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         (
             self._endog,
@@ -123,8 +126,15 @@ class _model(ABC):
             self.column_endog,
             _,
             _,
+            self._batch_size,
         ) = _handle_data(
-            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+            endog,
+            exog,
+            offsets,
+            offsets_formula,
+            take_log_offsets,
+            add_const,
+            batch_size,
         )
         self._fitted = False
         self._criterion_args = _CriterionArgs()
@@ -201,15 +211,12 @@ class _model(ABC):
         return self._batch_size
 
     @property
-    def _current_batch_size(self) -> int:
-        return self._exog_b.shape[0]
+    def onlyonebatch(self):
+        return self._batch_size == self.n_samples
 
     @batch_size.setter
     def batch_size(self, batch_size: int):
-        """
-        Setter for the batch size. Should be an integer not greater than the number of samples.
-        """
-        self._batch_size = self._handle_batch_size(batch_size)
+        raise ValueError("Can not set the batch size.")
 
     @property
     def fitted(self) -> bool:
@@ -294,20 +301,6 @@ class _model(ABC):
 
     def _project_parameters(self):
         pass
-
-    def _handle_batch_size(self, batch_size):
-        if batch_size is None:
-            if hasattr(self, "batch_size"):
-                batch_size = self.batch_size
-            else:
-                batch_size = self.n_samples
-        if batch_size > self.n_samples:
-            raise ValueError(
-                f"batch_size ({batch_size}) can not be greater than the number of samples ({self.n_samples})"
-            )
-        elif isinstance(batch_size, int) is False:
-            raise ValueError(f"batch_size should be int, got {type(batch_size)}")
-        return batch_size
 
     @property
     def nb_iteration_done(self) -> int:
@@ -406,7 +399,6 @@ class _model(ABC):
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
-        batch_size=None,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -423,9 +415,6 @@ class _model(ABC):
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
             Whether to print training progress. Defaults to False.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Raises
         ------
         ValueError
@@ -436,7 +425,6 @@ class _model(ABC):
             raise ValueError("The argument 'nb_max_iteration' should be an int.")
         self._print_beginning_message()
         self._beginning_time = time.time()
-        self._batch_size = self._handle_batch_size(batch_size)
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._criterion_args.running_times) > 0:
@@ -488,23 +476,18 @@ class _model(ABC):
         if self._last_batch_size != 0:
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
-    def move_to_device(self, batch, device):
-        for param in batch:
-            if param is not None:
-                param = param.to(device)
-
     def _return_batch(self, indices, beginning, end):
-        self.to_take = torch.tensor(indices[beginning:end])
+        self.to_take = self.smart_device(torch.tensor(indices[beginning:end]))
         if self._exog is not None:
             exog_b = torch.index_select(self._exog, 0, self.to_take)
         else:
             exog_b = None
         return (
-            _select_index_and_device(self._endog, 0, self.to_take, DEVICE),
-            exog_b.to(DEVICE),
-            _select_index_and_device(self._offsets, 0, self.to_take, DEVICE),
-            _select_index_and_device(self._latent_mean, 0, self.to_take, DEVICE),
-            _select_index_and_device(self._latent_sqrt_var, 0, self.to_take, DEVICE),
+            torch.index_select(self._endog, 0, self.to_take),
+            exog_b,
+            torch.index_select(self._offsets, 0, self.to_take),
+            torch.index_select(self._latent_mean, 0, self.to_take),
+            torch.index_select(self._latent_sqrt_var, 0, self.to_take),
         )
 
     @property
@@ -532,7 +515,6 @@ class _model(ABC):
         t = time.time()
         for batch in self._get_batch(shuffle=False):
             self._extract_batch(batch)
-            self.move_to_device(batch, DEVICE)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             if torch.sum(torch.isnan(loss)):
@@ -541,7 +523,6 @@ class _model(ABC):
             loss.backward()
             elbo += loss.item()
             self.optim.step()
-        print("time took", time.time() - t)
         self._update_closed_forms()
         self._project_parameters()
         return elbo / self.nb_batches
@@ -1034,7 +1015,12 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
             )
-        self._latent_mean = latent_mean
+        self._latent_mean = self.smart_device(latent_mean)
+
+    def smart_device(self, tensor):
+        if self.onlyonebatch is True:
+            return tensor.to(DEVICE)
+        return tensor
 
     def _cpu_attribute_or_none(self, attribute_name):
         """
@@ -1203,7 +1189,7 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
             )
-        self._coef = coef
+        self._coef = self.smart_device(coef)
 
     @property
     def _dict_for_printing(self):
@@ -1329,7 +1315,7 @@ class _model(ABC):
     def reconstruction_error(self):
         """Recontstruction error between the predictions and the endog."""
         predictions = self._endog_predictions().ravel().detach()
-        return torch.sqrt(torch.mean((predictions - self._endog.ravel()) ** 2))
+        return torch.sqrt(torch.mean((predictions - self._endog.ravel().cpu()) ** 2))
 
     @property
     def elbo(self):
@@ -1544,6 +1530,7 @@ class Pln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         super().__init__(
             endog=endog,
@@ -1553,6 +1540,7 @@ class Pln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
+            batch_size=batch_size,
         )
 
     @classmethod
@@ -1606,7 +1594,6 @@ class Pln(_model):
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
-        batch_size: int = None,
     ):
         super().fit(
             nb_max_iteration,
@@ -1614,7 +1601,6 @@ class Pln(_model):
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
-            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1795,7 +1781,7 @@ class Pln(_model):
             The covariance matrix or None.
         """
         return _closed_formula_covariance(
-            self._exog.to(DEVICE),
+            self._exog,
             self._latent_mean,
             self._latent_sqrt_var,
             self._coef,
@@ -1831,7 +1817,7 @@ class Pln(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
             )
-        self._latent_sqrt_var = latent_sqrt_var
+        self._latent_sqrt_var = self.smart_device(latent_sqrt_var)
 
     @property
     def number_of_parameters(self) -> int:
@@ -1883,7 +1869,9 @@ class Pln(_model):
 
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self.dim))
+            self._latent_sqrt_var = (
+                1 / 2 * self.smart_device(torch.ones((self.n_samples, self.dim)))
+            )
 
     @_add_doc(_model)
     def _smart_init_model_parameters(self):
@@ -1915,7 +1903,9 @@ class Pln(_model):
 
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self.dim))
+            self._latent_sqrt_var = (
+                1 / 2 * self.smart_device(torch.ones((self.n_samples, self.dim)))
+            )
 
     @property
     @_add_doc(
@@ -1976,13 +1966,17 @@ class Pln(_model):
     def _smart_init_latent_parameters(self):
         self._random_init_latent_sqrt_var()
         if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.log(self._endog + (self._endog == 0))
+            self._latent_mean = self.smart_device(
+                torch.log(self._endog + (self._endog == 0))
+            )
 
     @_add_doc(_model)
     def _random_init_latent_parameters(self):
         self._random_init_latent_sqrt_var()
         if not hasattr(self, "_latent_mean"):
-            self._latent_mean = torch.ones((self.n_samples, self.dim))
+            self._latent_mean = self.smart_device(
+                torch.ones((self.n_samples, self.dim))
+            )
 
     @property
     @_add_doc(_model)
@@ -2032,6 +2026,7 @@ class PlnPCAcollection:
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         """
         Constructor for PlnPCAcollection.
@@ -2074,8 +2069,15 @@ class PlnPCAcollection:
             self.column_endog,
             _,
             _,
+            self._batch_size,
         ) = _handle_data(
-            endog, exog, offsets, offsets_formula, take_log_offsets, add_const
+            endog,
+            exog,
+            offsets,
+            offsets_formula,
+            take_log_offsets,
+            add_const,
+            batch_size,
         )
         self._fitted = False
         self._init_models(ranks, dict_of_dict_initialization, add_const=add_const)
@@ -2419,7 +2421,6 @@ class PlnPCAcollection:
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
-        batch_size: int = None,
     ):
         """
         Fit each model in the PlnPCAcollection.
@@ -2436,9 +2437,6 @@ class PlnPCAcollection:
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default False.
-        batch_size: int, optional(keyword-only)
-            The batch size when optimizing the elbo. If None,
-            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Raises
         ------
         ValueError
@@ -2453,7 +2451,6 @@ class PlnPCAcollection:
                 tol=tol,
                 do_smart_init=do_smart_init,
                 verbose=verbose,
-                batch_size=batch_size,
             )
             if i < len(self.values()) - 1:
                 next_model = self[self.ranks[i + 1]]
@@ -2880,6 +2877,7 @@ class PlnPCA(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         add_const: bool = True,
+        batch_size: int = None,
     ):
         self._rank = rank
         super().__init__(
@@ -2890,6 +2888,7 @@ class PlnPCA(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=add_const,
+            batch_size=batch_size,
         )
 
     @classmethod
@@ -3091,7 +3090,7 @@ class PlnPCA(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_mean.shape}"
             )
-        self._latent_mean = latent_mean
+        self._latent_mean = self.smart_device(latent_mean)
 
     @_model.latent_sqrt_var.setter
     @_array2tensor
@@ -3108,7 +3107,7 @@ class PlnPCA(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_sqrt_var.shape}"
             )
-        self._latent_sqrt_var = latent_sqrt_var
+        self._latent_sqrt_var = self.smart_device(latent_sqrt_var)
 
     @property
     def _directory_name(self) -> str:
@@ -3306,7 +3305,7 @@ class PlnPCA(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
             )
-        self._components = components
+        self._components = self.smart_device(components)
 
     @_add_doc(
         _model,
@@ -3402,8 +3401,10 @@ class PlnPCA(_model):
         """
         Randomly initialize the latent parameters.
         """
-        self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self._rank))
-        self._latent_mean = torch.ones((self.n_samples, self._rank))
+        self._latent_sqrt_var = (
+            1 / 2 * self.smart_device(torch.ones((self.n_samples, self._rank)))
+        )
+        self._latent_mean = sefl.smart_device(torch.ones((self.n_samples, self._rank)))
 
     @_add_doc(_model)
     def _smart_init_latent_parameters(self):
@@ -3415,8 +3416,11 @@ class PlnPCA(_model):
                 self._coef,
                 self._components,
             ).detach()
+            self._latent_mean = self.smart_device(self._latent_mean)
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = 1 / 2 * torch.ones((self.n_samples, self._rank))
+            self._latent_sqrt_var = (
+                1 / 2 * self.smart_device(torch.ones((self.n_samples, self._rank)))
+            )
 
     @property
     @_add_doc(_model)
@@ -3487,6 +3491,7 @@ class ZIPln(_model):
         add_const: bool = True,
         add_const_inflation: bool = True,
         use_closed_form_prob: bool = True,
+        batch_size: int = None,
     ):
         """
         Initializes the ZIPln class.
@@ -3525,6 +3530,9 @@ class ZIPln(_model):
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
             Default is True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Raises
         ------
         Returns
@@ -3551,6 +3559,7 @@ class ZIPln(_model):
             self._offsets,
             self.column_endog,
             self._dirac,
+            self._batch_size,
         ) = _handle_data_with_inflation(
             endog,
             exog,
@@ -3561,6 +3570,7 @@ class ZIPln(_model):
             take_log_offsets,
             add_const,
             add_const_inflation,
+            batch_size,
         )
         self._fitted = False
         self._criterion_args = _CriterionArgs()
@@ -3575,15 +3585,11 @@ class ZIPln(_model):
 
     def _return_batch(self, indices, beginning, end):
         pln_batch = super()._return_batch(indices, beginning, end)
-        dirac_b = _select_index_and_device(self._dirac, 0, self.to_take, DEVICE)
+        dirac_b = torch.index_select(self._dirac, 0, self.to_take)
         batch = pln_batch + (dirac_b,)
         if self._use_closed_form_prob is False:
-            to_return = _select_index_and_device(
-                self._latent_prob, 0, self.to_take, DEVICE
-            )
-            return batch + (
-                _select_index_and_device(self._latent_prob, 0, self.to_take, DEVICE),
-            )
+            to_return = torch.index_select(self._latent_prob, 0, self.to_take)
+            return batch + (torch.index_select(self._latent_prob, 0, self.to_take),)
         return batch
 
     @_add_doc(
@@ -3691,8 +3697,8 @@ class ZIPln(_model):
 
         >>> from pyPLNmodels import ZIPln, load_scrna
         >>> endog = load_scrna()
-        >>> zi = ZIPln(endog,add_const = True)
-        >>> zi.fit(batch_size = 20, nb_max_iteration = 500, verbose = True)
+        >>> zi = ZIPln(endog,batch_size = 20,add_const = True)
+        >>> zi.fit( nb_max_iteration = 500, verbose = True)
         >>> print(zi)
         """,
     )
@@ -3704,7 +3710,6 @@ class ZIPln(_model):
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
-        batch_size: int = None,
     ):
         super().fit(
             nb_max_iteration,
@@ -3712,7 +3717,6 @@ class ZIPln(_model):
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
-            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -3758,8 +3762,8 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
         elif self._zero_inflation_formula == "row-wise":
-            self._coef_inflation = torch.randn(self.n_samples, self.nb_cov_infla).to(
-                DEVICE
+            self._coef_inflation = self.smart_device(
+                torch.randn(self.n_samples, self.nb_cov_infla)
             )
         elif self._zero_inflation_formula == "column-wise":
             self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
@@ -3784,7 +3788,7 @@ class ZIPln(_model):
             self._zero_inflation_formula,
         )
         if not hasattr(self, "_coef_inflation"):
-            self._coef_inflation = coef_inflation.to(DEVICE)
+            self._coef_inflation = self.smart_device(coef_inflation)
         if not hasattr(self, "_coef"):
             self._coef = coef.to(DEVICE)
         if not hasattr(self, "_covariance"):
@@ -3793,23 +3797,26 @@ class ZIPln(_model):
             )
 
     def _random_init_latent_parameters(self):
-        self._latent_mean = torch.randn(self.n_samples, self.dim)
-        self._latent_sqrt_var = torch.randn(self.n_samples, self.dim)
+        self._latent_mean = self.smart_device(torch.randn(self.n_samples, self.dim))
+        self._latent_sqrt_var = self.smart_device(torch.randn(self.n_samples, self.dim))
         if self._use_closed_form_prob is False:
-            self._latent_prob = (
-                torch.empty(self.n_samples, self.dim).uniform_(0, 1) * self._dirac
-            ).double()
+            self._latent_prob = self.smart_device(
+                (
+                    torch.empty(self.n_samples, self.dim).uniform_(0, 1) * self._dirac
+                ).double()
+            )
 
     def _smart_init_latent_parameters(self):
         if self._zero_inflation_formula == "global":
-            self._latent_mean = torch.clone(self._xinflacoefinfla) * torch.ones(
-                self.n_samples, self.dim
+            self._latent_mean = self.smart_device(
+                self._xinflacoefinfla
+                * self.smart_device(torch.ones(self.n_samples, self.dim))
             )
         else:
-            self._latent_mean = torch.clone(self._xinflacoefinfla)
-        self.latent_sqrt_var = torch.randn(self.n_samples, self.dim)
+            self._latent_mean = self.smart_device(self._xinflacoefinfla)
+        self._latent_sqrt_var = self.smart_device(torch.randn(self.n_samples, self.dim))
         if self._use_closed_form_prob is False:
-            self._latent_prob = torch.clone(self.proba_inflation * (self._dirac))
+            self._latent_prob = self.smart_device(self.proba_inflation * (self._dirac))
 
     @property
     def _covariance(self):
@@ -3962,7 +3969,7 @@ class ZIPln(_model):
             msg = "Wrong shape for the coef_inflation. Expected "
             msg += f"{self._shape_coef_infla}, got {coef_inflation.shape}"
             raise ValueError(msg)
-        self._coef_inflation = coef_inflation
+        self._coef_inflation = self.smart_device(coef_inflation)
 
     def _has_right_coef_infla_shape(self, shape):
         if self._zero_inflation_formula == "global":
@@ -4000,7 +4007,7 @@ class ZIPln(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.endog.shape}, got {latent_sqrt_var.shape}"
             )
-        self._latent_sqrt_var = latent_sqrt_var
+        self._latent_sqrt_var = self.smart_device(latent_sqrt_var)
 
     def _project_parameters(self):
         self._project_latent_prob()
@@ -4011,12 +4018,12 @@ class ZIPln(_model):
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
                     self._latent_prob,
-                    torch.tensor([0]),
+                    self.smart_device(torch.tensor([0])),
                     out=self._latent_prob,
                 )
                 self._latent_prob = torch.minimum(
                     self._latent_prob,
-                    torch.tensor([1]),
+                    self.smart_device(torch.tensor([1])),
                     out=self._latent_prob,
                 )
                 self._latent_prob *= self._dirac
@@ -4054,7 +4061,7 @@ class ZIPln(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.dim, self.dim}, got {components.shape}"
             )
-        self._components = components
+        self._components = self.smart_device(components)
 
     @property
     def latent_prob(self):
@@ -4180,14 +4187,12 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             return self._coef_inflation
         if self._zero_inflation_formula == "column-wise":
-            exog_infla_b = _select_index_and_device(
-                self._exog_inflation, 0, self.to_take, DEVICE
-            )
+            exog_infla_b = torch.index_select(self._exog_inflation, 0, self.to_take)
             return exog_infla_b @ self._coef_inflation
-        coef_infla_b = _select_index_and_device(
-            self._coef_inflation.cpu(), 0, self.to_take, DEVICE
+        coef_infla_b = torch.index_select(self._coef_inflation, 0, self.to_take).to(
+            DEVICE
         )
-        return coef_infla_b @ (self._exog_inflation.to(DEVICE))
+        return coef_infla_b @ self._exog_inflation
 
     @property
     def _xinflacoefinfla(self):
@@ -4196,11 +4201,11 @@ class ZIPln(_model):
         zero_inflation_formula.
         """
         if self._zero_inflation_formula == "global":
-            return self._coef_inflation.cpu()
+            return self._coef_inflation
         elif self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation @ (self._coef_inflation.cpu())
+            return self._exog_inflation @ self._coef_inflation
         elif self._zero_inflation_formula == "row-wise":
-            return self._coef_inflation.cpu() @ (self._exog_inflation)
+            return self._coef_inflation @ (self._exog_inflation)
 
     @property
     def proba_inflation(self):
@@ -4250,15 +4255,15 @@ class ZIPln(_model):
     @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         list_parameters = [
-            self._latent_mean.to(DEVICE),
-            self._latent_sqrt_var.to(DEVICE),
-            self._components.to(DEVICE),
-            self._coef_inflation.to(DEVICE),
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._components,
+            self._coef_inflation,
         ]
         if self._use_closed_form_prob is False:
-            list_parameters.append(self._latent_prob.to(DEVICE))
+            list_parameters.append(self._latent_prob)
         if self._exog is not None:
-            list_parameters.append(self._coef.to(DEVICE))
+            list_parameters.append(self._coef)
         return list_parameters
 
     @property
@@ -4771,24 +4776,24 @@ class Brute_ZIPln(ZIPln):
         else:
             latent_prob_b = self._latent_prob_b
         return elbo_brute_zipln(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
-            latent_prob_b,
+            self._endog_b.to(DEVICE),
+            self._exog_b.to(DEVICE),
+            self._offsets_b.to(DEVICE),
+            self._latent_mean_b.to(DEVICE),
+            self._latent_sqrt_var_b.to(DEVICE),
+            latent_prob_b.to(DEVICE),
             self._covariance,
             self._coef,
             self._xinflacoefinfla_b,
-            self._dirac_b,
+            self._dirac_b.to(DEVICE),
         )
 
     @property
     def _covariance(self):
         return _closed_formula_covariance(
-            self._exog.to(DEVICE),
-            self._latent_mean.to(DEVICE),
-            self._latent_sqrt_var.to(DEVICE),
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
             self._coef,
             self.n_samples,
         )
@@ -4802,8 +4807,6 @@ class Brute_ZIPln(ZIPln):
         ]
 
     def _update_closed_forms(self):
-        self._coef = _closed_formula_coef(
-            self._exog.to(DEVICE), self._latent_mean.to(DEVICE)
-        )
+        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
         if self._use_closed_form_prob is True:
             self._latent_prob = self.closed_formula_latent_prob

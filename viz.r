@@ -44,7 +44,7 @@ plot_csv = function(namedoss,viz,inflation){
         xlab = TeX('$\\pi')
     }
     plot_data_column = function(column, data){
-        return (ggplot(data, aes(x = moyenne, y = data[,column], fill = model_name)) + geom_boxplot(lwd = 0.03) + labs(y = h[[column]], x =
+        return (ggplot(data, aes(x = moyenne, y = data[,column], fill = model_name, color = model_name)) + geom_boxplot(lwd = 0.03) + labs(y = h[[column]], x =
         xlab)  + scale_y_log10() + scale_fill_manual(values = colors, name = "")
         + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
         +guides(fill=guide_legend(nrow=1,byrow=TRUE))
@@ -66,8 +66,8 @@ plot_csv = function(namedoss,viz,inflation){
     dev.off()
 }
 
-name_doss = "poisson_viz_column-wise.csv"
-plot_csv(name_doss,"poisson","column-dependent")
+# name_doss = "poisson_viz_column-wise.csv"
+# plot_csv(name_doss,"poisson","column-dependent")
 
 # name_doss = "poisson_viz_row-wise.csv"
 # plot_csv(name_doss,"poisson","row-dependent")
@@ -82,4 +82,24 @@ plot_csv(name_doss,"poisson","column-dependent")
 # plot_csv(name_doss,"proba","row-dependent")
 
 # name_doss = "proba_viz_global.csv"
+# plot_csv(name_doss,"proba","non-dependent")
+
+
+
+name_doss = "poisson_viz_column-wise_n800_p800.csv"
+plot_csv(name_doss,"poisson","column-dependent")
+
+name_doss = "poisson_viz_row-wise_n800_p800.csv"
+plot_csv(name_doss,"poisson","row-dependent")
+
+# name_doss = "poisson_viz_global_n800_p_800.csv"
+# plot_csv(name_doss,"poisson","non-dependent")
+
+name_doss = "proba_viz_column-wise_n800_p800.csv"
+plot_csv(name_doss,"proba","column-dependent")
+
+name_doss = "proba_viz_row-wise_n800_p800.csv"
+plot_csv(name_doss,"proba","row-dependent")
+
+# name_doss = "proba_viz_global_n800_p_800.csv"
 # plot_csv(name_doss,"proba","non-dependent")
