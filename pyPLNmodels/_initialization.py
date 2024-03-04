@@ -9,6 +9,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+if torch.cuda.is_available():
+    DEVICE = "cuda:0"
+else:
+    DEVICE = "cpu"
+
+
 def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
     """
     Initialization for the covariance for the Pln model. Take the log of endog
@@ -176,7 +182,7 @@ def _init_coef(
 
     poiss_reg = _PoissonReg()
     poiss_reg.fit(endog, exog, offsets)
-    return poiss_reg.beta
+    return poiss_reg.beta.to(DEVICE)
 
 
 def _init_coef_coef_inflation(
@@ -216,10 +222,10 @@ def _init_coef_coef_inflation(
             coef_infla = torch.randn(endog.shape[0], exog_inflation.shape[0])
         else:
             coef_infla = torch.randn(exog_inflation.shape[1], endog.shape[1])
-        return None, coef_infla
+        return None, coef_infla.to(DEVICE)
     zip = ZIP(endog, exog, exog_inflation, offsets, zero_inflation_formula)
     zip.fit()
-    return zip.coef.detach(), zip.coef_inflation.detach()
+    return zip.coef.detach().to(DEVICE), zip.coef_inflation.detach().to(DEVICE)
 
 
 def log_posterior(

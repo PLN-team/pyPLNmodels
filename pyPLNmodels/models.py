@@ -356,7 +356,7 @@ class _model(ABC):
         """
         Initialize coefficients smartly.
         """
-        self._coef = _init_coef(self._endog, self._exog, self._offsets).to(DEVICE)
+        self._coef = _init_coef(self._endog, self._exog, self._offsets)
 
     def _random_init_coef(self):
         """
@@ -1018,6 +1018,8 @@ class _model(ABC):
         self._latent_mean = self.smart_device(latent_mean)
 
     def smart_device(self, tensor):
+        if tensor is None:
+            return None
         if self.onlyonebatch is True:
             return tensor.to(DEVICE)
         return tensor
@@ -2950,7 +2952,6 @@ class PlnPCA(_model):
         tol: float = 1e-3,
         do_smart_init: bool = True,
         verbose: bool = False,
-        batch_size=None,
     ):
         super().fit(
             nb_max_iteration,
@@ -2958,7 +2959,6 @@ class PlnPCA(_model):
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
-            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -3790,7 +3790,7 @@ class ZIPln(_model):
         if not hasattr(self, "_coef_inflation"):
             self._coef_inflation = self.smart_device(coef_inflation)
         if not hasattr(self, "_coef"):
-            self._coef = coef.to(DEVICE)
+            self._coef = coef.to(DEVICE) if coef is not None else None
         if not hasattr(self, "_covariance"):
             self._components = torch.clone(_init_components(self._endog, self.dim)).to(
                 DEVICE

@@ -42,11 +42,14 @@ zi = ZIPln(
     exog=exog,
     exog_inflation=exog,
     zero_inflation_formula="column-wise",
-    dict_initialization=dict_init,
+    # dict_initialization=dict_init,
 )
-zi.fit(tol=0, nb_max_iteration=10000, verbose=True)
-zi.save("zi_model")
-print("zi shape", zi.endog.shape)
+zi.fit(nb_max_iteration=300, verbose=True)
+sns.heatmap(zi._covariance.detach())
+plt.show()
+# zi.fit(tol=0, nb_max_iteration=10000, verbose=True)
+# zi.save("zi_model")
+# print("zi shape", zi.endog.shape)
 
 
 def squared_mat_to_csv(mat, name):
@@ -69,10 +72,10 @@ def coef_mat_to_csv(mat, name):
     df.to_csv(name)
 
 
-squared_mat_to_csv(zi.covariance, "csv_mahendra/covariance.csv")
-rectange_mat_to_csv(zi.proba_inflation, "csv_mahendra/proba_inflation.csv")
-coef_mat_to_csv(zi.coef_inflation, "csv_mahendra/coef_inflation.csv")
-coef_mat_to_csv(zi.coef, "csv_mahendra/coef.csv")
+# squared_mat_to_csv(zi.covariance, "csv_mahendra/covariance.csv")
+# rectange_mat_to_csv(zi.proba_inflation, "csv_mahendra/proba_inflation.csv")
+# coef_mat_to_csv(zi.coef_inflation, "csv_mahendra/coef_inflation.csv")
+# coef_mat_to_csv(zi.coef, "csv_mahendra/coef.csv")
 
 # rectange_mat_to_csv(zi.endog,"toremove.csv")
 # df = pd.read_csv("toremove.csv").drop(columns = "Sample")

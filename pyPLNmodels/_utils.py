@@ -677,7 +677,7 @@ def _handle_data_with_inflation(
     if zero_inflation_formula == "row-wise" and exog_inflation is not None:
         if torch.count_nonzero(exog_inflation - 1) == 0:
             exog_inflation = torch.ones(1, endog.shape[1])
-    if zero_inflation_formula == "column-wise":
+    if zero_inflation_formula == "column-wise" and exog_inflation is not None:
         exog_inflation = exog_inflation[~samples_only_zeros, :]
     if zero_inflation_formula != "global" and exog_inflation is not None:
         _check_shape_exog_infla(
@@ -787,7 +787,8 @@ def _handle_data(
     batch_size = _handle_batch_size(batch_size, n_samples)
     if batch_size == n_samples:
         endog = endog.to(DEVICE)
-        exog = exog.to(DEVICE)
+        if exog is not None:
+            exog = exog.to(DEVICE)
         offsets = offsets.to(DEVICE)
     return (
         endog,
