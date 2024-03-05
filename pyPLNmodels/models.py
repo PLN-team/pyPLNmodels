@@ -418,7 +418,6 @@ class _model(ABC):
         Raises
         ------
         ValueError
-            If the batch_size is greater than the number of samples, or not int.
             If 'nb_max_iteration' is not an int.
         """
         if not isinstance(nb_max_iteration, int):
@@ -517,14 +516,6 @@ class _model(ABC):
             self._extract_batch(batch)
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
-            print("norm", torch.norm(self._coef))
-            print("norm", torch.norm(self._coef_inflation))
-            print("norm", torch.norm(self._covariance))
-            print("norm", torch.norm(self._latent_mean))
-            print("norm", torch.norm(self._latent_sqrt_var))
-            print("mean prob", torch.mean(self.proba_inflation))
-            print("norm latent prob", torch.norm(self.latent_prob))
-            print("--------------")
             if torch.sum(torch.isnan(loss)):
                 print("loss:", loss)
                 raise ValueError("The ELBO contains nan values.")
@@ -2251,15 +2242,9 @@ class PlnPCAcollection:
     @batch_size.setter
     def batch_size(self, batch_size: int):
         """
-        Setter for the batch_size property.
-
-        Parameters
-        ----------
-        batch_size : int
-            The batch size.
+        Does not allow to set the batch size.
         """
-        for model in self.values():
-            model.batch_size = batch_size
+        raise ValueError("Can not set the batch size after initialization")
 
     @coef.setter
     @_array2tensor
@@ -2344,6 +2329,7 @@ class PlnPCAcollection:
                         rank=rank,
                         dict_initialization=dict_initialization,
                         add_const=add_const,
+                        batch_size=self._batch_size,
                     )
                 else:
                     raise TypeError(
@@ -2449,8 +2435,6 @@ class PlnPCAcollection:
             Whether to print verbose output, by default False.
         Raises
         ------
-        ValueError
-            If the batch_size is greater than the number of samples, or not int.
         """
         self._print_beginning_message()
         for i in range(len(self.values())):
@@ -3412,7 +3396,7 @@ class PlnPCA(_model):
         self._latent_sqrt_var = (
             1 / 2 * self.smart_device(torch.ones((self.n_samples, self._rank)))
         )
-        self._latent_mean = sefl.smart_device(torch.ones((self.n_samples, self._rank)))
+        self._latent_mean = self.smart_device(torch.ones((self.n_samples, self._rank)))
 
     @_add_doc(_model)
     def _smart_init_latent_parameters(self):
@@ -4130,13 +4114,20 @@ class ZIPln(_model):
         Uses the exponential moment of a log gaussian variable.
         """
         return _closed_formula_latent_prob(
-            self._exog.to(DEVICE),
+            self._exog_device,
             self._coef,
             self._offsets.to(DEVICE),
             self._xinflacoefinfla.to(DEVICE),
             self._covariance,
             self._dirac.to(DEVICE),
         )
+
+    @property
+    def _exog_device(self):
+        if self._exog is None:
+            return None
+        else:
+            return self._exog.to(DEVICE)
 
     @property
     def closed_formula_latent_prob_b(self):

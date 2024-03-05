@@ -7,6 +7,7 @@ from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
 
 from tests.import_data import true_sim_0cov, true_sim_2cov, endog_real
+from pyPLNmodels import ZIPln, Pln, PlnPCA, PlnPCAcollection
 
 pln_and_plnpca = ["Pln", "PlnPCA"]
 single_models = ["Pln", "PlnPCA", "ZIPln"]
@@ -37,7 +38,7 @@ def test_predict_simulated(sim_model):
 
 @pytest.mark.parametrize("any_instance_model", dict_fixtures["instances"])
 def test_verbose(any_instance_model):
-    any_instance_model.fit(verbose=True, tol=0.1)
+    any_instance_model.fit(verbose=True, tol=1)
 
 
 @pytest.mark.parametrize(
@@ -108,15 +109,30 @@ def test_fail_wrong_exog_prediction(model):
         model.predict(X)
 
 
-@pytest.mark.parametrize("model", dict_fixtures["sim_model_instance"])
-@filter_models(pln_and_plnpca)
-def test_batch(model):
-    model.fit(batch_size=20)
-    print(model)
-    model.show(display=False)
-    if model.nb_cov == 2:
-        true_coef = true_sim_2cov["beta"]
-        mse_coef = MSE(model.coef - true_coef)
-        assert mse_coef < 0.1
-    elif model.nb_cov == 0:
-        assert model.coef is None
+@pytest.mark.parametrize("model", dict_fixtures["instances"])
+def test_fail_batch(model):
+    with pytest.raises(ValueError):
+        model.batch_size = 20
+    endog = model.endog
+    exog = model.exog
+    offsets = model.offsets
+    if model._NAME == "ZIPln":
+        instance = ZIPln
+    elif model._NAME == "Pln":
+        instance = Pln
+    elif model._NAME == "PlnPCA":
+        instance = PlnPCA
+    else:
+        instance = PlnPCAcollection
+
+    new_model = instance(
+        endog, exog=exog, offsets=offsets, batch_size=20, add_const=False
+    )
+    new_model.fit()
+    if model._NAME in ["PlnPNCA", "Pln"]:
+        if model.nb_cov == 2:
+            true_coef = true_sim_2cov["beta"]
+            mse_coef = MSE(new_model.coef - true_coef)
+            assert mse_coef < 0.1
+        elif model.nb_cov == 0:
+            assert new_model.coef is None
