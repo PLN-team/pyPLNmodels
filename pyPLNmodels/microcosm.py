@@ -38,7 +38,11 @@ def load_microcosm(
     max_dim = 1209
     n_samples, dim = threshold_samples_and_dim(max_samples, max_dim, n_samples, dim)
     endog_stream = pkg_resources.resource_stream(__name__, "data/microcosm/counts.tsv")
-    endog = (pd.read_csv(endog_stream, delimiter="\t")).iloc[:n_samples, :dim]
+    endog = (
+        (pd.read_csv(endog_stream, delimiter="\t"))
+        .drop(columns="Sample")
+        .iloc[:n_samples, :dim]
+    )
     cov_stream = pkg_resources.resource_stream(__name__, "data/microcosm/metadata.tsv")
     cov = pd.read_csv(cov_stream, delimiter="\t")[cov_list].iloc[:n_samples, :]
     if get_affil is True:

@@ -4092,8 +4092,8 @@ class ZIPln(_model):
             than 0, and if you assign non-zero probabilities
             to non-zero counts.
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> endog, labels = load_scrna(return_labels = True)
-        >>> zi = ZIPln(endog,add_const = True)
+        >>> endog = load_scrna()
+        >>> zi = ZIPln(endog,add_const = True, use_closed_form_prob = False)
         >>> zi.fit()
         >>> latent_prob = zi.latent_prob
         >>> zi.latent_prob = latent_prob*0.5
