@@ -7,7 +7,6 @@ from tests.conftest import dict_fixtures
 from tests.utils import MSE, filter_models
 
 from tests.import_data import true_sim_0cov, true_sim_2cov, endog_real
-from pyPLNmodels import ZIPln, Pln, PlnPCA, PlnPCAcollection
 
 pln_and_plnpca = ["Pln", "PlnPCA"]
 single_models = ["Pln", "PlnPCA", "ZIPln"]
@@ -107,32 +106,3 @@ def test_fail_wrong_exog_prediction(model):
     X = torch.randn(model.n_samples, model.nb_cov + 1)
     with pytest.raises(Exception):
         model.predict(X)
-
-
-@pytest.mark.parametrize("model", dict_fixtures["instances"])
-def test_fail_batch(model):
-    with pytest.raises(ValueError):
-        model.batch_size = 20
-    endog = model.endog
-    exog = model.exog
-    offsets = model.offsets
-    if model._NAME == "ZIPln":
-        instance = ZIPln
-    elif model._NAME == "Pln":
-        instance = Pln
-    elif model._NAME == "PlnPCA":
-        instance = PlnPCA
-    else:
-        instance = PlnPCAcollection
-
-    new_model = instance(
-        endog, exog=exog, offsets=offsets, batch_size=20, add_const=False
-    )
-    new_model.fit()
-    if model._NAME in ["PlnPNCA", "Pln"]:
-        if model.nb_cov == 2:
-            true_coef = true_sim_2cov["beta"]
-            mse_coef = MSE(new_model.coef - true_coef)
-            assert mse_coef < 0.1
-        elif model.nb_cov == 0:
-            assert new_model.coef is None

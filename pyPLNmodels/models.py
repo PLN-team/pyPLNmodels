@@ -356,7 +356,11 @@ class _model(ABC):
         """
         Initialize coefficients smartly.
         """
-        self._coef = _init_coef(self._endog, self._exog, self._offsets)
+        coef = _init_coef(self._endog, self._exog, self._offsets)
+        if coef is not None:
+            self._coef = coef.detach().to(DEVICE)
+        else:
+            self._coef = None
 
     def _random_init_coef(self):
         """
@@ -364,7 +368,7 @@ class _model(ABC):
         """
         if self.nb_cov == 0:
             self._coef = None
-        self._coef = torch.randn((self.nb_cov, self.dim))
+        self._coef = torch.randn((self.nb_cov, self.dim)).to(DEVICE)
 
     def _init_parameters(self, do_smart_init: bool):
         """
@@ -614,18 +618,12 @@ class _model(ABC):
         return (self.latent_sqrt_var**2).detach()
 
     @property
-    def _mean_gaussian(self):
-        if self._exog is None:
-            return 0
-        return self._exog @ self._coef
-
-    @property
     def mean_gaussian(self):
         """Unconditional mean of the latent variable Z."""
-        mean_gaussian = self._mean_gaussian
+        mean_gaussian = 0 if self.exog is None else self.exog @ self.coef
         if isinstance(mean_gaussian, int):
             return mean_gaussian
-        return mean_gaussian.detach()
+        return mean_gaussian.detach().cpu()
 
     def pca_pairplot(self, n_components=None, colors=None):
         """
@@ -1059,7 +1057,7 @@ class _model(ABC):
         for key, value in self._dict_parameters.items():
             filename = f"{path}/{key}.csv"
             if isinstance(value, torch.Tensor):
-                pd.DataFrame(np.array(value.detach())).to_csv(
+                pd.DataFrame(np.array(value.cpu().detach())).to_csv(
                     filename, header=None, index=None
                 )
             elif value is not None:
@@ -1102,6 +1100,12 @@ class _model(ABC):
             The exog or None.
         """
         return self._cpu_attribute_or_none("_exog")
+
+    @property
+    def _exog_b_device(self):
+        if self._exog is None:
+            return None
+        return self._exog_b.to(DEVICE)
 
     @endog.setter
     @_array2tensor
@@ -1398,7 +1402,7 @@ class _model(ABC):
         """
 
     @abstractmethod
-    def _compute_elbo_b(self):
+    def _compute_elbo_b(self) -> torch.Tensor:
         """
         Compute the Evidence Lower BOund (ELBO) for the current mini-batch.
         Returns
@@ -1724,7 +1728,7 @@ class Pln(_model):
             The coefficients or None.
         """
         if hasattr(self, "_latent_mean") and hasattr(self, "_exog") and self.nb_cov > 0:
-            return self._coef.detach()
+            return self._coef.detach().cpu()
         return None
 
     @coef.setter
@@ -1769,6 +1773,7 @@ class Pln(_model):
         torch.Tensor
             The coefficients.
         """
+        ret = _closed_formula_coef
         return _closed_formula_coef(self._exog, self._latent_mean)
 
     @property
@@ -1852,7 +1857,7 @@ class Pln(_model):
                 "n_samples",
             ]
         ):
-            return self._covariance.detach()
+            return self._covariance.detach().cpu()
         return None
 
     @covariance.setter
@@ -1944,13 +1949,13 @@ class Pln(_model):
         )
 
     @_add_doc(_model)
-    def _compute_elbo_b(self):
+    def _compute_elbo_b(self) -> torch.Tensor:
         return profiled_elbo_pln(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
+            self._endog_b.to(DEVICE),
+            self._exog_b_device,
+            self._offsets_b.to(DEVICE),
+            self._latent_mean_b.to(DEVICE),
+            self._latent_sqrt_var_b.to(DEVICE),
         )
 
     @_add_doc(_model)
@@ -2462,10 +2467,12 @@ class PlnPCAcollection:
         current_model : Any
             The current model.
         """
-        next_model.coef = current_model.coef
-        next_model.components = torch.zeros(self.dim, next_model.rank)
+        next_model.coef = current_model._coef
+        next_model.components = torch.zeros(self.dim, next_model.rank).to(DEVICE)
         with torch.no_grad():
-            next_model._components[:, : current_model.rank] = current_model._components
+            next_model._components[:, : current_model.rank] = (
+                current_model._components
+            ).to(DEVICE)
 
     def _print_ending_message(self):
         """
@@ -3367,11 +3374,11 @@ class PlnPCA(_model):
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
         return elbo_plnpca(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
+            self._endog_b.to(DEVICE),
+            self._exog_b_device,
+            self._offsets_b.to(DEVICE),
+            self._latent_mean_b.to(DEVICE),
+            self._latent_sqrt_var_b.to(DEVICE),
             self._components,
             self._coef,
         )
@@ -3805,7 +3812,7 @@ class ZIPln(_model):
                 * self.smart_device(torch.ones(self.n_samples, self.dim))
             )
         else:
-            self._latent_mean = self.smart_device(self._xinflacoefinfla)
+            self._latent_mean = self.smart_device(self.xinflacoefinfla)
         self._latent_sqrt_var = self.smart_device(torch.randn(self.n_samples, self.dim))
         if self._use_closed_form_prob is False:
             self._latent_prob = self.smart_device(self.proba_inflation * (self._dirac))
@@ -4117,7 +4124,7 @@ class ZIPln(_model):
             self._exog_device,
             self._coef,
             self._offsets.to(DEVICE),
-            self._xinflacoefinfla.to(DEVICE),
+            self.xinflacoefinfla.to(DEVICE),
             self._covariance,
             self._dirac.to(DEVICE),
         )
@@ -4136,12 +4143,12 @@ class ZIPln(_model):
         Uses the exponential moment of a log gaussian variable.
         """
         return _closed_formula_latent_prob(
-            self._exog_b,
+            self._exog_b_device,
             self._coef,
-            self._offsets_b,
+            self._offsets_b.to(DEVICE),
             self._xinflacoefinfla_b,
             self._covariance,
-            self._dirac_b,
+            self._dirac_b.to(DEVICE),
         )
 
     @_add_doc(
@@ -4187,7 +4194,7 @@ class ZIPln(_model):
             return self._coef_inflation
         if self._zero_inflation_formula == "column-wise":
             exog_infla_b = torch.index_select(self._exog_inflation, 0, self.to_take)
-            return exog_infla_b @ self._coef_inflation
+            return exog_infla_b.to(DEVICE) @ self._coef_inflation
         coef_infla_b = torch.index_select(self._coef_inflation, 0, self.to_take).to(
             DEVICE
         )
@@ -4200,11 +4207,11 @@ class ZIPln(_model):
         zero_inflation_formula.
         """
         if self._zero_inflation_formula == "global":
-            return self._coef_inflation
+            return self.smart_device(self._coef_inflation)
         elif self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation @ self._coef_inflation
+            return self._exog_inflation @ (self.smart_device(self._coef_inflation))
         elif self._zero_inflation_formula == "row-wise":
-            return self._coef_inflation @ (self._exog_inflation)
+            return self.smart_device(self._coef_inflation) @ (self._exog_inflation)
 
     @property
     def proba_inflation(self):
@@ -4215,23 +4222,23 @@ class ZIPln(_model):
         """
         return torch.sigmoid(self._xinflacoefinfla)
 
-    def _compute_elbo_b(self):
+    def _compute_elbo_b(self) -> torch.Tensor:
         if self._use_closed_form_prob is True:
             latent_prob_b = self.closed_formula_latent_prob_b
         else:
             latent_prob_b = self._latent_prob_b
 
         return elbo_zi_pln(
-            self._endog_b,
-            self._exog_b,
-            self._offsets_b,
-            self._latent_mean_b,
-            self._latent_sqrt_var_b,
+            self._endog_b.to(DEVICE),
+            self._exog_b_device,
+            self._offsets_b.to(DEVICE),
+            self._latent_mean_b.to(DEVICE),
+            self._latent_sqrt_var_b.to(DEVICE),
             latent_prob_b,
             self._components,
             self._coef,
             self._xinflacoefinfla_b,
-            self._dirac_b,
+            self._dirac_b.to(DEVICE),
         )
 
     @property
@@ -4241,9 +4248,11 @@ class ZIPln(_model):
         zero_inflation_formula.
         """
         if self._zero_inflation_formula == "global":
-            return self._coef_inflation
-        if self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation
+            return self.coef_inflation
+        elif self._zero_inflation_formula == "column-wise":
+            return self.exog_inflation @ self.coef_inflation
+        elif self._zero_inflation_formula == "row-wise":
+            return self.coef_inflation @ self.exog_inflation
 
     @property
     @_add_doc(_model)
@@ -4769,14 +4778,14 @@ class Brute_ZIPln(ZIPln):
             msg += " and NO closed form for latent prob."
         return msg
 
-    def _compute_elbo_b(self):
+    def _compute_elbo_b(self) -> torch.Tensor:
         if self._use_closed_form_prob is True:
             latent_prob_b = self.closed_formula_latent_prob_b
         else:
             latent_prob_b = self._latent_prob_b
         return elbo_brute_zipln(
             self._endog_b.to(DEVICE),
-            self._exog_b.to(DEVICE),
+            self._exog_b_device,
             self._offsets_b.to(DEVICE),
             self._latent_mean_b.to(DEVICE),
             self._latent_sqrt_var_b.to(DEVICE),

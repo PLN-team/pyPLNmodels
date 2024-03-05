@@ -112,7 +112,11 @@ def _init_latent_mean(
     torch.Tensor
         The initialized latent mean with size (n,rank)
     """
-    mode = torch.randn(endog.shape[0], components.shape[1])
+    device = endog.device
+    components = components.to(device)
+    if coef is not None:
+        coef = coef.to(device)
+    mode = torch.randn(endog.shape[0], components.shape[1], device=device)
     mode.requires_grad_(True)
     optimizer = torch.optim.Rprop([mode], lr=lr)
     crit = 2 * eps
@@ -282,6 +286,7 @@ def log_posterior(
 
 class ZIP:
     def __init__(self, endog, exog, exog_inflation, offsets, zero_inflation_formula):
+        print("device endog ZIP", endog.device)
         self.endog = endog
         self.exog = exog
         self.exog_inflation = exog_inflation
@@ -392,7 +397,10 @@ class _PoissonReg:
             Whether to print intermediate information during fitting (default is False).
 
         """
-        beta = torch.rand((exog.shape[1], Y.shape[1]), requires_grad=True)
+        self.device = Y.device
+        beta = torch.rand(
+            (exog.shape[1], Y.shape[1]), requires_grad=True, device=self.device
+        )
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
         grad_norm = 2 * tol  # Criterion
