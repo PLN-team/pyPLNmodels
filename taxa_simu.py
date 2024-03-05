@@ -42,12 +42,16 @@ zi = ZIPln(
     exog=exog,
     exog_inflation=exog,
     zero_inflation_formula="column-wise",
-    # dict_initialization=dict_init,
+    dict_initialization=dict_init,
 )
-zi.fit(nb_max_iteration=300, verbose=True)
-sns.heatmap(zi._covariance.detach())
+# print('elbo', zi.elbo)
+# zi.fit(nb_max_iteration=500, verbose=True, do_smart_init = True, tol = 0, lr = 0.00000001)
+# zi.save("zi_model")
+# print('mean prob', torch.mean(zi.proba_inflation))
 
-plt.savefig("cov.pdf", format="pdf")
+# sns.heatmap(zi._covariance.cpu().detach())
+
+# plt.savefig("cov.pdf", format="pdf")
 # zi.fit(tol=0, nb_max_iteration=10000, verbose=True)
 # zi.save("zi_model")
 # print("zi shape", zi.endog.shape)
@@ -74,7 +78,7 @@ def coef_mat_to_csv(mat, name):
 
 
 # squared_mat_to_csv(zi.covariance, "csv_mahendra/covariance.csv")
-# rectange_mat_to_csv(zi.proba_inflation, "csv_mahendra/proba_inflation.csv")
+rectange_mat_to_csv(zi.latent_mean, "csv_mahendra/latent_mean.csv")
 # coef_mat_to_csv(zi.coef_inflation, "csv_mahendra/coef_inflation.csv")
 # coef_mat_to_csv(zi.coef, "csv_mahendra/coef.csv")
 
