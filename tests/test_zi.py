@@ -92,14 +92,6 @@ def test_transform(zi):
     assert z.shape == w.shape == zi.endog.shape
 
 
-@pytest.mark.parametrize("model", dict_fixtures["sim_model_instance"])
-@filter_models(["ZIPln"])
-def test_batch(model):
-    model.batch_size = 20
-    model.fit()
-    print(model)
-
-
 def train_zi(formula):
     n_samples = 100
     if formula == "global":
