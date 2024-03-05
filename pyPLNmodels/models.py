@@ -418,7 +418,6 @@ class _model(ABC):
         Raises
         ------
         ValueError
-            If the batch_size is greater than the number of samples, or not int.
             If 'nb_max_iteration' is not an int.
         """
         if not isinstance(nb_max_iteration, int):
@@ -2249,15 +2248,9 @@ class PlnPCAcollection:
     @batch_size.setter
     def batch_size(self, batch_size: int):
         """
-        Setter for the batch_size property.
-
-        Parameters
-        ----------
-        batch_size : int
-            The batch size.
+        Does not allow to set the batch size.
         """
-        for model in self.values():
-            model.batch_size = batch_size
+        raise ValueError("Can not set the batch size after initialization")
 
     @coef.setter
     @_array2tensor
@@ -2447,8 +2440,6 @@ class PlnPCAcollection:
             Whether to print verbose output, by default False.
         Raises
         ------
-        ValueError
-            If the batch_size is greater than the number of samples, or not int.
         """
         self._print_beginning_message()
         for i in range(len(self.values())):
