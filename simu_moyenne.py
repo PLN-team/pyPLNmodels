@@ -44,8 +44,8 @@ elif viz == "proba":
 
 chosen_moyennes = _moyennes
 
-n = 800
-dim = 800
+n = 80
+dim = 40
 inflation_formula = "column-wise"
 
 
@@ -66,6 +66,7 @@ LABEL_DICT = {
 
 REC_KEY = "Reconstruction_error"
 B_KEY = "RMSE_B"
+OMEGA_KEY = "RMSE_OMEGA"
 SIGMA_KEY = "RMSE_SIGMA"
 PI_KEY = "RMSE_PI"
 ELBO_KEY = "ELBO"
@@ -79,7 +80,7 @@ VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 # LEGEND_DICT = {
 #     REC_KEY: "Reconstruction_error",
 #     B_KEY: r"$\|\|\hat{\beta} - \beta\| \|^2_2$",
-#     SIGMA_KEY: r"$\|\|\hat{\Sigma} - \Sigma\|\|^2_2$",
+#     OMEGA_KEY: r"$\|\|\hat{\Sigma} - \Sigma\|\|^2_2$",
 #     B0_KEY: r"$\|\|\hat{B}^0 - B^0\|\|^2_2$",
 #     ELBO_KEY: "Negative ELBO (Lower the better)",
 #     PI_KEY: r"$\|\|\hat{\pi} - \pi\|\|_1$",
@@ -88,7 +89,8 @@ VIZ_LABEL = {"proba": r"$\pi$", "poisson": r"$XB$"}
 LEGEND_DICT = {
     REC_KEY: "Reconstruction_error",
     B_KEY: r"RMSE($\hat{\beta} - \beta^{\bigstar}$)",
-    SIGMA_KEY: r"RMSE($\hat{\Omega} - \Omega^{\bigstar}$)",
+    OMEGA_KEY: r"RMSE($\hat{\Omega} - \Omega^{\bigstar}$)",
+    SIGMA_KEY: r"RMSE($\hat{\Sigma} - \Sigma^{\bigstar}$)",
     B0_KEY: r"RMSE($\hat{B}^0 - B^{0\bigstar}$)",
     ELBO_KEY: "Negative ELBO (Lower the better)",
     PI_KEY: r"RMSE($\hat{\pi} - \pi^{\bigstar}$)",
@@ -98,6 +100,7 @@ LEGEND_DICT = {
 CRITERION_KEYS = [
     ELBO_KEY,
     REC_KEY,
+    OMEGA_KEY,
     SIGMA_KEY,
     B_KEY,
     PI_KEY,
@@ -219,6 +222,7 @@ class one_plot:
             key_model: {
                 moyenne: {
                     REC_KEY: [],
+                    OMEGA_KEY: [],
                     SIGMA_KEY: [],
                     B_KEY: [],
                     PI_KEY: [],
@@ -299,9 +303,13 @@ class one_plot:
                 beta_0 = B0
             results_model = self.model_criterions[key_model][moyenne]
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
-            results_model[SIGMA_KEY].append(
+            results_model[OMEGA_KEY].append(
                 RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
             )
+            results_model[SIGMA_KEY].append(
+                RMSE(torch.inverse(model_fitted.covariance) - Sigma[cols, cols].cpu())
+            )
+
             results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
             results_model[PI_KEY].append(
                 RMSE(
@@ -361,12 +369,12 @@ class one_plot:
         return data
 
     def plot_results(self):
-        fig, axes = plt.subplots(2, 4, figsize=(30, 15))
+        fig, axes = plt.subplots(2, 5, figsize=(30, 15))
         plots = {}
         plots[REC_KEY] = axes[1, 1]
         plots[REC_KEY].set_title("Reconstruction error", fontsize=22)
-        plots[SIGMA_KEY] = axes[0, 1]
-        plots[SIGMA_KEY].set_title(LEGEND_DICT[SIGMA_KEY], fontsize=22)
+        plots[OMEGA_KEY] = axes[0, 1]
+        plots[OMEGA_KEY].set_title(LEGEND_DICT[OMEGA_KEY], fontsize=22)
         plots[B_KEY] = axes[0, 2]
         plots[B_KEY].set_title(LEGEND_DICT[B_KEY], fontsize=22)
         plots[PI_KEY] = axes[1, 2]
@@ -379,6 +387,8 @@ class one_plot:
         plots[TIME_KEY].set_title(LEGEND_DICT[TIME_KEY], fontsize=22)
         plots[NBITER_KEY] = axes[1, 3]
         plots[NBITER_KEY].set_title(LEGEND_DICT[NBITER_KEY], fontsize=22)
+        plots[SIGMA_KEY] = axes[1, 4]
+        plots[SIGMA_KEY].set_title(LEGEND_DICT[SIGMA_KEY], fontsize=22)
         for key, plot in plots.items():
             if key != ELBO_KEY:
                 plot.set_yscale("log")
