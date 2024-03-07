@@ -22,6 +22,10 @@ h[["NBITER"]] = "Number of iterations"
 
 colors = c("lightblue","blue","lightpink","red")
 
+get_name_computation <- function(viz,formula){
+    return(paste(viz,formula,"not_n_or_p_200.csv", sep = "_"))
+}
+
 g_legend<-function(a.gplot){
       tmp <- ggplot_gtable(ggplot_build(a.gplot))
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
@@ -29,41 +33,64 @@ g_legend<-function(a.gplot){
     return(legend)}
 scaleFUN <- function(x) sprintf("%.4s", x)
 
-get_df = function(namedoss, perf){
+get_df = function(namedoss, perf, viz){
     columns = c("model_name")
     if (perf == "stat"){
         columns = c(columns,"moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B")
     }
     if (perf == "computation"){
-        columns = c(columns,"moyenne","ELBO","TIME","Reconstruction_error")
+        if (viz == "poisson" || viz == "proba"){
+            columns = c(columns, "moyenne")
+        }
+        else{
+            columns = c(columns,"xscale")
+        }
+        columns = c(columns,"ELBO","TIME","Reconstruction_error")
     }
     if (perf == "annexe"){
         columns = c(columns,"moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B","RMSE_B0")
     }
     df = subset(read.csv(paste('csv_data/',namedoss, sep = "")), select = -X)
     df[,"model_name"] = as.factor(df[,"model_name"])
-    df[,"moyenne"] = as.factor(df[,"moyenne"])
+    if ("moyenne" %in% columns){
+        df[,"moyenne"] = as.factor(df[,"moyenne"])
+    }
+    else{
+        df[,"xscale"] = as.factor(df[,"xscale"])
+    }
+
     df[,"NBITER"] = as.numeric(df[,"NBITER"])
     df = df[columns]
     return(df)
 }
 
 plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, perf){
-    df = get_df(namedoss,perf)
+    df = get_df(namedoss,perf,viz)
     third_column = names(df)[3]
     last_column = names(df)[length(names(df))]
     criterions <- names(df[,c(3:(dim(df)[2]))])
     if (viz == "poisson"){
         xlab = TeX('$XB$')
     }
-    else{
+    if (viz == "proba"){
         xlab = TeX('$\\pi')
+    }
+    if (viz == "samples"){
+        xlab = TeX('$n$')
+    }
+    if (viz == "dims"){
+        xlab = TeX('$p$')
     }
     plot_data_column = function(i){
         column = criterions[i]
         y_moins = list_ylim_moins[[i]]
         y_plus = list_ylim_plus[[i]]
-        current_plot <- (ggplot(df, aes(x = moyenne, y = df[,column], fill =
+        if (viz == "poisson" || viz == "proba"){
+            first_col = "moyenne"
+        } else{ first_col = "xscale"
+
+        }
+        current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
                                         as.factor(model_name)) ) +
                          geom_point(position = position_jitterdodge(), aes(fill =
                                                                      model_name,group
@@ -109,18 +136,23 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
     myplots <- lapply(myplots,remove_legend)
     return(list(myplots,common_legend))
 }
-viz = "poisson"
-perf = "annexe"
+viz = "samples"
+perf = "computation"
 
 pdf(paste("figures/",viz,".pdf",sep=""), width = 20)
 
-name_doss_1 = paste(viz,"_viz_global.csv", sep = "")
-name_doss_2 = paste(viz,"_viz_column-wise.csv", sep = "")
-name_doss_3 = paste(viz,"_viz_row-wise.csv", sep = "")
+if (viz =="samples" || viz == "dims"){
+    name_doss_1 <- get_name_computation(viz,"global")
+    name_doss_2 <- get_name_computation(viz,"column-wise")
+    name_doss_3 <- get_name_computation(viz,"row-wise")
+} else{
+    name_doss_1 = paste(viz,"_viz_global.csv", sep = "")
+    name_doss_2 = paste(viz,"_viz_column-wise.csv", sep = "")
+    name_doss_3 = paste(viz,"_viz_row-wise.csv", sep = "")
+}
 name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
-
-get_y_lims = function(name_doss,perf){
-    df = get_df(name_doss,perf)
+get_y_lims = function(name_doss,perf,viz){
+    df = get_df(name_doss,perf,viz)
     criterions <- names(df[,c(3:(dim(df)[2]))])
     current_y_lim_plus = c(0,0,0)
     current_y_lim_moins = c(0,0,0)
@@ -141,7 +173,7 @@ plot_all <- function (name_dosses,viz, perf){
     ylim_pluss <- c(0,0,0)
     ylim_moinss <- c(1000,1000,1000)
     for (name_doss in name_dosses){
-        current_y_lims <- get_y_lims(name_doss,perf)
+        current_y_lims <- get_y_lims(name_doss,perf,viz)
         current_ylim_moins <- current_y_lims[[1]]
         current_ylim_plus <- current_y_lims[[2]]
         ylim_moinss = pmin(ylim_moinss,current_ylim_moins)

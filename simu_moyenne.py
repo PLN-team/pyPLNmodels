@@ -7,7 +7,6 @@ from pyPLNmodels import (
     # get_real_count_data,
     ZIPln,
     Pln,
-    get_zipln_simulated_count_data,
     get_simulation_parameters,
     sample_zipln,
 )
@@ -250,10 +249,6 @@ class one_plot:
         for model in dict_models.values():
             model.samples_only_zeros = samples_only_zeros
             model.dim_only_zeros = dim_only_zeros
-
-        # sns.heatmap(torch.inverse(_plnparam.covariance))
-        # plt.title("True")
-        # plt.show()
         fit_models(dict_models)
         return dict_models
 
