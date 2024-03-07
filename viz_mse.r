@@ -55,13 +55,13 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
         y_plus = list_ylim_plus[[i]]
         current_plot <- (ggplot(df, aes(x = moyenne, y = df[,column], fill =
                                         as.factor(model_name)) ) +
-                         geom_boxplot(lwd = 0.03, outlier.shape = NA) +
                          geom_point(position = position_jitterdodge(), aes(fill =
                                                                      model_name,group
                                                                  = model_name,
                                                                  color =
                                                                      model_name),
-                                    size = 0.2, alpha = 0.6)
+                                    size = 0.2, alpha = 0.6)+
+                         geom_boxplot(lwd = 0.03, outlier.shape = NA)
                          + scale_y_log10() + scale_fill_manual(values = colors, name = "")
         + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
         +guides(fill=guide_legend(nrow=1,byrow=TRUE))) + theme_bw() + ylim(y_moins,y_plus)
@@ -78,8 +78,13 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
                 # current_plot = current_plot + labs(y=h[[column]], x = NULL)
             }
             else{
+                print('inflation')
+                print(inflation)
                 current_plot = current_plot + labs(y= NULL,x = NULL)
             }
+        }
+        if(column == last_column && inflation != "Non-dependent (3a)"){
+            current_plot = current_plot + labs(y=NULL, x = xlab)
         }
         return(current_plot)
          #+
@@ -157,32 +162,3 @@ three_plots <- plot_all(name_dosses, viz)
 # three_plots = c(first_plots,second_plots,third_plots)
 grid.arrange(grobs = three_plots, as.table = FALSE, align = c("v"))#,bottom = legend_all,  ncol = 1,top = title, common.legend = TRUE)
 dev.off()
-
-# name_doss = "proba_viz_column-wise.csv"
-# plot_csv(name_doss,"proba","column-dependent")
-
-# name_doss = "proba_viz_row-wise.csv"
-# plot_csv(name_doss,"proba","row-dependent")
-
-# name_doss = "proba_viz_global.csv"
-# plot_csv(name_doss,"proba","non-dependent")
-
-
-
-# name_doss = "poisson_viz_column-wise_n800_p800.csv"
-# plot_csv(name_doss,"poisson","column-dependent")
-
-# name_doss = "poisson_viz_row-wise_n800_p800.csv"
-# plot_csv(name_doss,"poisson","row-dependent")
-
-# name_doss = "poisson_viz_global_n800_p_800.csv"
-# plot_csv(name_doss,"poisson","non-dependent")
-
-# name_doss = "proba_viz_column-wise_n800_p800.csv"
-# plot_csv(name_doss,"proba","column-dependent")
-
-# name_doss = "proba_viz_row-wise_n800_p800.csv"
-# plot_csv(name_doss,"proba","row-dependent")
-
-# name_doss = "proba_viz_global_n800_p_800.csv"
-# plot_csv(name_doss,"proba","non-dependent")
