@@ -89,6 +89,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
     """
     prev_state = torch.random.get_rng_state()
     torch.random.manual_seed(0)
+    _check_all_integers_or_none([n_samples, dim, nb_cov, nb_cov_inflation])
     if nb_cov_inflation == 0:
         if zero_inflation_formula == "global":
             if add_const_inflation is True:
@@ -184,6 +185,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         )
         exog -= (exog == 0) * torch.ones(exog.shape)
         if add_const is True:
+            print("nsamples", n_samples)
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         coef = None
@@ -809,3 +811,10 @@ def get_simulation_parameters(
         zero_inflation_formula=zero_inflation_formula,
         n_samples=n_samples,
     )
+
+
+def _check_all_integers_or_none(l):
+    for element in l:
+        if element is not None:
+            if not isinstance(element, int):
+                raise ValueError(f"Got,{type(element)}, expected an int")
