@@ -20,17 +20,35 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-n = 80
-dim = 40
-nb_points = 2
+# n = 1000
+# dim = 500
+# nb_points_proba = 8
+# nb_points_poisson = 7
+# viz = "proba"
+# # viz = "poisson"
+# _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
+# _moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
+# nb_max_iteration = 2000
+# good_fit = True
+# # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
+# _mean_infla = 0.30
+# _mean_xb = 2
+# _nb_bootstrap = 15
+
+n = 100
+dim = 50
+nb_points_proba = 3
+nb_points_poisson = 3
 viz = "proba"
-_moyennes_XB = np.linspace(0, 5, nb_points)
-_moyennes_proba = np.linspace(0.1, 0.8, nb_points)
+# viz = "poisson"
+_moyennes_XB = np.linspace(0, 3, nb_points_poisson)
+_moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
+nb_max_iteration = 2000
+good_fit = False
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.30
 _mean_xb = 2
 _nb_bootstrap = 2
-
 
 if viz == "poisson":
     _moyennes = _moyennes_XB
@@ -183,8 +201,10 @@ def get_plnparam(inflation_formula):
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        # model.fit(tol=0, nb_max_iteration=2000)
-        model.fit(nb_max_iteration=5)
+        if good_fit is True:
+            model.fit(tol=0, nb_max_iteration=nb_max_iteration)
+        else:
+            model.fit(nb_max_iteration=5)
     return dict_models
 
 

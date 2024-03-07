@@ -27,11 +27,9 @@ n = 200
 p = 200
 nb_cov = 2
 nb_cov_infla = 2
-
 good_fit = False
+viz = "samples"
 
-
-viz = "dims"
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
 STD_CLOSED_KEY = "Standard Analytic"
@@ -174,7 +172,7 @@ class one_plot:
         self.save_criterions()
         data = self.data
         data.to_csv(
-            f"csv_computation/{self.doss_viz}/{self.viz}_{self.inflation_formula}_not_n_or_p_{self.not_n_or_p}.csv"
+            f"csv_computation/{self.viz}_{self.inflation_formula}_not_n_or_p_{self.not_n_or_p}.csv"
         )
 
     @property
