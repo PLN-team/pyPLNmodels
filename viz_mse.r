@@ -29,22 +29,30 @@ g_legend<-function(a.gplot){
     return(legend)}
 scaleFUN <- function(x) sprintf("%.4s", x)
 
-get_df = function(namedoss){
+get_df = function(namedoss, perf){
+    columns = c("model_name")
+    if (perf == "stat"){
+        columns = c(columns,"moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B")
+    }
+    if (perf == "computation"){
+        columns = c(columns,"moyenne","ELBO","TIME","Reconstruction_error")
+    }
+    if (perf == "annexe"){
+        columns = c(columns,"moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B","RMSE_B0")
+    }
     df = subset(read.csv(paste('csv_data/',namedoss, sep = "")), select = -X)
     df[,"model_name"] = as.factor(df[,"model_name"])
     df[,"moyenne"] = as.factor(df[,"moyenne"])
     df[,"NBITER"] = as.numeric(df[,"NBITER"])
-    df = df[c("model_name","moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B","RMSE_B0")]
+    df = df[columns]
     return(df)
 }
 
-plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
-    df = get_df(namedoss)
+plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, perf){
+    df = get_df(namedoss,perf)
     third_column = names(df)[3]
     last_column = names(df)[length(names(df))]
     criterions <- names(df[,c(3:(dim(df)[2]))])
-    print('names')
-    print(names(df))
     if (viz == "poisson"){
         xlab = TeX('$XB$')
     }
@@ -97,11 +105,12 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
     }
     vect = c(1:(length(criterions)))
     myplots <- lapply(vect, plot_data_column)
-    legend_all = get_legend(myplots[[1]])
+    common_legend = get_legend(myplots[[1]])
     myplots <- lapply(myplots,remove_legend)
-    return(myplots)
+    return(list(myplots,common_legend))
 }
 viz = "poisson"
+perf = "annexe"
 
 pdf(paste("figures/",viz,".pdf",sep=""), width = 20)
 
@@ -110,8 +119,8 @@ name_doss_2 = paste(viz,"_viz_column-wise.csv", sep = "")
 name_doss_3 = paste(viz,"_viz_row-wise.csv", sep = "")
 name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
 
-get_y_lims = function(name_doss){
-    df = get_df(name_doss)
+get_y_lims = function(name_doss,perf){
+    df = get_df(name_doss,perf)
     criterions <- names(df[,c(3:(dim(df)[2]))])
     current_y_lim_plus = c(0,0,0)
     current_y_lim_moins = c(0,0,0)
@@ -128,11 +137,11 @@ get_y_lims = function(name_doss){
     return(list(current_y_lim_moins, current_y_lim_plus))
 
 }
-plot_all <- function (name_dosses,viz){
+plot_all <- function (name_dosses,viz, perf){
     ylim_pluss <- c(0,0,0)
     ylim_moinss <- c(1000,1000,1000)
     for (name_doss in name_dosses){
-        current_y_lims <- get_y_lims(name_doss)
+        current_y_lims <- get_y_lims(name_doss,perf)
         current_ylim_moins <- current_y_lims[[1]]
         current_ylim_plus <- current_y_lims[[2]]
         ylim_moinss = pmin(ylim_moinss,current_ylim_moins)
@@ -142,15 +151,18 @@ plot_all <- function (name_dosses,viz){
     plots = list()
     for (i in rev(c(1:(length(models))))){
         name_doss = name_dosses[i]
-        print(name_doss)
         model = models[i]
-        print(model)
-        plots = append(plot_csv(name_doss, viz,model,ylim_moinss, ylim_pluss), plots)
+        plots_and_legend <-  plot_csv(name_doss, viz,model,ylim_moinss, ylim_pluss,perf)
+        current_plots = plots_and_legend[[1]]
+        legend_all = plots_and_legend[[2]]
+        plots = append(current_plots, plots)
     }
-    return(plots)
+    return(list(plots,legend_all))
 }
 
-three_plots <- plot_all(name_dosses, viz)
+three_plots_and_legend <- plot_all(name_dosses, viz, perf)
+three_plots <- three_plots_and_legend[[1]]
+legend_all <- three_plots_and_legend[[2]]
 
 # first_plots = plot_csv(name_doss_1,viz,"Non-dependent (3a)", ylim_moins, ylim_plus)
 # second_plots = plot_csv(name_doss_2,viz,"Column-dependent (3b)", ylim_moins, ylim_plus)
@@ -163,5 +175,5 @@ three_plots <- plot_all(name_dosses, viz)
 #     title = textGrob(TeX(glue("$n=350,p=100,d=1,\\pi=0.3,${inflation}")),gp=gpar(fontsize=20,font=3))
 # }
 # three_plots = c(first_plots,second_plots,third_plots)
-grid.arrange(grobs = three_plots, as.table = FALSE, align = c("v"))#,bottom = legend_all,  ncol = 1,top = title, common.legend = TRUE)
+grid.arrange(grobs = three_plots, as.table = FALSE, align = c("v"),bottom = legend_all,  ncol = 3,top = title, common.legend = TRUE)
 dev.off()
