@@ -9,6 +9,24 @@ library(glue)
 options(error=traceback)
 # traceback()
 
+viz = "samples"
+perf = "computation"
+
+pdf(paste("figures/",viz,".pdf",sep=""), width = 20)
+
+if (viz =="samples" || viz == "dims"){
+    name_doss_1 <- get_name_computation(viz,"global")
+    name_doss_2 <- get_name_computation(viz,"column-wise")
+    name_doss_3 <- get_name_computation(viz,"row-wise")
+} else{
+    name_doss_1 = paste(viz,"_viz_global.csv", sep = "")
+    name_doss_2 = paste(viz,"_viz_column-wise.csv", sep = "")
+    name_doss_3 = paste(viz,"_viz_row-wise.csv", sep = "")
+}
+name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
+
+
+
 h = hash()
 h[["ELBO"]] = "ELBO"
 h[["Reconstruction_error"]] =TeX('RMSE $Y$')
@@ -136,21 +154,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
     myplots <- lapply(myplots,remove_legend)
     return(list(myplots,common_legend))
 }
-viz = "samples"
-perf = "computation"
-
-pdf(paste("figures/",viz,".pdf",sep=""), width = 20)
-
-if (viz =="samples" || viz == "dims"){
-    name_doss_1 <- get_name_computation(viz,"global")
-    name_doss_2 <- get_name_computation(viz,"column-wise")
-    name_doss_3 <- get_name_computation(viz,"row-wise")
-} else{
-    name_doss_1 = paste(viz,"_viz_global.csv", sep = "")
-    name_doss_2 = paste(viz,"_viz_column-wise.csv", sep = "")
-    name_doss_3 = paste(viz,"_viz_row-wise.csv", sep = "")
-}
-name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
 get_y_lims = function(name_doss,perf,viz){
     df = get_df(name_doss,perf,viz)
     criterions <- names(df[,c(3:(dim(df)[2]))])

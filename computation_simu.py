@@ -18,6 +18,20 @@ from pyPLNmodels import (
 from pyPLNmodels.models import Brute_ZIPln
 import matplotlib.pyplot as plt
 
+mean_poiss = 2
+mean_infla = 0.3
+
+ns = np.linspace(100, 200, 2)
+ps = np.linspace(100, 200, 2)
+n = 200
+p = 200
+nb_cov = 2
+nb_cov_infla = 2
+
+good_fit = False
+
+
+viz = "dims"
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
 STD_CLOSED_KEY = "Standard Analytic"
@@ -47,20 +61,6 @@ COLORS = {
     STD_CLOSED_KEY: "darkred",
 }
 
-mean_poiss = 2
-mean_infla = 0.3
-
-ns = np.linspace(100, 200, 2)
-ps = np.linspace(100, 200, 2)
-n = 200
-p = 200
-nb_cov = 2
-nb_cov_infla = 2
-
-good_fit = False
-
-
-viz = "dims"
 if viz == "samples":
     abscisses = ns
 else:

@@ -20,16 +20,15 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-
+n = 80
+dim = 40
 nb_points = 2
-
 viz = "proba"
 _moyennes_XB = np.linspace(0, 5, nb_points)
 _moyennes_proba = np.linspace(0.1, 0.8, nb_points)
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.30
 _mean_xb = 2
-
 _nb_bootstrap = 2
 
 
@@ -43,8 +42,6 @@ elif viz == "proba":
 
 chosen_moyennes = _moyennes
 
-n = 80
-dim = 40
 inflation_formula = "column-wise"
 
 
