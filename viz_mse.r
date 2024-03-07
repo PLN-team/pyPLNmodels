@@ -34,7 +34,7 @@ get_df = function(namedoss){
     df[,"model_name"] = as.factor(df[,"model_name"])
     df[,"moyenne"] = as.factor(df[,"moyenne"])
     df[,"NBITER"] = as.numeric(df[,"NBITER"])
-    df = df[c("model_name","moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B")]
+    df = df[c("model_name","moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B","RMSE_B0")]
     return(df)
 }
 
@@ -43,6 +43,8 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
     third_column = names(df)[3]
     last_column = names(df)[length(names(df))]
     criterions <- names(df[,c(3:(dim(df)[2]))])
+    print('names')
+    print(names(df))
     if (viz == "poisson"){
         xlab = TeX('$XB$')
     }
@@ -64,11 +66,14 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
                          geom_boxplot(lwd = 0.03, outlier.shape = NA)
                          + scale_y_log10() + scale_fill_manual(values = colors, name = "")
         + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
-        +guides(fill=guide_legend(nrow=1,byrow=TRUE))) + theme_bw() + ylim(y_moins,y_plus)
-        if (column == third_column){
+        +guides(fill=guide_legend(nrow=1,byrow=TRUE))) + theme_bw()
+        if (column != "RMSE_B0"){
+            current_plot = current_plot +  ylim(y_moins,y_plus)
+        }
+        if (column == third_column || column == "RMSE_B0"){
             current_plot = current_plot + ggtitle(inflation)+ theme(plot.title = element_text(hjust = 0.5))
         }
-        if (column == last_column){
+        if (column == last_column || column == "RMSE_B"){
             current_plot = current_plot + labs(y = h[[column]],x = xlab)
         }
         else{
@@ -78,8 +83,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus){
                 # current_plot = current_plot + labs(y=h[[column]], x = NULL)
             }
             else{
-                print('inflation')
-                print(inflation)
                 current_plot = current_plot + labs(y= NULL,x = NULL)
             }
         }
