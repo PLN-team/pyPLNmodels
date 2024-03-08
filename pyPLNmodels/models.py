@@ -4812,6 +4812,16 @@ class Brute_ZIPln(ZIPln):
         )
 
     @property
+    def _closed_formula_zero_grad_prob(self):
+        return _closed_formula_zero_grad_prob(
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._dirac,
+            self._xinflacoefinfla,
+        )
+
+    @property
     def _covariance(self):
         return _closed_formula_covariance(
             self._exog,
@@ -4851,3 +4861,13 @@ class Brute_ZIPln(ZIPln):
             "components": self.__components,
             "coef_inflation": self.coef_inflation,
         }
+
+    @property
+    def latent_prob(self):
+        """
+        The latent probability i.e. the probabilities that the zero inflation
+        component is 0 given Y.
+        """
+        if self._use_closed_form_prob is True:
+            return self.closed_formula_latent_prob.detach().cpu()
+        return self._closed_formula_zero_grad_prob.detach().cpu()
