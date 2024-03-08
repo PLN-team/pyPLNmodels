@@ -684,8 +684,6 @@ def _handle_data_with_inflation(
             exog_inflation = exog_inflation[:, ~dim_only_zeros]
 
     if zero_inflation_formula != "global" and exog_inflation is not None:
-        print("endog shape", endog.shape)
-        print("exog infla shape", exog_inflation.shape)
         _check_shape_exog_infla(
             exog_inflation, zero_inflation_formula, endog.shape[0], endog.shape[1]
         )
