@@ -2,14 +2,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels import ZIPln, load_microcosm, get_zipln_simulated_count_data
+from pyPLNmodels import (
+    ZIPln,
+    load_microcosm,
+    get_zipln_simulated_count_data,
+    load_model,
+)
 from pyPLNmodels.models import Brute_ZIPln
 
 # endog, exog = load_microcosm(n_samples = 2000, dim = 2000)
-endog, exog = load_microcosm()
-exog_inflation = exog
-offsets = None
-# endog, exog,exog_inflation,offsets = get_zipln_simulated_count_data()
+# endog, exog = load_microcosm()
+# exog_inflation = exog
+# offsets = None
+endog, exog, exog_inflation, offsets = get_zipln_simulated_count_data()
+
+zibrute = Brute_ZIPln(
+    endog,
+    exog=exog,
+    exog_inflation=exog_inflation,
+    offsets=offsets,
+    add_const_inflation=True,
+    add_const=True,
+    use_closed_form_prob=True,
+)
+zibrute.fit(nb_max_iteration=5)
+zibrute.save("zibrute")
+init = load_model("zibrute")
 
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
@@ -34,6 +52,7 @@ models = {
         exog_inflation=exog_inflation,
         add_const=True,
         use_closed_form_prob=True,
+        dict_initialization=init,
     ),
     STD_FREE_KEY: Brute_ZIPln(
         endog,
@@ -56,7 +75,7 @@ models = {
 }
 dict_res = {}
 for key, model in models.items():
-    model.fit(nb_max_iteration=5, tol=0)
+    model.fit(nb_max_iteration=20, tol=0)
     y = model._criterion_args._elbos_list
     dict_res[key] = y
 

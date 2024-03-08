@@ -35,15 +35,19 @@ encoder = OneHotEncoder(drop="first")
 exog = encoder.fit_transform(cov).toarray()
 
 columns = endog.columns
-dict_init = load_model("zi_model")
+dict_init_enh = load_model("zi_model")
 # dict_init = None
 zi = ZIPln(
     endog,
     exog=exog,
     exog_inflation=exog,
     zero_inflation_formula="column-wise",
-    dict_initialization=dict_init,
+    dict_initialization=dict_init_enh,
 )
+zibrute = ZIPln(
+    endog, exog, exog_inflation=exog_inflation, zero_inflation_formula="column-wise"
+)
+
 # print('elbo', zi.elbo)
 # zi.fit(nb_max_iteration=500, verbose=True, do_smart_init = True, tol = 0, lr = 0.00000001)
 # zi.save("zi_model")
@@ -57,28 +61,28 @@ zi = ZIPln(
 # print("zi shape", zi.endog.shape)
 
 
-def squared_mat_to_csv(mat, name):
-    df = pd.DataFrame(mat.cpu().detach())
-    df.columns = columns
-    df.index = columns
-    df.to_csv(name)
+# def squared_mat_to_csv(mat, name):
+#     df = pd.DataFrame(mat.cpu().detach())
+#     df.columns = columns
+#     df.index = columns
+#     df.to_csv(name)
 
 
-def rectange_mat_to_csv(mat, name):
-    df = pd.DataFrame(mat.cpu().detach())
-    df.columns = columns
-    df.index = sample_names
-    df.to_csv(name)
+# def rectange_mat_to_csv(mat, name):
+#     df = pd.DataFrame(mat.cpu().detach())
+#     df.columns = columns
+#     df.index = sample_names
+#     df.to_csv(name)
 
 
-def coef_mat_to_csv(mat, name):
-    df = pd.DataFrame(mat.cpu().detach())
-    df.columns = columns
-    df.to_csv(name)
+# def coef_mat_to_csv(mat, name):
+#     df = pd.DataFrame(mat.cpu().detach())
+#     df.columns = columns
+#     df.to_csv(name)
 
 
 # squared_mat_to_csv(zi.covariance, "csv_mahendra/covariance.csv")
-rectange_mat_to_csv(zi.latent_mean, "csv_mahendra/latent_mean.csv")
+# rectange_mat_to_csv(zi.latent_mean, "csv_mahendra/latent_mean.csv")
 # coef_mat_to_csv(zi.coef_inflation, "csv_mahendra/coef_inflation.csv")
 # coef_mat_to_csv(zi.coef, "csv_mahendra/coef.csv")
 
