@@ -4818,3 +4818,16 @@ class Brute_ZIPln(ZIPln):
         self._coef = _closed_formula_coef(self._exog, self._latent_mean)
         if self._use_closed_form_prob is True:
             self._latent_prob = self.closed_formula_latent_prob
+
+    @property
+    def __components(self):
+        return torch.linalg.cholesky(self._components)
+
+    @property
+    @_add_doc(_model)
+    def model_parameters(self) -> Dict[str, torch.Tensor]:
+        return {
+            "coef": self.coef,
+            "components": self.__components,
+            "coef_inflation": self.coef_inflation,
+        }
