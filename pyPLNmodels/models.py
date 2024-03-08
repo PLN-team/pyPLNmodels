@@ -4835,9 +4835,9 @@ class Brute_ZIPln(ZIPln):
 
     def _update_closed_forms(self):
         if self._use_closed_form_prob is True:
-            self._coef = _closed_formula_coef(self._exog, self._latent_mean)
             self._latent_prob = self.closed_formula_latent_prob
-            print("mean latent_ prob updating", torch.mean(self._latent_prob))
+        else:
+            self._coef = _closed_formula_coef(self._exog, self._latent_mean)
 
     @property
     def __components(self):
