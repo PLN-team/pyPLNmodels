@@ -18,13 +18,14 @@ from pyPLNmodels._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
     _closed_formula_latent_prob,
-    _closed_formula_pi,
+    _closed_formula_zero_grad_prob,
 )
 from pyPLNmodels.elbos import (
     elbo_plnpca,
     elbo_zi_pln,
     profiled_elbo_pln,
-    elbo_brute_zipln,
+    elbo_brute_zipln_components,
+    elbo_brute_zipln_covariance,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -4781,19 +4782,33 @@ class Brute_ZIPln(ZIPln):
     def _compute_elbo_b(self) -> torch.Tensor:
         if self._use_closed_form_prob is True:
             latent_prob_b = self.closed_formula_latent_prob_b
+            tocompute = elbo_brute_zipln_components
+            cov_or_components = self._components
         else:
-            latent_prob_b = self._latent_prob_b
-        return elbo_brute_zipln(
+            latent_prob_b = self._closed_formula_zero_grad_prob_b
+            tocompute = elbo_brute_zipln_covariance
+            cov_or_components = self._covariance
+        return tocompute(
             self._endog_b.to(DEVICE),
             self._exog_b_device,
             self._offsets_b.to(DEVICE),
             self._latent_mean_b.to(DEVICE),
             self._latent_sqrt_var_b.to(DEVICE),
             latent_prob_b.to(DEVICE),
-            self._covariance,
+            cov_or_components,
             self._coef,
             self._xinflacoefinfla_b,
             self._dirac_b.to(DEVICE),
+        )
+
+    @property
+    def _closed_formula_zero_grad_prob_b(self):
+        return _closed_formula_zero_grad_prob(
+            self._offsets_b.to(DEVICE),
+            self._latent_mean_b.to(DEVICE),
+            self._latent_sqrt_var_b.to(DEVICE),
+            self._dirac_b.to(DEVICE),
+            self._xinflacoefinfla_b,
         )
 
     @property
@@ -4808,16 +4823,21 @@ class Brute_ZIPln(ZIPln):
 
     @property
     def _list_of_parameters_needing_gradient(self):
-        return [
+        list_parameters = [
             self._latent_mean,
             self._latent_sqrt_var,
             self._coef_inflation,
         ]
+        if self._use_closed_form_prob is True:
+            list_parameters.append(self._coef)
+            list_parameters.append(self._components)
+        return list_parameters
 
     def _update_closed_forms(self):
-        self._coef = _closed_formula_coef(self._exog, self._latent_mean)
         if self._use_closed_form_prob is True:
+            self._coef = _closed_formula_coef(self._exog, self._latent_mean)
             self._latent_prob = self.closed_formula_latent_prob
+            print("mean latent_ prob updating", torch.mean(self._latent_prob))
 
     @property
     def __components(self):

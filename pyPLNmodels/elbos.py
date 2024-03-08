@@ -266,7 +266,58 @@ def elbo_zi_pln(
     return res
 
 
-def elbo_brute_zipln(
+def elbo_brute_zipln_components(
+    endog,
+    exog,
+    offsets,
+    latent_mean,
+    latent_sqrt_var,
+    latent_prob,
+    components,
+    coef,
+    x_coef_inflation,
+    dirac,
+):
+    if torch.norm(latent_prob * dirac - latent_prob) > 0.00000001:
+        raise RuntimeError("Latent probability error.")
+    covariance = components @ (components.T)
+    n_samples, dim = endog.shape
+    s_rond_s = torch.multiply(latent_sqrt_var, latent_sqrt_var)
+    o_plus_m = offsets + latent_mean
+    if exog is None:
+        XB = torch.zeros_like(endog)
+    else:
+        XB = exog @ coef
+
+    m_minus_xb = latent_mean - XB
+
+    A = torch.exp(o_plus_m + s_rond_s / 2)
+    inside_a = torch.multiply(
+        1 - latent_prob, torch.multiply(endog, o_plus_m) - A - _log_stirling(endog)
+    )
+    a = torch.sum(inside_a)
+    Omega = torch.inverse(covariance)
+    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+    inside_c = torch.multiply(latent_prob, x_coef_inflation) - _log1pexp(
+        x_coef_inflation
+    )
+    c = torch.sum(inside_c)
+    inside_e = -torch.multiply(latent_prob, _trunc_log(latent_prob)) - torch.multiply(
+        1 - latent_prob, _trunc_log(1 - latent_prob)
+    )
+    e = torch.sum(inside_e)
+    _, logdet_C = torch.slogdet(components)
+    logdet = -n_samples * logdet_C
+    diag_sum_s2 = torch.diag(torch.sum(s_rond_s, axis=0))
+    inside_b = -1 / 2 * Omega * (m_moins_xb_outer + diag_sum_s2)
+    b = torch.sum(inside_b)
+    inside_d = 1 / 2 * torch.log(s_rond_s)
+    d = torch.sum(inside_d)
+    elbo = a + b + c + d + e + logdet + n_samples * dim / 2
+    return elbo
+
+
+def elbo_brute_zipln_covariance(
     endog,
     exog,
     offsets,

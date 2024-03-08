@@ -5,8 +5,8 @@ pdf("../figures/elbos.pdf", width = 20)
 
 
 # df = subset(read.csv("dict_elbos_2000_all.csv"), select = -X)
-df = subset(read.csv("dict_elbos.csv"), select = -X)
-first = 50
+df = subset(read.csv("dict_elbos_simu.csv"), select = -X)
+first = 1
 df = df[-c(1:first),]
 df = df[,c("Enhanced","Standard","Enhanced.Analytic","Standard.Analytic")]
 
@@ -52,7 +52,7 @@ df_reshaped <- data.frame(x = x,y = y, Model = models)
 
 plot = ggplot(df_reshaped, aes(x, y, col = Model)) + geom_line() + scale_y_log10() + annotation_logticks(side = 'l')+ labs(y = "Negative ELBO", x = "Iteration number")# + scale_y_continuous(trans = "log2")  #+ annotation_logticks()
 plot = plot + scale_color_discrete(labels = unname(real_names))
-plot = plot + theme_bw() + scale_colour_viridis_d() + ggtitle("Same graph on simulated data") + theme(plot.title = element_text(hjust = 0.5))
+plot = plot + theme_bw() + scale_colour_viridis_d()# + ggtitle("Same graph on simulated data") + theme(plot.title = element_text(hjust = 0.5))
 plot
 
 # # plot = plot  + theme_bw() + scale_y_log10(limits = c(lower_y - window_moins,lower_y + window_plus))

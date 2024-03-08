@@ -66,7 +66,7 @@ def _closed_formula_coef(
     return torch.inverse(exog.T @ exog) @ exog.T @ latent_mean
 
 
-def _closed_formula_pi(
+def _closed_formula_zero_grad_prob(
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
