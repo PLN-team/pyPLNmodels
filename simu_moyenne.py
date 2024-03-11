@@ -70,6 +70,7 @@ ENH_CLOSED_KEY = "enhanced_closed"
 ENH_FREE_KEY = "enhanced_free"
 STD_CLOSED_KEY = "standard_closed"
 STD_FREE_KEY = "standard_free"
+PLN = "Pln"
 
 
 LABEL_DICT = {
@@ -77,6 +78,7 @@ LABEL_DICT = {
     ENH_FREE_KEY: "Enhanced",
     STD_CLOSED_KEY: "Standard Analytic",
     STD_FREE_KEY: "Standard",
+    PLN: "Pln",
 }
 
 REC_KEY = "Reconstruction_error"
@@ -131,7 +133,7 @@ COLORS = {
 }
 
 
-KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY]
+KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY, PLN]
 
 
 def RMSE(t):
@@ -176,6 +178,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
         ),
+        PLN: Pln(endog, exog=exog, offsets=offsets),
     }
     return sim_models
 
@@ -306,21 +309,28 @@ class one_plot:
             model_fitted = dict_models[key_model]
             lines = ~model_fitted.samples_only_zeros
             cols = ~model_fitted.dim_only_zeros
-            omega = torch.inverse(Sigma)[cols, cols]
+            Sigma = Sigma[:, cols][cols, :]
+            omega = torch.inverse(Sigma)
             beta = B[:, cols]
-            if model_fitted._zero_inflation_formula == "row-wise":
-                beta_0 = B0[lines, :]
-            elif model_fitted._zero_inflation_formula == "column-wise":
-                beta_0 = B0[:, cols]
-            else:
-                beta_0 = B0
             results_model = self.model_criterions[key_model][moyenne]
+            if model_fitted._NAME != "Pln":
+                if model_fitted._zero_inflation_formula == "row-wise":
+                    beta_0 = B0[lines, :]
+                elif model_fitted._zero_inflation_formula == "column-wise":
+                    beta_0 = B0[:, cols]
+                else:
+                    beta_0 = B0
+                results_model[B0_KEY].append(
+                    RMSE(model_fitted.coef_inflation - beta_0.cpu())
+                )
+            else:
+                results_model[B0_KEY].append(666)
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
             results_model[OMEGA_KEY].append(
                 RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
             )
             results_model[SIGMA_KEY].append(
-                RMSE(torch.inverse(model_fitted.covariance) - Sigma[cols, cols].cpu())
+                RMSE(torch.inverse(model_fitted.covariance) - Sigma.cpu())
             )
 
             results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
@@ -331,9 +341,6 @@ class one_plot:
                 )
             )
             results_model[ELBO_KEY].append(model_fitted.elbo)
-            results_model[B0_KEY].append(
-                RMSE(model_fitted.coef_inflation - beta_0.cpu())
-            )
             results_model[TIME_KEY].append(
                 model_fitted._criterion_args.running_times[-1]
             )
