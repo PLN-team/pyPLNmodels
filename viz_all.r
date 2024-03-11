@@ -9,14 +9,14 @@ library(glue)
 options(error=traceback)
 # traceback()
 
-viz = "samples"
+viz = "proba"
 perf = "stat"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
 
 get_name_computation <- function(viz,formula){
     # return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
-    return(paste(viz,formula,"not_n_or_p_175.csv", sep = "_"))
+    return(paste(viz,formula,"not_n_or_p_200.csv", sep = "_"))
 }
 
 if (viz =="samples" || viz == "dims"){

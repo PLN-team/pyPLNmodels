@@ -21,37 +21,37 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-n = 1000
-dim = 300
-nb_points_proba = 8
-nb_points_poisson = 9
+# n = 1000
+# dim = 300
+# nb_points_proba = 8
+# nb_points_poisson = 9
+# # viz = "proba"
 # viz = "proba"
-viz = "proba"
-_moyennes_XB = np.linspace(0, 4, nb_points_poisson)
-_moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
-nb_max_iteration = 2000
-good_fit = True
-# chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-_mean_infla = 0.30
-_mean_xb = 2
-_nb_bootstrap = 15
-nb_cov_inflation = 3
-
-# n = 120
-# dim = 50
-# nb_points_proba = 3
-# nb_points_poisson = 3
-# viz = "proba"
-# # viz = "poisson"
-# _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
+# _moyennes_XB = np.linspace(0, 4, nb_points_poisson)
 # _moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
 # nb_max_iteration = 2000
-# good_fit = False
+# good_fit = True
 # # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 # _mean_infla = 0.30
 # _mean_xb = 2
-# _nb_bootstrap = 2
+# _nb_bootstrap = 15
 # nb_cov_inflation = 3
+
+n = 120
+dim = 50
+nb_points_proba = 3
+nb_points_poisson = 3
+viz = "proba"
+# viz = "poisson"
+_moyennes_XB = np.linspace(0, 3, nb_points_poisson)
+_moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
+nb_max_iteration = 2000
+good_fit = False
+# chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
+_mean_infla = 0.30
+_mean_xb = 2
+_nb_bootstrap = 2
+nb_cov_inflation = 3
 
 if viz == "poisson":
     _moyennes = _moyennes_XB
@@ -71,6 +71,7 @@ ENH_FREE_KEY = "enhanced_free"
 STD_CLOSED_KEY = "standard_closed"
 STD_FREE_KEY = "standard_free"
 PLN = "Pln"
+FAIRPLN = "Fair_Pln"
 
 
 LABEL_DICT = {
@@ -79,6 +80,7 @@ LABEL_DICT = {
     STD_CLOSED_KEY: "Standard Analytic",
     STD_FREE_KEY: "Standard",
     PLN: "Pln",
+    FAIRPLN: "Fair Pln",
 }
 
 REC_KEY = "Reconstruction_error"
@@ -130,17 +132,21 @@ COLORS = {
     ENH_CLOSED_KEY: "darkblue",
     STD_FREE_KEY: "lightcoral",
     STD_CLOSED_KEY: "darkred",
+    PLN: "black",
+    FAIRPLN: "grey",
 }
 
 
-KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY, PLN]
+KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY, PLN, FAIRPLN]
 
 
 def RMSE(t):
     return torch.sqrt(torch.mean(t**2))
 
 
-def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
+def get_dict_models(
+    endog, exog, exog_inflation, offsets, inflation_formula, fair_endog
+):
     sim_models = {
         ENH_FREE_KEY: ZIPln(
             endog,
@@ -179,6 +185,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             zero_inflation_formula=inflation_formula,
         ),
         PLN: Pln(endog, exog=exog, offsets=offsets),
+        FAIRPLN: Pln(fair_endog, exog=exog, offsets=offsets),
     }
     return sim_models
 
@@ -257,13 +264,14 @@ class one_plot:
         }
 
     def simulate_mean(self, _plnparam, i):
-        endog = sample_zipln(_plnparam, seed=i)
+        endog, fair_endog = sample_zipln(_plnparam, seed=i, return_pln=True)
         dict_models = get_dict_models(
             endog,
             exog=_plnparam.exog,
             offsets=_plnparam.offsets,
             exog_inflation=_plnparam.exog_inflation,
             inflation_formula=self.inflation_formula,
+            fair_endog=fair_endog,
         )
         samples_only_zeros = torch.sum(endog, axis=1) == 0
         dim_only_zeros = torch.sum(endog, axis=0) == 0
@@ -307,39 +315,55 @@ class one_plot:
     def stock_results(self, dict_models, moyenne, Sigma, B, B0):
         for key_model in KEY_MODELS:
             model_fitted = dict_models[key_model]
+            Sigma_fair = Sigma
+            omega_fair = torch.inverse(Sigma_fair)
+            beta_fair = B
             lines = ~model_fitted.samples_only_zeros
             cols = ~model_fitted.dim_only_zeros
             Sigma = Sigma[:, cols][cols, :]
             omega = torch.inverse(Sigma)
             beta = B[:, cols]
             results_model = self.model_criterions[key_model][moyenne]
-            if model_fitted._NAME != "Pln":
-                if model_fitted._zero_inflation_formula == "row-wise":
-                    beta_0 = B0[lines, :]
-                elif model_fitted._zero_inflation_formula == "column-wise":
-                    beta_0 = B0[:, cols]
+            if key_model != FAIRPLN:
+                if model_fitted._NAME != "Pln":
+                    if model_fitted._zero_inflation_formula == "row-wise":
+                        beta_0 = B0[lines, :]
+                    elif model_fitted._zero_inflation_formula == "column-wise":
+                        beta_0 = B0[:, cols]
+                    else:
+                        beta_0 = B0
+                    results_model[B0_KEY].append(
+                        RMSE(model_fitted.coef_inflation - beta_0.cpu())
+                    )
+                    results_model[PI_KEY].append(
+                        RMSE(
+                            torch.sigmoid(model_fitted.coef_inflation)
+                            - torch.sigmoid(beta_0).cpu()
+                        )
+                    )
                 else:
-                    beta_0 = B0
-                results_model[B0_KEY].append(
-                    RMSE(model_fitted.coef_inflation - beta_0.cpu())
+                    results_model[B0_KEY].append(666)
+                    results_model[PI_KEY].append(666)
+                results_model[OMEGA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
                 )
+                results_model[SIGMA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - Sigma.cpu())
+                )
+
+                results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
             else:
                 results_model[B0_KEY].append(666)
-            results_model[REC_KEY].append(model_fitted.reconstruction_error)
-            results_model[OMEGA_KEY].append(
-                RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
-            )
-            results_model[SIGMA_KEY].append(
-                RMSE(torch.inverse(model_fitted.covariance) - Sigma.cpu())
-            )
-
-            results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
-            results_model[PI_KEY].append(
-                RMSE(
-                    torch.sigmoid(model_fitted.coef_inflation)
-                    - torch.sigmoid(beta_0).cpu()
+                results_model[PI_KEY].append(666)
+                results_model[B_KEY].append(RMSE(model_fitted.coef - beta_fair.cpu()))
+                results_model[OMEGA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - omega_fair)
                 )
-            )
+                results_model[SIGMA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - Sigma_fair)
+                )
+
+            results_model[REC_KEY].append(model_fitted.reconstruction_error)
             results_model[ELBO_KEY].append(model_fitted.elbo)
             results_model[TIME_KEY].append(
                 model_fitted._criterion_args.running_times[-1]
