@@ -12,10 +12,11 @@ options(error=traceback)
 viz = "dims"
 perf = "computation"
 
-pdf(paste("figures/",viz,".pdf",sep=""), width = 20)
+pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
 
 get_name_computation <- function(viz,formula){
-    return(paste(viz,formula,"not_n_or_p_200.csv", sep = "_"))
+    return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
+    # return(paste(viz,formula,"not_n_or_p_200.csv", sep = "_"))
 }
 
 if (viz =="samples" || viz == "dims"){
@@ -34,7 +35,7 @@ name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
 h = hash()
 h[["ELBO"]] = "ELBO"
 h[["Reconstruction_error"]] =TeX('RMSE $Y$')
-h[["RMSE_SIGMA"]] = TeX('RMSE $\\Omega$')
+h[["RMSE_OMEGA"]] = TeX('RMSE $\\Omega$')
 h[["RMSE_B"]] =TeX('RMSE $B$')
 h[["RMSE_PI"]]=  TeX('RMSE $\\pi$')
 h[["RMSE_B0"]] =TeX('RMSE $B^0$')
@@ -55,7 +56,7 @@ scaleFUN <- function(x) sprintf("%.4s", x)
 get_df = function(namedoss, perf, viz){
     columns = c("model_name")
     if (perf == "stat"){
-        columns = c(columns,"moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B")
+        columns = c(columns,"moyenne","RMSE_OMEGA","RMSE_PI","RMSE_B")
     }
     if (perf == "computation"){
         if (viz == "poisson" || viz == "proba"){
@@ -67,9 +68,10 @@ get_df = function(namedoss, perf, viz){
         columns = c(columns,"ELBO","TIME","Reconstruction_error")
     }
     if (perf == "annexe"){
-        columns = c(columns,"moyenne","RMSE_SIGMA","RMSE_PI","RMSE_B","RMSE_B0")
+        columns = c(columns,"moyenne","RMSE_OMEGA","RMSE_PI","RMSE_B","RMSE_B0")
     }
     df = subset(read.csv(paste('csv_data/',namedoss, sep = "")), select = -X)
+
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){
         df[,"moyenne"] = as.factor(df[,"moyenne"])
@@ -88,6 +90,8 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
     third_column = names(df)[3]
     last_column = names(df)[length(names(df))]
     criterions <- names(df[,c(3:(dim(df)[2]))])
+    print('list ylim moins')
+    print(list_ylim_moins)
     if (viz == "poisson"){
         xlab = TeX('$XB$')
     }
@@ -116,13 +120,13 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                                                                  = model_name,
                                                                  color =
                                                                      model_name),
-                                    size = 0.2, alpha = 0.6)+
+                                    size = 0.6, alpha = 0.6)+
                          geom_boxplot(lwd = 0.03, outlier.shape = NA)
                          + scale_y_log10() + scale_fill_manual(values = colors, name = "")
         + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
         +guides(fill=guide_legend(nrow=1,byrow=TRUE))) + theme_bw()
         if (column != "RMSE_B0"){
-            current_plot = current_plot +  ylim(y_moins,y_plus)
+            current_plot = current_plot +  scale_y_log10(limits = c(y_moins,y_plus))
         }
         if (column == third_column || column == "RMSE_B0"){
             current_plot = current_plot + ggtitle(inflation)+ theme(plot.title = element_text(hjust = 0.5))
@@ -175,7 +179,7 @@ get_y_lims = function(name_doss,perf,viz){
 }
 plot_all <- function (name_dosses,viz, perf){
     ylim_pluss <- c(0,0,0)
-    ylim_moinss <- c(1000,1000,1000)
+    ylim_moinss <- c(1000000000,1000000000,1000000000)
     for (name_doss in name_dosses){
         current_y_lims <- get_y_lims(name_doss,perf,viz)
         current_ylim_moins <- current_y_lims[[1]]

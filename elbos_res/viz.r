@@ -4,8 +4,7 @@ library(latex2exp)
 pdf("../figures/elbos.pdf", width = 20)
 
 
-# df = subset(read.csv("dict_elbos_2000_all.csv"), select = -X)
-df = subset(read.csv("dict_elbos_simu.csv"), select = -X)
+df = subset(read.csv("dict_elbos_2000_all_cov_stdanalytic.csv"), select = -X)
 first = 1
 df = df[-c(1:first),]
 df = df[,c("Enhanced","Standard","Enhanced.Analytic","Standard.Analytic")]

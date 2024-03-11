@@ -10,11 +10,11 @@ from pyPLNmodels import (
 )
 from pyPLNmodels.models import Brute_ZIPln
 
-endog, exog = load_microcosm(n_samples=2000, dim=2000)
+# endog, exog = load_microcosm(n_samples=2000, dim=2000)
 # endog, exog = load_microcosm()
-exog_inflation = exog
-offsets = None
-# endog, exog, exog_inflation, offsets = get_zipln_simulated_count_data()
+# exog_inflation = exog
+# offsets = None
+endog, exog, exog_inflation, offsets = get_zipln_simulated_count_data()
 
 # zibrute = Brute_ZIPln(
 #     endog,
@@ -78,16 +78,20 @@ for key, model in models.items():
     model.fit(nb_max_iteration=2000, tol=0, lr=0.001)
     # model.fit(nb_max_iteration=5, tol=0)
     y = model._criterion_args._elbos_list
+    absc = np.arange(0, len(y))
+    plt.plot(absc, -np.array(y), label=key)
     dict_res[key] = y
 
 df = pd.DataFrame.from_dict(dict_res)
 df.to_csv("elbos_res/dict_elbos_simu.csv")
 
+plt.yscale("log")
+plt.ylabel("ELBO")
+plt.xlabel("Number of iterations")
+plt.legend()
+plt.show()
 
-# absc = np.arange(0, len(y))
+
 # plt.plot(absc, y, label=key)
-# plt.ylabel("ELBO")
-# plt.xlabel("Number of iterations")
 # plt.legend()
-# plt.yscale("log")
 # plt.show()
