@@ -10,11 +10,11 @@ from pyPLNmodels import (
 )
 from pyPLNmodels.models import Brute_ZIPln
 
-# endog, exog = load_microcosm(n_samples=2000, dim=2000)
+endog, exog = load_microcosm(n_samples=2000, dim=2000)
 # endog, exog = load_microcosm()
-# exog_inflation = exog
-# offsets = None
-endog, exog, exog_inflation, offsets = get_zipln_simulated_count_data()
+exog_inflation = exog
+offsets = None
+# endog, exog, exog_inflation, offsets = get_zipln_simulated_count_data()
 
 # zibrute = Brute_ZIPln(
 #     endog,

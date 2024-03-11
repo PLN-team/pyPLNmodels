@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-ns = np.linspace(100, 800, 8)
+ns = np.linspace(100, 1000, 9)
 # ps = np.linspace(100, 800, 8)
 # n = 1000
 p = 200
@@ -32,10 +32,10 @@ viz = "samples"
 
 # mean_poiss = 2
 # mean_infla = 0.3
-# ns = np.linspace(100, 200, 2)
-# # ps = np.linspace(100, 200, 2)
-# # n = 200
-# p = 200
+# ns = np.linspace(100, 300, 2)
+# ps = np.linspace(100, 300, 2)
+# n = 175
+# p = 175
 # nb_cov = 2
 # nb_cov_infla = 2
 # good_fit = False
@@ -45,21 +45,45 @@ ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
 STD_CLOSED_KEY = "Standard Analytic"
 STD_FREE_KEY = "Standard"
+PLN = "Pln"
+FAIRPLN = "fair_Pln"
 
 LABEL_DICT = {
     ENH_CLOSED_KEY: "Enhanced Analytic",
     ENH_FREE_KEY: "Enhanced",
     STD_CLOSED_KEY: "Standard Analytic",
     STD_FREE_KEY: "Standard",
+    PLN: "Pln",
+    FAIRPLN: "fair_Pln",
 }
-KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY]
+KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY, PLN, FAIRPLN]
 
 ELBO_KEY = "ELBO"
 TIME_KEY = "TIME"
 NBITER_KEY = "NBITER"
 REC_KEY = "Reconstruction_error"
+B_KEY = "RMSE_B"
+OMEGA_KEY = "RMSE_OMEGA"
+SIGMA_KEY = "RMSE_SIGMA"
+PI_KEY = "RMSE_PI"
+B0_KEY = "RMSE_B0"
 
-CRITERION_KEYS = [ELBO_KEY, TIME_KEY, NBITER_KEY, REC_KEY]
+CRITERION_KEYS = [
+    ELBO_KEY,
+    REC_KEY,
+    OMEGA_KEY,
+    SIGMA_KEY,
+    B_KEY,
+    PI_KEY,
+    B0_KEY,
+    TIME_KEY,
+    NBITER_KEY,
+]
+
+
+def RMSE(t):
+    return torch.sqrt(torch.mean(t**2))
+
 
 VIZ_LABEL = {"ns": r"$n$", "ps": r"$p$"}
 
@@ -68,6 +92,8 @@ COLORS = {
     ENH_CLOSED_KEY: "darkblue",
     STD_FREE_KEY: "lightcoral",
     STD_CLOSED_KEY: "darkred",
+    PLN: "black",
+    FAIRPLN: "grey",
 }
 
 if viz == "samples":
@@ -88,7 +114,9 @@ def fit_models(dict_models):
     return dict_models
 
 
-def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
+def get_dict_models(
+    endog, exog, exog_inflation, offsets, inflation_formula, fair_endog
+):
     sim_models = {
         ENH_FREE_KEY: ZIPln(
             endog,
@@ -130,6 +158,8 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
         ),
+        PLN: Pln(endog, exog=exog, offsets=offsets),
+        FAIRPLN: Pln(fair_endog, exog=exog, offsets=offsets),
     }
     return sim_models
 
@@ -150,7 +180,12 @@ class one_plot:
             key_model: {
                 xscale: {
                     REC_KEY: [],
+                    OMEGA_KEY: [],
+                    SIGMA_KEY: [],
+                    B_KEY: [],
+                    PI_KEY: [],
                     ELBO_KEY: [],
+                    B0_KEY: [],
                     TIME_KEY: [],
                     NBITER_KEY: [],
                 }
@@ -169,17 +204,28 @@ class one_plot:
                 plnparam = self.get_param(to_viz)
                 plnparam._set_mean_proba(mean_infla)
                 plnparam._set_gaussian_mean(mean_poiss)
+                Sigma = plnparam.covariance
+                B = plnparam.coef
+                B0 = plnparam.coef_inflation
+                print("mean gaussian", torch.mean(plnparam.gaussian_mean))
+                print("mean proba", torch.mean(plnparam.proba_inflation))
                 for i in range(self.nb_bootstrap):
-                    endog = sample_zipln(plnparam, seed=i)
+                    endog, fair_endog = sample_zipln(plnparam, seed=i, return_pln=True)
                     dict_models = get_dict_models(
                         endog,
                         exog=plnparam.exog,
                         offsets=plnparam.offsets,
                         exog_inflation=plnparam.exog_inflation,
                         inflation_formula=self.inflation_formula,
+                        fair_endog=fair_endog,
                     )
-                    fit_models(dict_models)
-                    self.stock_results(dict_models, to_viz)
+                    samples_only_zeros = torch.sum(endog, axis=1) == 0
+                    dim_only_zeros = torch.sum(endog, axis=0) == 0
+                    for model in dict_models.values():
+                        model.samples_only_zeros = samples_only_zeros
+                        model.dim_only_zeros = dim_only_zeros
+                        fit_models(dict_models)
+                    self.stock_results(dict_models, to_viz, Sigma, B, B0)
         self.save_criterions()
         data = self.data
         data.to_csv(
@@ -214,10 +260,57 @@ class one_plot:
                     data = pd.concat((data, new_line))
         return data
 
-    def stock_results(self, dict_models, xscale):
+    def stock_results(self, dict_models, xscale, Sigma, B, B0):
         for key_model in KEY_MODELS:
             model_fitted = dict_models[key_model]
+            lines = ~model_fitted.samples_only_zeros
+            cols = ~model_fitted.dim_only_zeros
+            Sigma_fair = Sigma
+            omega_fair = torch.inverse(Sigma_fair)
+            beta_fair = B
+            Sigma = Sigma[cols, :][:, cols]
+            omega = torch.inverse(Sigma)
+            beta = B[:, cols]
             results_model = self.model_criterions[key_model][xscale]
+            if key_model != FAIRPLN:
+                if model_fitted._NAME != "Pln":
+                    if model_fitted._zero_inflation_formula == "row-wise":
+                        beta_0 = B0[lines, :]
+                    elif model_fitted._zero_inflation_formula == "column-wise":
+                        beta_0 = B0[:, cols]
+                    else:
+                        beta_0 = B0
+                    results_model[B0_KEY].append(
+                        RMSE(model_fitted.coef_inflation - beta_0.cpu())
+                    )
+                    results_model[PI_KEY].append(
+                        RMSE(
+                            torch.sigmoid(model_fitted.coef_inflation)
+                            - torch.sigmoid(beta_0).cpu()
+                        )
+                    )
+                else:
+                    results_model[B0_KEY].append(666)
+                    results_model[PI_KEY].append(666)
+                results_model[OMEGA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
+                )
+                results_model[SIGMA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - Sigma.cpu())
+                )
+
+                results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
+            else:
+                results_model[B0_KEY].append(666)
+                results_model[PI_KEY].append(666)
+                results_model[B_KEY].append(RMSE(model_fitted.coef - beta_fair.cpu()))
+                results_model[OMEGA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - omega_fair)
+                )
+                results_model[SIGMA_KEY].append(
+                    RMSE(torch.inverse(model_fitted.covariance) - Sigma_fair)
+                )
+
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
             results_model[ELBO_KEY].append(model_fitted.elbo)
             results_model[TIME_KEY].append(
@@ -228,23 +321,6 @@ class one_plot:
     def save_criterions(self):
         with open(self.abs_name_file, "wb") as fp:
             pickle.dump(self.model_criterions, fp)
-
-    def simulate_one_xscale(self, _plnparam, i):
-        endog = sample_zipln(_plnparam, seed=i)
-        dict_models = get_dict_models(
-            endog,
-            exog=_plnparam.exog,
-            offsets=_plnparam.offsets,
-            exog_inflation=_plnparam.exog_inflation,
-            inflation_formula=self.inflation_formula,
-        )
-        samples_only_zeros = torch.sum(endog, axis=1) == 0
-        dim_only_zeros = torch.sum(endog, axis=0) == 0
-        for model in dict_models.values():
-            model.samples_only_zeros = samples_only_zeros
-            model.dim_only_zeros = dim_only_zeros
-        fit_models(dict_models)
-        return dict_models
 
     def get_param(self, to_viz):
         if self.viz == "samples":
