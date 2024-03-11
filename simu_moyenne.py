@@ -2,6 +2,7 @@ from os.path import exists
 from tqdm import tqdm
 import seaborn as sns
 from matplotlib.legend_handler import HandlerTuple
+import pickle
 
 from pyPLNmodels import (
     # get_real_count_data,
@@ -20,35 +21,37 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-# n = 1000
-# dim = 500
-# nb_points_proba = 8
-# nb_points_poisson = 7
+n = 1000
+dim = 300
+nb_points_proba = 8
+nb_points_poisson = 9
+# viz = "proba"
+viz = "proba"
+_moyennes_XB = np.linspace(0, 4, nb_points_poisson)
+_moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
+nb_max_iteration = 2000
+good_fit = True
+# chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
+_mean_infla = 0.30
+_mean_xb = 2
+_nb_bootstrap = 15
+nb_cov_inflation = 3
+
+# n = 120
+# dim = 50
+# nb_points_proba = 3
+# nb_points_poisson = 3
 # viz = "proba"
 # # viz = "poisson"
 # _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
 # _moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
 # nb_max_iteration = 2000
-# good_fit = True
+# good_fit = False
 # # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 # _mean_infla = 0.30
 # _mean_xb = 2
-# _nb_bootstrap = 15
-
-n = 100
-dim = 50
-nb_points_proba = 3
-nb_points_poisson = 3
-viz = "proba"
-# viz = "poisson"
-_moyennes_XB = np.linspace(0, 3, nb_points_poisson)
-_moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
-nb_max_iteration = 2000
-good_fit = False
-# chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-_mean_infla = 0.30
-_mean_xb = 2
-_nb_bootstrap = 2
+# _nb_bootstrap = 2
+# nb_cov_inflation = 3
 
 if viz == "poisson":
     _moyennes = _moyennes_XB
@@ -62,8 +65,6 @@ chosen_moyennes = _moyennes
 
 inflation_formula = "column-wise"
 
-
-import pickle
 
 ENH_CLOSED_KEY = "enhanced_closed"
 ENH_FREE_KEY = "enhanced_free"
@@ -143,7 +144,7 @@ def get_dict_models(endog, exog, exog_inflation, offsets, inflation_formula):
             endog,
             exog=exog,
             offsets=offsets,
-            add_const_inflation=True,
+            add_const_inflation=False,
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
             use_closed_form_prob=False,
@@ -184,7 +185,7 @@ def get_plnparam(inflation_formula):
         nb_cov_infla = 0
         add_const_inflation = False
     else:
-        nb_cov_infla = 0
+        nb_cov_infla = nb_cov_inflation
         add_const_inflation = True
     plnparam = get_simulation_parameters(
         nb_cov=1,

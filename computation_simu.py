@@ -20,15 +20,26 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-
-ns = np.linspace(100, 200, 2)
-ps = np.linspace(100, 200, 2)
-n = 200
+ns = np.linspace(100, 800, 8)
+# ps = np.linspace(100, 800, 8)
+# n = 1000
 p = 200
 nb_cov = 2
 nb_cov_infla = 2
-good_fit = False
+good_fit = True
 viz = "samples"
+
+
+# mean_poiss = 2
+# mean_infla = 0.3
+# ns = np.linspace(100, 200, 2)
+# # ps = np.linspace(100, 200, 2)
+# # n = 200
+# p = 200
+# nb_cov = 2
+# nb_cov_infla = 2
+# good_fit = False
+# viz = "samples"
 
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
