@@ -3347,7 +3347,7 @@ class PlnPCA(_model):
         """,
     )
     def latent_variables(self) -> torch.Tensor:
-        return torch.matmul(self.latent_mean, self.components.T)
+        return torch.matmul(self.latent_mean, self.components.T) + self.mean_gaussian
 
     @_add_doc(
         _model,
