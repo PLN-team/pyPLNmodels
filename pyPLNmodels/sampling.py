@@ -789,8 +789,8 @@ def get_simulation_parameters(
     sigma = components @ (components.T)
     sigma += torch.eye(components.shape[0])
     # omega = torch.inverse(sigma)
-    omega = sigma
-    components = torch.linalg.cholesky(omega)
+    # omega = sigma
+    components = torch.linalg.cholesky(sigma)
     if coef_inflation is None:
         print("Pln model will be sampled.")
         return PlnParameters(

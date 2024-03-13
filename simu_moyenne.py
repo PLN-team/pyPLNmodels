@@ -21,37 +21,37 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-# n = 1000
-# dim = 300
-# nb_points_proba = 8
-# nb_points_poisson = 9
-# # viz = "proba"
+n = 1000
+dim = 300
+nb_points_proba = 8
+nb_points_poisson = 9
 # viz = "proba"
-# _moyennes_XB = np.linspace(0, 4, nb_points_poisson)
-# _moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
-# nb_max_iteration = 2000
-# good_fit = True
-# # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
-# _mean_infla = 0.30
-# _mean_xb = 2
-# _nb_bootstrap = 15
-# nb_cov_inflation = 3
-
-n = 120
-dim = 50
-nb_points_proba = 3
-nb_points_poisson = 3
-viz = "proba"
-# viz = "poisson"
-_moyennes_XB = np.linspace(0, 3, nb_points_poisson)
+viz = "poisson"
+_moyennes_XB = np.linspace(0, 4, nb_points_poisson)
 _moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
 nb_max_iteration = 2000
-good_fit = False
+good_fit = True
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.30
 _mean_xb = 2
-_nb_bootstrap = 2
+_nb_bootstrap = 15
 nb_cov_inflation = 3
+
+# n = 120
+# dim = 50
+# nb_points_proba = 3
+# nb_points_poisson = 3
+# viz = "proba"
+# # viz = "poisson"
+# _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
+# _moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
+# nb_max_iteration = 2000
+# good_fit = False
+# # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
+# _mean_infla = 0.30
+# _mean_xb = 2
+# _nb_bootstrap = 2
+# nb_cov_inflation = 3
 
 if viz == "poisson":
     _moyennes = _moyennes_XB

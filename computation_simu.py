@@ -20,14 +20,15 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-ns = np.linspace(100, 1000, 9)
+ns = np.linspace(100, 200, 2)
 # ps = np.linspace(100, 800, 8)
 # n = 1000
-p = 200
+p = 25
 nb_cov = 2
 nb_cov_infla = 2
-good_fit = True
+good_fit = True  ## good_fit is actually 400
 viz = "samples"
+nb_bootstrap = 2
 
 
 # mean_poiss = 2
@@ -40,6 +41,7 @@ viz = "samples"
 # nb_cov_infla = 2
 # good_fit = False
 # viz = "samples"
+# nb_bootstrap = 2
 
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
@@ -101,14 +103,11 @@ if viz == "samples":
 else:
     abscisses = ps
 
-inflation_formula = "global"
-nb_bootstrap = 2
-
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
         if good_fit is True:
-            model.fit(tol=0, nb_max_iteration=2000)
+            model.fit(tol=0, nb_max_iteration=400)
         else:
             model.fit(nb_max_iteration=5)
     return dict_models
@@ -250,8 +249,6 @@ class one_plot:
                     }
                     for crit_key in CRITERION_KEYS:
                         value = self.model_criterions[model_key][xscale][crit_key][i]
-                        if torch.sum(value - 666) == 0:
-                            print("inside")
                         if crit_key == ELBO_KEY:
                             value = -value
                         if isinstance(value, torch.Tensor):
@@ -294,12 +291,13 @@ class one_plot:
                 else:
                     results_model[B0_KEY].append(666)
                     results_model[PI_KEY].append(666)
-                results_model[OMEGA_KEY].append(
-                    RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
-                )
-                results_model[SIGMA_KEY].append(
-                    RMSE(torch.inverse(model_fitted.covariance) - Sigma.cpu())
-                )
+                rmse_omega = RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
+                print("key:", key_model)
+                print("mse omega", rmse_omega)
+                results_model[OMEGA_KEY].append(rmse_omega)
+                rmse_sigma = RMSE(model_fitted.covariance - Sigma.cpu())
+                print("mse sigma", rmse_sigma)
+                results_model[SIGMA_KEY].append(rmse_sigma)
 
                 results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
             else:
@@ -310,7 +308,7 @@ class one_plot:
                     RMSE(torch.inverse(model_fitted.covariance) - omega_fair)
                 )
                 results_model[SIGMA_KEY].append(
-                    RMSE(torch.inverse(model_fitted.covariance) - Sigma_fair)
+                    RMSE(model_fitted.covariance - Sigma_fair)
                 )
 
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
