@@ -185,7 +185,6 @@ def _get_simulation_coef_cov_offsets_coefzi(
         )
         exog -= (exog == 0) * torch.ones(exog.shape)
         if add_const is True:
-            print("nsamples", n_samples)
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         coef = None
