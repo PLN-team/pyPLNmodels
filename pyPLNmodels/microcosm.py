@@ -2,6 +2,7 @@ import torch
 import pandas as pd
 import pkg_resources
 from sklearn.preprocessing import OneHotEncoder
+import numpy as np
 
 from pyPLNmodels._utils import threshold_samples_and_dim
 
@@ -53,8 +54,17 @@ def load_microcosm(
     data = {}
     for name in cov.columns:
         encoder = OneHotEncoder(drop="first")
-        hot = torch.from_numpy(encoder.fit_transform(cov).toarray())
-        data[name] = hot
+        X_1hot = torch.from_numpy(encoder.fit_transform(cov).toarray())
+        # print('first', X_1hot[:, np.newaxis, :])
+
+        X_2nd_order = (X_1hot[:, np.newaxis, :] * X_1hot[:, :, np.newaxis]).reshape(
+            len(X_1hot), -1
+        )
+        # print('X1hot first', X_1hot[0])
+        # print('X1hot last', X_1hot[-1])
+        # print('second order', X_2nd_order[0])
+        # print('second order', X_2nd_order[-1])
+        data[name] = X_1hot
     data["endog"] = endog
     if get_affil:
         data["affiliations"] = affil

@@ -5,7 +5,7 @@ library(hash)
 library(latex2exp)
 library(grid)
 library(glue)
-library(naniar)
+# library(naniar)
 
 options(error=traceback)
 # traceback()
@@ -17,7 +17,7 @@ pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
 
 get_name_computation <- function(viz,formula){
     # return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
-    return(paste(viz,formula,"not_n_or_p_200.csv", sep = "_"))
+    return(paste(viz,formula,"not_n_or_p_30.csv", sep = "_"))
 }
 
 if (viz =="samples" || viz == "dims"){
@@ -82,7 +82,6 @@ get_df = function(namedoss, perf, viz){
     df = subset(read.csv(paste('csv_data/',namedoss, sep = "")), select = -X)
     for (column in colnames(df)){
         df[df == 666] = NA
-        df = df %>% replace_with_na(replace = list(column = 666.))
         }
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){

@@ -20,15 +20,15 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-ns = np.linspace(100, 200, 2)
-# ps = np.linspace(100, 800, 8)
-# n = 1000
-p = 25
+# ns = np.linspace(100, 1000, 10)
+ps = np.linspace(100, 800, 8)
+n = 1000
+# p = 250
 nb_cov = 2
 nb_cov_infla = 2
-good_fit = True  ## good_fit is actually 400
-viz = "samples"
-nb_bootstrap = 2
+good_fit = True  ## good_fit is actually 1000
+viz = "dims"
+nb_bootstrap = 5
 
 
 # mean_poiss = 2
@@ -107,7 +107,7 @@ else:
 def fit_models(dict_models):
     for key, model in dict_models.items():
         if good_fit is True:
-            model.fit(tol=0, nb_max_iteration=400)
+            model.fit(tol=0, nb_max_iteration=1000)
         else:
             model.fit(nb_max_iteration=5)
     return dict_models
@@ -208,7 +208,7 @@ class one_plot:
                 B0 = plnparam.coef_inflation
                 print("mean gaussian", torch.mean(plnparam.gaussian_mean))
                 print("mean proba", torch.mean(plnparam.proba_inflation))
-                for i in range(self.nb_bootstrap):
+                for i in tqdm(range(self.nb_bootstrap)):
                     endog, fair_endog = sample_zipln(plnparam, seed=i, return_pln=True)
                     dict_models = get_dict_models(
                         endog,

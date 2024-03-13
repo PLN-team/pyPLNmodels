@@ -28,7 +28,7 @@ nb_points_poisson = 9
 # viz = "proba"
 viz = "poisson"
 _moyennes_XB = np.linspace(0, 4, nb_points_poisson)
-_moyennes_proba = np.linspace(0.2, 0.90, nb_points_proba)
+_moyennes_proba = np.linspace(0.2, 0.9, nb_points_proba)
 nb_max_iteration = 2000
 good_fit = True
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
@@ -348,7 +348,7 @@ class one_plot:
                     RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
                 )
                 results_model[SIGMA_KEY].append(
-                    RMSE(torch.inverse(model_fitted.covariance) - Sigma.cpu())
+                    RMSE(model_fitted.covariance - Sigma.cpu())
                 )
 
                 results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
@@ -360,7 +360,7 @@ class one_plot:
                     RMSE(torch.inverse(model_fitted.covariance) - omega_fair)
                 )
                 results_model[SIGMA_KEY].append(
-                    RMSE(torch.inverse(model_fitted.covariance) - Sigma_fair)
+                    RMSE(model_fitted.covariance - Sigma_fair)
                 )
 
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
