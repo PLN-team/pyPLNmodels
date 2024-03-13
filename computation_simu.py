@@ -250,6 +250,8 @@ class one_plot:
                     }
                     for crit_key in CRITERION_KEYS:
                         value = self.model_criterions[model_key][xscale][crit_key][i]
+                        if torch.sum(value - 666) == 0:
+                            print("inside")
                         if crit_key == ELBO_KEY:
                             value = -value
                         if isinstance(value, torch.Tensor):

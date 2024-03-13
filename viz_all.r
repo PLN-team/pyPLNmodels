@@ -5,11 +5,12 @@ library(hash)
 library(latex2exp)
 library(grid)
 library(glue)
+library(naniar)
 
 options(error=traceback)
 # traceback()
 
-viz = "proba"
+viz = "samples"
 perf = "stat"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
@@ -36,6 +37,7 @@ h = hash()
 h[["ELBO"]] = "ELBO"
 h[["Reconstruction_error"]] =TeX('RMSE $Y$')
 h[["RMSE_OMEGA"]] = TeX('RMSE $\\Omega$')
+h[["RMSE_SIGMA"]] = TeX('RMSE $\\Sigma$')
 h[["RMSE_B"]] =TeX('RMSE $B$')
 h[["RMSE_PI"]]=  TeX('RMSE $\\pi$')
 h[["RMSE_B0"]] =TeX('RMSE $B^0$')
@@ -78,7 +80,14 @@ get_df = function(namedoss, perf, viz){
         columns = c(columns,"moyenne","RMSE_OMEGA","RMSE_PI","RMSE_B","RMSE_B0")
     }
     df = subset(read.csv(paste('csv_data/',namedoss, sep = "")), select = -X)
-
+    for (column in colnames(df)){
+        print('column')
+        print(df[,column])
+        df[df == 666] = NA
+        df = df %>% replace_with_na(replace = list(column = 666.))
+        print('df')
+        print(df)
+        }
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){
         df[,"moyenne"] = as.factor(df[,"moyenne"])
@@ -127,7 +136,7 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                                                                  = model_name,
                                                                  color =
                                                                      model_name),
-                                    size = 0.6, alpha = 0.6)+
+                                    size = 0.8, alpha = 0.6)+
                          geom_boxplot(lwd = 0.03, outlier.shape = NA)
                          + scale_y_log10() + scale_fill_manual(values = colors, name = "")
         + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
