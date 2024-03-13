@@ -81,12 +81,8 @@ get_df = function(namedoss, perf, viz){
     }
     df = subset(read.csv(paste('csv_data/',namedoss, sep = "")), select = -X)
     for (column in colnames(df)){
-        print('column')
-        print(df[,column])
         df[df == 666] = NA
         df = df %>% replace_with_na(replace = list(column = 666.))
-        print('df')
-        print(df)
         }
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){
@@ -106,8 +102,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
     third_column = names(df)[3]
     last_column = names(df)[length(names(df))]
     criterions <- names(df[,c(3:(dim(df)[2]))])
-    print('list ylim moins')
-    print(list_ylim_moins)
     if (viz == "poisson"){
         xlab = TeX('$XB$')
     }
