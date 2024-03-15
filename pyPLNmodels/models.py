@@ -436,13 +436,57 @@ class _model(ABC):
         self._set_requiring_grad_true()
         self._handle_optimizer(lr)
         stop_condition = False
+        self._dict_mse = {
+            "sigma": [],
+            "coef": [],
+            "latent_mean": [],
+            "latent_sqrt_var": [],
+            "coef_infla": [],
+            "latent_prob": [],
+            "XB": [],
+        }
+        if verbose is True:
+            self.old_coef = torch.clone(self.coef)
+            self.old_prob = torch.clone(self.latent_prob)
+            self.old_covariance = torch.clone(self.covariance)
+            self.old_mean = torch.clone(self.latent_mean)
+
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
+
+            def mse(t):
+                return torch.mean(t**2)
+
+            self._dict_mse["sigma"].append(mse(self.covariance))
+            self._dict_mse["coef"].append(mse(self.coef))
+            self._dict_mse["latent_mean"].append(mse(self.latent_mean))
+            self._dict_mse["latent_sqrt_var"].append(mse(self.latent_sqrt_var))
+            self._dict_mse["coef_infla"].append(mse(self.coef_inflation))
+            self._dict_mse["latent_prob"].append(mse(self.latent_prob))
+            self._dict_mse["XB"].append(mse(self.mean_gaussian))
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose and self.nb_iteration_done % 50 == 1:
+            if verbose is True and self.nb_iteration_done % 200 == 1:
                 self._print_stats()
+
+                def mae(t):
+                    return torch.mean(torch.abs(t))
+
+                y = self.proba_inflation.ravel().detach()
+                x = self._latent_mean.ravel().detach()
+                c = self.latent_prob.detach()
+                plt.scatter(x, y, s=0.3, c=c.cpu())
+                plt.ylabel("proba of inflation")
+                plt.xlabel("latent mean")
+                plt.legend()
+                plt.show()
+
+                self.old_coef = torch.clone(self.coef)
+                self.old_prob = torch.clone(self.latent_prob)
+                self.old_covariance = torch.clone(self.covariance)
+                self.old_mean = torch.clone(self.latent_mean)
+
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
@@ -453,7 +497,7 @@ class _model(ABC):
             )
         else:
             self.optim = torch.optim.Rprop(
-                self._list_of_parameters_needing_gradient, lr=lr
+                self._list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
             )
 
     def _get_batch(self, shuffle=False):
@@ -775,7 +819,7 @@ class _model(ABC):
         self._criterion_args.update_criterion(-loss, current_running_time)
         return self._criterion_args.criterion
 
-    def display_covariance(self, ax=None, savefig=False, name_file=""):
+    def display_covariance(self, ax=None, savefig=False, name_file="", display=True):
         """
         Display the covariance matrix.
 
@@ -798,7 +842,8 @@ class _model(ABC):
         plt.legend()
         if savefig:
             plt.savefig(name_file + self._NAME)
-        plt.show()  # to avoid displaying a blank screen
+        if display is True:
+            plt.show()  # to avoid displaying a blank screen
 
     def __repr__(self):
         """
@@ -862,11 +907,18 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
+            x = np.arange(0, len(self._dict_mse["sigma"]))
+            for key, value in self._dict_mse.items():
+                axes[1].plot(x, value, label=key)
+            axes[1].legend()
+            axes[1].set_title("Norm of each parameter.")
             self._criterion_args._show_loss(ax=axes[2])
-            self._criterion_args._show_stopping_criterion(ax=axes[1])
-            self.display_covariance(ax=axes[0])
+            self.display_covariance(ax=axes[0], display=False)
+            # self._criterion_args._show_stopping_criterion(ax=axes[1])
+
         else:
             self.display_covariance(ax=axes)
+
         if display is True:
             plt.show()
 
@@ -1973,6 +2025,7 @@ class Pln(_model):
     def _smart_init_latent_parameters(self):
         self._random_init_latent_sqrt_var()
         if not hasattr(self, "_latent_mean"):
+            # we should do a poisson regression and initialise M with it
             self._latent_mean = self.smart_device(
                 torch.log(self._endog + (self._endog == 0))
             )
@@ -3807,20 +3860,38 @@ class ZIPln(_model):
             )
 
     def _smart_init_latent_parameters(self):
-        if self._zero_inflation_formula == "global":
-            self._latent_mean = self.smart_device(
-                self._xinflacoefinfla
-                * self.smart_device(torch.ones(self.n_samples, self.dim))
+        if not hasattr(self, "_latent_mean"):
+            # if self._zero_inflation_formula == "global":
+            #     self._latent_mean = self.smart_device(
+            #         self._xinflacoefinfla
+            #         * self.smart_device(torch.ones(self.n_samples, self.dim))
+            #     )
+            # else:
+            #     self._latent_mean = self.smart_device(self.xinflacoefinfla)
+            self._latent_mean = self.smart_device(self.mean_gaussian)
+        if not hasattr(self, "_latent_sqrt_var"):
+            self._latent_sqrt_var = self.smart_device(
+                torch.randn(self.n_samples, self.dim)
             )
-        else:
-            self._latent_mean = self.smart_device(self.xinflacoefinfla)
-        self._latent_sqrt_var = self.smart_device(torch.randn(self.n_samples, self.dim))
-        if self._use_closed_form_prob is False:
-            self._latent_prob = self.smart_device(self.proba_inflation * (self._dirac))
+        if not hasattr(self, "_latent_prob"):
+            if self._use_closed_form_prob is False:
+                self._latent_prob = self.smart_device(
+                    self.proba_inflation * (self._dirac)
+                )
 
     @property
     def _covariance(self):
         return self._components @ (self._components.T)
+
+    @property
+    def closed_covariance(self):
+        return _closed_formula_covariance(
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._coef,
+            self.n_samples,
+        )
 
     def _get_max_components(self):
         """
@@ -4823,13 +4894,15 @@ class Brute_ZIPln(ZIPln):
 
     @property
     def _covariance(self):
-        return _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._coef,
-            self.n_samples,
-        )
+        if self._use_closed_form_prob is False:
+            return _closed_formula_covariance(
+                self._exog,
+                self._latent_mean,
+                self._latent_sqrt_var,
+                self._coef,
+                self.n_samples,
+            )
+        return self._components @ (self._components.T)
 
     @property
     def _list_of_parameters_needing_gradient(self):
@@ -4851,7 +4924,9 @@ class Brute_ZIPln(ZIPln):
 
     @property
     def __components(self):
-        return torch.linalg.cholesky(self._components)
+        if self._use_closed_form_prob is True:
+            return self._components
+        return torch.linalg.cholesky(self._covariance)
 
     @property
     @_add_doc(_model)
