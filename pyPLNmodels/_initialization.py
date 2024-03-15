@@ -336,7 +336,7 @@ class ZIP:
         ) + self.n_samples * self.ybarre * torch.log(lam)
         return first_term + second_term
 
-    def fit(self, nb_iter=100):
+    def fit(self, nb_iter=160):
         optim = torch.optim.Rprop([self.coef, self.coef_inflation])
         for i in range(nb_iter):
             mean_poisson = self.mean_poisson
