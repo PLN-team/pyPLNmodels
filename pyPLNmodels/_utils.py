@@ -546,13 +546,7 @@ def _extract_data_from_formula_no_infla(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
-    try:
-        dmatrix = dmatrices(formula, data=data)
-    except ValueError as err:
-        print("Error returned by patsy from the building of formula: ", err)
-        msg = "You probably set endog ~ exog  with exog = None"
-        raise ValueError(msg)
-
+    dmatrix = dmatrices(formula, data=data)
     endog = dmatrix[0]
     exog = dmatrix[1]
     if exog.size == 0:
@@ -1112,9 +1106,9 @@ def _check_full_rank_exog(exog):
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
-        msg = "Input matrix exog does not have full rank. "
+        msg = "Input matrix exog does not result in exog.T @exog being full rank. "
         msg += "You may consider to remove one or more variables"
-        msg += " or set add_const to False it that is not already the case."
+        msg += " or set add_const to False if that is not already the case."
         msg += " You can also set 0 + exog in the formula to avoid adding  "
         msg += "an intercept."
         raise ValueError(msg)

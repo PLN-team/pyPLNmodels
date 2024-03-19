@@ -1,10 +1,13 @@
 import torch
 import pandas as pd
 import pkg_resources
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures, LabelEncoder
 import numpy as np
+from patsy import dmatrix
 
 from pyPLNmodels._utils import threshold_samples_and_dim
+
+pd.set_option("display.max_columns", None)
 
 
 def load_microcosm(
@@ -14,6 +17,8 @@ def load_microcosm(
     get_affil=False,
     for_formula=False,
     cov_list=["site", "lineage", "time"],
+    get_interaction=False,
+    remove_useless=True,
 ):
     """
     Get real count data from the microcosm
@@ -34,6 +39,10 @@ def load_microcosm(
         List with the wanted covariates. Should be included in ["site", "lineage", "time", "animal", "Sample", "echantillon","name","short_ID"].
         Default is ["site", "lineage", "time"], the only making sense as covariates.
         They are one hot encoded.
+    get_interaction: bool, optional (keyword-only)
+        If True, will give the interactions between each variables. Default to False
+    remove_useless: bool, optional (keyword-only)
+        If True, will remove all the interaction terms that does not appear.
     """
     max_samples = 921
     max_dim = 1209
@@ -45,34 +54,35 @@ def load_microcosm(
         .iloc[:n_samples, :dim]
     )
     cov_stream = pkg_resources.resource_stream(__name__, "data/microcosm/metadata.tsv")
-    cov = pd.read_csv(cov_stream, delimiter="\t")[cov_list].iloc[:n_samples, :]
+    covariates = pd.read_csv(cov_stream, delimiter="\t")[cov_list].iloc[:n_samples, :]
     if get_affil is True:
         affil_stream = pkg_resources.resource_stream(
             __name__, "data/microcosm/affiliations.tsv"
         )
         affil = pd.read_csv(affil_stream, delimiter="\t")
-    data = {}
-    for name in cov.columns:
-        encoder = OneHotEncoder(drop="first")
-        X_1hot = torch.from_numpy(encoder.fit_transform(cov).toarray())
-        # print('first', X_1hot[:, np.newaxis, :])
 
-        X_2nd_order = (X_1hot[:, np.newaxis, :] * X_1hot[:, :, np.newaxis]).reshape(
-            len(X_1hot), -1
-        )
-        # print('X1hot first', X_1hot[0])
-        # print('X1hot last', X_1hot[-1])
-        # print('second order', X_2nd_order[0])
-        # print('second order', X_2nd_order[-1])
-        data[name] = X_1hot
-    data["endog"] = endog
+    formula = "0 +"
+    if get_interaction is True:
+        separator = "* "
+    else:
+        separator = "+ "
+    for i, key in enumerate(cov_list):
+        formula += key
+        if i < len(cov_list) - 1:
+            formula += separator
+    dm = dmatrix(formula, covariates)
+    exog = pd.DataFrame(dm, columns=dm.design_info.column_names)
+    if len(cov_list) > 0:
+        exog = exog.iloc[:, 1:]
+    if remove_useless:
+        non_zero_cols = (exog.sum(axis=0) > 0).values
+        exog = exog.loc[:, non_zero_cols]
+    data = {"endog": endog.astype(float)}
+    data["exog"] = exog
     if get_affil:
         data["affiliations"] = affil
     if for_formula:
         return data
-    endog = data["endog"]
-    encoder = OneHotEncoder(drop="first")
-    exog = encoder.fit_transform(cov).toarray()
     if get_affil:
-        return endog, exog, affil
-    return endog, exog
+        return data["endog"], data["exog"], data["affiliations"]
+    return data["endog"], data["exog"]

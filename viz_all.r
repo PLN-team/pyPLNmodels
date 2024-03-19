@@ -10,14 +10,18 @@ library(glue)
 options(error=traceback)
 # traceback()
 
-viz = "samples"
-perf = "stat"
+viz = "dims"
+perf = "computation"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
 
 get_name_computation <- function(viz,formula){
-    # return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
-    return(paste(viz,formula,"not_n_or_p_250.csv", sep = "_"))
+    if (viz == "dims"){
+        return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
+    }
+    else{
+        return(paste(viz,formula,"not_n_or_p_250.csv", sep = "_"))
+    }
 }
 
 if (viz =="samples" || viz == "dims"){
@@ -45,7 +49,11 @@ h[["TIME"]] = "Time"
 h[["NBITER"]] = "Number of iterations"
 
 
-colors = c("skyblue","blue","black","gray","yellow","orange")
+if (perf != "stat" || viz != "samples"){
+   colors =  c("skyblue","blue","yellow","orange")
+} else{
+    colors = c("skyblue","blue","black","gray","yellow","orange")
+}
 
 
 g_legend<-function(a.gplot){
@@ -64,8 +72,8 @@ get_df = function(namedoss, perf, viz){
         else{
             columns = c(columns,"moyenne")
         }
-        # columns = c(columns,"moyenne","RMSE_OMEGA","RMSE_PI","RMSE_B")
-        columns = c(columns, "RMSE_SIGMA","RMSE_PI", "RMSE_B")
+        columns = c(columns,"RMSE_OMEGA","RMSE_PI","RMSE_B")
+        # columns = c(columns, "RMSE_SIGMA","RMSE_PI", "RMSE_B")
     }
     if (perf == "computation"){
         if (viz == "poisson" || viz == "proba"){
@@ -93,6 +101,11 @@ get_df = function(namedoss, perf, viz){
 
     df[,"NBITER"] = as.numeric(df[,"NBITER"])
     df = df[columns]
+    if (perf != "stat" || viz != "samples"){
+        df = df[df["model_name"] != "fair_Pln",]
+        df = df[df["model_name"] != "Fair Pln",]
+        df = df[df["model_name"] != "Pln",]
+    }
     return(df)
 }
 
