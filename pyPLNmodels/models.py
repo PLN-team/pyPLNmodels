@@ -477,7 +477,7 @@ class _model(ABC):
                     return torch.mean(torch.abs(t))
 
                 y = self.proba_inflation.ravel().detach()
-                x = self._latent_mean.ravel().detach()
+                x = self._latent_mean.ravel().detach().cpu()
                 c = self.latent_prob.detach()
                 plt.scatter(x, y, s=0.3, c=c.cpu())
                 plt.ylabel("proba of inflation")

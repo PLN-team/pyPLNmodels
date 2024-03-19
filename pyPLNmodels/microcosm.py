@@ -16,9 +16,10 @@ def load_microcosm(
     *,
     get_affil=False,
     for_formula=False,
-    cov_list=["site", "lineage", "time"],
+    cov_list=["site", "time"],
     get_interaction=False,
     remove_useless=True,
+    return_names=False,
 ):
     """
     Get real count data from the microcosm
@@ -84,4 +85,6 @@ def load_microcosm(
         return data
     if get_affil:
         return data["endog"], data["exog"], data["affiliations"]
+    if return_names is True:
+        return data["endog"], data["exog"], covariates
     return data["endog"], data["exog"]
