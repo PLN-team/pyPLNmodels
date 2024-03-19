@@ -14,6 +14,7 @@ def load_microcosm(
     get_affil=False,
     for_formula=False,
     cov_list=["site", "lineage", "time"],
+    return_names=False,
 ):
     """
     Get real count data from the microcosm
@@ -54,8 +55,11 @@ def load_microcosm(
     data = {}
     for name in cov.columns:
         encoder = OneHotEncoder(drop="first")
-        X_1hot = torch.from_numpy(encoder.fit_transform(cov).toarray())
+        transformed = encoder.fit_transform(cov)
+        X_1hot = torch.from_numpy(transformed.toarray())
         # print('first', X_1hot[:, np.newaxis, :])
+        # true = encoder.inverse_transform(transformed)
+        # print('true:', true)
 
         X_2nd_order = (X_1hot[:, np.newaxis, :] * X_1hot[:, :, np.newaxis]).reshape(
             len(X_1hot), -1
@@ -75,4 +79,6 @@ def load_microcosm(
     exog = encoder.fit_transform(cov).toarray()
     if get_affil:
         return endog, exog, affil
+    if return_names is True:
+        return endog, exog, cov
     return endog, exog
