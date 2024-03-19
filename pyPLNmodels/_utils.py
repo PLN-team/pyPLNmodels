@@ -696,7 +696,16 @@ def _handle_data_with_inflation(
         if exog_inflation is not None:
             exog_inflation = exog_inflation.to(DEVICE)
         dirac = dirac.to(DEVICE)
-    return endog, exog, exog_inflation, offsets, column_endog, dirac, batch_size
+    return (
+        endog,
+        exog,
+        exog_inflation,
+        offsets,
+        column_endog,
+        dirac,
+        batch_size,
+        samples_only_zeros,
+    )
 
 
 def _remove_samples(endog, exog, offsets, samples_only_zeros):

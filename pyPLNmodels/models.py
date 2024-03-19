@@ -458,13 +458,16 @@ class _model(ABC):
             def mse(t):
                 return torch.mean(t**2)
 
-            self._dict_mse["sigma"].append(mse(self.covariance))
-            self._dict_mse["coef"].append(mse(self.coef))
-            self._dict_mse["latent_mean"].append(mse(self.latent_mean))
-            self._dict_mse["latent_sqrt_var"].append(mse(self.latent_sqrt_var))
-            self._dict_mse["coef_infla"].append(mse(self.coef_inflation))
-            self._dict_mse["latent_prob"].append(mse(self.latent_prob))
-            self._dict_mse["XB"].append(mse(self.mean_gaussian))
+            try:
+                self._dict_mse["sigma"].append(mse(self.covariance))
+                self._dict_mse["coef"].append(mse(self.coef))
+                self._dict_mse["latent_mean"].append(mse(self.latent_mean))
+                self._dict_mse["latent_sqrt_var"].append(mse(self.latent_sqrt_var))
+                self._dict_mse["coef_infla"].append(mse(self.coef_inflation))
+                self._dict_mse["latent_prob"].append(mse(self.latent_prob))
+                self._dict_mse["XB"].append(mse(self.mean_gaussian))
+            except:
+                pass
             if abs(criterion) < tol:
                 stop_condition = True
             if verbose is True and self.nb_iteration_done % 200 == 1:
@@ -2130,6 +2133,7 @@ class PlnPCAcollection:
             _,
             _,
             self._batch_size,
+            self._samples_only_zeros,
         ) = _handle_data(
             endog,
             exog,
@@ -3613,6 +3617,7 @@ class ZIPln(_model):
             self.column_endog,
             self._dirac,
             self._batch_size,
+            self.samples_only_zeros,
         ) = _handle_data_with_inflation(
             endog,
             exog,
@@ -3800,7 +3805,7 @@ class ZIPln(_model):
         return msg
 
     @property
-    def nb_cov_infla(self):
+    def nb_cov_inflation(self):
         """
         Number of covariates for the inflation part in the model.
         If the zero_inflation_formula is "global", return 0.
@@ -3808,6 +3813,7 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             return 0
         elif self._zero_inflation_formula == "column-wise":
+            print("here")
             return self.exog_inflation.shape[1]
         return self.exog_inflation.shape[0]
 
@@ -3816,10 +3822,12 @@ class ZIPln(_model):
             self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
         elif self._zero_inflation_formula == "row-wise":
             self._coef_inflation = self.smart_device(
-                torch.randn(self.n_samples, self.nb_cov_infla)
+                torch.randn(self.n_samples, self.nb_cov_inflation)
             )
         elif self._zero_inflation_formula == "column-wise":
-            self._coef_inflation = torch.randn(self.nb_cov_infla, self.dim).to(DEVICE)
+            self._coef_inflation = torch.randn(self.nb_cov_inflation, self.dim).to(
+                DEVICE
+            )
 
         if self.nb_cov == 0:
             self._coef = None
@@ -3876,7 +3884,7 @@ class ZIPln(_model):
         if not hasattr(self, "_latent_prob"):
             if self._use_closed_form_prob is False:
                 self._latent_prob = self.smart_device(
-                    self.proba_inflation * (self._dirac)
+                    self._proba_inflation * (self._dirac)
                 )
 
     @property
@@ -4052,8 +4060,8 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             return torch.Size([])
         if self._zero_inflation_formula == "column-wise":
-            return (self.nb_cov_infla, self.dim)
-        return (self.n_samples, self.nb_cov_infla)
+            return (self.nb_cov_inflation, self.dim)
+        return (self.n_samples, self.nb_cov_inflation)
 
     @_model.latent_sqrt_var.setter
     @_array2tensor
@@ -4292,6 +4300,15 @@ class ZIPln(_model):
         Even if the counts are non-zero, the probability of observing
         a zero inflation can be positive.
         """
+        return self._proba_inflation.detach().cpu()
+
+    @property
+    def _proba_inflation(self):
+        """
+        Probability of observing a zero inflation.
+        Even if the counts are non-zero, the probability of observing
+        a zero inflation can be positive.
+        """
         return torch.sigmoid(self._xinflacoefinfla)
 
     def _compute_elbo_b(self) -> torch.Tensor:
@@ -4389,9 +4406,9 @@ class ZIPln(_model):
             return torch.sigmoid(self.coef_inflation)
 
         if self._zero_inflation_formula == "column-wise":
-            if exog_infla.shape[-1] != self.nb_cov_infla:
+            if exog_infla.shape[-1] != self.nb_cov_inflation:
                 error_string = f"X has wrong shape:({exog_infla.shape}). Should"
-                error_string += f" be (_, {self.nb_cov_infla})."
+                error_string += f" be (_, {self.nb_cov_inflation})."
                 raise RuntimeError(error_string)
             xb = exog_infla @ self.coef_inflation
 
@@ -4811,7 +4828,7 @@ class ZIPln(_model):
         str
             The directory name.
         """
-        return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}_nbcovinfla_{self.nb_cov_infla}_zero_infla_{self.writable_zero_formula}"
+        return f"{self._NAME}_nbcov_{self.nb_cov}_dim_{self.dim}_nbcovinfla_{self.nb_cov_inflation}_zero_infla_{self.writable_zero_formula}"
 
     @property
     def writable_zero_formula(self):

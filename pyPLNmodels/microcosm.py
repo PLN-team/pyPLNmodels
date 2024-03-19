@@ -60,7 +60,6 @@ def load_microcosm(
             __name__, "data/microcosm/affiliations.tsv"
         )
         affil = pd.read_csv(affil_stream, delimiter="\t")
-
     formula = "0 +"
     if get_interaction is True:
         separator = "* "
