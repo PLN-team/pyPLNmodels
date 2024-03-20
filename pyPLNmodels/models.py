@@ -3852,7 +3852,7 @@ class ZIPln(_model):
             self._coef_inflation = self.smart_device(coef_inflation)
         if not hasattr(self, "_coef"):
             self._coef = coef.to(DEVICE) if coef is not None else None
-        if not hasattr(self, "_covariance"):
+        if not hasattr(self, "_components"):
             self._components = torch.clone(_init_components(self._endog, self.dim)).to(
                 DEVICE
             )

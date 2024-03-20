@@ -20,6 +20,7 @@ def load_microcosm(
     get_interaction=False,
     remove_useless=True,
     return_names=False,
+    min_perc=0.025,
 ):
     """
     Get real count data from the microcosm
@@ -44,6 +45,9 @@ def load_microcosm(
         If True, will give the interactions between each variables. Default to False
     remove_useless: bool, optional (keyword-only)
         If True, will remove all the interaction terms that does not appear.
+    min_perc: float, optional (keyword-only)
+        The minimum percentage of appearance of feature (ASV) to be selected.
+        If the ASV is present in less than min_perc, it will be removed.
     """
     max_samples = 921
     max_dim = 1209
@@ -56,6 +60,13 @@ def load_microcosm(
     )
     cov_stream = pkg_resources.resource_stream(__name__, "data/microcosm/metadata.tsv")
     covariates = pd.read_csv(cov_stream, delimiter="\t")[cov_list].iloc[:n_samples, :]
+
+    best = (endog > 0).mean(axis=0) > min_perc
+    endog = endog.loc[:, best]
+    # covariates = covariates.loc[:,best]
+    # print('best', best.mean())
+    # z
+
     if get_affil is True:
         affil_stream = pkg_resources.resource_stream(
             __name__, "data/microcosm/affiliations.tsv"
