@@ -49,6 +49,7 @@ def profiled_elbo_pln(
         + 0.5 * torch.log(s_squared)
     )
     elbo -= torch.sum(_log_stirling(endog))
+    print("loglike", elbo)
     return elbo / n_samples
 
 
@@ -156,7 +157,8 @@ def elbo_pln(
     """
     n_samples, dim = endog.shape
     s_rond_s = torch.square(latent_sqrt_var)
-    offsets_plus_m = offsets + latent_mean
+    diag_s = torch.diag(torch.sum(s_rond_s, dim=0))
+    Z = offsets + latent_mean
     Omega = torch.inverse(covariance)
     if exog is None:
         XB = torch.zeros_like(endog)
@@ -164,22 +166,44 @@ def elbo_pln(
         XB = exog @ coef
     m_minus_xb = latent_mean - XB
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-    A = torch.exp(offsets_plus_m + s_rond_s / 2)
-    first_a = torch.sum(endog * offsets_plus_m)
-    sec_a = -torch.sum(A)
-    third_a = -torch.sum(_log_stirling(endog))
-    a = first_a + sec_a + third_a
-    diag = torch.diag(torch.sum(s_rond_s, dim=0))
-    elbo = torch.clone(a)
-    b = -0.5 * n_samples * torch.logdet(covariance) + torch.sum(
-        -1 / 2 * Omega * m_moins_xb_outer
+    A = torch.exp(Z + s_rond_s / 2)
+    elbo = torch.sum(endog * Z - A + 0.5 * torch.log(s_rond_s)) - 1 / 2 * torch.sum(
+        Omega * m_moins_xb_outer
     )
-    elbo += b
-    d = n_samples * dim / 2 + torch.sum(+0.5 * torch.log(s_rond_s))
-    elbo += d
-    f = -0.5 * torch.trace(torch.inverse(covariance) @ diag)
-    elbo += f
-    return elbo
+    elbo -= 0.5 * torch.trace(Omega @ diag_s)
+    elbo -= 0.5 * n_samples * torch.logdet(covariance)
+    elbo -= torch.sum(_log_stirling(endog))
+    elbo += n_samples * dim / 2
+    return elbo / n_samples
+
+
+def r_elbo_pln(
+    endog: torch.Tensor,
+    exog: Optional[torch.Tensor],
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    covariance: torch.Tensor,
+    coef: torch.Tensor,
+) -> torch.Tensor:
+    n_samples, dim = endog.shape
+    if exog is None:
+        XB = torch.zeros_like(endog)
+    else:
+        XB = exog @ coef
+    s2 = latent_sqrt_var**2
+    diag_s = torch.diag(torch.sum(s2, dim=0))
+    M = latent_mean - XB
+    Z = offsets + M + XB
+    A = torch.exp(Z + 0.5 * s2)
+    Omega = torch.inverse(covariance)
+
+    res = torch.sum(endog * Z - A + 0.5 * (torch.log(s2) - (M @ Omega) * M))
+    res -= 0.5 * torch.trace(Omega @ diag_s)
+    res += n_samples / 2 * torch.logdet(Omega)
+    res -= torch.sum(_log_stirling(endog))
+    res += n_samples * dim / 2
+    return res / n_samples
 
 
 ## pb with trunc_log
@@ -263,7 +287,7 @@ def elbo_zi_pln(
     third = torch.sum(inside_d + inside_f)
     third += n_samples * dim / 2
     res = first + second + third
-    return res
+    return res / n_samples
 
 
 def elbo_brute_zipln_components(
@@ -314,7 +338,7 @@ def elbo_brute_zipln_components(
     inside_d = 1 / 2 * torch.log(s_rond_s)
     d = torch.sum(inside_d)
     elbo = a + b + c + d + e + logdet + n_samples * dim / 2
-    return elbo
+    return elbo / n_samples
 
 
 def elbo_brute_zipln_covariance(
@@ -365,4 +389,4 @@ def elbo_brute_zipln_covariance(
     inside_d = 1 / 2 * torch.log(s_rond_s)
     d = torch.sum(inside_d)
     elbo = a + b + c + d + e + logdet + n_samples * dim / 2
-    return elbo
+    return elbo / n_samples
