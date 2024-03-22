@@ -26,6 +26,8 @@ from pyPLNmodels.elbos import (
     profiled_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
+    r_elbo_pln,
+    elbo_pln,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -441,15 +443,15 @@ class _model(ABC):
             "coef": [],
             "latent_mean": [],
             "latent_sqrt_var": [],
-            "coef_infla": [],
-            "latent_prob": [],
-            "XB": [],
+            # "coef_infla": [],
+            # "latent_prob": [],
+            # "XB": [],
         }
-        if verbose is True:
-            self.old_coef = torch.clone(self.coef)
-            self.old_prob = torch.clone(self.latent_prob)
-            self.old_covariance = torch.clone(self.covariance)
-            self.old_mean = torch.clone(self.latent_mean)
+        # if verbose is True:
+        #     self.old_coef = torch.clone(self.coef)
+        #     self.old_prob = torch.clone(self.latent_prob)
+        #     self.old_covariance = torch.clone(self.covariance)
+        #     self.old_mean = torch.clone(self.latent_mean)
 
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
@@ -463,32 +465,37 @@ class _model(ABC):
                 self._dict_mse["coef"].append(mse(self.coef))
                 self._dict_mse["latent_mean"].append(mse(self.latent_mean))
                 self._dict_mse["latent_sqrt_var"].append(mse(self.latent_sqrt_var))
-                self._dict_mse["coef_infla"].append(mse(self.coef_inflation))
-                self._dict_mse["latent_prob"].append(mse(self.latent_prob))
-                self._dict_mse["XB"].append(mse(self.mean_gaussian))
+                # self._dict_mse["coef_infla"].append(mse(self.coef_inflation))
+                # self._dict_mse["latent_prob"].append(mse(self.latent_prob))
+                # self._dict_mse["XB"].append(mse(self.mean_gaussian))
             except:
                 pass
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose is True and self.nb_iteration_done % 200 == 1:
+            if verbose is True and self.nb_iteration_done % 50 == 1:
                 self._print_stats()
 
-                def mae(t):
-                    return torch.mean(torch.abs(t))
+                # def mae(t):
+                # return torch.mean(torch.abs(t))
+                # pca = PCA(n_components = 2)
+                # y = self.latent_mean
+                # y = pca.fit_transform(y)
+                # sns.scatterplot(y)
+                # plt.show()
 
-                y = self.proba_inflation.ravel().detach()
-                x = self._latent_mean.ravel().detach().cpu()
-                c = self.latent_prob.detach()
+                # y = self.proba_inflation.ravel().detach()
+                # x = self._latent_mean.ravel().detach().cpu()
+                # c = self.latent_prob.detach()
                 # plt.scatter(x, y, s=0.3, c=c.cpu())
                 # plt.ylabel("proba of inflation")
                 # plt.xlabel("latent mean")
                 # plt.legend()
                 # plt.show()
 
-                self.old_coef = torch.clone(self.coef)
-                self.old_prob = torch.clone(self.latent_prob)
-                self.old_covariance = torch.clone(self.covariance)
-                self.old_mean = torch.clone(self.latent_mean)
+                # self.old_coef = torch.clone(self.coef)
+                # self.old_prob = torch.clone(self.latent_prob)
+                # self.old_covariance = torch.clone(self.covariance)
+                # self.old_mean = torch.clone(self.latent_mean)
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -572,8 +579,8 @@ class _model(ABC):
                 print("loss:", loss)
                 raise ValueError("The ELBO contains nan values.")
             loss.backward()
-            elbo += loss.item()
             self.optim.step()
+            elbo += loss.item()
         self._update_closed_forms()
         self._project_parameters()
         return elbo / self.nb_batches
@@ -803,6 +810,7 @@ class _model(ABC):
         print("Iteration number: ", self._criterion_args.iteration_number)
         print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
+        print("loglike", self.loglike)
 
     def _update_criterion_args(self, loss):
         """
@@ -1829,7 +1837,6 @@ class Pln(_model):
         torch.Tensor
             The coefficients.
         """
-        ret = _closed_formula_coef
         return _closed_formula_coef(self._exog, self._latent_mean)
 
     @property
@@ -1891,7 +1898,7 @@ class Pln(_model):
         int
             The number of parameters.
         """
-        return self.dim * (self.dim + self.nb_cov)
+        return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2
 
     @property
     def covariance(self):
@@ -2006,15 +2013,34 @@ class Pln(_model):
 
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
-        return profiled_elbo_pln(
+        # elbo_no_profiled = elbo_pln(
+        #     self._endog_b.to(DEVICE),
+        #     self._exog_b_device,
+        #     self._offsets_b.to(DEVICE),
+        #     self._latent_mean_b.to(DEVICE),
+        #     self._latent_sqrt_var_b.to(DEVICE),
+        #     self._covariance,
+        #     self._coef
+        #         )
+
+        # r_elbo = r_elbo_pln(
+        #     self._endog_b.to(DEVICE),
+        #     self._exog_b_device,
+        #     self._offsets_b.to(DEVICE),
+        #     self._latent_mean_b.to(DEVICE),
+        #     self._latent_sqrt_var_b.to(DEVICE),
+        #     self._covariance,
+        #     self._coef
+        #         )
+        elbo = profiled_elbo_pln(
             self._endog_b.to(DEVICE),
             self._exog_b_device,
             self._offsets_b.to(DEVICE),
             self._latent_mean_b.to(DEVICE),
             self._latent_sqrt_var_b.to(DEVICE),
         )
+        return elbo
 
-    @_add_doc(_model)
     def _smart_init_model_parameters(self):
         pass
         # no model parameters since we are doing a profiled ELBO
@@ -3617,7 +3643,7 @@ class ZIPln(_model):
             self.column_endog,
             self._dirac,
             self._batch_size,
-            self.samples_only_zeros,
+            self._samples_only_zeros,
         ) = _handle_data_with_inflation(
             endog,
             exog,
