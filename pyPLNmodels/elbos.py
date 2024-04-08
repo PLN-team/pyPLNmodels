@@ -266,6 +266,103 @@ def elbo_zi_pln(
     return res
 
 
+def _elbo_zi_pln(
+    endog,
+    exog,
+    offsets,
+    latent_mean,
+    latent_sqrt_var,
+    latent_prob,
+    components,
+    coef,
+    x_coef_inflation,
+    dirac,
+):
+    """Compute the ELBO (Evidence LOwer Bound) for the Zero Inflated PLN model.
+    See the doc for more details on the computation.
+
+    Args:
+        endog: torch.tensor. Counts with size (n,p)
+        0: torch.tensor. Offset, size (n,p)
+        exog: torch.tensor. Covariates, size (n,d)
+        latent_mean: torch.tensor. Variational parameter with size (n,p)
+        latent_var: torch.tensor. Variational parameter with size (n,p)
+        pi: torch.tensor. Variational parameter with size (n,p)
+        covariance: torch.tensor. Model parameter with size (p,p)
+        coef: torch.tensor. Model parameter with size (d,p)
+        coef_inflation: torch.tensor. Model parameter with size (d,p)
+    Returns:
+        torch.tensor of size 1 with a gradient.
+    """
+    covariance = components @ (components.T)
+    if torch.norm(latent_prob * dirac - latent_prob) > 1e-6:
+        raise RuntimeError("Latent probability error.")
+    n_samples, dim = endog.shape
+    s2 = torch.multiply(latent_sqrt_var, latent_sqrt_var)
+    o_plus_m = offsets + latent_mean
+    if exog is None:
+        XB = torch.zeros_like(endog)
+    else:
+        XB = exog @ coef
+
+    m_minus_xb = latent_mean - XB
+    Q = 1 - latent_prob
+
+    A = torch.exp(o_plus_m + s2 / 2)
+    log_YgivenZW = torch.multiply(
+        Q, torch.multiply(endog, o_plus_m) - A - _log_stirling(endog)
+    )
+    Omega = torch.inverse(covariance)
+    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+    Q_m_moins_xb = Q * m_minus_xb
+    Q_m_moins_xb_outer = Q_m_moins_xb.T @ Q_m_moins_xb
+    inside_b = -1 / 2 * Omega * Q_m_moins_xb_outer
+    log_pW = torch.multiply(latent_prob, x_coef_inflation) - _log1pexp(x_coef_inflation)
+    log_S_term = torch.multiply(1 - latent_prob, torch.log(torch.abs(latent_sqrt_var)))
+    y = torch.sum(latent_prob, axis=0)
+    covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
+    inside_d = covariance_term + log_S_term
+
+    entropy_p = -torch.multiply(latent_prob, _trunc_log(latent_prob)) - torch.multiply(
+        Q, _trunc_log(Q)
+    )
+    all_terms = 0
+    all_terms += torch.sum(log_YgivenZW) + torch.sum(log_pW) + torch.sum(entropy_p)
+    first_line = torch.sum(log_YgivenZW + log_pW + log_S_term + entropy_p, axis=0)
+    sum_Q_s2 = torch.sum(torch.multiply(Q, s2), axis=0)
+    diag_sig_sum_rho = torch.multiply(
+        torch.diag(covariance), torch.sum(latent_prob, axis=0)
+    )
+    norm_term_outer = -1 / 2 * Omega * Q_m_moins_xb_outer
+    enhanced_term = -1 / 2 * torch.diag(Omega) * sum_Q_s2
+    _, logdet_C = torch.slogdet(components)
+    second_line = torch.sum(norm_term_outer, axis=1) + enhanced_term - dim * logdet_C
+    all_terms += torch.sum(norm_term_outer) + torch.sum(enhanced_term)
+    all_terms -= n_samples * dim * logdet_C
+
+    new = torch.sum(latent_prob * Q * (m_minus_xb**2), axis=0)
+    big_mat = diag_sig_sum_rho + new
+    all_terms -= 1 / 2 * torch.sum(torch.diag(Omega) * big_mat)
+    third_line = -1 / 2 * torch.diag(Omega) * big_mat
+    log_diag_sig = torch.log(torch.diag(covariance))
+    covariance_term = 1 / 2 * torch.log(torch.diag(covariance)) * y
+    fourth_line = (
+        -1 / 2 * torch.log(torch.diag(covariance)) * torch.sum(latent_prob, axis=0)
+    )
+    all_terms -= (
+        1
+        / 2
+        * torch.sum(torch.log(torch.diag(covariance)) * torch.sum(latent_prob, axis=0))
+    )
+    return (
+        torch.sum(first_line + second_line + third_line + fourth_line)
+        + n_samples * dim / 2
+    )
+    return torch.sum(
+        log_YgivenZW + log_pW + entropy_p + norm_term + log_S_term + norm_term
+    )
+
+
 def elbo_brute_zipln_components(
     endog,
     exog,

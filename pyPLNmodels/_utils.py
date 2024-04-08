@@ -524,6 +524,8 @@ def _extract_data_from_formula_with_infla(
     formula_infla = input + "~" + formula_infla
     dmatrix_infla = dmatrices(formula_infla, data=data)
     exog_infla = dmatrix_infla[1]
+    non_zero = exog_infla.sum(axis=0) > 0
+    exog_infla = exog_infla[:, non_zero]
     return endog, exog, exog_infla, offsets
 
 
@@ -549,9 +551,16 @@ def _extract_data_from_formula_no_infla(
     dmatrix = dmatrices(formula, data=data)
     endog = dmatrix[0]
     exog = dmatrix[1]
+    non_zero = exog.sum(axis=0) > 0
+    exog = exog[:, non_zero]
+
     if exog.size == 0:
         exog = None
-    offsets = data.get("offsets", None)
+    if "offsets" in data.keys():
+        offsets = data["offsets"]
+        print("Taking the offsets from the data given.")
+    else:
+        offsets = None
     return endog, exog, offsets
 
 
@@ -667,6 +676,7 @@ def _handle_data_with_inflation(
     exog_inflation, add_const_inflation = _get_coherent_inflation_inits(
         zero_inflation_formula, exog_inflation, add_const_inflation
     )
+    _check_full_rank_exog(exog_inflation, inflation=True)
 
     if zero_inflation_formula == "row-wise" and exog_inflation is not None:
         if torch.count_nonzero(exog_inflation - 1) == 0:
@@ -1110,15 +1120,21 @@ def _pca_pairplot(array, n_components, dim, colors):
     plt.show()
 
 
-def _check_full_rank_exog(exog):
+def _check_full_rank_exog(exog, inflation=False):
     mat = exog.T @ exog
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
-        msg = "Input matrix exog does not result in exog.T @exog being full rank. "
+        if inflation is True:
+            name_mat = "exog_inflation"
+            add_const_name = "add_const_inflation"
+        else:
+            name_mat = "exog"
+            add_const_name = "add_const"
+        msg = f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank. "
         msg += "You may consider to remove one or more variables"
-        msg += " or set add_const to False if that is not already the case."
-        msg += " You can also set 0 + exog in the formula to avoid adding  "
+        msg += f" or set {add_const_name} to False if that is not already the case."
+        msg += f" You can also set 0 + {name_mat} in the formula to avoid adding  "
         msg += "an intercept."
         raise ValueError(msg)
 
@@ -1154,3 +1170,7 @@ def _check_right_exog_inflation_shape(
         if exog_inflation.shape[0] != n_samples:
             msg = f"Shape should be ({n_samples},_), got shape{exog_inflation.shape}."
             raise ValueError(msg)
+
+
+def mse(t):
+    return torch.mean(t**2)
