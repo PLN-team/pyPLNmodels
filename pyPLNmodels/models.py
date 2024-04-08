@@ -27,6 +27,8 @@ from pyPLNmodels.elbos import (
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
     _elbo_zi_pln,
+    r_elbo_pln,
+    elbo_pln,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -534,8 +536,8 @@ class _model(ABC):
                 print("loss:", loss)
                 raise ValueError("The ELBO contains nan values.")
             loss.backward()
-            elbo += loss.item()
             self.optim.step()
+            elbo += loss.item()
         self._update_closed_forms()
         self._project_parameters()
         return elbo / self.nb_batches
@@ -765,6 +767,7 @@ class _model(ABC):
         print("Iteration number: ", self._criterion_args.iteration_number)
         print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
+        print("loglike", self.loglike)
 
     def _update_criterion_args(self, loss):
         """
@@ -1792,7 +1795,6 @@ class Pln(_model):
         torch.Tensor
             The coefficients.
         """
-        ret = _closed_formula_coef
         return _closed_formula_coef(self._exog, self._latent_mean)
 
     @property
@@ -1854,7 +1856,7 @@ class Pln(_model):
         int
             The number of parameters.
         """
-        return self.dim * (self.dim + self.nb_cov)
+        return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2
 
     @property
     def covariance(self):
@@ -1969,15 +1971,34 @@ class Pln(_model):
 
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
-        return profiled_elbo_pln(
+        # elbo_no_profiled = elbo_pln(
+        #     self._endog_b.to(DEVICE),
+        #     self._exog_b_device,
+        #     self._offsets_b.to(DEVICE),
+        #     self._latent_mean_b.to(DEVICE),
+        #     self._latent_sqrt_var_b.to(DEVICE),
+        #     self._covariance,
+        #     self._coef
+        #         )
+
+        # r_elbo = r_elbo_pln(
+        #     self._endog_b.to(DEVICE),
+        #     self._exog_b_device,
+        #     self._offsets_b.to(DEVICE),
+        #     self._latent_mean_b.to(DEVICE),
+        #     self._latent_sqrt_var_b.to(DEVICE),
+        #     self._covariance,
+        #     self._coef
+        #         )
+        elbo = profiled_elbo_pln(
             self._endog_b.to(DEVICE),
             self._exog_b_device,
             self._offsets_b.to(DEVICE),
             self._latent_mean_b.to(DEVICE),
             self._latent_sqrt_var_b.to(DEVICE),
         )
+        return elbo
 
-    @_add_doc(_model)
     def _smart_init_model_parameters(self):
         pass
         # no model parameters since we are doing a profiled ELBO
@@ -3580,7 +3601,7 @@ class ZIPln(_model):
             self.column_endog,
             self._dirac,
             self._batch_size,
-            self.samples_only_zeros,
+            self._samples_only_zeros,
         ) = _handle_data_with_inflation(
             endog,
             exog,
