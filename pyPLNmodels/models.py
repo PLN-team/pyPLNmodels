@@ -26,6 +26,7 @@ from pyPLNmodels.elbos import (
     profiled_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
+    _elbo_zi_pln,
     r_elbo_pln,
     elbo_pln,
 )
@@ -51,6 +52,7 @@ from pyPLNmodels._utils import (
     _check_shape_exog_infla,
     _pca_pairplot,
     _check_right_exog_inflation_shape,
+    mse,
 )
 
 from pyPLNmodels._initialization import (
@@ -438,64 +440,19 @@ class _model(ABC):
         self._set_requiring_grad_true()
         self._handle_optimizer(lr)
         stop_condition = False
-        self._dict_mse = {
-            "sigma": [],
-            "coef": [],
-            "latent_mean": [],
-            "latent_sqrt_var": [],
-            # "coef_infla": [],
-            # "latent_prob": [],
-            # "XB": [],
-        }
-        # if verbose is True:
-        #     self.old_coef = torch.clone(self.coef)
-        #     self.old_prob = torch.clone(self.latent_prob)
-        #     self.old_covariance = torch.clone(self.covariance)
-        #     self.old_mean = torch.clone(self.latent_mean)
+        self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
 
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
 
-            def mse(t):
-                return torch.mean(t**2)
-
-            try:
-                self._dict_mse["sigma"].append(mse(self.covariance))
-                self._dict_mse["coef"].append(mse(self.coef))
-                self._dict_mse["latent_mean"].append(mse(self.latent_mean))
-                self._dict_mse["latent_sqrt_var"].append(mse(self.latent_sqrt_var))
-                # self._dict_mse["coef_infla"].append(mse(self.coef_inflation))
-                # self._dict_mse["latent_prob"].append(mse(self.latent_prob))
-                # self._dict_mse["XB"].append(mse(self.mean_gaussian))
-            except:
-                pass
             if abs(criterion) < tol:
                 stop_condition = True
-            if verbose is True and self.nb_iteration_done % 50 == 1:
-                self._print_stats()
-
-                # def mae(t):
-                # return torch.mean(torch.abs(t))
-                # pca = PCA(n_components = 2)
-                # y = self.latent_mean
-                # y = pca.fit_transform(y)
-                # sns.scatterplot(y)
-                # plt.show()
-
-                # y = self.proba_inflation.ravel().detach()
-                # x = self._latent_mean.ravel().detach().cpu()
-                # c = self.latent_prob.detach()
-                # plt.scatter(x, y, s=0.3, c=c.cpu())
-                # plt.ylabel("proba of inflation")
-                # plt.xlabel("latent mean")
-                # plt.legend()
-                # plt.show()
-
-                # self.old_coef = torch.clone(self.coef)
-                # self.old_prob = torch.clone(self.latent_prob)
-                # self.old_covariance = torch.clone(self.covariance)
-                # self.old_mean = torch.clone(self.latent_mean)
+            if self.nb_iteration_done % 50 == 1:
+                for name_param, param in self.model_parameters.items():
+                    self._dict_mse[name_param].append(mse(param))
+                if verbose is True:
+                    self._print_stats()
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -918,7 +875,7 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            x = np.arange(0, len(self._dict_mse["sigma"]))
+            x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
             for key, value in self._dict_mse.items():
                 axes[1].plot(x, value, label=key)
             axes[1].legend()
@@ -1042,6 +999,7 @@ class _model(ABC):
         torch.Tensor or None
             The latent mean or None if it has not yet been initialized.
         """
+        print("names", self.column_endog)
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
@@ -3142,7 +3100,7 @@ class PlnPCA(_model):
         """,
     )
     def latent_mean(self) -> torch.Tensor:
-        return self._cpu_attribute_or_none("_latent_mean")
+        return super().latent_mean()
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
