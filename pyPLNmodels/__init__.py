@@ -1,6 +1,12 @@
 import importlib.metadata
 
-from .models import PlnPCAcollection, Pln, PlnPCA, ZIPln  # pylint:disable=[C0114]
+from .models import (
+    PlnPCAcollection,
+    Pln,
+    PlnPCA,
+    ZIPln,
+    Brute_ZIPln,
+)  # pylint:disable=[C0114]
 from .oaks import load_oaks
 from .elbos import profiled_elbo_pln, elbo_plnpca, elbo_pln
 from .sampling import (

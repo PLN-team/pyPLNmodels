@@ -49,7 +49,6 @@ def profiled_elbo_pln(
         + 0.5 * torch.log(s_squared)
     )
     elbo -= torch.sum(_log_stirling(endog))
-    print("loglike", elbo)
     return elbo / n_samples
 
 

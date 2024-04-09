@@ -676,7 +676,8 @@ def _handle_data_with_inflation(
     exog_inflation, add_const_inflation = _get_coherent_inflation_inits(
         zero_inflation_formula, exog_inflation, add_const_inflation
     )
-    _check_full_rank_exog(exog_inflation, inflation=True)
+    if exog_inflation is not None:
+        _check_full_rank_exog(exog_inflation, inflation=True)
 
     if zero_inflation_formula == "row-wise" and exog_inflation is not None:
         if torch.count_nonzero(exog_inflation - 1) == 0:
@@ -785,6 +786,8 @@ def _handle_data(
     )
     _check_data_shape(endog, exog, offsets)
     samples_only_zeros = torch.sum(endog, axis=1) == 0
+    samples_only_zeros = samples_only_zeros * 0
+    print("not removing samples")
     if torch.sum(samples_only_zeros) > 0.5:
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
         msg = "The following (index) counts contains only zeros and are removed."

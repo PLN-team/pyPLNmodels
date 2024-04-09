@@ -4330,7 +4330,11 @@ class ZIPln(_model):
     @property
     @_add_doc(_model)
     def number_of_parameters(self) -> int:
-        return self.dim * (2 * self.nb_cov + (self.dim + 1) / 2)
+        nb_param = self.dim * (self.nb_cov + (self.dim + 1) / 2 + self.nb_cov_inflation)
+        if self._zero_inflation_formula == "global":
+            return nb_param + 1
+        else:
+            return nb_param
 
     @property
     @_add_doc(_model)
@@ -4857,6 +4861,7 @@ class Brute_ZIPln(ZIPln):
             tocompute = elbo_brute_zipln_components
             cov_or_components = self._components
         else:
+            print("updating with right closed forms")
             latent_prob_b = self._closed_formula_zero_grad_prob_b
             tocompute = elbo_brute_zipln_covariance
             cov_or_components = self._covariance
