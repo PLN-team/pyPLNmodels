@@ -2,7 +2,6 @@ import torch
 import math
 from typing import Optional
 from pyPLNmodels._utils import _log_stirling
-from statsmodels.discrete.count_model import ZeroInflatedPoisson
 import time
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
