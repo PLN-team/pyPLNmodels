@@ -260,6 +260,10 @@ class _model(ABC):
         variables = self.transform()
         return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
 
+    def viz_positions(self, *, ax=None, colors=None, show_cov: bool = False):
+        variables = self.transform() - self.mean_gaussian
+        return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
+
     def _viz_variables(
         self, variables, *, ax=None, colors=None, show_cov: bool = False
     ):
@@ -450,7 +454,7 @@ class _model(ABC):
                 stop_condition = True
             if self.nb_iteration_done % 50 == 1:
                 for name_param, param in self.model_parameters.items():
-                    self._dict_mse[name_param].append(mse(param))
+                    self._dict_mse[name_param].append(mse(param).detach())
                 if verbose is True:
                     self._print_stats()
 
@@ -912,6 +916,12 @@ class _model(ABC):
             self._criterion_args._elbos_list.append(self.compute_elbo().item())
             self._criterion_args.running_times.append(time.time() - t0)
         return self.n_samples * self._elbos_list[-1]
+
+    def compute_loglike(self):
+        """
+        Computes the log likelihood.
+        """
+        return self.n_samples * self.compute_elbo()
 
     @property
     def BIC(self):
@@ -1971,25 +1981,6 @@ class Pln(_model):
 
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
-        # elbo_no_profiled = elbo_pln(
-        #     self._endog_b.to(DEVICE),
-        #     self._exog_b_device,
-        #     self._offsets_b.to(DEVICE),
-        #     self._latent_mean_b.to(DEVICE),
-        #     self._latent_sqrt_var_b.to(DEVICE),
-        #     self._covariance,
-        #     self._coef
-        #         )
-
-        # r_elbo = r_elbo_pln(
-        #     self._endog_b.to(DEVICE),
-        #     self._exog_b_device,
-        #     self._offsets_b.to(DEVICE),
-        #     self._latent_mean_b.to(DEVICE),
-        #     self._latent_sqrt_var_b.to(DEVICE),
-        #     self._covariance,
-        #     self._coef
-        #         )
         elbo = profiled_elbo_pln(
             self._endog_b.to(DEVICE),
             self._exog_b_device,
@@ -3853,13 +3844,6 @@ class ZIPln(_model):
 
     def _smart_init_latent_parameters(self):
         if not hasattr(self, "_latent_mean"):
-            # if self._zero_inflation_formula == "global":
-            #     self._latent_mean = self.smart_device(
-            #         self._xinflacoefinfla
-            #         * self.smart_device(torch.ones(self.n_samples, self.dim))
-            #     )
-            # else:
-            #     self._latent_mean = self.smart_device(self.xinflacoefinfla)
             self._latent_mean = self.smart_device(self.mean_gaussian)
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = self.smart_device(
@@ -4861,7 +4845,6 @@ class Brute_ZIPln(ZIPln):
             tocompute = elbo_brute_zipln_components
             cov_or_components = self._components
         else:
-            print("updating with right closed forms")
             latent_prob_b = self._closed_formula_zero_grad_prob_b
             tocompute = elbo_brute_zipln_covariance
             cov_or_components = self._covariance
