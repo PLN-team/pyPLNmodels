@@ -150,6 +150,13 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
         Approximation of log(n!) element-wise.
     """
     integer_ = integer + (integer == 0)  # Replace 0 with 1 since 0! = 1!
+    return (
+        integer_ * torch.log(integer_)
+        - integer_
+        + torch.log(8 * integer_**3 + 4 * integer_**2 + integer_ + 1 / 30) / 6
+        + math.log(math.pi) / 2
+    )
+
     return torch.log(torch.sqrt(2 * np.pi * integer_)) + integer_ * torch.log(
         integer_ / math.exp(1)
     )
@@ -1134,8 +1141,8 @@ def _check_full_rank_exog(exog, inflation=False):
         else:
             name_mat = "exog"
             add_const_name = "add_const"
-        msg = f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank. "
-        msg += "You may consider to remove one or more variables"
+        msg = f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank "
+        msg += f"(rank = {rank}, expected = {d}). You may consider to remove one or more variables"
         msg += f" or set {add_const_name} to False if that is not already the case."
         msg += f" You can also set 0 + {name_mat} in the formula to avoid adding  "
         msg += "an intercept."
