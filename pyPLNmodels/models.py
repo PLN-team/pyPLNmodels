@@ -10,7 +10,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import plotly.express as px
 import matplotlib
 from scipy import stats
 
@@ -26,9 +25,6 @@ from pyPLNmodels.elbos import (
     profiled_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
-    _elbo_zi_pln,
-    r_elbo_pln,
-    elbo_pln,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -43,20 +39,14 @@ from pyPLNmodels._utils import (
     _handle_data,
     _handle_data_with_inflation,
     _add_doc,
-    vec_to_mat,
-    mat_to_vec,
     plot_correlation_circle,
     _check_formula,
-    _add_const_to_exog,
-    _get_coherent_inflation_inits,
-    _check_shape_exog_infla,
     _pca_pairplot,
     _check_right_exog_inflation_shape,
     mse,
 )
 
 from pyPLNmodels._initialization import (
-    _init_covariance,
     _init_components,
     _init_coef,
     _init_latent_mean,
