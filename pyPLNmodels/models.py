@@ -3788,7 +3788,6 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             return 0
         elif self._zero_inflation_formula == "column-wise":
-            print("here")
             return self.exog_inflation.shape[1]
         return self.exog_inflation.shape[0]
 
