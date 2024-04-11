@@ -448,7 +448,8 @@ class _model(ABC):
                 stop_condition = True
             if self.nb_iteration_done % 50 == 1:
                 for name_param, param in self.model_parameters.items():
-                    self._dict_mse[name_param].append(mse(param).detach())
+                    mse_param = 0 if param is None else mse(param).detach()
+                    self._dict_mse[name_param].append(mse_param)
                 if verbose is True:
                     self._print_stats()
 
@@ -1935,6 +1936,15 @@ class Pln(_model):
                 1 / 2 * self._smart_device(torch.ones((self.n_samples, self.dim)))
             )
 
+    @_add_doc(_model)
+    def _smart_init_latent_parameters(self):
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            # we should do a poisson regression and initialise M with it
+            self._latent_mean = self._smart_device(
+                torch.log(self._endog + (self._endog == 0))
+            )
+
     @property
     @_add_doc(
         _model,
@@ -2090,7 +2100,6 @@ class PlnPCAcollection:
             _,
             _,
             self._batch_size,
-            self._samples_only_zeros,
         ) = _handle_data(
             endog,
             exog,
@@ -3073,7 +3082,7 @@ class PlnPCA(_model):
         """,
     )
     def latent_mean(self) -> torch.Tensor:
-        return super().latent_mean()
+        return super().latent_mean
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
@@ -3827,7 +3836,13 @@ class ZIPln(_model):
 
     def _smart_init_latent_parameters(self):
         if not hasattr(self, "_latent_mean"):
-            self._latent_mean = self._smart_device(self.mean_gaussian)
+            if self.exog is not None:
+                self._latent_mean = self._smart_device(self.mean_gaussian)
+            else:
+                self._latent_mean = self._smart_device(
+                    torch.log(self._endog + (self._endog == 0))
+                )
+
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = self._smart_device(
                 torch.randn(self.n_samples, self.dim)
