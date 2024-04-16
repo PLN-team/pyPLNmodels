@@ -18,30 +18,30 @@ from pyPLNmodels import (
 from pyPLNmodels.models import Brute_ZIPln
 import matplotlib.pyplot as plt
 
-mean_poiss = 2
-mean_infla = 0.3
-# ns = np.linspace(100, 1000, 10)
-ps = np.linspace(100, 800, 8)
-n = 1000
-# p = 250
-nb_cov = 2
-nb_cov_infla = 2
-good_fit = True  ## good_fit is actually 1000
-viz = "dims"
-nb_bootstrap = 5
-
-
 # mean_poiss = 2
 # mean_infla = 0.3
-# ns = np.linspace(100, 300, 2)
-# ps = np.linspace(100, 300, 2)
-# n = 175
-# p = 175
+# # ns = np.linspace(100, 1000, 10)
+# ps = np.linspace(100, 800, 8)
+# n = 1000
+# # p = 250
 # nb_cov = 2
 # nb_cov_infla = 2
-# good_fit = False
-# viz = "samples"
-# nb_bootstrap = 2
+# good_fit = True  ## good_fit is actually 1000
+# viz = "dims"
+# nb_bootstrap = 5
+
+
+mean_poiss = 2
+mean_infla = 0.3
+ns = np.linspace(100, 300, 2)
+# ps = np.linspace(100, 300, 2)
+# n = 175
+p = 175
+nb_cov = 2
+nb_cov_infla = 2
+good_fit = False
+viz = "samples"
+nb_bootstrap = 2
 
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
@@ -49,6 +49,7 @@ STD_CLOSED_KEY = "Standard Analytic"
 STD_FREE_KEY = "Standard"
 PLN = "Pln"
 FAIRPLN = "fair_Pln"
+ZIPREG = "ZIP"
 
 LABEL_DICT = {
     ENH_CLOSED_KEY: "Enhanced Analytic",
@@ -57,8 +58,17 @@ LABEL_DICT = {
     STD_FREE_KEY: "Standard",
     PLN: "Pln",
     FAIRPLN: "fair_Pln",
+    ZIPREG: "ZIP",
 }
-KEY_MODELS = [ENH_CLOSED_KEY, STD_FREE_KEY, ENH_FREE_KEY, STD_CLOSED_KEY, PLN, FAIRPLN]
+KEY_MODELS = [
+    ENH_CLOSED_KEY,
+    STD_FREE_KEY,
+    ENH_FREE_KEY,
+    STD_CLOSED_KEY,
+    PLN,
+    FAIRPLN,
+    ZIPREG,
+]
 
 ELBO_KEY = "ELBO"
 TIME_KEY = "TIME"
@@ -96,6 +106,7 @@ COLORS = {
     STD_CLOSED_KEY: "darkred",
     PLN: "black",
     FAIRPLN: "grey",
+    ZIPREG: "yellow",
 }
 
 if viz == "samples":
@@ -106,10 +117,13 @@ else:
 
 def fit_models(dict_models):
     for key, model in dict_models.items():
-        if good_fit is True:
-            model.fit(tol=0, nb_max_iteration=1000)
+        if key == ZIPREG:
+            model.fit(nb_max_iteration=0)
         else:
-            model.fit(nb_max_iteration=5)
+            if good_fit is True:
+                model.fit(tol=0, nb_max_iteration=1000)
+            else:
+                model.fit(nb_max_iteration=25)
     return dict_models
 
 
@@ -159,6 +173,16 @@ def get_dict_models(
         ),
         PLN: Pln(endog, exog=exog, offsets=offsets),
         FAIRPLN: Pln(fair_endog, exog=exog, offsets=offsets),
+        ZIPREG: ZIPln(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            add_const_inflation=False,
+            add_const=False,
+            exog_inflation=exog_inflation,
+            zero_inflation_formula=inflation_formula,
+            use_closed_form_prob=False,
+        ),
     }
     return sim_models
 
@@ -271,7 +295,7 @@ class one_plot:
             omega = torch.inverse(Sigma)
             beta = B[:, cols]
             results_model = self.model_criterions[key_model][xscale]
-            if key_model != FAIRPLN:
+            if key_model != FAIRPLN or key_model != ZIPREG:
                 if model_fitted._NAME != "Pln":
                     if model_fitted._zero_inflation_formula == "row-wise":
                         beta_0 = B0[lines, :]
@@ -303,20 +327,33 @@ class one_plot:
             else:
                 results_model[B0_KEY].append(666)
                 results_model[PI_KEY].append(666)
-                results_model[B_KEY].append(RMSE(model_fitted.coef - beta_fair.cpu()))
-                results_model[OMEGA_KEY].append(
-                    RMSE(torch.inverse(model_fitted.covariance) - omega_fair)
-                )
-                results_model[SIGMA_KEY].append(
-                    RMSE(model_fitted.covariance - Sigma_fair)
-                )
+                if key_model == FAIRPLN:
+                    results_model[B_KEY].append(
+                        RMSE(model_fitted.coef - beta_fair.cpu())
+                    )
+                    results_model[OMEGA_KEY].append(
+                        RMSE(torch.inverse(model_fitted.covariance) - omega_fair)
+                    )
+                    results_model[SIGMA_KEY].append(
+                        RMSE(model_fitted.covariance - Sigma_fair)
+                    )
+                else:
+                    results_model[B_KEY].append(666)
+                    results_model[OMEGA_KEY].append(666)
+                    results_model[SIGMA_KEY].append(666)
 
-            results_model[REC_KEY].append(model_fitted.reconstruction_error)
-            results_model[ELBO_KEY].append(model_fitted.elbo)
-            results_model[TIME_KEY].append(
-                model_fitted._criterion_args.running_times[-1]
-            )
-            results_model[NBITER_KEY].append(model_fitted.nb_iteration_done)
+            if key_model != ZIPREG:
+                results_model[REC_KEY].append(model_fitted.reconstruction_error)
+                results_model[ELBO_KEY].append(model_fitted.elbo)
+                results_model[TIME_KEY].append(
+                    model_fitted._criterion_args.running_times[-1]
+                )
+                results_model[NBITER_KEY].append(model_fitted.nb_iteration_done)
+            else:
+                results_model[REC_KEY].append(model_fitted.rec_error_init)
+                results_model[ELBO_KEY].append(666)
+                results_model[TIME_KEY].append(666)
+                results_model[NBITER_KEY].append(666)
 
     def save_criterions(self):
         with open(self.abs_name_file, "wb") as fp:

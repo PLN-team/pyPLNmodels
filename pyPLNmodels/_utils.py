@@ -684,7 +684,10 @@ def _handle_data_with_inflation(
         zero_inflation_formula, exog_inflation, add_const_inflation
     )
     if exog_inflation is not None:
-        _check_full_rank_exog(exog_inflation, inflation=True)
+        if zero_inflation_formula == "column-wise":
+            _check_full_rank_exog(exog_inflation, inflation=True)
+        elif zero_inflation_formula == "row-wise":
+            _check_full_rank_exog(exog_inflation.T, inflation=True)
 
     if zero_inflation_formula == "row-wise" and exog_inflation is not None:
         if torch.count_nonzero(exog_inflation - 1) == 0:
@@ -793,8 +796,6 @@ def _handle_data(
     )
     _check_data_shape(endog, exog, offsets)
     samples_only_zeros = torch.sum(endog, axis=1) == 0
-    samples_only_zeros = samples_only_zeros * 0
-    print("not removing samples")
     if torch.sum(samples_only_zeros) > 0.5:
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
         msg = "The following (index) counts contains only zeros and are removed."
@@ -1135,6 +1136,7 @@ def _check_full_rank_exog(exog, inflation=False):
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
+        print("shape", exog.shape)
         if inflation is True:
             name_mat = "exog_inflation"
             add_const_name = "add_const_inflation"
