@@ -10,7 +10,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import plotly.express as px
 import matplotlib
 from scipy import stats
 
@@ -26,9 +25,6 @@ from pyPLNmodels.elbos import (
     profiled_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
-    _elbo_zi_pln,
-    r_elbo_pln,
-    elbo_pln,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -43,20 +39,14 @@ from pyPLNmodels._utils import (
     _handle_data,
     _handle_data_with_inflation,
     _add_doc,
-    vec_to_mat,
-    mat_to_vec,
     plot_correlation_circle,
     _check_formula,
-    _add_const_to_exog,
-    _get_coherent_inflation_inits,
-    _check_shape_exog_infla,
     _pca_pairplot,
     _check_right_exog_inflation_shape,
     mse,
 )
 
 from pyPLNmodels._initialization import (
-    _init_covariance,
     _init_components,
     _init_coef,
     _init_latent_mean,
@@ -216,7 +206,7 @@ class _model(ABC):
         return self._batch_size
 
     @property
-    def onlyonebatch(self):
+    def _onlyonebatch(self):
         return self._batch_size == self.n_samples
 
     @batch_size.setter
@@ -259,6 +249,14 @@ class _model(ABC):
         """
         variables = self.transform()
         return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
+
+    def viz_positions(self, *, ax=None, colors=None, show_cov: bool = False):
+        variables = self.latent_position
+        return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
+
+    @property
+    def latent_position(self):
+        return self.transform() - self.mean_gaussian
 
     def _viz_variables(
         self, variables, *, ax=None, colors=None, show_cov: bool = False
@@ -450,7 +448,7 @@ class _model(ABC):
                 stop_condition = True
             if self.nb_iteration_done % 50 == 1:
                 for name_param, param in self.model_parameters.items():
-                    self._dict_mse[name_param].append(mse(param))
+                    self._dict_mse[name_param].append(mse(param).detach())
                 if verbose is True:
                     self._print_stats()
 
@@ -484,7 +482,6 @@ class _model(ABC):
             batch = self._return_batch(
                 indices, i * self._batch_size, (i + 1) * self._batch_size
             )
-            # Move the parameters to GPU
             yield batch
 
         # Last batch
@@ -492,7 +489,7 @@ class _model(ABC):
             yield self._return_batch(indices, -self._last_batch_size, self.n_samples)
 
     def _return_batch(self, indices, beginning, end):
-        self.to_take = self.smart_device(torch.tensor(indices[beginning:end]))
+        self.to_take = self._smart_device(torch.tensor(indices[beginning:end]))
         if self._exog is not None:
             exog_b = torch.index_select(self._exog, 0, self.to_take)
         else:
@@ -533,7 +530,7 @@ class _model(ABC):
             self.optim.zero_grad()
             loss = -self._compute_elbo_b()
             if torch.sum(torch.isnan(loss)):
-                print("loss:", loss)
+                print("There are nan in the loss:", loss)
                 raise ValueError("The ELBO contains nan values.")
             loss.backward()
             self.optim.step()
@@ -882,7 +879,6 @@ class _model(ABC):
             axes[1].set_title("Norm of each parameter.")
             self._criterion_args._show_loss(ax=axes[2])
             self.display_covariance(ax=axes[0], display=False)
-            # self._criterion_args._show_stopping_criterion(ax=axes[1])
 
         else:
             self.display_covariance(ax=axes)
@@ -912,6 +908,12 @@ class _model(ABC):
             self._criterion_args._elbos_list.append(self.compute_elbo().item())
             self._criterion_args.running_times.append(time.time() - t0)
         return self.n_samples * self._elbos_list[-1]
+
+    def compute_loglike(self):
+        """
+        Computes the log likelihood.
+        """
+        return self.n_samples * self.compute_elbo()
 
     @property
     def BIC(self):
@@ -999,7 +1001,6 @@ class _model(ABC):
         torch.Tensor or None
             The latent mean or None if it has not yet been initialized.
         """
-        print("names", self.column_endog)
         return self._cpu_attribute_or_none("_latent_mean")
 
     @property
@@ -1034,12 +1035,12 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_mean.shape}"
             )
-        self._latent_mean = self.smart_device(latent_mean)
+        self._latent_mean = self._smart_device(latent_mean)
 
-    def smart_device(self, tensor):
+    def _smart_device(self, tensor):
         if tensor is None:
             return None
-        if self.onlyonebatch is True:
+        if self._onlyonebatch is True:
             return tensor.to(DEVICE)
         return tensor
 
@@ -1216,7 +1217,7 @@ class _model(ABC):
             raise ValueError(
                 f"Wrong shape for the coef. Expected {(self.nb_cov, self.dim)}, got {coef.shape}"
             )
-        self._coef = self.smart_device(coef)
+        self._coef = self._smart_device(coef)
 
     @property
     def _dict_for_printing(self):
@@ -1844,7 +1845,7 @@ class Pln(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.dim}, got {latent_sqrt_var.shape}"
             )
-        self._latent_sqrt_var = self.smart_device(latent_sqrt_var)
+        self._latent_sqrt_var = self._smart_device(latent_sqrt_var)
 
     @property
     def number_of_parameters(self) -> int:
@@ -1897,7 +1898,7 @@ class Pln(_model):
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = (
-                1 / 2 * self.smart_device(torch.ones((self.n_samples, self.dim)))
+                1 / 2 * self._smart_device(torch.ones((self.n_samples, self.dim)))
             )
 
     @_add_doc(_model)
@@ -1931,7 +1932,7 @@ class Pln(_model):
     def _random_init_latent_sqrt_var(self):
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = (
-                1 / 2 * self.smart_device(torch.ones((self.n_samples, self.dim)))
+                1 / 2 * self._smart_device(torch.ones((self.n_samples, self.dim)))
             )
 
     @property
@@ -1971,25 +1972,6 @@ class Pln(_model):
 
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
-        # elbo_no_profiled = elbo_pln(
-        #     self._endog_b.to(DEVICE),
-        #     self._exog_b_device,
-        #     self._offsets_b.to(DEVICE),
-        #     self._latent_mean_b.to(DEVICE),
-        #     self._latent_sqrt_var_b.to(DEVICE),
-        #     self._covariance,
-        #     self._coef
-        #         )
-
-        # r_elbo = r_elbo_pln(
-        #     self._endog_b.to(DEVICE),
-        #     self._exog_b_device,
-        #     self._offsets_b.to(DEVICE),
-        #     self._latent_mean_b.to(DEVICE),
-        #     self._latent_sqrt_var_b.to(DEVICE),
-        #     self._covariance,
-        #     self._coef
-        #         )
         elbo = profiled_elbo_pln(
             self._endog_b.to(DEVICE),
             self._exog_b_device,
@@ -2009,19 +1991,10 @@ class Pln(_model):
         # no model parameters since we are doing a profiled ELBO
 
     @_add_doc(_model)
-    def _smart_init_latent_parameters(self):
-        self._random_init_latent_sqrt_var()
-        if not hasattr(self, "_latent_mean"):
-            # we should do a poisson regression and initialise M with it
-            self._latent_mean = self.smart_device(
-                torch.log(self._endog + (self._endog == 0))
-            )
-
-    @_add_doc(_model)
     def _random_init_latent_parameters(self):
         self._random_init_latent_sqrt_var()
         if not hasattr(self, "_latent_mean"):
-            self._latent_mean = self.smart_device(
+            self._latent_mean = self._smart_device(
                 torch.ones((self.n_samples, self.dim))
             )
 
@@ -3131,7 +3104,7 @@ class PlnPCA(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_mean.shape}"
             )
-        self._latent_mean = self.smart_device(latent_mean)
+        self._latent_mean = self._smart_device(latent_mean)
 
     @_model.latent_sqrt_var.setter
     @_array2tensor
@@ -3148,7 +3121,7 @@ class PlnPCA(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.n_samples, self.rank}, got {latent_sqrt_var.shape}"
             )
-        self._latent_sqrt_var = self.smart_device(latent_sqrt_var)
+        self._latent_sqrt_var = self._smart_device(latent_sqrt_var)
 
     @property
     def _directory_name(self) -> str:
@@ -3346,7 +3319,7 @@ class PlnPCA(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.dim, self.rank}, got {components.shape}"
             )
-        self._components = self.smart_device(components)
+        self._components = self._smart_device(components)
 
     @_add_doc(
         _model,
@@ -3443,9 +3416,9 @@ class PlnPCA(_model):
         Randomly initialize the latent parameters.
         """
         self._latent_sqrt_var = (
-            1 / 2 * self.smart_device(torch.ones((self.n_samples, self._rank)))
+            1 / 2 * self._smart_device(torch.ones((self.n_samples, self._rank)))
         )
-        self._latent_mean = self.smart_device(torch.ones((self.n_samples, self._rank)))
+        self._latent_mean = self._smart_device(torch.ones((self.n_samples, self._rank)))
 
     @_add_doc(_model)
     def _smart_init_latent_parameters(self):
@@ -3457,10 +3430,10 @@ class PlnPCA(_model):
                 self._coef,
                 self._components,
             ).detach()
-            self._latent_mean = self.smart_device(self._latent_mean)
+            self._latent_mean = self._smart_device(self._latent_mean)
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = (
-                1 / 2 * self.smart_device(torch.ones((self.n_samples, self._rank)))
+                1 / 2 * self._smart_device(torch.ones((self.n_samples, self._rank)))
             )
 
     @property
@@ -3797,7 +3770,6 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             return 0
         elif self._zero_inflation_formula == "column-wise":
-            print("here")
             return self.exog_inflation.shape[1]
         return self.exog_inflation.shape[0]
 
@@ -3805,7 +3777,7 @@ class ZIPln(_model):
         if self._zero_inflation_formula == "global":
             self._coef_inflation = torch.tensor([0.5]).to(DEVICE)
         elif self._zero_inflation_formula == "row-wise":
-            self._coef_inflation = self.smart_device(
+            self._coef_inflation = self._smart_device(
                 torch.randn(self.n_samples, self.nb_cov_inflation)
             )
         elif self._zero_inflation_formula == "column-wise":
@@ -3833,7 +3805,7 @@ class ZIPln(_model):
             self._zero_inflation_formula,
         )
         if not hasattr(self, "_coef_inflation"):
-            self._coef_inflation = self.smart_device(coef_inflation)
+            self._coef_inflation = self._smart_device(coef_inflation)
         if not hasattr(self, "_coef"):
             self._coef = coef.to(DEVICE) if coef is not None else None
         if not hasattr(self, "_components"):
@@ -3842,10 +3814,12 @@ class ZIPln(_model):
             )
 
     def _random_init_latent_parameters(self):
-        self._latent_mean = self.smart_device(torch.randn(self.n_samples, self.dim))
-        self._latent_sqrt_var = self.smart_device(torch.randn(self.n_samples, self.dim))
+        self._latent_mean = self._smart_device(torch.randn(self.n_samples, self.dim))
+        self._latent_sqrt_var = self._smart_device(
+            torch.randn(self.n_samples, self.dim)
+        )
         if self._use_closed_form_prob is False:
-            self._latent_prob = self.smart_device(
+            self._latent_prob = self._smart_device(
                 (
                     torch.empty(self.n_samples, self.dim).uniform_(0, 1) * self._dirac
                 ).double()
@@ -3853,21 +3827,14 @@ class ZIPln(_model):
 
     def _smart_init_latent_parameters(self):
         if not hasattr(self, "_latent_mean"):
-            # if self._zero_inflation_formula == "global":
-            #     self._latent_mean = self.smart_device(
-            #         self._xinflacoefinfla
-            #         * self.smart_device(torch.ones(self.n_samples, self.dim))
-            #     )
-            # else:
-            #     self._latent_mean = self.smart_device(self.xinflacoefinfla)
-            self._latent_mean = self.smart_device(self.mean_gaussian)
+            self._latent_mean = self._smart_device(self.mean_gaussian)
         if not hasattr(self, "_latent_sqrt_var"):
-            self._latent_sqrt_var = self.smart_device(
+            self._latent_sqrt_var = self._smart_device(
                 torch.randn(self.n_samples, self.dim)
             )
         if not hasattr(self, "_latent_prob"):
             if self._use_closed_form_prob is False:
-                self._latent_prob = self.smart_device(
+                self._latent_prob = self._smart_device(
                     self._proba_inflation * (self._dirac)
                 )
 
@@ -3945,12 +3912,12 @@ class ZIPln(_model):
         -------
         The latent mean if `return_latent_prob` is False and (latent_mean, latent_prob) else.
         """
-        if return_latent_prob is True:
-            return self.latent_variables
-
-        return (
+        latent_gaussian = (
             1 - self.latent_prob
         ) * self.latent_mean + self.mean_gaussian * self.latent_prob
+        if return_latent_prob is True:
+            return latent_gaussian, latent_prob
+        return latent_gaussian
 
     def _endog_predictions(self):
         return torch.exp(
@@ -4032,7 +3999,7 @@ class ZIPln(_model):
             msg = "Wrong shape for the coef_inflation. Expected "
             msg += f"{self._shape_coef_infla}, got {coef_inflation.shape}"
             raise ValueError(msg)
-        self._coef_inflation = self.smart_device(coef_inflation)
+        self._coef_inflation = self._smart_device(coef_inflation)
 
     def _has_right_coef_infla_shape(self, shape):
         if self._zero_inflation_formula == "global":
@@ -4070,7 +4037,7 @@ class ZIPln(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.endog.shape}, got {latent_sqrt_var.shape}"
             )
-        self._latent_sqrt_var = self.smart_device(latent_sqrt_var)
+        self._latent_sqrt_var = self._smart_device(latent_sqrt_var)
 
     def _project_parameters(self):
         self._project_latent_prob()
@@ -4081,12 +4048,12 @@ class ZIPln(_model):
             with torch.no_grad():
                 self._latent_prob = torch.maximum(
                     self._latent_prob,
-                    self.smart_device(torch.tensor([0])),
+                    self._smart_device(torch.tensor([0])),
                     out=self._latent_prob,
                 )
                 self._latent_prob = torch.minimum(
                     self._latent_prob,
-                    self.smart_device(torch.tensor([1])),
+                    self._smart_device(torch.tensor([1])),
                     out=self._latent_prob,
                 )
                 self._latent_prob *= self._dirac
@@ -4124,7 +4091,7 @@ class ZIPln(_model):
             raise ValueError(
                 f"Wrong shape. Expected {self.dim, self.dim}, got {components.shape}"
             )
-        self._components = self.smart_device(components)
+        self._components = self._smart_device(components)
 
     @property
     def latent_prob(self):
@@ -4271,11 +4238,11 @@ class ZIPln(_model):
         zero_inflation_formula.
         """
         if self._zero_inflation_formula == "global":
-            return self.smart_device(self._coef_inflation)
+            return self._smart_device(self._coef_inflation)
         elif self._zero_inflation_formula == "column-wise":
-            return self._exog_inflation @ (self.smart_device(self._coef_inflation))
+            return self._exog_inflation @ (self._smart_device(self._coef_inflation))
         elif self._zero_inflation_formula == "row-wise":
-            return self.smart_device(self._coef_inflation) @ (self._exog_inflation)
+            return self._smart_device(self._coef_inflation) @ (self._exog_inflation)
 
     @property
     def proba_inflation(self):
@@ -4465,10 +4432,6 @@ class ZIPln(_model):
         ax.set_title("Latent probability to be zero inflated.")
         ax.set_xlabel("Variable number")
         ax.set_ylabel("Sample number")
-        # indices = (np.arange(0,len(indices_of_samples), len(indices_of_samples)/94)).astype(int)
-        # indices = indices_of_samples[indices]
-        # ax.set_yticklabels([str(index) for index in indices ])
-        # ax.set_xticklabels(indices_of_variables)
         plt.show()
 
     def pca_pairplot_prob(self, n_components=None, colors=None):
@@ -4494,317 +4457,6 @@ class ZIPln(_model):
         n_components = self._threshold_n_components(n_components)
         array = self.latent_prob.detach()
         _pca_pairplot(array.numpy(), n_components, self.dim, colors)
-
-    def _grad_M(self):
-        if self._use_closed_form_prob is True:
-            latent_prob = self.closed_formula_latent_prob
-        else:
-            latent_prob = self._latent_prob
-        un_moins_prob = 1 - latent_prob
-        first = un_moins_prob * (
-            self._endog
-            - torch.exp(self._offsets + self._latent_mean + self.latent_sqrt_var**2 / 2)
-        )
-        MmoinsXB = self._latent_mean - self._exog @ self._coef
-        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
-        diag_omega = torch.diag(torch.inverse(self._covariance))
-        full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
-        second = -un_moins_prob * A
-        added = -full_diag_omega * latent_prob * un_moins_prob * (MmoinsXB)
-        return first + second + added
-
-    def _grad_S(self):
-        if self._use_closed_form_prob is True:
-            latent_prob = self.closed_formula_latent_prob
-        else:
-            latent_prob = self._latent_prob
-        Omega = torch.inverse(self.covariance)
-        un_moins_prob = 1 - latent_prob
-        first = un_moins_prob * torch.exp(
-            self._offsets + self._latent_mean + self._latent_sqrt_var**2 / 2
-        )
-        first = -torch.multiply(first, self._latent_sqrt_var)
-        sec = un_moins_prob * 1 / self._latent_sqrt_var
-        K = un_moins_prob * (
-            torch.multiply(
-                torch.full((self.n_samples, 1), 1.0), torch.diag(Omega).unsqueeze(0)
-            )
-        )
-        third = -self._latent_sqrt_var * K
-        return first + sec + third
-
-    def _grad_theta(self):
-        if self._use_closed_form_prob is True:
-            latent_prob = self.closed_formula_latent_prob
-        else:
-            latent_prob = self._latent_prob
-
-        un_moins_prob = 1 - latent_prob
-        MmoinsXB = self._latent_mean - self._exog @ self._coef
-        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
-        diag_omega = torch.diag(torch.inverse(self._covariance))
-        full_diag_omega = diag_omega.expand(self.exog.shape[0], -1)
-        added = latent_prob * (MmoinsXB) * full_diag_omega
-        A += added
-        second = -un_moins_prob * A
-        grad_no_closed_form = -self._exog.T @ second
-        if self._use_closed_form_prob is False:
-            return grad_no_closed_form
-        else:
-            XB_zero = self._exog @ self._coef_inflation
-            diag = torch.diag(self._covariance)
-            full_diag = diag.expand(self._exog.shape[0], -1)
-            XB = self._exog @ self._coef
-            derivative = d_h_x2(XB_zero, XB, full_diag, self._dirac)
-            grad_closed_form = self._gradients_closed_form_thetas(derivative)
-            return grad_closed_form + grad_no_closed_form
-
-    def _gradients_closed_form_thetas(self, derivative):
-        Omega = torch.inverse(self._covariance)
-        MmoinsXB = self._latent_mean - self._exog @ self._coef
-        s_rond_s = self._latent_sqrt_var**2
-        latent_prob = self.closed_formula_latent_prob
-        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
-        poiss_term = (
-            self._endog * (self._offsets + self._latent_mean)
-            - A
-            - _log_stirling(self._endog)
-        )
-        a = -self._exog.T @ (derivative * poiss_term)
-        b = self._exog.T @ (
-            derivative * MmoinsXB * (((1 - latent_prob) * MmoinsXB) @ Omega)
-        )
-        c = self._exog.T @ (derivative * (self._exog @ self._coef_inflation))
-        first_d = derivative * torch.log(torch.abs(self._latent_sqrt_var))
-        second_d = (
-            1 / 2 * derivative @ (torch.diag(torch.log(torch.diag(self._covariance))))
-        )
-        d = -self._exog.T @ (first_d - second_d)
-        e = -self._exog.T @ (
-            derivative * (_trunc_log(latent_prob) - _trunc_log(1 - latent_prob))
-        )
-        first_f = (
-            +1
-            / 2
-            * self._exog.T
-            @ (derivative * (s_rond_s @ torch.diag(torch.diag(Omega))))
-        )
-        second_f = (
-            -1
-            / 2
-            * self._exog.T
-            @ derivative
-            @ torch.diag(torch.diag(Omega) * torch.diag(self._covariance))
-        )
-        full_diag_omega = torch.diag(Omega).expand(self.exog.shape[0], -1)
-        common = (MmoinsXB) ** 2 * (full_diag_omega)
-        new_f = -1 / 2 * self._exog.T @ (derivative * common * (1 - 2 * latent_prob))
-        f = first_f + second_f + new_f
-        return a + b + c + d + e + f
-
-    def _grad_theta_0(self):
-        if self._use_closed_form_prob is True:
-            latent_prob = self.closed_formula_latent_prob
-        else:
-            latent_prob = self._latent_prob
-        grad_no_closed_form = self._exog.T @ latent_prob - self._exog.T @ (
-            torch.exp(self._exog @ self._coef_inflation)
-            / (1 + torch.exp(self._exog @ self._coef_inflation))
-        )
-        if self._use_closed_form_prob is False:
-            return grad_no_closed_form
-        else:
-            grad_closed_form = self._gradients_closed_form_thetas(
-                latent_prob * (1 - latent_prob)
-            )
-            return grad_closed_form + grad_no_closed_form
-
-    def _grad_C(self):
-        if self._use_closed_form_prob is True:
-            latent_prob = self.closed_formula_latent_prob
-        else:
-            latent_prob = self._latent_prob
-        omega = torch.inverse(self._covariance)
-        if self._coef is not None:
-            m_minus_xb = self._latent_mean - torch.mm(self._exog, self._coef)
-        else:
-            m_minus_xb = self._latent_mean
-        m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-
-        un_moins_rho = 1 - latent_prob
-
-        un_moins_rho_m_moins_xb = un_moins_rho * m_minus_xb
-        un_moins_rho_m_moins_xb_outer = (
-            un_moins_rho_m_moins_xb.T @ un_moins_rho_m_moins_xb
-        )
-        deter = (
-            -self.n_samples
-            * torch.inverse(self._components @ (self._components.T))
-            @ self._components
-        )
-        sec_part_b_grad = (
-            omega @ (un_moins_rho_m_moins_xb_outer) @ omega @ self._components
-        )
-        b_grad = deter + sec_part_b_grad
-
-        diag = torch.diag(self.covariance)
-        rho_t_unn = torch.sum(latent_prob, axis=0)
-        omega_unp = torch.sum(omega, axis=0)
-        K = torch.sum(un_moins_rho * self._latent_sqrt_var**2, axis=0) + diag * (
-            rho_t_unn
-        )
-        added = torch.sum(latent_prob * un_moins_rho * (m_minus_xb**2), axis=0)
-        K += added
-        first_part_grad = omega @ torch.diag_embed(K) @ omega @ self._components
-        x = torch.diag(omega) * rho_t_unn
-        second_part_grad = -torch.diag_embed(x) @ self._components
-        y = rho_t_unn
-        first = torch.multiply(y, 1 / torch.diag(self.covariance)).unsqueeze(1)
-        second = torch.full((1, self.dim), 1.0)
-        Diag = (first * second) * torch.eye(self.dim)
-        last_grad = Diag @ self._components
-        grad_no_closed_form = b_grad + first_part_grad + second_part_grad + last_grad
-        if self._use_closed_form_prob is False:
-            return grad_no_closed_form
-        else:
-            s_rond_s = self._latent_sqrt_var**2
-            XB_zero = self._exog @ self._coef_inflation
-            XB = self._exog @ self._coef
-            A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
-            poiss_term = (
-                self._endog * (self._offsets + self._latent_mean)
-                - A
-                - _log_stirling(self._endog)
-            )
-            full_diag_sigma = diag.expand(self._exog.shape[0], -1)
-            full_diag_omega = torch.diag(omega).expand(self._exog.shape[0], -1)
-            H3 = d_h_x3(XB_zero, XB, full_diag_sigma, self._dirac)
-            poiss_term_H = poiss_term * H3
-            a = (
-                -2
-                * (
-                    ((poiss_term_H.T @ torch.ones(self.n_samples, self.dim)))
-                    * (torch.eye(self.dim))
-                )
-                @ self._components
-            )
-            B_Omega = ((1 - latent_prob) * m_minus_xb) @ omega
-            K = H3 * B_Omega * m_minus_xb
-            b = (
-                2
-                * (
-                    (
-                        (m_minus_xb * B_Omega * H3).T
-                        @ torch.ones(self.n_samples, self.dim)
-                    )
-                    * torch.eye(self.dim)
-                )
-                @ self._components
-            )
-            c = (
-                2
-                * (
-                    ((XB_zero * H3).T @ torch.ones(self.n_samples, self.dim))
-                    * torch.eye(self.dim)
-                )
-                @ self._components
-            )
-            d = (
-                -2
-                * (
-                    (
-                        (torch.log(torch.abs(self._latent_sqrt_var)) * H3).T
-                        @ torch.ones(self.n_samples, self.dim)
-                    )
-                    * torch.eye(self.dim)
-                )
-                @ self._components
-            )
-            log_full_diag_sigma = torch.log(diag).expand(self._exog.shape[0], -1)
-            d += (
-                ((log_full_diag_sigma * H3).T @ torch.ones(self.n_samples, self.dim))
-                * torch.eye(self.dim)
-            ) @ self._components
-            e = (
-                -2
-                * (
-                    (
-                        ((_trunc_log(latent_prob) - _trunc_log(1 - latent_prob)) * H3).T
-                        @ torch.ones(self.n_samples, self.dim)
-                    )
-                    * torch.eye(self.dim)
-                )
-                @ self._components
-            )
-            f = (
-                -(
-                    (
-                        (full_diag_omega * (full_diag_sigma - s_rond_s) * H3).T
-                        @ torch.ones(self.n_samples, self.dim)
-                    )
-                    * torch.eye(self.dim)
-                )
-                @ self._components
-            )
-            f -= (
-                (
-                    ((1 - 2 * latent_prob) * m_minus_xb**2 * full_diag_omega * H3).T
-                    @ torch.ones(self.n_samples, self.dim)
-                )
-                * torch.eye(self.dim)
-            ) @ self._components
-            grad_closed_form = a + b + c + d + e + f
-            return grad_closed_form + grad_no_closed_form
-
-    def _grad_rho(self):
-        if self._use_closed_form_prob is True:
-            latent_prob = self.closed_formula_latent_prob
-        else:
-            latent_prob = self._latent_prob
-        omega = torch.inverse(self._covariance)
-        s_rond_s = self._latent_sqrt_var * self._latent_sqrt_var
-        A = torch.exp(self._offsets + self._latent_mean + s_rond_s / 2)
-        first = (
-            -self._endog * (self._offsets + self._latent_mean)
-            + A
-            + _log_stirling(self._endog)
-        )
-        un_moins_prob = 1 - latent_prob
-        MmoinsXB = self._latent_mean - self._exog @ self._coef
-        A = (un_moins_prob * MmoinsXB) @ torch.inverse(self._covariance)
-        second = MmoinsXB * A
-        third = self._exog @ self._coef_inflation
-        fourth_first = -torch.log(torch.abs(self._latent_sqrt_var))
-        fourth_second = (
-            1
-            / 2
-            * torch.multiply(
-                torch.full((self.n_samples, 1), 1.0),
-                torch.log(torch.diag(self.covariance)).unsqueeze(0),
-            )
-        )
-        fourth = fourth_first + fourth_second
-        fifth = _trunc_log(un_moins_prob) - _trunc_log(latent_prob)
-        sixth_first = (
-            1
-            / 2
-            * torch.multiply(
-                torch.full((self.n_samples, 1), 1.0), torch.diag(omega).unsqueeze(0)
-            )
-            * s_rond_s
-        )
-        sixth_second = (
-            -1
-            / 2
-            * torch.multiply(
-                torch.full((self.n_samples, 1), 1.0),
-                (torch.diag(omega) * torch.diag(self._covariance)).unsqueeze(0),
-            )
-        )
-        sixth = sixth_first + sixth_second
-        full_diag_omega = torch.diag(omega).expand(self.exog.shape[0], -1)
-        seventh = -1 / 2 * (1 - 2 * latent_prob) * (MmoinsXB) ** 2 * (full_diag_omega)
-        return first + second + third + fourth + fifth + sixth + seventh
 
     @property
     def _directory_name(self):
@@ -4928,7 +4580,7 @@ class Brute_ZIPln(ZIPln):
             self._coef = _closed_formula_coef(self._exog, self._latent_mean)
 
     @property
-    def __components(self):
+    def _components_(self):
         if self._use_closed_form_prob is True:
             return self._components
         return torch.linalg.cholesky(self._covariance)
@@ -4938,7 +4590,7 @@ class Brute_ZIPln(ZIPln):
     def model_parameters(self) -> Dict[str, torch.Tensor]:
         return {
             "coef": self.coef,
-            "components": self.__components,
+            "components": self._components_,
             "coef_inflation": self.coef_inflation,
         }
 
