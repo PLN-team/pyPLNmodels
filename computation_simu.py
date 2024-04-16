@@ -20,6 +20,19 @@ import matplotlib.pyplot as plt
 
 # mean_poiss = 2
 # mean_infla = 0.3
+# ns = np.linspace(100, 400, 7)
+# p = 150
+# # ps = np.linspace(100, 500, 9)
+# # n = 500
+# nb_cov = 2
+# nb_cov_infla = 2
+# good_fit = True  ## good_fit is actually 1000
+# viz = "samples"
+# nb_bootstrap = 30
+
+
+# mean_poiss = 2
+# mean_infla = 0.3
 # # ns = np.linspace(100, 1000, 10)
 # ps = np.linspace(100, 800, 8)
 # n = 1000
