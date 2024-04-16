@@ -17,10 +17,12 @@ pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
 
 get_name_computation <- function(viz,formula){
     if (viz == "dims"){
-        return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
+        # return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
+        return(paste(viz,formula,"not_n_or_p_175.csv", sep = "_"))
     }
     else{
-        return(paste(viz,formula,"not_n_or_p_250.csv", sep = "_"))
+        # return(paste(viz,formula,"not_n_or_p_250.csv", sep = "_"))
+        return(paste(viz,formula,"not_n_or_p_175.csv", sep = "_"))
     }
 }
 
@@ -53,7 +55,7 @@ h[["NBITER"]] = "Number of iterations"
 # # if (perf != "stat" || viz != "samples"){
 #    colors =  c("skyblue","blue","yellow","orange")
 # } else{
-    colors = c("skyblue","blue","black","gray","yellow","orange")
+    colors = c("skyblue","blue","black","gray","yellow","orange","green")
 # }
 
 

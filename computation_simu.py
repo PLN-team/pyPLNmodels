@@ -18,43 +18,31 @@ from pyPLNmodels import (
 from pyPLNmodels.models import Brute_ZIPln
 import matplotlib.pyplot as plt
 
-# mean_poiss = 2
-# mean_infla = 0.3
-# ns = np.linspace(100, 400, 7)
-# p = 150
-# # ps = np.linspace(100, 500, 9)
-# # n = 500
-# nb_cov = 2
-# nb_cov_infla = 2
-# good_fit = True  ## good_fit is actually 1000
-# viz = "samples"
-# nb_bootstrap = 30
-
-
-# mean_poiss = 2
-# mean_infla = 0.3
-# # ns = np.linspace(100, 1000, 10)
-# ps = np.linspace(100, 800, 8)
-# n = 1000
-# # p = 250
-# nb_cov = 2
-# nb_cov_infla = 2
-# good_fit = True  ## good_fit is actually 1000
-# viz = "dims"
-# nb_bootstrap = 5
-
-
 mean_poiss = 2
 mean_infla = 0.3
-ns = np.linspace(100, 300, 2)
-# ps = np.linspace(100, 300, 2)
-# n = 175
-p = 175
+# ns = np.linspace(100, 400, 7)
+# p = 150
+ps = np.linspace(100, 500, 9)
+n = 500
 nb_cov = 2
 nb_cov_infla = 2
-good_fit = False
-viz = "samples"
-nb_bootstrap = 2
+good_fit = True  ## good_fit is actually 1000
+viz = "dims"
+nb_bootstrap = 30
+
+
+# mean_poiss = 2
+# mean_infla = 0.3
+# # ns = np.linspace(100, 300, 2)
+# ps = np.linspace(100, 300, 2)
+# n = 175
+# # p = 175
+# nb_cov = 2
+# nb_cov_infla = 2
+# good_fit = False
+# viz = "dims"
+# # viz = "samples"
+# nb_bootstrap = 2
 
 ENH_CLOSED_KEY = "Enhanced Analytic"
 ENH_FREE_KEY = "Enhanced"
@@ -329,11 +317,8 @@ class one_plot:
                     results_model[B0_KEY].append(666)
                     results_model[PI_KEY].append(666)
                 rmse_omega = RMSE(torch.inverse(model_fitted.covariance) - omega.cpu())
-                print("key:", key_model)
-                print("mse omega", rmse_omega)
                 results_model[OMEGA_KEY].append(rmse_omega)
                 rmse_sigma = RMSE(model_fitted.covariance - Sigma.cpu())
-                print("mse sigma", rmse_sigma)
                 results_model[SIGMA_KEY].append(rmse_sigma)
 
                 results_model[B_KEY].append(RMSE(model_fitted.coef - beta.cpu()))
