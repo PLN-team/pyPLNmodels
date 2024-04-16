@@ -3825,7 +3825,7 @@ class ZIPln(_model):
         Zero Inflated Poisson is fitted for the coef and coef_inflation.
         For the components, PCA on the log counts.
         """
-        coef, coef_inflation = _init_coef_coef_inflation(
+        coef, coef_inflation, self.rec_error_init = _init_coef_coef_inflation(
             self.endog,
             self.exog,
             self.exog_inflation,
@@ -4861,7 +4861,6 @@ class Brute_ZIPln(ZIPln):
             tocompute = elbo_brute_zipln_components
             cov_or_components = self._components
         else:
-            print("updating with right closed forms")
             latent_prob_b = self._closed_formula_zero_grad_prob_b
             tocompute = elbo_brute_zipln_covariance
             cov_or_components = self._covariance
