@@ -49,11 +49,12 @@ h[["TIME"]] = "Time"
 h[["NBITER"]] = "Number of iterations"
 
 
-if (perf != "stat" || viz != "samples"){
-   colors =  c("skyblue","blue","yellow","orange")
-} else{
+# if (!(perf == "stat" & viz == "samples") & perf != "computation"){
+# # if (perf != "stat" || viz != "samples"){
+#    colors =  c("skyblue","blue","yellow","orange")
+# } else{
     colors = c("skyblue","blue","black","gray","yellow","orange")
-}
+# }
 
 
 g_legend<-function(a.gplot){
@@ -101,11 +102,14 @@ get_df = function(namedoss, perf, viz){
 
     df[,"NBITER"] = as.numeric(df[,"NBITER"])
     df = df[columns]
-    if (perf != "stat" || viz != "samples"){
-        df = df[df["model_name"] != "fair_Pln",]
-        df = df[df["model_name"] != "Fair Pln",]
-        df = df[df["model_name"] != "Pln",]
-    }
+    # if (perf != "stat" || viz != "samples"){
+    # if (!(perf == "stat" & viz == "samples") & perf != "computation"){
+        ### If fair_pln and stuff needed only in the RMSE Y,
+        ### Maybe put to NAN the needed points. Just like pi in samples stat.
+        # df = df[df["model_name"] != "fair_Pln",]
+        # df = df[df["model_name"] != "Fair Pln",]
+        # df = df[df["model_name"] != "Pln",]
+    # }
     return(df)
 }
 
@@ -132,9 +136,10 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         y_plus = list_ylim_plus[[i]]
         if (viz == "poisson" || viz == "proba"){
             first_col = "moyenne"
-        } else{ first_col = "xscale"
-
+        } else{
+            first_col = "xscale"
         }
+
         current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
                                         as.factor(model_name)) ) +
                          geom_point(position = position_jitterdodge(), aes(fill =
@@ -147,8 +152,14 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                          + scale_y_log10() + scale_fill_manual(values = colors, name = "")
         + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
         +guides(fill=guide_legend(nrow=1,byrow=TRUE))) + theme_bw()
-        if (column != "RMSE_B0"){
+        if (column != "RMSE_B0" & column != "RMSE_PI"){
+            # if (column == "RMSE_PI"){
+            #     tmp_y_moins = max(y_moins, 1e-3)
+            #     current_plot = current_plot +  scale_y_log10(limits = c(tmp_y_moins,y_plus))
+            # }
+            # else{
             current_plot = current_plot +  scale_y_log10(limits = c(y_moins,y_plus))
+            # }
         }
         if (column == third_column || column == "RMSE_B0"){
             current_plot = current_plot + ggtitle(inflation)+ theme(plot.title = element_text(hjust = 0.5))
@@ -169,6 +180,8 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         if(column == last_column && inflation != "Non-dependent (3a)"){
             current_plot = current_plot + labs(y=NULL, x = xlab)
         }
+        # print('column')
+        # print(column)
         return(current_plot)
          #+
     }
@@ -189,12 +202,10 @@ get_y_lims = function(name_doss,perf,viz){
     for (i in c(1:(length(criterions)))){
         column = criterions[[i]]
         y <- df[,column]
+        y <- y[!is.na(y)]
+
         current_y_lim_moins[[i]] = min(y)
         current_y_lim_plus[[i]] = max(y)
-        # current_y_lim_moins[[i]] = min(y_lim_moins, current_y_lim_moins[[i]])
-        # y_lim_plus = max(y)
-        # current_y_lim_plus[[i]] = min(y_lim_plus, current_y_lim_plus)
-        # current_y_lim_plus[[i]] = max(y_lim_plus, current_y_lim_plus)
     }
     return(list(current_y_lim_moins, current_y_lim_plus))
 

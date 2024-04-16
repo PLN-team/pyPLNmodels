@@ -21,20 +21,20 @@ import torch
 import math
 from matplotlib.ticker import FormatStrFormatter
 
-n = 1000
-dim = 300
+n = 500
+dim = 150
 nb_points_proba = 8
-nb_points_poisson = 9
+nb_points_poisson = 7
 # viz = "proba"
 viz = "proba"
-_moyennes_XB = np.linspace(0, 4, nb_points_poisson)
+_moyennes_XB = np.linspace(0, 3, nb_points_poisson)
 _moyennes_proba = np.linspace(0.2, 0.9, nb_points_proba)
-nb_max_iteration = 2000
+nb_max_iteration = 1500
 good_fit = True
 # chosen_moyennes = [_moyennes_XB[0], _moyennes_XB[3], _moyennes_XB[6], _moyennes_XB[9], _moyennes_XB[12], _moyennes_XB[14]]
 _mean_infla = 0.30
 _mean_xb = 2
-_nb_bootstrap = 15
+_nb_bootstrap = 30
 nb_cov_inflation = 3
 
 # n = 120
@@ -364,7 +364,7 @@ class one_plot:
                 )
 
             results_model[REC_KEY].append(model_fitted.reconstruction_error)
-            results_model[ELBO_KEY].append(model_fitted.elbo)
+            results_model[ELBO_KEY].append(model_fitted.elbo / model_fitted.n_samples)
             results_model[TIME_KEY].append(
                 model_fitted._criterion_args.running_times[-1]
             )

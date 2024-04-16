@@ -20,15 +20,15 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-# ns = np.linspace(100, 1000, 10)
-ps = np.linspace(100, 800, 8)
-n = 1000
-# p = 250
+ns = np.linspace(100, 400, 7)
+p = 150
+# ps = np.linspace(100, 500, 9)
+# n = 500
 nb_cov = 2
 nb_cov_infla = 2
 good_fit = True  ## good_fit is actually 1000
-viz = "dims"
-nb_bootstrap = 5
+viz = "samples"
+nb_bootstrap = 30
 
 
 # mean_poiss = 2
@@ -107,7 +107,7 @@ else:
 def fit_models(dict_models):
     for key, model in dict_models.items():
         if good_fit is True:
-            model.fit(tol=0, nb_max_iteration=1000)
+            model.fit(tol=0, nb_max_iteration=1500)
         else:
             model.fit(nb_max_iteration=5)
     return dict_models
