@@ -43,7 +43,7 @@ def load_scrna(
     """
     max_samples = 469
     max_dim = 200
-    dim, n_samples = threshold_samples_and_dim(max_samples, max_dim, n_samples, dim)
+    n_samples, dim = threshold_samples_and_dim(max_samples, max_dim, n_samples, dim)
     endog_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
     endog = pd.read_csv(endog_stream).values[:n_samples, :dim]
     print(f"Returning dataset of size {endog.shape}")
