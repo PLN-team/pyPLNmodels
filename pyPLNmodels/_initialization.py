@@ -228,7 +228,12 @@ def _init_coef_coef_inflation(
         return None, coef_infla.to(DEVICE)
     zip = ZIP(endog, exog, exog_inflation, offsets, zero_inflation_formula)
     zip.fit()
-    return zip.coef.detach().to(DEVICE), zip.coef_inflation.detach().to(DEVICE)
+
+    return (
+        zip.coef.detach().to(DEVICE),
+        zip.coef_inflation.detach().to(DEVICE),
+        zip.rec_error,
+    )
 
 
 def log_posterior(
@@ -334,7 +339,7 @@ class ZIP:
         ) + self.n_samples * self.ybarre * torch.log(lam)
         return first_term + second_term
 
-    def fit(self, nb_iter=160):
+    def fit(self, nb_iter=150):
         optim = torch.optim.Rprop([self.coef, self.coef_inflation])
         for i in range(nb_iter):
             mean_poisson = self.mean_poisson
@@ -343,6 +348,8 @@ class ZIP:
             loss.backward()
             optim.step()
             optim.zero_grad()
+        pred = (1 - self.mean_inflation) * self.mean_poisson
+        self.rec_error = torch.sqrt(torch.mean((pred - self.endog) ** 2)).item()
 
 
 class _PoissonReg:
