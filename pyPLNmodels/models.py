@@ -3982,7 +3982,7 @@ class ZIPln(_model):
         )
         self._exog_inflation = exog_inflation
         print("Setting coef_inflation to initialization")
-        _, self._coef_inflation = _init_coef_coef_inflation(
+        _, self._coef_inflation, _ = _init_coef_coef_inflation(
             self.endog,
             self.exog,
             self.exog_inflation,

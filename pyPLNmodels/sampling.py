@@ -582,7 +582,7 @@ def sample_zipln(
 
 def get_pln_simulated_count_data(
     *,
-    n_samples: int = 100,
+    n_samples: int = 50,
     dim: int = 25,
     rank: int = 5,
     nb_cov: int = 1,
@@ -596,7 +596,7 @@ def get_pln_simulated_count_data(
     Parameters
     ----------
     n_samples : int, optional(keyword-only)
-        Number of samples, by default 100.
+        Number of samples, by default 50.
     dim : int, optional(keyword-only)
         Dimension, by default 25.
     rank : int, optional(keyword-only)
