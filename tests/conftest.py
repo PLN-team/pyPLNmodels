@@ -38,7 +38,6 @@ exog_zi_g = data_zi_g["exog"]
 exog_inflation_g = data_zi_g["exog_inflation"]
 offsets_zi_g = data_zi_g["offsets"]
 
-
 endog_zi_c = data_zi_c["endog"]
 exog_zi_c = data_zi_c["exog"]
 exog_inflation_c = data_zi_c["exog_inflation"]
@@ -191,7 +190,9 @@ def simulated_zi_global_formula():
 @pytest.fixture
 def simulated_zi_row_formula():
     zi = ZIPln.from_formula(
-        "endog~0 + exog | 1", data=data_zi_r, zero_inflation_formula="row-wise"
+        "endog~0 + exog | 0 + exog_inflation ",
+        data=data_zi_r,
+        zero_inflation_formula="row-wise",
     )
     return zi
 
