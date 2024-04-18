@@ -225,7 +225,7 @@ def _init_coef_coef_inflation(
             coef_infla = torch.randn(endog.shape[0], exog_inflation.shape[0])
         else:
             coef_infla = torch.randn(exog_inflation.shape[1], endog.shape[1])
-        return None, coef_infla.to(DEVICE)
+        return None, coef_infla.to(DEVICE), None
     zip = ZIP(endog, exog, exog_inflation, offsets, zero_inflation_formula)
     zip.fit()
 

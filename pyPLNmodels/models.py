@@ -3686,6 +3686,9 @@ class ZIPln(_model):
         >>> data = load_scrna(for_formula = True)
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         """
+        ### add_const is inside the formula so it is set to False for the initialisation of
+        ### the class.
+        add_const_inflation = False
         if "|" not in formula:
             msg = "exog_inflation are set to exog (if any). If you need different exog_inflation, "
             msg += "specify it with a | like in the following: endog ~ 1 +x | x + y "
@@ -3696,6 +3699,9 @@ class ZIPln(_model):
             endog, exog, exog_infla, offsets = _extract_data_from_formula_with_infla(
                 formula, data
             )
+            ## Problem if the exog inflation is 1, we can not infer the shape.
+            if exog_infla is None:
+                add_const_inflation = True
         return cls(
             endog,
             exog=exog,
@@ -3706,7 +3712,7 @@ class ZIPln(_model):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
-            add_const_inflation=False,
+            add_const_inflation=add_const_inflation,
             use_closed_form_prob=use_closed_form_prob,
         )
 
@@ -3982,7 +3988,7 @@ class ZIPln(_model):
         )
         self._exog_inflation = exog_inflation
         print("Setting coef_inflation to initialization")
-        _, self._coef_inflation = _init_coef_coef_inflation(
+        _, self._coef_inflation, _ = _init_coef_coef_inflation(
             self.endog,
             self.exog,
             self.exog_inflation,

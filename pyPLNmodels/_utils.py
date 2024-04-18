@@ -5,6 +5,7 @@ import textwrap
 from typing import Optional, Dict, Any, Union, Tuple, List
 
 import numpy as np
+from patsy import PatsyError
 import pandas as pd
 import torch
 import torch.linalg as TLA
@@ -12,7 +13,7 @@ from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 import seaborn as sns
-from patsy import dmatrices
+from patsy import dmatrices, dmatrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from matplotlib.patches import Circle
@@ -527,11 +528,15 @@ def _extract_data_from_formula_with_infla(
     formula_exog = split_formula[0]
     endog, exog, offsets = _extract_data_from_formula_no_infla(formula_exog, data)
     formula_infla = split_formula[1]
-    input = formula_exog.split("~")[0]
-    formula_infla = input + "~" + formula_infla
-    dmatrix_infla = dmatrices(formula_infla, data=data)
-    exog_infla = dmatrix_infla[1]
-    non_zero = exog_infla.sum(axis=0) > 0
+    try:
+        exog_infla = dmatrix(formula_infla, data=data)
+    except PatsyError as err:
+        msg = "Formula of exog infla did not work: {formula_infla}."
+        msg += " Falling back to an intercept. Error from Patsy:"
+        warnings.warn(msg)
+        print(err)
+        return endog, exog, None, offsets
+    non_zero = ((exog_infla) ** 2).sum(axis=0) > 0
     exog_infla = exog_infla[:, non_zero]
     return endog, exog, exog_infla, offsets
 
@@ -1136,7 +1141,7 @@ def _check_full_rank_exog(exog, inflation=False):
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
-        print("shape", exog.shape)
+        print("shape::", exog)
         if inflation is True:
             name_mat = "exog_inflation"
             add_const_name = "add_const_inflation"

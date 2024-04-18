@@ -139,6 +139,10 @@ def _get_simulation_coef_cov_offsets_coefzi(
             )
             if add_const_inflation is True:
                 exog_inflation = torch.cat((exog_inflation, torch.ones(1, dim)), axis=0)
+        else:
+            msg = f"Wrong zero_inflation formula. Got {zero_inflation_formula},"
+            msg += ' expected "column-wise" or "row-wise".'
+            raise ValueError(msg)
     if zero_inflation_formula is not None:
         if zero_inflation_formula in ["column-wise", "row-wise"]:
             if nb_cov_inflation > 0:
@@ -582,7 +586,7 @@ def sample_zipln(
 
 def get_pln_simulated_count_data(
     *,
-    n_samples: int = 100,
+    n_samples: int = 50,
     dim: int = 25,
     rank: int = 5,
     nb_cov: int = 1,
@@ -596,7 +600,7 @@ def get_pln_simulated_count_data(
     Parameters
     ----------
     n_samples : int, optional(keyword-only)
-        Number of samples, by default 100.
+        Number of samples, by default 50.
     dim : int, optional(keyword-only)
         Dimension, by default 25.
     rank : int, optional(keyword-only)
