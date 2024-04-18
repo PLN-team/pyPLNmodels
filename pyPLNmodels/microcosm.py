@@ -50,7 +50,7 @@ def load_microcosm(
     cov_stream = pkg_resources.resource_stream(__name__, "data/microcosm/metadata.tsv")
     covariates = pd.read_csv(cov_stream, delimiter="\t")[cov_list].iloc[:n_samples, :]
 
-    best = (endog > 0).mean(axis=0) > min_perc
+    best = (endog > 0).mean(axis=0) >= min_perc
     endog = endog.loc[:, best]
     data = {"endog": endog}
     for cov_name in cov_list:
