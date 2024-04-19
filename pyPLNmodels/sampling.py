@@ -723,7 +723,7 @@ def get_zipln_simulated_count_data(
 
 def get_simulation_parameters(
     *,
-    n_samples: int = 100,
+    n_samples: int = 50,
     dim: int = 25,
     nb_cov: int = 1,
     nb_cov_inflation: int = 0,

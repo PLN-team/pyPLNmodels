@@ -192,6 +192,8 @@ class _model(ABC):
             del dict_initialization["covariance"]
             del dict_initialization["coef"]
         for key, array in dict_initialization.items():
+            if array is not None:
+                print(array.shape)
             array = _format_data(array)
             setattr(self, key, array)
         self._fitted = True
@@ -1515,7 +1517,7 @@ class Pln(_model):
     Examples
     --------
     >>> from pyPLNmodels import Pln, load_scrna
-    >>> endog, labels = load_scrna(return_labels = True)
+    >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
     >>> pln = Pln(endog,add_const = True)
     >>> pln.fit()
     >>> print(pln)
@@ -1537,8 +1539,8 @@ class Pln(_model):
         _model,
         example="""
             >>> from pyPLNmodels import Pln, load_scrna
-            >>> endog= load_scrna()
-            >>> pln = Pln(endog, add_const = True)
+            >>> data = load_scrna()
+            >>> pln = Pln.from_formula("endog ~ 1", data)
             >>> pln.fit()
             >>> print(pln)
         """,
@@ -1577,7 +1579,7 @@ class Pln(_model):
         _model,
         example="""
             >>> from pyPLNmodels import Pln, load_scrna
-            >>> data = load_scrna(for_formula = True)
+            >>> data = load_scrna()
             >>> pln = Pln.from_formula("endog ~ 1", data = data)
         """,
         returns="""
@@ -1609,8 +1611,8 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
-        >>> endog = load_scrna()
-        >>> pln = Pln(endog,add_const = True)
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula("endog ~ 1",data = data)
         >>> pln.fit()
         >>> print(pln)
         """,
@@ -1637,7 +1639,7 @@ class Pln(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, load_scrna
-            >>> endog, labels = load_scrna(return_labels = True)
+            >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
             >>> pln = Pln(endog,add_const = True)
             >>> pln.fit()
             >>> pln.plot_expected_vs_true()
@@ -1654,12 +1656,12 @@ class Pln(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, load_scrna
-            >>> endog, labels = load_scrna(return_labels = True)
-            >>> pln = Pln(endog,add_const = True)
+            >>> data = load_scrna(return_labels = True)
+            >>> pln = Pln.from_formula("endog ~ 1", data = data)
             >>> pln.fit()
             >>> pln.viz()
             >>> plt.show()
-            >>> pln.viz(colors = labels)
+            >>> pln.viz(colors = data["labels"])
             >>> plt.show()
             >>> pln.viz(show_cov = True)
             >>> plt.show()
@@ -1672,7 +1674,7 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
-        >>> data = load_scrna(for_formula = True)
+        >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pca_proj = pln.pca_projected_latent_variables()
@@ -1686,7 +1688,7 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
-        >>> data = load_scrna(for_formula = True)
+        >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.pca_pairplot(n_components = 5)
@@ -1699,7 +1701,7 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
-        >>> data = load_scrna(for_formula = True)
+        >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
@@ -1718,8 +1720,7 @@ class Pln(_model):
         """,
         example="""
               >>> from pyPLNmodels import Pln, load_scrna
-              >>> endog = load_scrna()
-              >>> data = {"endog": endog}
+              >>> data = load_scrna()
               >>> pln = Pln.from_formula("endog ~ 1", data = data)
               >>> pln.fit()
               >>> transformed_endog = pln.transform()
@@ -1950,8 +1951,8 @@ class Pln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
-        >>> endog, labels = load_scrna(return_labels = True)
-        >>> pln = Pln(endog,add_const = True)
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula(" endog ~ 1", data)
         >>> pln.fit()
         >>> print(pln.latent_variables.shape)
         """,
@@ -1963,12 +1964,12 @@ class Pln(_model):
         _model,
         example="""
             >>> from pyPLNmodels import Pln, load_scrna
-            >>> endog, labels = load_scrna(return_labels = True)
-            >>> pln = Pln(endog,add_const = True)
+            >>> data = load_scrna()
+            >>> pln = Pln.from_formula("endog ~ 1", data)
             >>> pln.fit()
             >>> elbo = pln.compute_elbo()
-            >>> print("elbo", elbo)
-            >>> print("loglike/n", pln.loglike/pln.n_samples)
+            >>> print("elbo: ", elbo)
+            >>> print("loglike/n: ", pln.loglike/pln.n_samples)
             """,
     )
     def compute_elbo(self):
@@ -2021,8 +2022,7 @@ class PlnPCAcollection:
     Examples
     --------
     >>> from pyPLNmodels import PlnPCAcollection, load_scrna, get_simulation_parameters, sample_pln
-    >>> endog, labels = load_scrna(return_labels = True)
-    >>> data = {"endog": endog}
+    >>> data = load_scrna()
     >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,8, 12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
@@ -2150,8 +2150,7 @@ class PlnPCAcollection:
         Examples
         --------
         >>> from pyPLNmodels import PlnPCAcollection, load_scrna
-        >>> endog = load_scrna()
-        >>> data = {"endog": endog}
+        >>> data = load_scrna()
         >>> pca_col = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,6])
         See also
         --------
@@ -2849,7 +2848,7 @@ class PlnPCA(_model):
     Examples
     --------
     >>> from pyPLNmodels import PlnPCA, load_scrna, get_simulation_parameters, sample_pln
-    >>> endog, labels = load_scrna(return_labels = True)
+    >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
     >>> data = {"endog": endog}
     >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
     >>> pca.fit()
@@ -2879,8 +2878,8 @@ class PlnPCA(_model):
             """,
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
-            >>> endog= load_scrna()
-            >>> pca = PlnPCA(endog, add_const = True)
+            >>> data = load_scrna()
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data)
             >>> pca.fit()
             >>> print(pca)
         """,
@@ -2925,8 +2924,7 @@ class PlnPCA(_model):
             """,
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
-            >>> endog = load_scrna()
-            >>> data = {"endog": endog}
+            >>> data = load_scrna()
             >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
         """,
         returns="""
@@ -2961,7 +2959,7 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
-        >>> endog = load_scrna()
+        >>> endog = load_scrna(for_formula = False)
         >>> plnpca = PlnPCA(endog,add_const = True, rank = 6)
         >>> plnpca.fit()
         >>> print(plnpca)
@@ -2989,7 +2987,7 @@ class PlnPCA(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, load_scrna
-            >>> endog, labels = load_scrna(return_labels = True)
+            >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
             >>> plnpca = PlnPCA(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.plot_expected_vs_true()
@@ -3006,7 +3004,7 @@ class PlnPCA(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, load_scrna
-            >>> endog, labels = load_scrna(return_labels = True)
+            >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
             >>> plnpca = PlnPCA(endog,add_const = True)
             >>> plnpca.fit()
             >>> plnpca.viz()
@@ -3024,8 +3022,7 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
-        >>> endog = load_scrna()
-        >>> data = {"endog": endog}
+        >>> data = load_scrna()
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> pca_proj = plnpca.pca_projected_latent_variables()
@@ -3039,8 +3036,7 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
-        >>> endog = load_scrna()
-        >>> data = {"endog": endog}
+        >>> data = load_scrna()
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> plnpca.pca_pairplot(n_components = 5)
@@ -3053,8 +3049,7 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
-        >>> endog = load_scrna()
-        >>> data = {"endog": endog}
+        >>> data = load_scrna()
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> plnpca.plot_pca_correlation_circle(["a","b"], indices_of_variables = [4,8])
@@ -3074,8 +3069,7 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
-        >>> endog = load_scrna()
-        >>> data = {"endog": endog}
+        >>> data = load_scrna()
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> print(plnpca.latent_mean.shape)
@@ -3344,8 +3338,8 @@ class PlnPCA(_model):
         """,
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
-            >>> endog= load_scrna()
-            >>> pca = PlnPCA(endog, add_const = True)
+            >>> data = load_scrna()
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data)
             >>> pca.fit()
             >>> transformed_endog_low_dim = pca.transform()
             >>> transformed_endog_high_dim = pca.transform(project = False)
@@ -3363,8 +3357,8 @@ class PlnPCA(_model):
         _model,
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
-        >>> endog = load_scrna(return_labels=False)
-        >>> pca = PlnPCA(endog,add_const = True)
+        >>> data = load_scrna()
+        >>> pca = PlnPCA.from_formula("endog ~ 1", data)
         >>> pca.fit()
         >>> print(pca.latent_variables.shape)
         """,
@@ -3376,8 +3370,8 @@ class PlnPCA(_model):
         _model,
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
-            >>> endog = load_scrna(return_labels = False)
-            >>> pca = PlnPCA(endog,add_const = True)
+            >>> data = load_scrna()
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data)
             >>> pca.fit()
             >>> elbo = pca.compute_elbo()
             >>> print("elbo", elbo)
@@ -3476,14 +3470,21 @@ class ZIPln(_model):
     Examples
     --------
     >>> from pyPLNmodels import ZIPln, Pln, load_microcosm
-    >>> endog, exog = load_microcosm() # microcosm are higly zero-inflated (96% of zeros)
-    >>> zi = ZIPln(endog, exog = exog, exog_inflation = exog)
+    >>> data = load_microcosm() # microcosm are higly zero-inflated (96% of zeros)
+    >>> zi = ZIPln.from_formula("endog ~ 1 + site", data)
     >>> zi.fit()
-    >>> zi.viz()
+    >>> zi.viz(colors = data["site"])
     >>> # Here Pln is not appropriate:
-    >>> pln = Pln(endog, exog = exog)
+    >>> pln = Pln.from_formula("endog ~ 1 + site")
     >>> pln.fit()
-    >>> pln.viz()
+    >>> pln.viz(colors = data["site"])
+    >>> # Can also give different covariates:
+    >>> zi_diff = ZIPln.from_formula("endog ~ 1 + site | 1 + time", data)
+    >>> zi.fit()
+    >>> zi.viz(colors = data["site"])
+    >>> ## Or take all the covariates
+    >>> zi_all = ZIPln.from_formula("endog ~ 1 + site*time | 1 + site*time", data)
+    >>> zi_all.fit()
 
     >>> from pyPLNmodels import ZIPln, get_simulation_parameters, sample_zipln
     >>> param = get_simulation_parameters(nb_cov_inflation = 1, zero_inflation_formula = "column-wise")
@@ -3567,7 +3568,7 @@ class ZIPln(_model):
         Examples
         --------
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> endog= load_scrna()
+        >>> endog = load_scrna(for_formula = False)
         >>> zi = ZIPln(endog, add_const = True)
         >>> zi.fit()
         >>> print(zi)
@@ -3621,8 +3622,8 @@ class ZIPln(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPln, load_microcosm
-            >>> endog, exog = load_microcosm()
-            >>> zi = ZIPln(endog, exog = exog, add_const = True)
+            >>> data = load_microcosm()
+            >>> zi = ZIPln.from_formula("endog ~ 1 + site", data = data)
             >>> zi.fit()
             >>> zi.viz()
             >>> plt.show()
@@ -3679,11 +3680,11 @@ class ZIPln(_model):
         Examples
         --------
         >>> from pyPLNmodels import ZIPln, load_microcosm
-        >>> data = load_microcosm(for_formula = True)
+        >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
 
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> data = load_scrna(for_formula = True)
+        >>> data = load_scrna()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         """
         ### add_const is inside the formula so it is set to False for the initialisation of
@@ -3720,14 +3721,14 @@ class ZIPln(_model):
         _model,
         example="""
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> endog = load_scrna()
-        >>> zi = ZIPln(endog,add_const = True)
+        >>> data = load_scrna()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data)
         >>> zi.fit()
         >>> print(zi)
 
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> endog = load_scrna()
-        >>> zi = ZIPln(endog,batch_size = 20,add_const = True)
+        >>> data = load_scrna()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data)
         >>> zi.fit( nb_max_iteration = 500, verbose = True)
         >>> print(zi)
         """,
@@ -3754,7 +3755,7 @@ class ZIPln(_model):
         example="""
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPln, load_scrna
-            >>> endog, labels = load_scrna(return_labels = True)
+            >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
             >>> zi = ZIPln(endog,add_const = True)
             >>> zi.fit()
             >>> zi.plot_expected_vs_true()
@@ -3910,8 +3911,8 @@ class ZIPln(_model):
         Examples
         --------
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> endog, labels = load_scrna(return_labels = True)
-        >>> zi = ZIPln(endog,add_const = True)
+        >>> data = load_scrna()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data)
         >>> zi.fit()
         >>> latent_mean, latent_inflated = zi.latent_variables
         >>> print(latent_mean.shape)
@@ -3937,7 +3938,7 @@ class ZIPln(_model):
             1 - self.latent_prob
         ) * self.latent_mean + self.mean_gaussian * self.latent_prob
         if return_latent_prob is True:
-            return latent_gaussian, latent_prob
+            return latent_gaussian, self.latent_prob
         return latent_gaussian
 
     def _endog_predictions(self):
@@ -4144,7 +4145,7 @@ class ZIPln(_model):
             than 0, and if you assign non-zero probabilities
             to non-zero counts.
         >>> from pyPLNmodels import ZIPln, load_scrna
-        >>> endog = load_scrna()
+        >>> endog = load_scrna(for_formula = False)
         >>> zi = ZIPln(endog,add_const = True, use_closed_form_prob = False)
         >>> zi.fit()
         >>> latent_prob = zi.latent_prob
@@ -4207,8 +4208,8 @@ class ZIPln(_model):
         _model,
         example="""
             >>> from pyPLNmodels import ZIPln, load_scrna
-            >>> endog = load_scrna()
-            >>> zi = ZIPln(endog,add_const = True)
+            >>> data = load_scrna()
+            >>> zi = ZIPln.from_formula("endog ~ 1", data)
             >>> zi.fit()
             >>> elbo = zi.compute_elbo()
             >>> print("elbo", elbo)

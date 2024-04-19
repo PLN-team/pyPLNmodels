@@ -560,9 +560,9 @@ def _extract_data_from_formula_no_infla(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
-    dmatrix = dmatrices(formula, data=data)
-    endog = dmatrix[0]
-    exog = dmatrix[1]
+    variables = dmatrices(formula, data=data)
+    endog = variables[0]
+    exog = variables[1]
     non_zero = exog.sum(axis=0) > 0
     exog = exog[:, non_zero]
 
@@ -1015,8 +1015,8 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     # Draw the unit circle, for clarity
     circle = Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
     axs.add_patch(circle)
-    axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0], 3))}")
-    axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1], 3))}")
+    axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0]*100, 3))}%")
+    axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1]*100, 3))}%")
     axs.set_title(f"Correlation circle on the transformed variables{title}")
     # plt.ion()
 

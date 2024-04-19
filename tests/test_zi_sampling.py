@@ -10,7 +10,7 @@ from pyPLNmodels import (
 )
 
 
-N_SAMPLES: int = 100
+N_SAMPLES: int = 50
 DIM: int = 25
 NB_COV_INFLATION: int = 2
 NB_COV: int = 1

@@ -41,11 +41,11 @@ def test_predict_and_properties_latent_variables(model):
 def test_predictprob(model):
     if model._zero_inflation_formula != "global":
         if model._zero_inflation_formula == "column-wise":
-            X = torch.randn((10, model.nb_cov_infla))
+            X = torch.randn((10, model.nb_cov_inflation))
             prediction = model.predict_prob_inflation(exog_infla=X)
             expected = torch.sigmoid(X @ model.coef_inflation)
         else:
-            X = torch.randn((model.nb_cov_infla, model.dim))
+            X = torch.randn((model.nb_cov_inflation, model.dim))
             prediction = model.predict_prob_inflation(exog_infla=X)
             expected = torch.sigmoid(model.coef_inflation @ X)
         assert torch.all(torch.eq(expected, prediction))
@@ -58,8 +58,8 @@ def test_predictprob(model):
 @filter_models(["ZIPln"])
 def test_fail_predict_prob(model):
     if model._zero_inflation_formula != "global":
-        X1 = torch.randn((model.n_samples, model.nb_cov_infla + 1))
-        X2 = torch.randn((model.n_samples, model.nb_cov_infla - 1))
+        X1 = torch.randn((model.n_samples, model.nb_cov_inflation + 1))
+        X2 = torch.randn((model.n_samples, model.nb_cov_inflation - 1))
         with pytest.raises(RuntimeError):
             model.predict_prob_inflation(X1)
         with pytest.raises(RuntimeError):

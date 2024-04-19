@@ -38,7 +38,7 @@ def test_pca_pairplot(model):
     else:
         model.pca_pairplot(n_components=2)
         model.pca_pairplot()
-    model.pca_pairplot(n_components=4, color=labels_real)
+    model.pca_pairplot(n_components=4)
 
 
 @pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_model"])

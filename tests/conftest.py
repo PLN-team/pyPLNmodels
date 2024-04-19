@@ -417,7 +417,7 @@ def simulated_loaded_zi_row_formula(simulated_fitted_zi_row_formula):
     simulated_fitted_zi_row_formula.save()
     return generate_new_model(
         simulated_fitted_zi_row_formula,
-        "endog ~ 0 + exog | 1",
+        "endog ~ 0 + exog | 0 + exog_inflation",
         data_zi_r,
         zero_inflation_formula="row-wise",
     )

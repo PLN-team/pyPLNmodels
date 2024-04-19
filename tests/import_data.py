@@ -41,7 +41,10 @@ data_sim_2cov = {
     "exog": exog_sim_2cov,
     "offsets": offsets_sim_2cov,
 }
-endog_real, labels_real = load_scrna(return_labels=True, n_samples=100, dim=50)
+endog_real, labels_real = load_scrna(
+    return_labels=True, n_samples=100, dim=50, for_formula=False
+)
+
 data_real = {"endog": endog_real}
 
 

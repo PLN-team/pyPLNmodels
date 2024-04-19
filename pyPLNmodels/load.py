@@ -20,28 +20,28 @@ def load_model(path_of_directory: str) -> Dict[str, Any]:
     Examples
     --------
     >>> from pyPLNmodels import PlnPCA, Pln, load_scrna, load_model
-    >>> endog= load_scrna()
-    >>> pca = PlnPCA(endog, add_const = True)
+    >>> data = load_scrna()
+    >>> pca = PlnPCA.from_formula("endog ~ 1", data)
     >>> pca.fit()
     >>> pca.save()
-    >>> dict_init = load_model("PlnPCA_nbcov_1_dim_197_rank_5")
-    >>> loaded_pca = PlnPCA(endog, add_const = True, dict_initialization = dict_init)
+    >>> dict_init = load_model("PlnPCA_nbcov_1_dim_200_rank_5")
+    >>> loaded_pca = PlnPCA.from_formula("endog ~ 1",data, dict_initialization = dict_init)
     >>> print(loaded_pca)
 
-    >>> pln = Pln(endog, add_const = True)
+    >>> pln = Pln(data["endog"], add_const = True)
     >>> pln.fit()
     >>> pln.save()
-    >>> dict_init = load_model("Pln_nbcov_1_dim_197")
-    >>> loaded_pln = Pln(endog, add_const = True, dict_initialization = dict_init)
+    >>> dict_init = load_model("Pln_nbcov_1_dim_200")
+    >>> loaded_pln = Pln(data["endog"], add_const = True, dict_initialization = dict_init)
     >>> print(loaded_pln)
 
     >>> from pyPLNmodels import ZIPln, load_microcosm, load_model
-    >>> endog, exog = load_microcosm()
-    >>> zi = ZIPln(endog,exog = exog, add_const = True)
+    >>> data = load_microcosm()
+    >>> zi = ZIPln.from_formula("endog ~ 1 + time*site | 1 + time", data)
     >>> zi.fit()
     >>> zi.save("zi_model")
     >>> dict_init = load_model("zi_model")
-    >>> loaded_zi = ZIPln(endog,exog = exog, add_const = True, dict_initialization = dict_init)
+    >>> loaded_zi = ZIPln.from_formula("endog ~ 1 + time*site | 1 + time", data, dict_initialization = dict_init)
     >>> print(loaded_zi)
     See also
     --------
@@ -109,12 +109,12 @@ def load_plnpcacollection(
     Examples
     --------
     >>> from pyPLNmodels import PlnPCAcollection, load_scrna, load_plnpcacollection
-    >>> endog = load_scrna()
-    >>> pcas = PlnPCAcollection(endog, add_const = True, ranks = [4,5,6])
+    >>> data = load_scrna()
+    >>> pcas = PlnPCAcollection.from_formula("endog ~ 1", data, ranks = [4,5,6])
     >>> pcas.fit()
     >>> pcas.save()
-    >>> dict_init = load_plnpcacollection("PlnPCAcollection_nbcov_1_dim_197")
-    >>> loaded_pcas = PlnPCAcollection(endog, add_const = True, ranks = [4,5,6], dict_of_dict_initialization = dict_init)
+    >>> dict_init = load_plnpcacollection("PlnPCAcollection_nbcov_1_dim_200")
+    >>> loaded_pcas = PlnPCAcollection.from_formula("endog ~ 1", data, ranks = [4,5,6], dict_of_dict_initialization = dict_init)
     >>> print(loaded_pcas)
 
     See also

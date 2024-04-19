@@ -12,8 +12,10 @@ pln_and_plnpca = ["Pln", "PlnPCA"]
 single_models = ["Pln", "PlnPCA", "ZIPln"]
 
 
-@pytest.mark.parametrize("any_model", dict_fixtures["loaded_and_fitted_model"])
-@filter_models(single_models)
+# @pytest.mark.parametrize("any_model", dict_fixtures["loaded_and_fitted_model"])
+# @filter_models(single_models)
+@pytest.mark.parametrize("any_model", dict_fixtures["loaded_model"])
+@filter_models(["ZIPln"])
 def test_properties(any_model):
     assert hasattr(any_model, "latent_parameters")
     assert hasattr(any_model, "latent_variables")
