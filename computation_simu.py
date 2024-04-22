@@ -20,14 +20,14 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-# ns = np.linspace(100, 400, 7)
-# p = 150
-ps = np.linspace(100, 500, 9)
-n = 500
+ns = np.linspace(100, 400, 7)
+p = 150
+# ps = np.linspace(100, 500, 9)
+# n = 500
 nb_cov = 2
 nb_cov_infla = 2
 good_fit = True  ## good_fit is actually 1000
-viz = "dims"
+viz = "samples"
 nb_bootstrap = 30
 
 
@@ -35,7 +35,7 @@ nb_bootstrap = 30
 # mean_infla = 0.3
 # # ns = np.linspace(100, 300, 2)
 # ps = np.linspace(100, 300, 2)
-# n = 175
+# n = 201
 # # p = 175
 # nb_cov = 2
 # nb_cov_infla = 2
@@ -282,6 +282,7 @@ class one_plot:
                             values[crit_key] = [value]
                     new_line = pd.DataFrame(values)
                     data = pd.concat((data, new_line))
+        print("data:", data[data["model_name"] == ZIPREG])
         return data
 
     def stock_results(self, dict_models, xscale, Sigma, B, B0):
@@ -296,7 +297,7 @@ class one_plot:
             omega = torch.inverse(Sigma)
             beta = B[:, cols]
             results_model = self.model_criterions[key_model][xscale]
-            if key_model != FAIRPLN or key_model != ZIPREG:
+            if key_model != FAIRPLN and key_model != ZIPREG:
                 if model_fitted._NAME != "Pln":
                     if model_fitted._zero_inflation_formula == "row-wise":
                         beta_0 = B0[lines, :]

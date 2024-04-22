@@ -13,16 +13,16 @@ options(error=traceback)
 viz = "dims"
 perf = "computation"
 
-pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), width = 20)
+pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
 
 get_name_computation <- function(viz,formula){
     if (viz == "dims"){
         # return(paste(viz,formula,"not_n_or_p_1000.csv", sep = "_"))
-        return(paste(viz,formula,"not_n_or_p_175.csv", sep = "_"))
+        return(paste(viz,formula,"not_n_or_p_500.csv", sep = "_"))
     }
     else{
         # return(paste(viz,formula,"not_n_or_p_250.csv", sep = "_"))
-        return(paste(viz,formula,"not_n_or_p_175.csv", sep = "_"))
+        return(paste(viz,formula,"not_n_or_p_150.csv", sep = "_"))
     }
 }
 
@@ -55,7 +55,7 @@ h[["NBITER"]] = "Number of iterations"
 # # if (perf != "stat" || viz != "samples"){
 #    colors =  c("skyblue","blue","yellow","orange")
 # } else{
-    colors = c("skyblue","blue","black","gray","yellow","orange","green")
+    # colors = c("skyblue","blue","black","gray","yellow","orange","green")
 # }
 
 
@@ -143,17 +143,21 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         }
 
         current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
-                                        as.factor(model_name)) ) +
-                         geom_point(position = position_jitterdodge(), aes(fill =
+                                        as.factor(model_name)) )
+                         + geom_point(position = position_jitterdodge(), aes(color =
                                                                      model_name,group
                                                                  = model_name,
-                                                                 color =
-                                                                     model_name),
-                                    size = 0.8, alpha = 0.6)+
-                         geom_boxplot(lwd = 0.03, outlier.shape = NA)
-                         + scale_y_log10() + scale_fill_manual(values = colors, name = "")
-        + scale_color_manual(values = colors,name ="") + scale_x_discrete(labels=scaleFUN)
-        +guides(fill=guide_legend(nrow=1,byrow=TRUE))) + theme_bw()
+                                                                 ),
+                                    size = 0.8, alpha = 0.6)
+                         + geom_boxplot(lwd = 0.03, outlier.shape = NA)
+                         + scale_y_log10()
+                         + scale_fill_viridis_d(name = "")
+                         # + scale_fill_viridis(name = "")
+                         + scale_colour_viridis_d(name = "")
+                        # + scale_color_manual(values = colors,name ="")
+                        + scale_x_discrete(labels=scaleFUN)
+        +guides(fill=guide_legend(nrow=2,byrow=TRUE)) ) + theme_bw()+
+         theme(legend.key.size = unit(1.5,"cm"),legend.text = element_text(size=25) )
         if (column != "RMSE_B0" & column != "RMSE_PI"){
             # if (column == "RMSE_PI"){
             #     tmp_y_moins = max(y_moins, 1e-3)
