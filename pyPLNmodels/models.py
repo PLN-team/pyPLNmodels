@@ -119,7 +119,7 @@ class _model(ABC):
             self._exog,
             self._offsets,
             self.column_endog,
-            _,
+            self.samples_only_zeros,
             _,
             self._batch_size,
         ) = _handle_data(
@@ -3584,7 +3584,7 @@ class ZIPln(_model):
             self.column_endog,
             self._dirac,
             self._batch_size,
-            self._samples_only_zeros,
+            self.samples_only_zeros,
         ) = _handle_data_with_inflation(
             endog,
             exog,
