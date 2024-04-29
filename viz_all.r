@@ -10,8 +10,8 @@ library(glue)
 options(error=traceback)
 # traceback()
 
-viz = "dims"
-perf = "computation"
+viz = "poisson"
+perf = "stat"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
 
@@ -75,7 +75,7 @@ get_df = function(namedoss, perf, viz){
         else{
             columns = c(columns,"moyenne")
         }
-        columns = c(columns,"RMSE_OMEGA","RMSE_PI","RMSE_B")
+        columns = c(columns,"RMSE_SIGMA","RMSE_PI","RMSE_B")
         # columns = c(columns, "RMSE_SIGMA","RMSE_PI", "RMSE_B")
     }
     if (perf == "computation"){
@@ -85,7 +85,7 @@ get_df = function(namedoss, perf, viz){
         else{
             columns = c(columns,"xscale")
         }
-        columns = c(columns,"ELBO","TIME","Reconstruction_error")
+        columns = c(columns,"TIME","Reconstruction_error")
     }
     if (perf == "annexe"){
         columns = c(columns,"moyenne","RMSE_OMEGA","RMSE_PI","RMSE_B","RMSE_B0")
@@ -94,16 +94,28 @@ get_df = function(namedoss, perf, viz){
     for (column in colnames(df)){
         df[df == 666] = NA
         }
+    df[df$model_name == "Pln",]$model_name <- "PLN"
+    if (viz == "samples" || viz == "dim"){
+        df[df$model_name == "fair_Pln",]$model_name <- "Oracle PLN"
+    }
+    else{
+        df[df$model_name == "Fair Pln",]$model_name <- "Oracle PLN"
+    }
+    # }
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){
         df[,"moyenne"] = as.factor(df[,"moyenne"])
     }
     else{
+        if (viz == "dims"){
+            df <- df[df[,"xscale"]%%100 == 0,]
+        }
         df[,"xscale"] = as.factor(df[,"xscale"])
     }
 
     df[,"NBITER"] = as.numeric(df[,"NBITER"])
     df = df[columns]
+    df = df[df$model_name != "ZIP",]
     # if (perf != "stat" || viz != "samples"){
     # if (!(perf == "stat" & viz == "samples") & perf != "computation"){
         ### If fair_pln and stuff needed only in the RMSE Y,
@@ -141,14 +153,13 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         } else{
             first_col = "xscale"
         }
-
         current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
                                         as.factor(model_name)) )
                          + geom_point(position = position_jitterdodge(), aes(color =
                                                                      model_name,group
                                                                  = model_name,
                                                                  ),
-                                    size = 0.8, alpha = 0.6)
+                                    size = 0.05, alpha = 0.2)
                          + geom_boxplot(lwd = 0.03, outlier.shape = NA)
                          + scale_y_log10()
                          + scale_fill_viridis_d(name = "")
@@ -156,8 +167,8 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                          + scale_colour_viridis_d(name = "")
                         # + scale_color_manual(values = colors,name ="")
                         + scale_x_discrete(labels=scaleFUN)
-        +guides(fill=guide_legend(nrow=2,byrow=TRUE)) ) + theme_bw()+
-         theme(legend.key.size = unit(1.5,"cm"),legend.text = element_text(size=25) )
+        +guides(fill=guide_legend(nrow=1,byrow=TRUE)) ) + theme_bw()+
+         theme(legend.key.size = unit(0.5,"cm"),legend.text = element_text(size=16) )
         if (column != "RMSE_B0" & column != "RMSE_PI"){
             # if (column == "RMSE_PI"){
             #     tmp_y_moins = max(y_moins, 1e-3)
@@ -186,8 +197,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         if(column == last_column && inflation != "Non-dependent (3a)"){
             current_plot = current_plot + labs(y=NULL, x = xlab)
         }
-        # print('column')
-        # print(column)
         return(current_plot)
          #+
     }
