@@ -381,9 +381,6 @@ def _elbo_zi_pln(
         torch.sum(first_line + second_line + third_line + fourth_line)
         + n_samples * dim / 2
     )
-    return torch.sum(
-        log_YgivenZW + log_pW + entropy_p + norm_term + log_S_term + norm_term
-    )
 
 
 def elbo_brute_zipln_components(
