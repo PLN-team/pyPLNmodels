@@ -5,25 +5,29 @@ import textwrap
 from typing import Optional, Dict, Any, Union, Tuple, List
 
 import numpy as np
+from patsy import PatsyError
 import pandas as pd
 import torch
 import torch.linalg as TLA
 from matplotlib import transforms
 from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
-from patsy import dmatrices
+import seaborn as sns
+from patsy import dmatrices, dmatrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from matplotlib.patches import Circle
 
+from pyPLNmodels.lambert import lambertw
+
 
 torch.set_default_dtype(torch.float64)
 
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-else:
-    DEVICE = torch.device("cpu")
 
+if torch.cuda.is_available():
+    DEVICE = "cuda:0"
+else:
+    DEVICE = "cpu"
 
 BETA = 0.03
 
@@ -45,6 +49,7 @@ class _CriterionArgs:
         self.normalized_elbo_list = []
         self.criterion_list = [1]
         self.criterion = 1
+        # self.previous_elbo = 1
 
     def update_criterion(self, elbo, running_time):
         self._elbos_list.append(elbo)
@@ -65,6 +70,9 @@ class _CriterionArgs:
                 / (self.running_times[-2] - self.running_times[-1])
             )
             self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
+            # self.criterion = np.abs((elbo - self.previous_elbo)/elbo)
+            # self.previous_elbo = elbo
+
             self.criterion_list.append(self.criterion)
 
     @property
@@ -143,6 +151,13 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
         Approximation of log(n!) element-wise.
     """
     integer_ = integer + (integer == 0)  # Replace 0 with 1 since 0! = 1!
+    return (
+        integer_ * torch.log(integer_)
+        - integer_
+        + torch.log(8 * integer_**3 + 4 * integer_**2 + integer_ + 1 / 30) / 6
+        + math.log(math.pi) / 2
+    )
+
     return torch.log(torch.sqrt(2 * np.pi * integer_)) + integer_ * torch.log(
         integer_ / math.exp(1)
     )
@@ -150,8 +165,8 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
 
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
     integer = torch.min(
-        torch.max(tens, torch.tensor([eps]).to(DEVICE)),
-        torch.tensor([1 - eps]).to(DEVICE),
+        torch.max(tens, torch.tensor([eps], device=DEVICE)),
+        torch.tensor([1 - eps], device=DEVICE),
     )
     return torch.log(integer)
 
@@ -237,11 +252,11 @@ def _format_data(
     if data is None:
         return None
     if isinstance(data, pd.DataFrame):
-        return torch.from_numpy(data.values).double().to(DEVICE)
+        return torch.from_numpy(data.values).double()
     if isinstance(data, np.ndarray):
-        return torch.from_numpy(data).double().to(DEVICE)
+        return torch.from_numpy(data).double()
     if isinstance(data, torch.Tensor):
-        return data.to(DEVICE)
+        return data
     raise AttributeError(
         "Please insert either a numpy.ndarray, pandas.DataFrame or torch.Tensor"
     )
@@ -286,34 +301,24 @@ def _format_model_param(
     endog = _format_data(endog)
     if torch.min(endog) < 0:
         raise ValueError("Counts should be only non negative values.")
-    if torch.min(torch.sum(endog, axis=1)) < 0.5:
-        raise ValueError(
-            "Counts contains individuals containing only zero counts. Remove it."
-        )
     exog = _format_data(exog)
     if add_const is True:
-        if exog is None:
-            exog = torch.ones(endog.shape[0], 1).to(DEVICE)
-        else:
-            if _has_null_variance(exog) is False:
-                exog = torch.concat(
-                    (exog, torch.ones(endog.shape[0]).unsqueeze(1)), dim=1
-                ).to(DEVICE)
+        exog = _add_const_to_exog(exog, axis=0, length=endog.shape[0])
+    if exog is not None:
+        _check_full_rank_exog(exog)
     if offsets is None:
         if offsets_formula == "logsum":
             print("Setting the offsets as the log of the sum of endog")
-            offsets = (
-                torch.log(_get_offsets_from_sum_of_endog(endog)).double().to(DEVICE)
-            )
+            offsets = torch.log(_get_offsets_from_sum_of_endog(endog)).double()
         elif offsets_formula == "zero":
             print("Setting the offsets to zero")
-            offsets = torch.zeros(endog.shape, device=DEVICE)
+            offsets = torch.zeros(endog.shape)
         else:
             raise ValueError(
                 'Wrong offsets_formula. Expected either "zero" or "logsum", got {offsets_formula}'
             )
     else:
-        offsets = _format_data(offsets).to(DEVICE)
+        offsets = _format_data(offsets)
         if take_log_offsets is True:
             offsets = torch.log(offsets)
     return endog, exog, offsets
@@ -500,7 +505,43 @@ def _check_right_rank(data: Dict[str, Any], rank: int) -> None:
         )
 
 
-def _extract_data_from_formula(
+def _extract_data_from_formula_with_infla(
+    formula: str, data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]]
+) -> Tuple:
+    """
+    Extract data from the given formula and data dictionary. Also Deal with
+    inflation also.
+
+    Parameters
+    ----------
+    formula : str
+        The formula specifying the data to extract.
+    data : Dict[str, Any]
+        A dictionary containing the data.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing the extracted endog, exog, exog_infla and offsets.
+    """
+    split_formula = formula.split("|")
+    formula_exog = split_formula[0]
+    endog, exog, offsets = _extract_data_from_formula_no_infla(formula_exog, data)
+    formula_infla = split_formula[1]
+    try:
+        exog_infla = dmatrix(formula_infla, data=data)
+    except PatsyError as err:
+        msg = "Formula of exog infla did not work: {formula_infla}."
+        msg += " Falling back to an intercept. Error from Patsy:"
+        warnings.warn(msg)
+        print(err)
+        return endog, exog, None, offsets
+    non_zero = ((exog_infla) ** 2).sum(axis=0) > 0
+    exog_infla = exog_infla[:, non_zero]
+    return endog, exog, exog_infla, offsets
+
+
+def _extract_data_from_formula_no_infla(
     formula: str, data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame]]
 ) -> Tuple:
     """
@@ -519,16 +560,19 @@ def _extract_data_from_formula(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
-    # dmatrices can not deal with GPU matrices
-    for key, matrix in data.items():
-        if isinstance(matrix, torch.Tensor):
-            data[key] = matrix.cpu()
-    dmatrix = dmatrices(formula, data=data)
-    endog = dmatrix[0]
-    exog = dmatrix[1]
+    variables = dmatrices(formula, data=data)
+    endog = variables[0]
+    exog = variables[1]
+    non_zero = exog.sum(axis=0) > 0
+    exog = exog[:, non_zero]
+
     if exog.size == 0:
         exog = None
-    offsets = data.get("offsets", None)
+    if "offsets" in data.keys():
+        offsets = data["offsets"]
+        print("Taking the offsets from the data given.")
+    else:
+        offsets = None
     return endog, exog, offsets
 
 
@@ -598,11 +642,11 @@ def _to_tensor(
     if obj is None:
         return None
     if isinstance(obj, np.ndarray):
-        return torch.from_numpy(obj).to(DEVICE)
+        return torch.from_numpy(obj)
     if isinstance(obj, torch.Tensor):
-        return obj.to(DEVICE)
+        return obj
     if isinstance(obj, pd.DataFrame):
-        return torch.from_numpy(obj.values).to(DEVICE)
+        return torch.from_numpy(obj.values)
     raise TypeError(
         "Please give either an np.ndarray or torch.Tensor or pd.DataFrame or None"
     )
@@ -616,6 +660,107 @@ def _array2tensor(func):
     return setter
 
 
+def _handle_data_with_inflation(
+    endog,
+    exog,
+    exog_inflation,
+    offsets,
+    offsets_formula,
+    zero_inflation_formula,
+    take_log_offsets,
+    add_const,
+    add_const_inflation,
+    batch_size,
+):
+    (
+        endog,
+        exog,
+        offsets,
+        column_endog,
+        samples_only_zeros,
+        dim_only_zeros,
+        batch_size,
+    ) = _handle_data(
+        endog, exog, offsets, offsets_formula, take_log_offsets, add_const, batch_size
+    )
+    ## changing dimension if row-wise and a vector of ones
+    exog_inflation = _format_data(exog_inflation)
+    exog_inflation, add_const_inflation = _get_coherent_inflation_inits(
+        zero_inflation_formula, exog_inflation, add_const_inflation
+    )
+    if exog_inflation is not None:
+        if zero_inflation_formula == "column-wise":
+            _check_full_rank_exog(exog_inflation, inflation=True)
+        elif zero_inflation_formula == "row-wise":
+            _check_full_rank_exog(exog_inflation.T, inflation=True)
+
+    if zero_inflation_formula == "row-wise" and exog_inflation is not None:
+        if torch.count_nonzero(exog_inflation - 1) == 0:
+            exog_inflation = torch.ones(1, endog.shape[1])
+    if exog_inflation is not None:
+        if zero_inflation_formula == "column-wise":
+            exog_inflation = exog_inflation[~samples_only_zeros, :]
+        elif zero_inflation_formula == "row-wise":
+            exog_inflation = exog_inflation[:, ~dim_only_zeros]
+
+    if zero_inflation_formula != "global" and exog_inflation is not None:
+        _check_shape_exog_infla(
+            exog_inflation, zero_inflation_formula, endog.shape[0], endog.shape[1]
+        )
+    if zero_inflation_formula == "global":
+        exog_inflation = None
+    else:
+        if add_const_inflation is True:
+            if zero_inflation_formula == "column-wise":
+                exog_inflation = _add_const_to_exog(exog_inflation, 0, endog.shape[0])
+            else:
+                exog_inflation = _add_const_to_exog(exog_inflation, 1, endog.shape[1])
+
+    dirac = endog == 0
+    onlyonebatch = batch_size == (endog.shape[0])
+    if onlyonebatch is True:
+        if exog_inflation is not None:
+            exog_inflation = exog_inflation.to(DEVICE)
+        dirac = dirac.to(DEVICE)
+    return (
+        endog,
+        exog,
+        exog_inflation,
+        offsets,
+        column_endog,
+        dirac,
+        batch_size,
+        samples_only_zeros,
+    )
+
+
+def _remove_samples(endog, exog, offsets, samples_only_zeros):
+    endog = endog[~samples_only_zeros, :]
+    if exog is not None:
+        exog = exog[~samples_only_zeros]
+    offsets = offsets[~samples_only_zeros]
+    return endog, exog, offsets
+
+
+def _remove_dims(endog, exog, offsets, dims_only_zeros):
+    endog = endog[:, ~dims_only_zeros]
+    offsets = offsets[:, ~dims_only_zeros]
+    return endog, exog, offsets
+
+
+def _handle_batch_size(batch_size, n_samples):
+    if batch_size is None:
+        batch_size = n_samples
+
+    if batch_size > n_samples:
+        raise ValueError(
+            f"batch_size ({batch_size}) can not be greater than the number of samples ({n_samples})"
+        )
+    elif isinstance(batch_size, int) is False:
+        raise ValueError(f"batch_size should be int, got {type(batch_size)}")
+    return batch_size
+
+
 def _handle_data(
     endog,
     exog,
@@ -623,6 +768,7 @@ def _handle_data(
     offsets_formula: str,
     take_log_offsets: bool,
     add_const: bool,
+    batch_size: bool,
 ) -> tuple:
     """
     Handle the input data for the model.
@@ -635,6 +781,7 @@ def _handle_data(
         offsets_formula : The formula used for offsets.
         take_log_offsets : Indicates whether to take the logarithm of the offsets.
         add_const : Indicates whether to add a constant column to the exog.
+        batch_size: int. Raises an error if greater than endog.shape[0]
 
     Returns
     -------
@@ -642,18 +789,49 @@ def _handle_data(
 
     Raises
     ------
-        ValueError: If the shapes of endog, exog, and offsets do not match.
+        ValueError: If the shapes of endog, exog, and offsets do not match, or the batch_size is
+        greater than endog.shape[0]
     """
     if isinstance(endog, pd.DataFrame):
         column_endog = endog.columns
     else:
         column_endog = None
-
     endog, exog, offsets = _format_model_param(
         endog, exog, offsets, offsets_formula, take_log_offsets, add_const
     )
     _check_data_shape(endog, exog, offsets)
-    return endog, exog, offsets, column_endog
+    samples_only_zeros = torch.sum(endog, axis=1) == 0
+    if torch.sum(samples_only_zeros) > 0.5:
+        samples = torch.arange(endog.shape[0])[samples_only_zeros]
+        msg = "The following (index) counts contains only zeros and are removed."
+        msg += str(samples.numpy())
+        warnings.warn(msg)
+        endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
+        print(f"Now dataset of size {endog.shape}")
+    dim_only_zeros = torch.sum(endog, axis=0) == 0
+    if torch.sum(dim_only_zeros) > 0.5:
+        dims = torch.arange(endog.shape[1])[dim_only_zeros]
+        msg = "The following (index) variables contains only zeros and are removed."
+        msg += str(dims.numpy())
+        warnings.warn(msg)
+        endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
+        print(f"Now dataset of size {endog.shape}")
+    n_samples = endog.shape[0]
+    batch_size = _handle_batch_size(batch_size, n_samples)
+    if batch_size == n_samples:
+        endog = endog.to(DEVICE)
+        if exog is not None:
+            exog = exog.to(DEVICE)
+        offsets = offsets.to(DEVICE)
+    return (
+        endog,
+        exog,
+        offsets,
+        column_endog,
+        samples_only_zeros,
+        dim_only_zeros,
+        batch_size,
+    )
 
 
 def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
@@ -702,7 +880,8 @@ def d_varpsi_x1(mu, sigma2):
 
 def phi(mu, sigma2):
     y = sigma2 * torch.exp(mu)
-    lamby = lambert(y)
+    lamby = lambertw(y)
+    # lamby = lambert(y)
     log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
 
@@ -741,7 +920,6 @@ def mat_to_vec(matc, p, q):
 
 def _log1pexp(t):
     mask = t > 10
-    mask += t < -10
     return torch.where(
         mask,
         t,
@@ -829,21 +1007,187 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     explained_ratio = pca.explained_variance_ratio_
 
     ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
-    print("TEST")
-    print(sorted(plt.style.available))
 
-    with plt.style.context(("seaborn-v0_8-whitegrid")):
-        fig, axs = plt.subplots(figsize=(6, 6))
-        plot_correlation_arrows(axs, ccircle, variables_names)
+    plt.style.use("seaborn-whitegrid")
+    fig, axs = plt.subplots(figsize=(6, 6))
+    plot_correlation_arrows(axs, ccircle, variables_names)
 
-        # Draw the unit circle, for clarity
-        circle = Circle(
-            (0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5
-        )
-        axs.add_patch(circle)
-        axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0], 3))}")
-        axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1], 3))}")
-        axs.set_title(f"Correlation circle on the transformed variables{title}")
+    # Draw the unit circle, for clarity
+    circle = Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
+    axs.add_patch(circle)
+    axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0]*100, 3))}%")
+    axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1]*100, 3))}%")
+    axs.set_title(f"Correlation circle on the transformed variables{title}")
+    # plt.ion()
 
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
+
+
+def _check_formula(zero_inflation_formula):
+    list_available = ["column-wise", "row-wise", "global"]
+    if zero_inflation_formula not in list_available:
+        msg = f"Wrong inflation formula, got {zero_inflation_formula}, expected one of {list_available}"
+        raise ValueError(msg)
+
+
+def _add_const_to_exog(exog, axis, length):
+    if axis == 0:
+        dim_concat = 1
+        ones = torch.ones(length, 1)
+        has_null_var = _has_null_variance(exog) if exog is not None else None
+    elif axis == 1:
+        dim_concat = 0
+        ones = torch.ones(1, length)
+        has_null_var = _has_null_variance(exog.T) if exog is not None else None
+    if has_null_var is False:
+        exog = torch.concat((exog, ones), dim=dim_concat)
+    elif has_null_var is None:
+        exog = ones
+    return exog
+
+
+def _get_coherent_inflation_inits(
+    inflation_formula, exog_inflation, add_const_inflation
+):
+    if inflation_formula in {"column-wise", "row-wise"}:
+        if exog_inflation is None and add_const_inflation is False:
+            msg = "No exog_inflation has been given and the "
+            msg += f"zero_inflation_formula is set to {inflation_formula}. "
+            msg += "add_const_inflation is set to True since a ZIPln"
+            msg += "must have at least an intercept for the exog_inflation."
+            warnings.warn(msg)
+            add_const_inflation = True
+    else:
+        if exog_inflation is not None:
+            msg = "exog_inflation useless as zero_inflation_formula is"
+            msg += " global. exog_inflation set to None"
+            warnings.warn(msg)
+            exog_inflation = None
+        if add_const_inflation is True:
+            msg = "add_const_inflation=True useless as zero_inflation_formula is"
+            msg += " global. Set to False."
+            warnings.warn(msg)
+            add_const_inflation = False
+    return exog_inflation, add_const_inflation
+
+
+def _check_shape_exog_infla(exog_inflation, inflation_formula, n_samples, dim):
+    if inflation_formula == "column-wise":
+        if exog_inflation.shape[0] != n_samples:
+            msg = "Your formula inflation is {inflation_formula}."
+            msg = f"exog_inflation should have shape [{n_samples},_], got"
+            msg += f" {list(exog_inflation.shape)} shape for exog_inflation."
+            raise ValueError(msg)
+    else:
+        if exog_inflation.shape[1] != dim:
+            msg = "Your formula inflation is {inflation_formula}."
+            msg = f"exog_inflation should have shape [_,{dim}], got"
+            msg += f" {list(exog_inflation.shape)} shape for exog_inflation."
+            raise ValueError(msg)
+
+
+def _pca_pairplot(array, n_components, dim, colors):
+    """
+    Generates a scatter matrix plot based on Principal Component Analysis (PCA) on
+    the given array.
+
+    Parameters
+    ----------
+    array: (np.ndarray): The array on which we will perform pca and then visualize.
+
+    n_components (int, optional): The number of components to consider for plotting.
+        If not specified, the maximum number of components will be used. Note that
+        it will not display more than 10 graphs.
+        Defaults to None.
+
+    colors (np.ndarray): An array with one label for each
+        sample in the endog property of the object.
+        Defaults to None.
+    Raises
+    ------
+    ValueError: If the number of components requested is greater than the number of variables in the dataset.
+    """
+
+    if n_components > dim:
+        raise ValueError(
+            f"You ask more components ({n_components}) than variables ({dim})"
+        )
+    if n_components > 10:
+        msg = f"Can not display a scatter matrix with {n_components}*"
+        msg += f"{n_components} = {n_components*n_components} graphs."
+        msg += f" Setting the number of components to 10."
+        warnings.warn(msg)
+        n_components = 10
+    pca = PCA(n_components=n_components)
+    proj_variables = pca.fit_transform(array)
+    components = torch.from_numpy(pca.components_)
+    labels = {
+        str(i): f"PC{i+1}: {np.round(pca.explained_variance_ratio_*100, 1)[i]}%"
+        for i in range(n_components)
+    }
+    data = pd.DataFrame(proj_variables)
+    data.columns = labels.values()
+    if colors is not None:
+        data["labels"] = colors
+        fig = sns.pairplot(data, hue="labels")
+    else:
+        fig = sns.pairplot(data)
+    plt.show()
+
+
+def _check_full_rank_exog(exog, inflation=False):
+    mat = exog.T @ exog
+    d = mat.shape[1]
+    rank = torch.linalg.matrix_rank(mat)
+    if rank != d:
+        print("shape::", exog)
+        if inflation is True:
+            name_mat = "exog_inflation"
+            add_const_name = "add_const_inflation"
+        else:
+            name_mat = "exog"
+            add_const_name = "add_const"
+        msg = f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank "
+        msg += f"(rank = {rank}, expected = {d}). You may consider to remove one or more variables"
+        msg += f" or set {add_const_name} to False if that is not already the case."
+        msg += f" You can also set 0 + {name_mat} in the formula to avoid adding  "
+        msg += "an intercept."
+        raise ValueError(msg)
+
+
+def threshold_samples_and_dim(max_samples, max_dim, n_samples, dim):
+    if n_samples > max_samples:
+        warnings.warn(
+            f"\nTaking the whole max_samples samples of the dataset. Requested:n_samples={n_samples}, returned:{max_samples}"
+        )
+        n_samples = max_samples
+    if dim > max_dim:
+        warnings.warn(
+            f"\nTaking the whole max_dim variables. Requested:dim={dim}, returned:{max_dim}"
+        )
+        dim = max_dim
+    return n_samples, dim
+
+
+def _check_right_exog_inflation_shape(
+    exog_inflation, n_samples, dim, zero_inflation_formula
+):
+    if zero_inflation_formula == "global":
+        if exog_inflation is not None:
+            msg = "Can not set the exog_inflation to a value of the "
+            msg += "zero inflation is 'global'."
+            raise ValueError(msg)
+
+    if zero_inflation_formula == "row-wise":
+        if exog_inflation.shape[1] != dim:
+            msg = f"Shape should be (_,{dim}), got shape{exog_inflation.shape}."
+            raise ValueError(msg)
+    if zero_inflation_formula == "column-wise":
+        if exog_inflation.shape[0] != n_samples:
+            msg = f"Shape should be ({n_samples},_), got shape{exog_inflation.shape}."
+            raise ValueError(msg)
+
+
+def mse(t):
+    return torch.mean(t**2)

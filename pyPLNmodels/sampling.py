@@ -39,9 +39,9 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
         components[
             column_number * block_size : (column_number + 1) * block_size, column_number
         ] = 1
-    components += torch.randn(dim, rank) / 8
+    # components += torch.randn(dim, rank) / 8
     torch.random.set_rng_state(prev_state)
-    return components.to("cpu")
+    return components
 
 
 def _get_simulation_coef_cov_offsets_coefzi(
@@ -52,6 +52,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
     add_const: bool,
     add_const_inflation: bool,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"},
+    mean_infla: float,
+    seed: int,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -80,6 +82,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
         If "global", will return one global coefficient.
         If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
         If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+    seed: int
+        The seed for simulation.
 
     Returns
     -------
@@ -87,6 +91,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
         Tuple containing offsets, exog, and coefficients.
     """
     prev_state = torch.random.get_rng_state()
+    torch.random.manual_seed(seed)
+    _check_all_integers_or_none([n_samples, dim, nb_cov, nb_cov_inflation])
     if nb_cov_inflation == 0:
         if zero_inflation_formula == "global":
             if add_const_inflation is True:
@@ -117,39 +123,61 @@ def _get_simulation_coef_cov_offsets_coefzi(
             )
         elif zero_inflation_formula == "column-wise":
             exog_inflation = torch.randint(
-                low=-1,
+                low=0,
                 high=2,
                 size=(n_samples, nb_cov_inflation),
                 dtype=torch.float64,
-                device="cpu",
             )
             if add_const_inflation is True:
                 exog_inflation = torch.cat(
                     (exog_inflation, torch.ones(n_samples, 1)), axis=1
                 )
+
         elif zero_inflation_formula == "row-wise":
             exog_inflation = torch.randint(
-                low=-1,
-                high=2,
+                low=1,
+                high=3,
                 size=(nb_cov_inflation, dim),
                 dtype=torch.float64,
-                device="cpu",
             )
             if add_const_inflation is True:
                 exog_inflation = torch.cat((exog_inflation, torch.ones(1, dim)), axis=0)
-    if zero_inflation_formula is not None:
-        if zero_inflation_formula == "column-wise":
-            coef_inflation = torch.randn(exog_inflation.shape[1], dim, device="cpu")
-        elif zero_inflation_formula == "row-wise":
-            coef_inflation = torch.randn(
-                n_samples, exog_inflation.shape[0], device="cpu"
-            )
         else:
-            coef_inflation = torch.Tensor([0.2])
+            msg = f"Wrong zero_inflation formula. Got {zero_inflation_formula},"
+            msg += ' expected "column-wise" or "row-wise".'
+            raise ValueError(msg)
+    if zero_inflation_formula is not None:
+        if zero_inflation_formula in ["column-wise", "row-wise"]:
+            if nb_cov_inflation > 0:
+                exog_inflation = torch.randint(
+                    low=0,
+                    high=2,
+                    size=(n_samples, nb_cov_inflation),
+                    dtype=torch.float64,
+                )
+                exog_inflation -= (exog_inflation == 0) * torch.ones(
+                    exog_inflation.shape
+                )
+                if add_const_inflation is True:
+                    exog_inflation = torch.cat(
+                        (exog_inflation, torch.ones(n_samples, 1)), axis=1
+                    )
+            else:
+                exog_inflation = torch.ones(n_samples, 1)
+
+            coef_inflation = torch.randn(exog_inflation.shape[1], dim) / np.sqrt(
+                nb_cov_inflation + 1
+            )
+            coef_inflation += -torch.mean(coef_inflation) + torch.logit(
+                torch.tensor([mean_infla])
+            )
+            if zero_inflation_formula == "row-wise":
+                coef_inflation, exog_inflation = exog_inflation, coef_inflation
+        else:
+            coef_inflation = torch.logit(torch.Tensor([mean_infla]))
     else:
         coef_inflation = None
 
-    torch.random.manual_seed(0)
     if nb_cov == 0:
         if add_const is True:
             exog = torch.ones(n_samples, 1)
@@ -157,21 +185,19 @@ def _get_simulation_coef_cov_offsets_coefzi(
             exog = None
     else:
         exog = torch.randint(
-            low=-1,
+            low=0,
             high=2,
             size=(n_samples, nb_cov),
             dtype=torch.float64,
-            device="cpu",
         )
+        exog -= (exog == 0) * torch.ones(exog.shape)
         if add_const is True:
             exog = torch.cat((exog, torch.ones(n_samples, 1)), axis=1)
     if exog is None:
         coef = None
     else:
-        coef = torch.randn(exog.shape[1], dim, device="cpu")
-    offsets = torch.randint(
-        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
-    )
+        coef = torch.randn(exog.shape[1], dim) / np.sqrt(nb_cov + 1)
+    offsets = torch.randint(low=0, high=2, size=(n_samples, dim), dtype=torch.float64)
     torch.random.set_rng_state(prev_state)
     return coef, exog, exog_inflation, offsets, coef_inflation
 
@@ -266,6 +292,13 @@ class PlnParameters:
         return self._exog.shape[1]
 
     @property
+    def gaussian_mean(self):
+        """return the mean of the gaussian"""
+        if self.exog is None:
+            return None
+        return self.exog @ self.coef
+
+    @property
     def n_samples(self):
         """Number of samples."""
         return self._n_samples
@@ -296,6 +329,8 @@ class PlnParameters:
         """
         Coef of the model.
         """
+        if self._coef is None:
+            return None
         return self._coef
 
     @property
@@ -303,7 +338,26 @@ class PlnParameters:
         """
         Data exog.
         """
+        if self._exog is None:
+            return None
         return self._exog
+
+    def _set_gaussian_mean(self, mean_gaussian: float):
+        self._coef += -torch.mean(self._coef) + mean_gaussian
+
+    def _set_mean_proba(self, mean_proba: float):
+        if mean_proba > 1 or mean_proba < 0:
+            raise ValueError("The mean should be a probability (0<p<1).")
+        if self._zero_inflation_formula == "column-wise":
+            self._coef_inflation += -torch.mean(self._coef_inflation) + torch.logit(
+                torch.tensor([mean_proba])
+            )
+        elif self._zero_inflation_formula == "row-wise":
+            self._exog_inflation += -torch.mean(self._exog_inflation) + torch.logit(
+                torch.tensor([mean_proba])
+            )
+        else:
+            self._coef_inflation = torch.logit(torch.tensor([mean_proba]))
 
 
 def _check_one_dimension(
@@ -396,17 +450,14 @@ class ZIPlnParameters(PlnParameters):
                 msg = "If the zero_inflation_formula is global, the "
                 msg += "zero_inflation_formula should be a tensor of size 1."
                 raise ValueError(msg)
-            if coef_inflation.item() < 0 or coef_inflation.item() > 1:
-                msg = "If the zero_inflation_formula is global, the coef_inflation should be between 0 and 1."
-                raise ValueError(msg)
 
     @property
     def proba_inflation(self):
         if self._zero_inflation_formula == "column-wise":
-            return _sigmoid(self.exog_inflation @ self.coef_inflation)
+            return _sigmoid(self._exog_inflation @ self._coef_inflation)
         elif self._zero_inflation_formula == "row-wise":
-            return _sigmoid(self.coef_inflation @ self.exog_inflation)
-        return self.coef_inflation
+            return _sigmoid(self._coef_inflation @ self._exog_inflation)
+        return torch.sigmoid(self._coef_inflation)
 
     @property
     def coef_inflation(self):
@@ -514,10 +565,19 @@ def sample_zipln(
     See also :func:`-pyPLNmodels.sample_pln`
     """
     print("ZIPln is sampled")
+    prev_state = torch.random.get_rng_state()
+    if seed is not None:
+        torch.random.manual_seed(seed)
     proba_inflation = zipln_param.proba_inflation
-    ksi = torch.bernoulli(proba_inflation)
+    if zipln_param._zero_inflation_formula == "global":
+        ksi = torch.bernoulli(
+            torch.ones(zipln_param.n_samples, zipln_param.dim) * proba_inflation
+        )
+    else:
+        ksi = torch.bernoulli(proba_inflation)
     pln_endog, gaussian = sample_pln(zipln_param, seed=seed, return_latent=True)
     endog = (1 - ksi) * pln_endog
+    torch.random.set_rng_state(prev_state)
     if return_latent is True:
         if return_pln is True:
             return endog, gaussian, ksi, pln_endog
@@ -529,7 +589,7 @@ def sample_zipln(
 
 def get_pln_simulated_count_data(
     *,
-    n_samples: int = 100,
+    n_samples: int = 50,
     dim: int = 25,
     rank: int = 5,
     nb_cov: int = 1,
@@ -543,7 +603,7 @@ def get_pln_simulated_count_data(
     Parameters
     ----------
     n_samples : int, optional(keyword-only)
-        Number of samples, by default 100.
+        Number of samples, by default 50.
     dim : int, optional(keyword-only)
         Dimension, by default 25.
     rank : int, optional(keyword-only)
@@ -556,7 +616,6 @@ def get_pln_simulated_count_data(
         Whether to return the true parameters of the model, by default False.
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
-
     Returns
     -------
     if return_true_param is False:
@@ -599,7 +658,7 @@ def get_zipln_simulated_count_data(
     return_true_param: bool = False,
     add_const: bool = True,
     add_const_inflation: bool = True,
-    zero_inflation_formula: {"global", "column-wise", "row-wise"} = "global",
+    zero_inflation_formula: {"global", "column-wise", "row-wise"} = "column-wise",
     seed: int = 0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -623,10 +682,11 @@ def get_zipln_simulated_count_data(
         Number of exog, by default 1.
     return_true_param : bool, optional(keyword-only)
         Whether to return the true parameters of the model, by default False.
-    zero_inflation_formula : {"global", "column-wise","row-wise"}
-        If "global", will return one global coefficient.
+    zero_inflation_formula : {"column-wise", "global","row-wise"}
         If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
+        If "global", will return one global coefficient.
         If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+        Default is "column-wise".
     seed : int, optional(keyword-only)
         Seed value for random number generation, by default 0.
 
@@ -664,50 +724,9 @@ def get_zipln_simulated_count_data(
     return endog, param.exog, param.exog_inflation, param.offsets
 
 
-def get_real_count_data(
-    *, n_samples: int = 469, dim: int = 200, return_labels: bool = False
-) -> np.ndarray:
-    """
-    Get real count data from the scMARK dataset.
-
-    Parameters
-    ----------
-    n_samples : int, optional(keyword-only)
-        Number of samples, by default max_samples.
-    dim : int, optional(keyword-only)
-        Dimension, by default max_dim.
-    return_labels: bool, optional(keyword-only)
-        If True, will return the labels of the count data
-    Returns
-    -------
-    np.ndarray
-        Real count data and labels if return_labels is True.
-    """
-    max_samples = 469
-    max_dim = 200
-    if n_samples > max_samples:
-        warnings.warn(
-            f"\nTaking the whole max_samples samples of the dataset. Requested:n_samples={n_samples}, returned:{max_samples}"
-        )
-        n_samples = max_samples
-    if dim > max_dim:
-        warnings.warn(
-            f"\nTaking the whole max_dim variables. Requested:dim={dim}, returned:{max_dim}"
-        )
-        dim = max_dim
-    endog_stream = pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
-    endog = pd.read_csv(endog_stream).values[:n_samples, :dim]
-    print(f"Returning dataset of size {endog.shape}")
-    if return_labels is False:
-        return endog
-    labels_stream = pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
-    labels = np.array(pd.read_csv(labels_stream).values[:n_samples].squeeze())
-    return endog, labels
-
-
 def get_simulation_parameters(
     *,
-    n_samples: int = 100,
+    n_samples: int = 50,
     dim: int = 25,
     nb_cov: int = 1,
     nb_cov_inflation: int = 0,
@@ -715,6 +734,8 @@ def get_simulation_parameters(
     add_const: bool = True,
     add_const_inflation: bool = False,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"} = None,
+    mean_infla=0.2,
+    seed=0,
 ) -> Union[PlnParameters, ZIPlnParameters]:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -731,7 +752,7 @@ def get_simulation_parameters(
             as a exog.
         nb_cov_inflation : int, optional(keyword-only)
             The number of exog for the inflation part.
-            If 0, will not add zero-inflation. Default is zero
+            If 0, will not add zero-inflation. Default is zero.
         rank : int, optional(keyword-only)
             The rank of the data components, by default 5.
         add_const : bool, optional(keyword-only)
@@ -743,6 +764,7 @@ def get_simulation_parameters(
             If "global", will return one global coefficient.
             If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
             If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+        seed
 
     Returns
     -------
@@ -765,12 +787,19 @@ def get_simulation_parameters(
         add_const,
         add_const_inflation,
         zero_inflation_formula,
+        mean_infla,
+        seed,
     )
     if add_const_inflation is True and zero_inflation_formula is None:
         warnings.warn(
             "add const_inflation set to True but no zero inflation is sampled."
         )
     components = _get_simulation_components(dim, rank)
+    sigma = components @ (components.T)
+    sigma += torch.eye(components.shape[0])
+    # omega = torch.inverse(sigma)
+    # omega = sigma
+    components = torch.linalg.cholesky(sigma)
     if coef_inflation is None:
         print("Pln model will be sampled.")
         return PlnParameters(
@@ -791,3 +820,10 @@ def get_simulation_parameters(
         zero_inflation_formula=zero_inflation_formula,
         n_samples=n_samples,
     )
+
+
+def _check_all_integers_or_none(l):
+    for element in l:
+        if element is not None:
+            if not isinstance(element, int):
+                raise ValueError(f"Got,{type(element)}, expected an int")
