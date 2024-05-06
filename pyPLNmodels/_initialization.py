@@ -1,7 +1,7 @@
 import torch
 import math
 from typing import Optional
-from ._utils import _log_stirling
+from pyPLNmodels._utils import _log_stirling
 import time
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt

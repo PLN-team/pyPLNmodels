@@ -5,7 +5,6 @@ import pandas as pd
 
 from pyPLNmodels import load_model, load_plnpcacollection
 from pyPLNmodels.models import Pln, PlnPCA, PlnPCAcollection, ZIPln
-from pyPLNmodels import get_simulated_count_data
 
 
 sys.path.append("../")

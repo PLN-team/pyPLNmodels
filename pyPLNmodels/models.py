@@ -14,13 +14,13 @@ import plotly.express as px
 import matplotlib
 from scipy import stats
 
-from ._closed_forms import (
+from pyPLNmodels._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
     _closed_formula_latent_prob,
 )
-from .elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
-from ._utils import (
+from pyPLNmodels.elbos import elbo_plnpca, elbo_zi_pln, profiled_elbo_pln
+from pyPLNmodels._utils import (
     _CriterionArgs,
     _format_data,
     _nice_string_of_dict,
@@ -36,7 +36,7 @@ from ._utils import (
     plot_correlation_circle,
 )
 
-from ._initialization import (
+from pyPLNmodels._initialization import (
     _init_covariance,
     _init_components,
     _init_coef,
