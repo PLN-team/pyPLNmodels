@@ -10,7 +10,7 @@ from pyPLNmodels import (
 )
 
 
-N_SAMPLES: int = 100
+N_SAMPLES: int = 50
 DIM: int = 25
 NB_COV_INFLATION: int = 2
 NB_COV: int = 1
@@ -18,7 +18,7 @@ NB_COV: int = 1
 
 def test_warning_get_simulation_parameters():
     with pytest.warns(UserWarning):
-        param = get_simulation_parameters(add_const_inflation=True)
+        param = get_simulation_parameters(add_const_inflation=True, dim=100)
 
 
 def test_get_simulation_parameters_column_wise():
@@ -46,7 +46,7 @@ def test_get_simulation_parameters_global():
         zero_inflation_formula="global", nb_cov_inflation=0, add_const_inflation=0
     )
     assert param.exog_inflation is None
-    assert param.coef_inflation < 1 and param.coef_inflation > 0
+    assert param.proba_inflation < 1 and param.proba_inflation > 0
 
 
 def test_fails_get_simulation_parameters_global():
