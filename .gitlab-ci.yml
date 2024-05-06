@@ -9,6 +9,8 @@ black:
   stage: checks
   image: registry.gitlab.com/pipeline-components/black:latest
   script:
+    - echo "version"
+    - echo black --version
     - black --check --verbose -- .
   tags:
     - docker
