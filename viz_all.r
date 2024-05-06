@@ -10,7 +10,7 @@ library(glue)
 options(error=traceback)
 # traceback()
 
-viz = "poisson"
+viz = "samples"
 perf = "stat"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)

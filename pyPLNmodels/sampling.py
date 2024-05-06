@@ -53,6 +53,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
     add_const_inflation: bool,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"},
     mean_infla: float,
+    seed: int,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariance coefficients with right shapes.
@@ -81,6 +82,8 @@ def _get_simulation_coef_cov_offsets_coefzi(
         If "global", will return one global coefficient.
         If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
         If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+    seed: int
+        The seed for simulation.
 
     Returns
     -------
@@ -88,7 +91,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
         Tuple containing offsets, exog, and coefficients.
     """
     prev_state = torch.random.get_rng_state()
-    torch.random.manual_seed(0)
+    torch.random.manual_seed(seed)
     _check_all_integers_or_none([n_samples, dim, nb_cov, nb_cov_inflation])
     if nb_cov_inflation == 0:
         if zero_inflation_formula == "global":
@@ -732,6 +735,7 @@ def get_simulation_parameters(
     add_const_inflation: bool = False,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"} = None,
     mean_infla=0.2,
+    seed=0,
 ) -> Union[PlnParameters, ZIPlnParameters]:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -760,6 +764,7 @@ def get_simulation_parameters(
             If "global", will return one global coefficient.
             If "column-wise", will return a (n_samples, nb_cov_inflation) torch.Tensor
             If "row-wise", will return a (nb_cov_inflation, dim) torch.Tensor
+        seed
 
     Returns
     -------
@@ -783,6 +788,7 @@ def get_simulation_parameters(
         add_const_inflation,
         zero_inflation_formula,
         mean_infla,
+        seed,
     )
     if add_const_inflation is True and zero_inflation_formula is None:
         warnings.warn(
