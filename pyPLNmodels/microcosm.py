@@ -17,6 +17,7 @@ def load_microcosm(
     get_affil=False,
     cov_list=["site", "time"],
     min_perc=0.025,
+    remove_useless=True,
 ):
     """
     Get real count data from the microcosm
@@ -37,6 +38,9 @@ def load_microcosm(
     min_perc: float, optional (keyword-only)
         The minimum percentage of appearance of feature (ASV) to be selected.
         If the ASV is present in less than min_perc, it will be removed.
+    remove_useless: bool, optional (keyword-only)
+        If True, will remove the useless samples, i.e. samples
+        that have only zero counts.
     """
     max_samples = 921
     max_dim = 1209
@@ -50,14 +54,25 @@ def load_microcosm(
     cov_stream = pkg_resources.resource_stream(__name__, "data/microcosm/metadata.tsv")
     covariates = pd.read_csv(cov_stream, delimiter="\t")[cov_list].iloc[:n_samples, :]
 
-    best = (endog > 0).mean(axis=0) >= min_perc
-    endog = endog.loc[:, best]
+    best_var = (endog > 0).mean(axis=0) >= min_perc
+    endog = endog.loc[:, best_var]
+    non_zero_samples = endog.mean(axis=1) > 0
+    if remove_useless is True:
+        endog = endog.loc[non_zero_samples, :]
+
     data = {"endog": endog}
     for cov_name in cov_list:
-        data[cov_name] = covariates[cov_name]
+        covariate = covariates[cov_name]
+        if remove_useless is True:
+            data[cov_name] = covariate[non_zero_samples]
+        else:
+            data[cov_name] = covariate
+
     if get_affil is True:
         affil_stream = pkg_resources.resource_stream(
             __name__, "data/microcosm/affiliations.tsv"
         )
-        data["affiliations"] = pd.read_csv(affil_stream, delimiter="\t")
+        affil = pd.read_csv(affil_stream, delimiter="\t").loc[1:dim, :]
+        data["affiliations"] = affil.iloc[best_var.values, :]
+
     return data

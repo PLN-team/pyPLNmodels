@@ -805,6 +805,7 @@ def _handle_data(
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
         msg = "The following (index) counts contains only zeros and are removed."
         msg += str(samples.numpy())
+        msg += "You can access the samples that are non zeros with .useful_indices"
         warnings.warn(msg)
         endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
         print(f"Now dataset of size {endog.shape}")
@@ -1008,7 +1009,7 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
 
     ccircle = calculate_correlation(X[:, indices_of_variables], Xpca)
 
-    plt.style.use("seaborn-whitegrid")
+    plt.style.use("seaborn-v0_8-whitegrid")
     fig, axs = plt.subplots(figsize=(6, 6))
     plot_correlation_arrows(axs, ccircle, variables_names)
 

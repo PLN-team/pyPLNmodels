@@ -211,6 +211,10 @@ class _model(ABC):
     def _onlyonebatch(self):
         return self._batch_size == self.n_samples
 
+    @property
+    def useful_indices(self):
+        return ~self.samples_only_zeros
+
     @batch_size.setter
     def batch_size(self, batch_size: int):
         raise ValueError("Can not set the batch size.")
@@ -734,6 +738,18 @@ class _model(ABC):
             The latent variance tensor.
         """
         return self._latent_sqrt_var**2
+
+    @property
+    def latent_var(self) -> torch.Tensor:
+        """
+        Property representing the latent variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent variance tensor.
+        """
+        return self.latent_sqrt_var**2
 
     def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
         """
@@ -3080,16 +3096,16 @@ class PlnPCA(_model):
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
-            (self._components**2).unsqueeze(0)
-            * (self._latent_sqrt_var**2).unsqueeze(1),
+            (self.components**2).unsqueeze(0)
+            * (self.latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
         if self.exog is not None:
-            XB = self._exog @ self._coef
+            XB = self.exog @ self.coef
         else:
             XB = 0
         return torch.exp(
-            self._offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
+            self.offsets + XB + self.latent_variables + 1 / 2 * covariance_a_posteriori
         )
 
     @latent_mean.setter
@@ -3167,8 +3183,8 @@ class PlnPCA(_model):
         self._smart_init_coef()
 
     def _get_pca_low_dim_covariances(self, sk_components):
-        C_tilde_C = sk_components @ self._components
-        C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (self._latent_var.unsqueeze(1))
+        C_tilde_C = sk_components @ self.components
+        C_tilde_C_latent_var = C_tilde_C.unsqueeze(0) * (self.latent_var.unsqueeze(1))
         covariances = (C_tilde_C_latent_var) @ (C_tilde_C.T.unsqueeze(0))
         return covariances
 
@@ -3475,7 +3491,7 @@ class ZIPln(_model):
     >>> zi.fit()
     >>> zi.viz(colors = data["site"])
     >>> # Here Pln is not appropriate:
-    >>> pln = Pln.from_formula("endog ~ 1 + site")
+    >>> pln = Pln.from_formula("endog ~ 1 + site", data)
     >>> pln.fit()
     >>> pln.viz(colors = data["site"])
     >>> # Can also give different covariates:
