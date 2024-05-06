@@ -20,14 +20,14 @@ import matplotlib.pyplot as plt
 
 mean_poiss = 2
 mean_infla = 0.3
-ns = np.linspace(100, 400, 7)
-p = 150
-# ps = np.linspace(100, 500, 9)
-# n = 500
+# ns = np.linspace(100, 600, 11)
+# p = 150
+ps = np.linspace(100, 500, 5)
+n = 500
 nb_cov = 2
 nb_cov_infla = 2
 good_fit = True  ## good_fit is actually 1000
-viz = "samples"
+viz = "dims"
 nb_bootstrap = 30
 
 
@@ -225,15 +225,15 @@ class one_plot:
                 with open(self.abs_name_file, "rb") as fp:
                     self.model_criterions = pickle.load(fp)
             else:
-                plnparam = self.get_param(to_viz)
-                plnparam._set_mean_proba(mean_infla)
-                plnparam._set_gaussian_mean(mean_poiss)
-                Sigma = plnparam.covariance
-                B = plnparam.coef
-                B0 = plnparam.coef_inflation
-                print("mean gaussian", torch.mean(plnparam.gaussian_mean))
-                print("mean proba", torch.mean(plnparam.proba_inflation))
                 for i in tqdm(range(self.nb_bootstrap)):
+                    plnparam = self.get_param(to_viz, seed=i)
+                    plnparam._set_mean_proba(mean_infla)
+                    plnparam._set_gaussian_mean(mean_poiss)
+                    Sigma = plnparam.covariance
+                    B = plnparam.coef
+                    B0 = plnparam.coef_inflation
+                    print("mean gaussian", torch.mean(plnparam.gaussian_mean))
+                    print("mean proba", torch.mean(plnparam.proba_inflation))
                     endog, fair_endog = sample_zipln(plnparam, seed=i, return_pln=True)
                     dict_models = get_dict_models(
                         endog,
@@ -297,6 +297,8 @@ class one_plot:
             omega = torch.inverse(Sigma)
             beta = B[:, cols]
             results_model = self.model_criterions[key_model][xscale]
+            # if key_model == STD_FREE_KEY:
+            #     print('mse proba:')
             if key_model != FAIRPLN and key_model != ZIPREG:
                 if model_fitted._NAME != "Pln":
                     if model_fitted._zero_inflation_formula == "row-wise":
@@ -358,7 +360,7 @@ class one_plot:
         with open(self.abs_name_file, "wb") as fp:
             pickle.dump(self.model_criterions, fp)
 
-    def get_param(self, to_viz):
+    def get_param(self, to_viz, seed):
         if self.viz == "samples":
             _n = int(to_viz)
             _dim = self.dim
@@ -379,6 +381,7 @@ class one_plot:
             n_samples=_n,
             add_const_inflation=_add_const_inflation,
             dim=_dim,
+            seed=seed,
         )
         param._offsets *= 0
         return param

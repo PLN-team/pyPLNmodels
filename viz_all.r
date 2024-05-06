@@ -11,6 +11,8 @@ options(error=traceback)
 
 viz = "dims"
 perf = "computation"
+viz = "samples"
+perf = "stat"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
 
