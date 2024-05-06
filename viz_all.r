@@ -6,12 +6,11 @@ library(latex2exp)
 library(grid)
 library(glue)
 # library(naniar)
-
 options(error=traceback)
 # traceback()
 
-viz = "poisson"
-perf = "stat"
+viz = "dims"
+perf = "computation"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
 
@@ -95,19 +94,19 @@ get_df = function(namedoss, perf, viz){
         df[df == 666] = NA
         }
     df[df$model_name == "Pln",]$model_name <- "PLN"
-    if (viz == "samples" || viz == "dim"){
+    if (viz == "samples" || viz == "dims"){
         df[df$model_name == "fair_Pln",]$model_name <- "Oracle PLN"
     }
     else{
         df[df$model_name == "Fair Pln",]$model_name <- "Oracle PLN"
     }
-    # }
+
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){
         df[,"moyenne"] = as.factor(df[,"moyenne"])
     }
     else{
-        if (viz == "dims"){
+        if (viz == "dims" || viz == "samples"){
             df <- df[df[,"xscale"]%%100 == 0,]
         }
         df[,"xscale"] = as.factor(df[,"xscale"])
@@ -161,7 +160,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                                                                  ),
                                     size = 0.05, alpha = 0.2)
                          + geom_boxplot(lwd = 0.03, outlier.shape = NA)
-                         + scale_y_log10()
                          + scale_fill_viridis_d(name = "")
                          # + scale_fill_viridis(name = "")
                          + scale_colour_viridis_d(name = "")
@@ -169,13 +167,19 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                         + scale_x_discrete(labels=scaleFUN)
         +guides(fill=guide_legend(nrow=1,byrow=TRUE)) ) + theme_bw()+
          theme(legend.key.size = unit(0.5,"cm"),legend.text = element_text(size=16) )
+
+        if (viz != "dims" & perf != "computation"){
+            current_plot = current_plot +  scale_y_log10()
+        }
         if (column != "RMSE_B0" & column != "RMSE_PI"){
             # if (column == "RMSE_PI"){
             #     tmp_y_moins = max(y_moins, 1e-3)
             #     current_plot = current_plot +  scale_y_log10(limits = c(tmp_y_moins,y_plus))
             # }
             # else{
-            current_plot = current_plot +  scale_y_log10(limits = c(y_moins,y_plus))
+            if (viz != "dims" & perf != "computation"){
+                current_plot = current_plot +  scale_y_log10(limits = c(y_moins,y_plus))
+            }
             # }
         }
         if (column == third_column || column == "RMSE_B0"){
