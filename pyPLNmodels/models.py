@@ -3096,8 +3096,7 @@ class PlnPCA(_model):
 
     def _endog_predictions(self):
         covariance_a_posteriori = torch.sum(
-            (self.components**2).unsqueeze(0)
-            * (self.latent_sqrt_var**2).unsqueeze(1),
+            (self.components**2).unsqueeze(0) * (self.latent_sqrt_var**2).unsqueeze(1),
             axis=2,
         )
         if self.exog is not None:
