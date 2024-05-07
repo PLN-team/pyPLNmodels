@@ -3879,16 +3879,6 @@ class ZIPln(_model):
     def _covariance(self):
         return self._components @ (self._components.T)
 
-    @property
-    def closed_covariance(self):
-        return _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._coef,
-            self.n_samples,
-        )
-
     def _get_max_components(self):
         """
         Method for getting the maximum number of components.
