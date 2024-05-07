@@ -21,6 +21,7 @@ from pyPLNmodels._closed_forms import (
 )
 from pyPLNmodels.elbos import (
     elbo_plnpca,
+    per_sample_elbo_plnpca,
     elbo_zi_pln,
     profiled_elbo_pln,
     elbo_brute_zipln_components,
@@ -3380,6 +3381,18 @@ class PlnPCA(_model):
     )
     def compute_elbo(self) -> torch.Tensor:
         return elbo_plnpca(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._components,
+            self._coef,
+        )
+
+    @property
+    def _per_sample_elbo(self) -> torch.Tensor:
+        return per_sample_elbo_plnpca(
             self._endog,
             self._exog,
             self._offsets,
