@@ -151,12 +151,13 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
         Approximation of log(n!) element-wise.
     """
     integer_ = integer + (integer == 0)  # Replace 0 with 1 since 0! = 1!
-    return (
-        integer_ * torch.log(integer_)
-        - integer_
-        + torch.log(8 * integer_**3 + 4 * integer_**2 + integer_ + 1 / 30) / 6
-        + math.log(math.pi) / 2
-    )
+
+    # return (
+    #     integer_ * torch.log(integer_)
+    #     - integer_
+    #     + torch.log(8 * integer_**3 + 4 * integer_**2 + integer_ + 1 / 30) / 6
+    #     + math.log(math.pi) / 2
+    # )
 
     return torch.log(torch.sqrt(2 * np.pi * integer_)) + integer_ * torch.log(
         integer_ / math.exp(1)
