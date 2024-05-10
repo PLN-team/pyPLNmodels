@@ -1,5 +1,6 @@
 import pkg_resources
 import pandas as pd
+import numpy as np
 
 
 def load_oaks():
@@ -37,8 +38,8 @@ def load_oaks():
     offsets = pd.read_csv(offsets_stream)
     exog = pd.read_csv(exog_stream)
     oaks = {
-        "counts": endog.to_numpy(),
-        "offsets": offsets.to_numpy(),
+        "endog": endog.to_numpy(),
+        "offsets": np.log(offsets.to_numpy()),
         "tree": exog.tree.to_numpy(),
         "dist2ground": exog.distTOground.to_numpy(),
         "orientation": exog.orientation.to_numpy(),

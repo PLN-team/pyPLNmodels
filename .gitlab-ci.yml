@@ -9,25 +9,32 @@ black:
   stage: checks
   image: registry.gitlab.com/pipeline-components/black:latest
   script:
+    - echo "version"
+    - echo black --version
     - black --check --verbose -- .
   tags:
     - docker
 
 tests:
   stage: checks
-  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     pip install '.[tests]'
   script:
     - pip install .
+    - jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
     - cd tests
-    - python create_readme_and_docstrings_tests.py
+    - python create_readme_getting_started_and_docstrings_tests.py
+    - rm test_getting_started.py # remove as it has been modified in a directory.
     - pytest .
+  only:
+    - main
+    - dev
 
 
 build_package:
   stage: build
-  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     - pip install build
   script:
@@ -45,7 +52,6 @@ publish_package:
   before_script:
     - pip install twine
   script:
-    - echo ${pypln_token}
     - TWINE_PASSWORD=${pypln_token} TWINE_USERNAME=__token__ python -m twine upload dist/*
   tags:
     - docker
@@ -54,7 +60,7 @@ publish_package:
 
 pages:
   stage: publish
-  image: "registry.forgemia.inra.fr/jbleger/docker-image-pandas-torch-sphinx:master"
+  image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     - pip install '.[build-doc]'
   script:

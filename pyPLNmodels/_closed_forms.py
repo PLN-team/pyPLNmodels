@@ -1,4 +1,5 @@
 from typing import Optional
+from pyPLNmodels._utils import phi
 
 import torch  # pylint:disable=[C0114]
 
@@ -65,13 +66,12 @@ def _closed_formula_coef(
     return torch.inverse(exog.T @ exog) @ exog.T @ latent_mean
 
 
-def _closed_formula_pi(
+def _closed_formula_zero_grad_prob(
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_var: torch.Tensor,
     dirac: torch.Tensor,
-    exog: torch.Tensor,
-    _coef_inflation: torch.Tensor,
+    xinflacoefinfla: torch.Tensor,
 ) -> torch.Tensor:
     """
     Compute the closed-form pi for the M step of the noPCA model.
@@ -86,10 +86,9 @@ def _closed_formula_pi(
         Variational parameter with size (n, p).
     dirac : torch.Tensor
         Dirac tensor.
-    exog : torch.Tensor
-        Covariates with size (n, d).
-    _coef_inflation : torch.Tensor
-        Inflation coefficient tensor.
+    xinflacoefinfla : torch.Tensor
+        Matrix product between the covariates and the regression
+        coefficient
 
     Returns:
     -------
@@ -97,4 +96,21 @@ def _closed_formula_pi(
         The closed-form pi with the same size as dirac.
     """
     poiss_param = torch.exp(offsets + latent_mean + 0.5 * torch.square(latent_sqrt_var))
-    return torch._sigmoid(poiss_param + torch.mm(exog, _coef_inflation)) * dirac
+    return torch.sigmoid(poiss_param + xinflacoefinfla) * dirac
+
+
+def _closed_formula_latent_prob(exog, coef, offsets, xinflacoef_infla, cov, dirac):
+    """
+    Closed formula for the latent probability using the lambert function.
+    """
+    if exog is not None:
+        XB = exog @ coef
+    else:
+        XB = 0
+    pi = torch.sigmoid(xinflacoef_infla)
+    diag = torch.diag(cov)
+    full_diag = diag.expand(dirac.shape[0], -1)
+    return (
+        torch.sigmoid(xinflacoef_infla - torch.log(phi(XB + offsets, full_diag)))
+        * dirac
+    )

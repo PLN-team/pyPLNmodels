@@ -1,17 +1,20 @@
 import torch
 import math
 from typing import Optional
-from ._utils import _log_stirling
+from pyPLNmodels._utils import _log_stirling
+import time
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
+    DEVICE = "cuda:0"
 else:
-    DEVICE = torch.device("cpu")
+    DEVICE = "cpu"
 
 
-def _init_covariance(
-    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor
-) -> torch.Tensor:
+def _init_covariance(endog: torch.Tensor, exog: torch.Tensor) -> torch.Tensor:
     """
     Initialization for the covariance for the Pln model. Take the log of endog
     (careful when endog=0), and computes the Maximum Likelihood
@@ -40,9 +43,7 @@ def _init_covariance(
     return sigma_hat
 
 
-def _init_components(
-    endog: torch.Tensor, exog: torch.Tensor, coef: torch.Tensor, rank: int
-) -> torch.Tensor:
+def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     """
     Initialization for components for the Pln model. Get a first guess for covariance
     that is easier to estimate and then takes the rank largest eigenvectors to get components.
@@ -51,12 +52,6 @@ def _init_components(
     ----------
     endog : torch.Tensor
         Samples with size (n,p)
-    offsets : torch.Tensor
-        Offset, size (n,p)
-    exog : torch.Tensor
-        Covariates, size (n,d)
-    coef : torch.Tensor
-        Coefficient of size (d,p)
     rank : int
         The dimension of the latent space, i.e. the reduced dimension.
 
@@ -65,9 +60,16 @@ def _init_components(
     torch.Tensor
         Initialization of components of size (p,rank)
     """
-    sigma_hat = _init_covariance(endog, exog, coef).detach()
-    components = _components_from_covariance(sigma_hat, rank)
-    return components
+    log_y = torch.log(endog + (endog == 0) * math.exp(-2))
+    max_dim = min(rank, endog.shape[0])
+    pca = PCA(n_components=max_dim)
+    pca.fit(log_y.cpu().detach())
+    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
+    if rank > max_dim:
+        nb_missing = rank - max_dim
+        adding = np.random.randn(endog.shape[1], nb_missing) / rank
+        pca_comp = np.concatenate((pca_comp, adding), axis=1)
+    return torch.from_numpy(pca_comp)
 
 
 def _init_latent_mean(
@@ -102,14 +104,18 @@ def _init_latent_mean(
         The learning rate of the optimizer. Default is 0.01.
     eps : float, optional
         The tolerance. The algorithm will stop as soon as the criterion is lower than the tolerance.
-        Default is 7e-3.
+        Default is 7e-1.
 
     Returns
     -------
     torch.Tensor
         The initialized latent mean with size (n,rank)
     """
-    mode = torch.randn(endog.shape[0], components.shape[1], device=DEVICE)
+    device = endog.device
+    components = components.to(device)
+    if coef is not None:
+        coef = coef.to(device)
+    mode = torch.randn(endog.shape[0], components.shape[1], device=device)
     mode.requires_grad_(True)
     optimizer = torch.optim.Rprop([mode], lr=lr)
     crit = 2 * eps
@@ -179,7 +185,55 @@ def _init_coef(
 
     poiss_reg = _PoissonReg()
     poiss_reg.fit(endog, exog, offsets)
-    return poiss_reg.beta
+    return poiss_reg.beta.to(DEVICE)
+
+
+def _init_coef_coef_inflation(
+    endog: torch.Tensor,
+    exog: torch.Tensor,
+    exog_inflation: torch.Tensor,
+    offsets: torch.Tensor,
+    zero_inflation_formula: str,
+) -> torch.Tensor:
+    """
+    Initialize the coefficient for the ZIPln model using
+    Zero Inflated Poisson regression model.
+
+    Parameters
+    ----------
+    endog : torch.Tensor
+        Samples with size (n, p)
+    exog : torch.Tensor
+        Covariates, size (n, d)
+    exog_infla : torch.Tensor
+        Covariates for the inflation, size (n, d)
+    offsets : torch.Tensor
+        Offset, size (n, p)
+    zero_inflation_formula: str {"column-wise", "row-wise", "global"}
+        The modelling of the zero_inflation. Either "column-wise", "row-wise"
+        or "global".
+    Returns
+    -------
+    tuple (torch.Tensor or None, torch.Tensor) or None
+        Coefficient of size (d, p) or None if exog is None.
+        torch.Tensor of size (d,p)
+    """
+    if exog is None:
+        if zero_inflation_formula == "global":
+            coef_infla = torch.tensor([0.0])
+        elif zero_inflation_formula == "row-wise":
+            coef_infla = torch.randn(endog.shape[0], exog_inflation.shape[0])
+        else:
+            coef_infla = torch.randn(exog_inflation.shape[1], endog.shape[1])
+        return None, coef_infla.to(DEVICE), None
+    zip = ZIP(endog, exog, exog_inflation, offsets, zero_inflation_formula)
+    zip.fit()
+
+    return (
+        zip.coef.detach().to(DEVICE),
+        zip.coef_inflation.detach().to(DEVICE),
+        zip.rec_error,
+    )
 
 
 def log_posterior(
@@ -234,6 +288,70 @@ def log_posterior(
     return first_term + second_term
 
 
+class ZIP:
+    def __init__(self, endog, exog, exog_inflation, offsets, zero_inflation_formula):
+        self.endog = endog
+        self.exog = exog
+        self.exog_inflation = exog_inflation
+        self.offsets = offsets
+        self.zero_inflation_formula = zero_inflation_formula
+
+        self.r0 = torch.mean((endog == 0).double(), axis=0)
+        self.ybarre = torch.mean(endog, axis=0)
+
+        self.dim = self.endog.shape[1]
+        self.d = exog.shape[1]
+        self.n_samples = endog.shape[0]
+
+        if self.zero_inflation_formula == "column-wise":
+            self.d0 = exog_inflation.shape[1]
+            self.coef_inflation = torch.randn(self.d0, self.dim).requires_grad_(True)
+        elif self.zero_inflation_formula == "row-wise":
+            self.d0 = exog_inflation.shape[0]
+            self.coef_inflation = torch.randn(self.n_samples, self.d0).requires_grad_(
+                True
+            )
+        else:
+            self.d0 = None
+            self.coef_inflation = torch.Tensor([0.0]).requires_grad_(True)
+        self.coef = torch.randn(self.d, self.dim).requires_grad_(True)
+
+    @property
+    def mean_poisson(self):
+        return torch.exp(self.offsets + self.exog @ self.coef)
+
+    @property
+    def mean_inflation(self):
+        if self.zero_inflation_formula == "column-wise":
+            mean = self.exog_inflation @ self.coef_inflation
+        elif self.zero_inflation_formula == "row-wise":
+            mean = self.coef_inflation @ self.exog_inflation
+        else:
+            mean = self.coef_inflation
+        return torch.sigmoid(mean)
+
+    def loglike(self, lam, pi):
+        first_term = (
+            self.n_samples * self.r0 * torch.log(pi + (1 - pi) * torch.exp(-lam))
+        )
+        second_term = self.n_samples * (1 - self.r0) * (
+            torch.log(1 - pi) - lam
+        ) + self.n_samples * self.ybarre * torch.log(lam)
+        return first_term + second_term
+
+    def fit(self, nb_iter=150):
+        optim = torch.optim.Rprop([self.coef, self.coef_inflation])
+        for i in range(nb_iter):
+            mean_poisson = self.mean_poisson
+            mean_inflation = self.mean_inflation
+            loss = -torch.mean(self.loglike(self.mean_poisson, self.mean_inflation))
+            loss.backward()
+            optim.step()
+            optim.zero_grad()
+        pred = (1 - self.mean_inflation) * self.mean_poisson
+        self.rec_error = torch.sqrt(torch.mean((pred - self.endog) ** 2)).item()
+
+
 class _PoissonReg:
     """
     Poisson regression model.
@@ -284,8 +402,9 @@ class _PoissonReg:
             Whether to print intermediate information during fitting (default is False).
 
         """
+        self.device = Y.device
         beta = torch.rand(
-            (exog.shape[1], Y.shape[1]), device=DEVICE, requires_grad=True
+            (exog.shape[1], Y.shape[1]), requires_grad=True, device=self.device
         )
         optimizer = torch.optim.Rprop([beta], lr=lr)
         i = 0
