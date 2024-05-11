@@ -137,7 +137,9 @@ Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\
 
 We infer the parameter $\theta$ by maximizing the bi-concave Evidence Lower BOund(ELBO):
 $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$
-where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$.
+where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq
+n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$. A
+stochastic optimization scheme is performed to scale to large datasets.
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent on giving
