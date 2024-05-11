@@ -26,7 +26,7 @@ bibliography: paper.bib
 # Summary
 High dimensional count data are hard to analyse as is, and normalization must
 be performed but standard normalization does not fit to the characteristics of
-count data. The Poisson LogNormal(PLN)  [@PLN] and PLN-PCA [@PLNPCA] are two-sided models allowing both suitable
+count data. The Poisson LogNormal(PLN)  [@PLN] and its Principal Component Analysis counterpart PLN-PCA [@PLNPCA] are two-sided models allowing both suitable
 normalization and analysis of multivariate count data. Each model is implemented in the `pyPLNmodels` package introduced here.
 Possible fields of applications include
 \begin{itemize}
@@ -48,25 +48,45 @@ The models can deal with offsets when needed. The main functionalities of the `p
 \item Reduce the number of features with the PLN-PCA model
 \item Visualize the normalized data
 \end{itemize}
+
+The package has been designed to efficiently process
+extensive datasets in a reasonable time. It incorporates GPU
+acceleration and employs stochastic optimization techniques to enhance
+computational efficiency and speed.
+
+
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
-Component Analysis (PCA) is performed with the PLN-PCA model(on the left) and standard PCA on
-the log normalized data(on the right).  The data considered is the `scMARK` benchmark [@scMark] described in the
+Component Analysis (PCA) is performed with the PLN-PCA model (left) and standard PCA on
+the log normalized data (right).  The data considered is the `scMARK` benchmark [@scMark] described in the
 benchmark section. We kept 1000 samples and 9 cell types for illustration purposes.
 
-![PLN-PCA (left) and standard PCA (right).](plnpca_vs_pca.png)
+
+![PLN-PCA (left) and standard PCA on log normalized data (right).](plnpca_vs_pca.png)
 
 # Statement of need
 While the R-package `PLNmodels` [@PLNmodels] implements PLN models, the python package
 `pyPLNmodels` based on Pytorch [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA (single-cell Ribonucleic acid)
 data. Real-world scRNA datasets typically involves thousands of cells ($n \approx 20000$) with
-thousand of genes($p \approx 20000$), resulting in a matrix of size $\approx
+thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
 20000 \times 20000$. The package has GPU support for a better scalability.
 
 The `statsmodels` [@statsmodels] python package allows to deal with count data
 thanks to the Generalized Linear Models `PoissonBayesMixedGLM` and
 `BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
 between features and performing Principal Component Analysis adequate to count data.
+
+The `gllvm` package [@GLLVM] offers a broader scope of modeling
+capabilities, enabling the incorporation of not
+only Poisson distribution but also Binomial or negative Binomial distributions,
+along with an additional zero-inflation component. However, its scalability is
+notably inferior to our proposed methodology. Our approach, specifically
+the PLN-PCA model, demonstrates superior scalability, effectively
+accommodating datasets with tens of thousands of variables, while the PLN model
+handles thousands of variables within a reasonable computational timeframe. In
+contrast, gllvm struggles to scale beyond a few hundred variables within
+practical computational limits.
+
 
 # Benchmark
 We fit PLN and PLN-PCA models with the `pyPLNmodels` package on the `scMARK` dataset, a benchmark
@@ -100,22 +120,18 @@ $X_{i h}=$ given covariate for sample $i$
 We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i
 j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable
 $Z_{i} \in \mathbb R^{p}$ such that:
-
-$$ \begin{array}{ccc}
-\end{array} $$
-<!-- $ -->
 \begin{equation}\label{model}
 \begin{array}{c}
-W_{i}  \sim \mathcal{N}\left(0, I_{q}\right) \\
-Z_{i} = \beta^{\top}X_i + CW_i  \\
+Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\
  \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right), \\
 \end{array}
 \end{equation}
-where $\beta \in \mathbb R^{d\times p}$ is an unknown
-regression parameter, $C \in \mathbb R ^ {p\times q}$ (unknown) and $q\leq p$ is a
-hyperparameter. The unknown (and identifiable)
-parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ is the
-covariance matrix of each $Z_i$. For $q<p$, we get the PLN-PCA model, while we recover the PLN model when $q=p$.
+ where $\beta \in \mathbb{R}^{d \times p}$ represents the unknown regression
+ coefficients, and $C \in \mathbb{R}^{p \times q}$ denotes an unknown matrix,
+ with $q \leq p$ is a hyperparameter. When $q < p$, the model
+ corresponds to PLN-PCA. Conversely, when $q = p$, the model reverts to the
+ standard PLN. The unknown (and
+ identifiable) parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ corresponds to the covariance matrix of the gaussian component.
 
 ## Inference
 

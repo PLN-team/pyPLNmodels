@@ -1,6 +1,6 @@
 from pyPLNmodels import Pln, PlnPCA
-import scanpy
 import numpy as np
+import scanpy
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
@@ -70,14 +70,14 @@ def plot_dict(dict_rt, model_str):
 
 if __name__ == "__main__":
     n = 200
-    p0 = 2500
-    pn = 14059
-    ecart = 300
+    # p0 = 2500
+    # pn = 14059
+    # ecart = 300
     fig = plt.figure(figsize=(20, 10))
     p0 = 300
     pn = 500
     ecart = 200
-    rank = 80
+    rank = 40
     ps_pln = np.arange(100, p0, 100)
     ps_plnpca = np.concatenate((ps_pln, np.arange(p0, pn, ecart)))
     pln_running_times_sharp_conv = []
