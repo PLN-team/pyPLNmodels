@@ -145,6 +145,7 @@ class _model(ABC):
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ):
         """
         Create a model instance from a formula and data.
@@ -164,6 +165,9 @@ class _model(ABC):
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
@@ -174,6 +178,7 @@ class _model(ABC):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
+            batch_size=batch_size,
         )
 
     def _set_init_parameters(self, dict_initialization: dict):
@@ -324,6 +329,13 @@ class _model(ABC):
         return len(self._criterion_args._elbos_list) * self.nb_batches
 
     @property
+    def nb_epoch_done(self) -> int:
+        """
+        The number of epoch done.
+        """
+        return len(self._criterion_args._elbos_list)
+
+    @property
     def n_samples(self) -> int:
         """
         The number of samples, i.e. the first dimension of the endog.
@@ -406,7 +418,7 @@ class _model(ABC):
 
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 5000,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -449,18 +461,26 @@ class _model(ABC):
         while self.nb_iteration_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
-
             if abs(criterion) < tol:
                 stop_condition = True
-            if self.nb_iteration_done % 50 == 1:
+            if self.nb_epoch_done % 5 == 1:
                 for name_param, param in self.model_parameters.items():
-                    mse_param = 0 if param is None else mse(param).detach()
+                    mse_param = 0 if param is None else mse(param).detach().item()
                     self._dict_mse[name_param].append(mse_param)
                 if verbose is True:
                     self._print_stats()
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
+
+    def _display_norm(self, ax=None):
+        if ax is None:
+            _, ax = plt.subplots(1)
+        x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        for key, value in self._dict_mse.items():
+            ax.plot(x, value, label=key)
+        ax.legend()
+        ax.set_title("Norm of each parameter.")
 
     def _handle_optimizer(self, lr):
         if self.batch_size < self.n_samples:
@@ -891,14 +911,9 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
-            for key, value in self._dict_mse.items():
-                axes[1].plot(x, value, label=key)
-            axes[1].legend()
-            axes[1].set_title("Norm of each parameter.")
             self._criterion_args._show_loss(ax=axes[2])
+            self._display_norm(ax=axes[1])
             self.display_covariance(ax=axes[0], display=False)
-
         else:
             self.display_covariance(ax=axes)
 
@@ -1614,6 +1629,7 @@ class Pln(_model):
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ):
         return super().from_formula(
             formula=formula,
@@ -1621,6 +1637,7 @@ class Pln(_model):
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -2138,6 +2155,7 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ) -> "PlnPCAcollection":
         """
         Create an instance of PlnPCAcollection from a formula.
@@ -2158,6 +2176,9 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
 
         Returns
         -------
@@ -2183,6 +2204,7 @@ class PlnPCAcollection:
             dict_of_dict_initialization=dict_of_dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
+            batch_size=batch_size,
         )
 
     @property
@@ -2959,6 +2981,7 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
@@ -2969,6 +2992,7 @@ class PlnPCA(_model):
             rank=rank,
             dict_initialization=dict_initialization,
             add_const=False,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -3658,6 +3682,7 @@ class ZIPln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         use_closed_form_prob: bool = True,
+        batch_size: int = None,
     ):
         """
         Create a ZIPln instance from a formula and data.
@@ -3685,6 +3710,9 @@ class ZIPln(_model):
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
             Default is True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Returns
         -------
         A ZIPln object
@@ -3730,6 +3758,7 @@ class ZIPln(_model):
             add_const=False,
             add_const_inflation=add_const_inflation,
             use_closed_form_prob=use_closed_form_prob,
+            batch_size=batch_size,
         )
 
     @_add_doc(
