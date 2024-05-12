@@ -496,20 +496,24 @@ class _model(ABC):
             ma_mse = moving_average(mse, ma)
             diff_mse = np.abs(np.diff(ma_mse))
             if i == 0:
-                _label = label
+                _label = str(label)
             else:
                 _label = None
 
             ax.plot(x[1:], diff_mse, label=_label, color=color)
             ax.set_yscale("log")
 
-    def _display_norm(self, ax=None):
+    def _get_diff_mses(self):
+        mses = self._all_mses
+        return np.abs(np.diff(mses, axis=1))
+
+    def _display_norm(self, ax=None, label=None, color=None):
         if ax is None:
             _, ax = plt.subplots(1)
         x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
-        # linestyles = {"coe"}
+        linestyles = {"coef": 0}
         for key, value in self._dict_mse.items():
-            ax.plot(x, value)
+            ax.plot(x, value, label=key, color=color)
         ax.legend()
         ax.set_title("Norm of each parameter.")
 
