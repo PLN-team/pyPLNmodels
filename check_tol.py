@@ -13,6 +13,12 @@ nb_batch = 2
 batch_sizes = np.linspace(50, n_samples, nb_batch).astype(int)
 fig, axes = plt.subplots(2)
 
+
+colors = np.linspace(150, 200, len(batch_sizes))
+dict_colors = {
+    batch_sizes[i]: int(colors[i] / 235) + 1 for i in range(len(batch_sizes))
+}
+
 for batch_size in batch_sizes:
     batch_size = int(batch_size)
     pln = PlnPCA(endog, exog=exog, offsets=offsets, batch_size=batch_size)
@@ -20,7 +26,7 @@ for batch_size in batch_sizes:
     pln.fit(nb_max_iteration=int(nb_epoch * n_samples / batch_size), tol=0)
     pln._all_mses
     pln._display_norm(axes[0])
-    pln._diff_mses(ax=axes[1], label=batch_size)
+    pln._diff_mses(ax=axes[1], label=batch_size, color=int(dict_colors[batch_size]))
 
 axes[1].legend()
 plt.show()
