@@ -115,6 +115,70 @@ def elbo_plnpca(
     ) / n_samples
 
 
+def per_sample_elbo_plnpca(
+    endog: torch.Tensor,
+    exog: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    components: torch.Tensor,
+    coef: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the Pln model
+    with PCA parametrization for each individual.
+
+    Parameters
+    ----------
+    endog : torch.Tensor
+        Counts with size (n, p).
+    exog : torch.Tensor
+        Covariates with size (n, d).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_var : torch.Tensor
+        Variational parameter with size (n, p). More precisely it is the unsigned
+        square root of the variational variance.
+    components : torch.Tensor
+        Model parameter with size (p, q).
+    coef : torch.Tensor
+        Model parameter with size (d, p).
+
+    Returns
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
+    """
+    n_samples = endog.shape[0]
+    rank = components.shape[1]
+    if exog is None:
+        XB = 0
+    else:
+        XB = exog @ coef
+    log_intensity = offsets + XB + latent_mean @ components.T
+    s_squared = torch.square(latent_sqrt_var)
+    endog_log_intensity = torch.sum(endog * log_intensity, axis=1)
+    minus_intensity_plus_s_squared_cct = torch.sum(
+        -torch.exp(log_intensity + 0.5 * s_squared @ (components * components).T),
+        axis=1,
+    )
+    minus_logs_squared = 0.5 * torch.sum(torch.log(s_squared), axis=1)
+    mm_plus_s_squared = -0.5 * torch.sum(
+        torch.square(latent_mean) + torch.square(latent_sqrt_var), axis=1
+    )
+    log_stirling_endog = torch.sum(_log_stirling(endog), axis=1)
+    return (
+        endog_log_intensity
+        + minus_intensity_plus_s_squared_cct
+        + minus_logs_squared
+        + mm_plus_s_squared
+        - log_stirling_endog
+        + 0.5 * rank
+    )
+
+
 def log1pexp(x):
     # more stable version of log(1 + exp(x))
     return torch.where(x < 50, torch.log1p(torch.exp(x)), x)
