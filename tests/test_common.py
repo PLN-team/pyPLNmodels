@@ -95,12 +95,12 @@ def test_fail_count_setter(model):
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
 def test_random_init(instance):
-    instance.fit(do_smart_init=False, nb_max_iteration=10)
+    instance.fit(do_smart_init=False, nb_max_epoch=10)
 
 
 @pytest.mark.parametrize("instance", dict_fixtures["instances"])
 def test__print_end_of_fitting_message(instance):
-    instance.fit(nb_max_iteration=4)
+    instance.fit(nb_max_epoch=4)
 
 
 @pytest.mark.parametrize("model", dict_fixtures["fitted_model"])
