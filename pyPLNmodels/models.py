@@ -25,6 +25,7 @@ from pyPLNmodels.elbos import (
     profiled_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
+    per_sample_elbo_plnpca,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -3445,6 +3446,18 @@ class PlnPCA(_model):
             self._offsets_b.to(DEVICE),
             self._latent_mean_b.to(DEVICE),
             self._latent_sqrt_var_b.to(DEVICE),
+            self._components,
+            self._coef,
+        )
+
+    @property
+    def _per_sample_elbo(self) -> torch.Tensor:
+        return per_sample_elbo_plnpca(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
             self._components,
             self._coef,
         )
