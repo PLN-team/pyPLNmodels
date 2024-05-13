@@ -457,7 +457,7 @@ class _model(ABC):
                     mse_param = 0 if param is None else mse(param).detach().item()
                     self._dict_mse[name_param].append(mse_param)
                 if verbose is True:
-                    self._print_stats()
+                    self._print_stats(nb_max_iteration)
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -809,10 +809,18 @@ class _model(ABC):
         Print the training statistics.
         """
         print("-------UPDATE-------")
-        print("Iteration number: ", self._criterion_args.iteration_number)
-        print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
+        print(
+            "Iteration number: ",
+            self._criterion_args.iteration_number,
+            "out of ",
+            nb_max_iteration,
+            "iterations.",
+        )
+        print(
+            "Current criterion: ",
+            np.round(self._criterion_args.criterion_list[-1], 6),
+        )
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
-        print("loglike", self.loglike)
 
     def _update_criterion_args(self, loss):
         """
