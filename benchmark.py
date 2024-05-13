@@ -32,10 +32,10 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 def append_running_times_model(Y, model_str):
     if model_str == "Pln":
         model = Pln(Y)
-        model.fit(tol=sharp_tol)
+        model.fit(nb_max_iteration=2000)
     else:
         model = PlnPCA(Y, rank=rank)
-        model.fit(tol=sharp_tol)
+        model.fit(nb_max_iteration=2000)
 
     rough_running_times = model._plotargs.running_times[
         next(i for i, v in enumerate(model._plotargs.criterions) if v < rough_tol)
@@ -74,27 +74,21 @@ if __name__ == "__main__":
     # pn = 14059
     # ecart = 300
     fig = plt.figure(figsize=(20, 10))
-    p0 = 300
+    pmax_pln = 300
     pn = 500
     ecart = 200
     rank = 40
-    ps_pln = np.arange(100, p0, 100)
-    ps_plnpca = np.concatenate((ps_pln, np.arange(p0, pn, ecart)))
-    pln_running_times_sharp_conv = []
-    plnpca_running_times_sharp_conv = []
-    pln_running_times_rough_conv = []
-    plnpca_running_times_rough_conv = []
+    ps_pln = np.arange(100, pmax_pln, ecart)
+    ps_plnpca = np.concatenate((ps_pln, np.arange(pmax_pln, pn, ecart)))
     name_file = f"n_{n}_nbps_{len(ps_plnpca)}_p0_{p0}_pn_{pn}_ecart_{ecart}_rank_{rank}"
     dict_rt = {"Pln": [], "PlnPCA": []}
-    if sharp_tol > rough_tol:
-        raise ValueError("tols in the wrong order")
 
     if True:
         for p in tqdm(ps_plnpca):
             print("dim:", p)
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_model(Y, "PlnPCA")
-            if p < p0:
+            if p < pmax_pln:
                 append_running_times_model(Y, "Pln")
     else:
         with open(name_file, "rb") as fp:
