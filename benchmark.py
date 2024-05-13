@@ -1,3 +1,4 @@
+from os.path import exists
 from pyPLNmodels import Pln, PlnPCA
 import numpy as np
 import scanpy
@@ -7,6 +8,7 @@ import torch
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import pickle
+import os
 from tqdm import tqdm
 
 
@@ -32,21 +34,18 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
 def append_running_times_model(Y, model_str):
     if model_str == "Pln":
         model = Pln(Y)
-        model.fit(tol=sharp_tol)
+        model.fit(nb_max_iteration=2000)
     else:
         model = PlnPCA(Y, rank=rank)
-        model.fit(tol=sharp_tol)
+        model.fit(nb_max_iteration=2000)
 
-    rough_running_times = model._plotargs.running_times[
-        next(i for i, v in enumerate(model._plotargs.criterions) if v < rough_tol)
-    ]
-
-    dict_rt[model_str]["rough"].append(rough_running_times)
-    dict_rt[model_str]["sharp"].append(model._plotargs.running_times[-1])
+    dict_rt[model_str].append(model._criterion_args.running_times[-1])
 
 
 def plot_dict(dict_rt, model_str):
-    dict_rt_model = dict_rt[model_str]
+    print("dict_rt", dict_rt)
+    print("model str", str(model_str))
+    dict_rt_model = dict_rt[str(model_str)]
     if model_str == "Pln":
         ps = ps_pln
         color = "blue"
@@ -54,15 +53,7 @@ def plot_dict(dict_rt, model_str):
         ps = ps_plnpca
         color = "orange"
     print("ps_pln:", ps_pln)
-    print("dict model ", dict_rt_model["sharp"])
-    plt.plot(ps, dict_rt_model["sharp"], color=color, label=f"{model_str} default tol")
-    plt.plot(
-        ps,
-        dict_rt_model["rough"],
-        color=color,
-        label=f"{model_str} tol=0.01",
-        linestyle="dotted",
-    )
+    sns.lineplot(x=ps, y=dict_rt_model, color=color, label=f"{model_str}")
     plt.legend()
     plt.xlabel(r"Number of variables $p$")
     plt.ylabel("Running times")
@@ -74,48 +65,32 @@ if __name__ == "__main__":
     # pn = 14059
     # ecart = 300
     fig = plt.figure(figsize=(20, 10))
-    p0 = 300
-    pn = 500
-    ecart = 200
+    pmax_pln = 1500
+    pn = 2000
+    ecart = 100
     rank = 40
-    ps_pln = np.arange(100, p0, 100)
-    ps_plnpca = np.concatenate((ps_pln, np.arange(p0, pn, ecart)))
-    pln_running_times_sharp_conv = []
-    plnpca_running_times_sharp_conv = []
-    pln_running_times_rough_conv = []
-    plnpca_running_times_rough_conv = []
-    name_file = f"n_{n}_nbps_{len(ps_plnpca)}_p0_{p0}_pn_{pn}_ecart_{ecart}_rank_{rank}"
-    dict_rt = {
-        "Pln": {
-            "sharp": pln_running_times_sharp_conv,
-            "rough": pln_running_times_rough_conv,
-        },
-        "PlnPCA": {
-            "sharp": plnpca_running_times_sharp_conv,
-            "rough": plnpca_running_times_rough_conv,
-        },
-    }
-    sharp_tol = 0.001
-    rough_tol = 0.01
-    sharp_tol = 0.1
-    rough_tol = 0.5
-    if sharp_tol > rough_tol:
-        raise ValueError("tols in the wrong order")
+    ps_pln = np.arange(100, pmax_pln, ecart)
+    ps_plnpca = np.concatenate((ps_pln, np.arange(pmax_pln, pn, ecart)))
+    name_file = (
+        f"n_{n}_nbps_{len(ps_plnpca)}_p0_{pmax_pln}_pn_{pn}_ecart_{ecart}_rank_{rank}"
+    )
+    dict_rt = {"Pln": [], "PlnPCA": []}
 
     if True:
+        # if exists(name_file) is False:
         for p in tqdm(ps_plnpca):
             print("dim:", p)
             Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_model(Y, "PlnPCA")
-            if p < p0:
+            if p < pmax_pln:
                 append_running_times_model(Y, "Pln")
     else:
         with open(name_file, "rb") as fp:
             dict_rt = pickle.load(fp)
 
+    with open(name_file, "wb") as fp:
+        pickle.dump(dict_rt, fp)
     plot_dict(dict_rt, "Pln")
     plot_dict(dict_rt, "PlnPCA")
     plt.savefig(f"paper/illustration.png", format="png")
     plt.show()
-    with open(name_file, "wb") as fp:
-        pickle.dump(dict_rt, fp)
