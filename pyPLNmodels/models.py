@@ -799,8 +799,9 @@ class _model(ABC):
             print(
                 "Maximum number of iterations reached : ",
                 self._criterion_args.iteration_number,
-                "last criterion = ",
+                ". Last criterion = ",
                 np.round(self._criterion_args.criterion_list[-1], 8),
+                f". Required tolerance = {tol}",
             )
 
     def _print_stats(self):
