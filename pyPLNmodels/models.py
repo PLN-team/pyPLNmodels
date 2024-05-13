@@ -460,7 +460,6 @@ class _model(ABC):
                 if verbose is True:
                     self._print_stats()
             nb_epoch_done += 1
-            print("nb epoch done", nb_epoch_done)
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -513,10 +512,14 @@ class _model(ABC):
     def _display_norm(self, ax=None, label=None, color=None):
         if ax is None:
             _, ax = plt.subplots(1)
-        x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        x = self._criterion_args.running_times
         linestyles = {"coef": 0}
         for key, value in self._dict_mse.items():
-            ax.plot(x, value, label=key, color=color)
+            nb_points = len(value)
+            totake = np.linspace(0, len(x) - 1, nb_points).astype(int)
+            print("totake", totake)
+            ax.plot(np.array(x)[totake], value, label=key, color=color)
+        ax.set_xlabel("Time (seconds)")
         ax.legend()
         ax.set_title("Norm of each parameter.")
 
@@ -966,9 +969,9 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            self._criterion_args._show_loss(ax=axes[2])
-            self._display_norm(ax=axes[1])
             self.display_covariance(ax=axes[0], display=False)
+            self._display_norm(ax=axes[1])
+            self._criterion_args._show_loss(ax=axes[2])
         else:
             self.display_covariance(ax=axes)
 

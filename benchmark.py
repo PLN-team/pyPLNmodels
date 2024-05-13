@@ -35,13 +35,18 @@ def append_running_times_model(Y, model_str):
     if model_str == "Pln":
         model = Pln(Y)
         model.fit(nb_max_iteration=2000)
+        model.show()
         model_batch = Pln(Y, batch_size=batch_size)
-        model_batch.fit(nb_max_iteration=50, verbose=True)
+        model_batch.fit(nb_max_iteration=1500, verbose=True)
+        model_batch.show()
+        x
     else:
         model = PlnPCA(Y, rank=rank)
-        model.fit(nb_max_iteration=2000)
-        model_batch = PlnPCA(Y, batch_size=batch_size)
-        model_batch.fit(nb_max_iteration=50, verbose=True)
+        model.fit(nb_max_iteration=2000, tol=0)
+        model.show()
+        model_batch = PlnPCA(Y, batch_size=batch_size, rank=rank)
+        model_batch.fit(nb_max_iteration=1500, verbose=True, tol=0)
+        model_batch.show()
 
     dict_rt[model_str]["batch"].append(model._criterion_args.running_times[-1])
     dict_rt[model_str]["no batch"].append(model_batch._criterion_args.running_times[-1])
@@ -72,7 +77,7 @@ def plot_dict(dict_rt, model_str):
 
 
 if __name__ == "__main__":
-    n = 200
+    n = 2000
     batch_size = 100
     # p0 = 2500
     # pn = 14059
@@ -92,11 +97,11 @@ if __name__ == "__main__":
         "PlnPCA": {"batch": [], "no batch": []},
     }
 
-    if False:
+    if True:
         # if exists(name_file) is False:
         for p in tqdm(ps_plnpca):
             print("dim:", p)
-            Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
+            Y, _, labels = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_model(Y, "PlnPCA")
             if p < pmax_pln:
                 append_running_times_model(Y, "Pln")
