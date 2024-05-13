@@ -224,18 +224,6 @@ class _model(ABC):
     def batch_size(self, batch_size: int):
         raise ValueError("Can not set the batch size.")
 
-    @property
-    def fitted(self) -> bool:
-        """
-        Whether the model is fitted.
-
-        Returns
-        -------
-        bool
-            True if the model is fitted, False otherwise.
-        """
-        return self._fitted
-
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
         Visualize the gaussian latent variables with a classic PCA.
@@ -418,7 +406,7 @@ class _model(ABC):
 
     def fit(
         self,
-        nb_max_iteration: int = 5000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -431,7 +419,7 @@ class _model(ABC):
         Parameters
         ----------
         nb_max_iteration : int, optional
-            The maximum number of iterations. Defaults to 50000.
+            The maximum number of iterations. Defaults to 400.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         tol : float, optional(keyword-only)
@@ -454,7 +442,7 @@ class _model(ABC):
         elif len(self._criterion_args.running_times) > 0:
             self._beginning_time -= self._criterion_args.running_times[-1]
         self._set_requiring_grad_true()
-        self._handle_optimizer(lr)
+        self._handle_optimizer(lr, nb_max_iteration)
         stop_condition = False
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
 
@@ -463,7 +451,7 @@ class _model(ABC):
             criterion = self._update_criterion_args(loss)
             if abs(criterion) < tol:
                 stop_condition = True
-            if self.nb_epoch_done % 5 == 1:
+            if self.nb_epoch_done % 15 == 1:
                 for name_param, param in self.model_parameters.items():
                     mse_param = 0 if param is None else mse(param).detach().item()
                     self._dict_mse[name_param].append(mse_param)
@@ -473,7 +461,19 @@ class _model(ABC):
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
-    def _display_norm(self, ax=None):
+    @property
+    def fitted(self) -> bool:
+        """
+        Whether the model is fitted.
+
+        Returns
+        -------
+        bool
+            True if the model is fitted, False otherwise.
+        """
+        return self._fitted
+
+    def _display_norm(self, ax=None, label=None, color=None):
         if ax is None:
             _, ax = plt.subplots(1)
         x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
@@ -482,11 +482,18 @@ class _model(ABC):
         ax.legend()
         ax.set_title("Norm of each parameter.")
 
-    def _handle_optimizer(self, lr):
+    def _handle_optimizer(self, lr, nb_max_iteration):
         if self.batch_size < self.n_samples:
             self.optim = torch.optim.Adam(
                 self._list_of_parameters_needing_gradient, lr=lr
             )
+            wrns = "No criterion is computed here, the algorithm will stop "
+            wrns += (
+                f"only after {nb_max_iteration} iterations. You can monitor the norm "
+            )
+            wrns += " of each parameter calling .show() method after a fit. You can "
+            wrns += " also save the model by calling .save() and fit it again after."
+            warnings.warns(wrns)
         else:
             self.optim = torch.optim.Rprop(
                 self._list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
@@ -819,6 +826,8 @@ class _model(ABC):
         float
             The computed criterion.
         """
+        if self._onlyonebatch is False:
+            return 1e8
         current_running_time = time.time() - self._beginning_time
         self._criterion_args.update_criterion(-loss, current_running_time)
         return self._criterion_args.criterion
@@ -1652,7 +1661,7 @@ class Pln(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -2477,7 +2486,7 @@ class PlnPCAcollection:
 
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -2490,7 +2499,7 @@ class PlnPCAcollection:
         Parameters
         ----------
         nb_max_iteration : int, optional
-            The maximum number of iterations, by default 50000.
+            The maximum number of iterations, by default 400.
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
         tol : float, optional(keyword-only)
@@ -3007,7 +3016,7 @@ class PlnPCA(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -3779,7 +3788,7 @@ class ZIPln(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
