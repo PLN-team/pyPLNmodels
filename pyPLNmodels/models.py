@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
+from tqdm import tqdm
 
 import pandas as pd
 import torch
@@ -318,13 +319,6 @@ class _model(ABC):
         return len(self._criterion_args._elbos_list) * self.nb_batches
 
     @property
-    def nb_epoch_done(self) -> int:
-        """
-        The number of epoch done.
-        """
-        return len(self._criterion_args._elbos_list)
-
-    @property
     def n_samples(self) -> int:
         """
         The number of samples, i.e. the first dimension of the endog.
@@ -428,7 +422,7 @@ class _model(ABC):
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
-            Whether to print training progress. Defaults to False.
+            Whether to print training progress.  Defaults to False.
         Raises
         ------
         ValueError
@@ -446,19 +440,21 @@ class _model(ABC):
         self._handle_optimizer(lr, nb_max_epoch)
         stop_condition = False
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
-
-        while self.nb_epoch_done < nb_max_epoch and not stop_condition:
+        nb_epoch_done = 0
+        pbar = tqdm(desc="Estimated remaining time", total=nb_max_epoch)
+        while nb_epoch_done < nb_max_epoch and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
-            print("nb epoch done", self.nb_epoch_done)
-            if abs(criterion) < tol:
+            if abs(criterion) < tol and self._onlyonebatch is True:
                 stop_condition = True
-            if self.nb_epoch_done % 15 == 1:
+            if nb_epoch_done % 25 == 0:
                 for name_param, param in self.model_parameters.items():
                     mse_param = 0 if param is None else mse(param).detach().item()
                     self._dict_mse[name_param].append(mse_param)
-                if self.nb_epoch_done % 50 == 1 and verbose is True:
-                    self._print_stats(nb_max_epoch)
+                if nb_epoch_done % 50 == 0 and verbose is True:
+                    self._print_stats(nb_epoch_done, nb_max_epoch, tol)
+            nb_epoch_done += 1
+            pbar.update(1)
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -803,22 +799,24 @@ class _model(ABC):
                 f". Required tolerance = {tol}",
             )
 
-    def _print_stats(self, nb_max_epoch):
+    def _print_stats(self, nb_epoch_done, nb_max_epoch, tol):
         """
         Print the training statistics.
         """
         print("-------UPDATE-------")
         print(
-            "Iteration number: ",
-            self._criterion_args.iteration_number,
+            "Iteration ",
+            nb_epoch_done,
             "out of ",
             nb_max_epoch,
             "iterations.",
         )
-        print(
-            "Current criterion: ",
-            np.round(self._criterion_args.criterion_list[-1], 6),
+        msg_criterion = "Current criterion: " + str(
+            np.round(self._criterion_args.criterion_list[-1], 6)
         )
+        if self._onlyonebatch is True:
+            msg_criterion += ". Stop if lower than " + str(tol)
+        print(msg_criterion)
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
 
     def _update_criterion_args(self, loss):
@@ -835,8 +833,6 @@ class _model(ABC):
         float
             The computed criterion.
         """
-        if self._onlyonebatch is False:
-            return 1e8
         current_running_time = time.time() - self._beginning_time
         self._criterion_args.update_criterion(-loss, current_running_time)
         return self._criterion_args.criterion
