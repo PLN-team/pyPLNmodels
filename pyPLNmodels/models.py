@@ -407,7 +407,7 @@ class _model(ABC):
 
     def fit(
         self,
-        nb_max_iteration: int = 5000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -420,7 +420,7 @@ class _model(ABC):
         Parameters
         ----------
         nb_max_iteration : int, optional
-            The maximum number of iterations. Defaults to 50000.
+            The maximum number of iterations. Defaults to 400.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         tol : float, optional(keyword-only)
@@ -1703,7 +1703,7 @@ class Pln(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -2528,7 +2528,7 @@ class PlnPCAcollection:
 
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -2541,7 +2541,7 @@ class PlnPCAcollection:
         Parameters
         ----------
         nb_max_iteration : int, optional
-            The maximum number of iterations, by default 50000.
+            The maximum number of iterations, by default 400.
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
         tol : float, optional(keyword-only)
@@ -3058,7 +3058,7 @@ class PlnPCA(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -3830,7 +3830,7 @@ class ZIPln(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_iteration: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
