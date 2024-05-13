@@ -446,8 +446,9 @@ class _model(ABC):
         self._handle_optimizer(lr, nb_max_iteration)
         stop_condition = False
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
+        nb_epoch_done = 0
 
-        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
+        while nb_epoch_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
             if abs(criterion) < tol:
@@ -458,6 +459,8 @@ class _model(ABC):
                     self._dict_mse[name_param].append(mse_param)
                 if verbose is True:
                     self._print_stats()
+            nb_epoch_done += 1
+            print("nb epoch done", nb_epoch_done)
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -536,8 +539,9 @@ class _model(ABC):
                 self._list_of_parameters_needing_gradient, lr=lr
             )
             wrns = "No criterion is computed here, the algorithm will stop "
-            warns += f"only after {nb_max_iteration}. You can monitor the norm "
-            warns += " of each parameter calling .show() method."
+            wrns += f"only after {nb_max_iteration}. You can monitor the norm "
+            wrns += " of each parameter calling .show() method."
+            warnings.warn(wrns)
         else:
             self.optim = torch.optim.Rprop(
                 self._list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
