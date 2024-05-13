@@ -85,20 +85,7 @@ if __name__ == "__main__":
     pln_running_times_rough_conv = []
     plnpca_running_times_rough_conv = []
     name_file = f"n_{n}_nbps_{len(ps_plnpca)}_p0_{p0}_pn_{pn}_ecart_{ecart}_rank_{rank}"
-    dict_rt = {
-        "Pln": {
-            "sharp": pln_running_times_sharp_conv,
-            "rough": pln_running_times_rough_conv,
-        },
-        "PlnPCA": {
-            "sharp": plnpca_running_times_sharp_conv,
-            "rough": plnpca_running_times_rough_conv,
-        },
-    }
-    sharp_tol = 0.001
-    rough_tol = 0.01
-    sharp_tol = 0.1
-    rough_tol = 0.5
+    dict_rt = {"Pln": [], "PlnPCA": []}
     if sharp_tol > rough_tol:
         raise ValueError("tols in the wrong order")
 
