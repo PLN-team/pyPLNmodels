@@ -446,8 +446,9 @@ class _model(ABC):
         self._handle_optimizer(lr, nb_max_iteration)
         stop_condition = False
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
+        nb_epoch_done = 0
 
-        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
+        while nb_epoch_done < nb_max_iteration and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
             if abs(criterion) < tol:
@@ -458,6 +459,7 @@ class _model(ABC):
                     self._dict_mse[name_param].append(mse_param)
                 if verbose is True:
                     self._print_stats()
+            nb_epoch_done += 1
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
@@ -510,10 +512,14 @@ class _model(ABC):
     def _display_norm(self, ax=None, label=None, color=None):
         if ax is None:
             _, ax = plt.subplots(1)
-        x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        x = self._criterion_args.running_times
         linestyles = {"coef": 0}
         for key, value in self._dict_mse.items():
-            ax.plot(x, value, label=key, color=color)
+            nb_points = len(value)
+            totake = np.linspace(0, len(x) - 1, nb_points).astype(int)
+            print("totake", totake)
+            ax.plot(np.array(x)[totake], value, label=key, color=color)
+        ax.set_xlabel("Time (seconds)")
         ax.legend()
         ax.set_title("Norm of each parameter.")
 
@@ -536,8 +542,9 @@ class _model(ABC):
                 self._list_of_parameters_needing_gradient, lr=lr
             )
             wrns = "No criterion is computed here, the algorithm will stop "
-            warns += f"only after {nb_max_iteration}. You can monitor the norm "
-            warns += " of each parameter calling .show() method."
+            wrns += f"only after {nb_max_iteration}. You can monitor the norm "
+            wrns += " of each parameter calling .show() method."
+            warnings.warn(wrns)
         else:
             self.optim = torch.optim.Rprop(
                 self._list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
@@ -962,9 +969,9 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            self._criterion_args._show_loss(ax=axes[2])
-            self._display_norm(ax=axes[1])
             self.display_covariance(ax=axes[0], display=False)
+            self._display_norm(ax=axes[1])
+            self._criterion_args._show_loss(ax=axes[2])
         else:
             self.display_covariance(ax=axes)
 

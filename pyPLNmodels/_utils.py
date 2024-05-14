@@ -105,7 +105,7 @@ class _CriterionArgs:
         last_elbos = np.round(self._elbos_list[-1], 6)
         ax.set_title(f"Negative ELBO. Best ELBO ={last_elbos}")
         ax.set_yscale("log")
-        ax.set_xlabel("Seconds")
+        ax.set_xlabel("Time(Seconds)")
         ax.set_ylabel("ELBO")
         ax.legend()
 
@@ -126,7 +126,7 @@ class _CriterionArgs:
             label="Delta",
         )
         ax.set_yscale("log")
-        ax.set_xlabel("Seconds")
+        ax.set_xlabel("Time (Seconds)")
         ax.set_ylabel("Delta")
         ax.set_title("Increments")
         ax.legend()

@@ -35,11 +35,21 @@ def append_running_times_model(Y, model_str):
     if model_str == "Pln":
         model = Pln(Y)
         model.fit(nb_max_iteration=2000)
+        model.show()
+        model_batch = Pln(Y, batch_size=batch_size)
+        model_batch.fit(nb_max_iteration=1500, verbose=True)
+        model_batch.show()
+        x
     else:
         model = PlnPCA(Y, rank=rank)
-        model.fit(nb_max_iteration=2000)
+        model.fit(nb_max_iteration=2000, tol=0)
+        model.show()
+        model_batch = PlnPCA(Y, batch_size=batch_size, rank=rank)
+        model_batch.fit(nb_max_iteration=1500, verbose=True, tol=0)
+        model_batch.show()
 
-    dict_rt[model_str].append(model._criterion_args.running_times[-1])
+    dict_rt[model_str]["batch"].append(model._criterion_args.running_times[-1])
+    dict_rt[model_str]["no batch"].append(model_batch._criterion_args.running_times[-1])
 
 
 def plot_dict(dict_rt, model_str):
@@ -53,20 +63,28 @@ def plot_dict(dict_rt, model_str):
         ps = ps_plnpca
         color = "orange"
     print("ps_pln:", ps_pln)
-    sns.lineplot(x=ps, y=dict_rt_model, color=color, label=f"{model_str}")
+    sns.lineplot(x=ps, y=dict_rt_model["batch"], color=color, label=f"{model_str}")
+    sns.lineplot(
+        x=ps,
+        y=dict_rt_model["no batch"],
+        color=color,
+        label=f"{model_str} batch",
+        linestyle="--",
+    )
     plt.legend()
     plt.xlabel(r"Number of variables $p$")
-    plt.ylabel("Running times")
+    plt.ylabel("Running time")
 
 
 if __name__ == "__main__":
-    n = 200
+    n = 2000
+    batch_size = 100
     # p0 = 2500
     # pn = 14059
     # ecart = 300
     fig = plt.figure(figsize=(20, 10))
-    pmax_pln = 1500
-    pn = 2000
+    pmax_pln = 300
+    pn = 500
     ecart = 100
     rank = 40
     ps_pln = np.arange(100, pmax_pln, ecart)
@@ -74,13 +92,16 @@ if __name__ == "__main__":
     name_file = (
         f"n_{n}_nbps_{len(ps_plnpca)}_p0_{pmax_pln}_pn_{pn}_ecart_{ecart}_rank_{rank}"
     )
-    dict_rt = {"Pln": [], "PlnPCA": []}
+    dict_rt = {
+        "Pln": {"batch": [], "no batch": []},
+        "PlnPCA": {"batch": [], "no batch": []},
+    }
 
     if True:
         # if exists(name_file) is False:
         for p in tqdm(ps_plnpca):
             print("dim:", p)
-            Y, _, _ = get_sc_mark_data(max_n=n, dim=p)
+            Y, _, labels = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_model(Y, "PlnPCA")
             if p < pmax_pln:
                 append_running_times_model(Y, "Pln")
