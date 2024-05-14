@@ -445,7 +445,7 @@ class _model(ABC):
         self._set_requiring_grad_true()
         self._handle_optimizer(lr, nb_max_iteration)
         stop_condition = False
-        self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
+        self._dict_mse = {name_model: [] for name_model in self._dict_parameters.keys()}
         nb_epoch_done = 0
 
         while nb_epoch_done < nb_max_iteration and not stop_condition:
@@ -454,7 +454,7 @@ class _model(ABC):
             if abs(criterion) < tol:
                 stop_condition = True
             if self.nb_epoch_done % 5 == 1:
-                for name_param, param in self.model_parameters.items():
+                for name_param, param in self._dict_parameters.items():
                     mse_param = 0 if param is None else mse(param).detach().item()
                     self._dict_mse[name_param].append(mse_param)
                 if verbose is True:
@@ -517,7 +517,6 @@ class _model(ABC):
         for key, value in self._dict_mse.items():
             nb_points = len(value)
             totake = np.linspace(0, len(x) - 1, nb_points).astype(int)
-            print("totake", totake)
             ax.plot(np.array(x)[totake], value, label=key, color=color)
         ax.set_xlabel("Time (seconds)")
         ax.legend()
