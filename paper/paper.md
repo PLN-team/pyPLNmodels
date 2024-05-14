@@ -45,14 +45,13 @@ The models can deal with offsets when needed. The main functionalities of the `p
 \item Normalize count data to obtain more valuable data
 \item Analyse the significance of each variable and their correlation
 \item Perform regression when covariates are available
-\item Reduce the number of features with the PLN-PCA model
+\item Reduce the number of features with PLN-PCA
 \item Visualize the normalized data
 \end{itemize}
 
 The package has been designed to efficiently process
-extensive datasets in a reasonable time. It incorporates GPU
-acceleration and employs stochastic optimization techniques to enhance
-computational efficiency and speed.
+extensive datasets in a reasonable time and incorporates GPU
+acceleration.
 
 
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
