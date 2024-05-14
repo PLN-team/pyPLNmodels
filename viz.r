@@ -11,6 +11,8 @@ modelnames = c("Pln", "PlnPCA")
 nb_N = 2
 get_df <- function(filename, modelname){
     df = read.csv(filename, header = TRUE, check.names = F)
+    print('one df')
+    print(df)
     df <- data.frame(df[,-1], check.names = F)
     df[,"Model"] = modelname
     return(df)

@@ -69,30 +69,32 @@ def dict_to_df(model_str):
 
 
 if __name__ == "__main__":
-    full, _, _ = get_sc_mark_data(max_n=1000, dim=1500)
-    full = np.flip(full, axis=1)
-    df = pd.DataFrame(full)
-    df.to_csv("full_scmark_little.csv")
+    # full, _, _ = get_sc_mark_data(max_n=1000, dim=1500)
+    # full = np.flip(full, axis=1)
+    # df = pd.DataFrame(full)
+    # df.to_csv("full_scmark_little.csv", index = False)
     df = pd.read_csv("full_scmark_little.csv")
 
-    ns = [300, 500]
+    ns = [100, 200]
     # p0 = 2500
     # pn = 14059
     # ecart = 300
     fig = plt.figure(figsize=(20, 10))
-    pmax_pln = 300
-    pn = 400
-    ecart = 100
+    pmin = 5
+    pn = 40
+    pmax_pln = 20
+    ecart = 5
     rank = 5
-    ps_pln = np.arange(100, pmax_pln, ecart)
+    ps_pln = np.arange(pmin, pmax_pln, ecart)
     ps_plnpca = np.concatenate((ps_pln, np.arange(pmax_pln, pn, ecart)))
+    print("ps plnpca", ps_plnpca)
     dict_rt = {
         "Pln": {n: [] for n in ns},
         "PlnPCA": {n: [] for n in ns},
     }
 
     for n in ns:
-        name_file = f"n_{n}_nbps_{len(ps_plnpca)}_p0_{pmax_pln}_pn_{pn}_ecart_{ecart}_rank_{rank}"
+        name_file = f"dump/n_{n}_nbps_{len(ps_plnpca)}_p0_{pmax_pln}_pn_{pn}_ecart_{ecart}_rank_{rank}"
         if False:
             # if exists(name_file) is False:
             for p in tqdm(ps_plnpca):
