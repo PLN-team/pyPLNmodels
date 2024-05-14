@@ -299,7 +299,6 @@ class _model(ABC):
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
-        plt.show()
         return ax
 
     def _project_parameters(self):

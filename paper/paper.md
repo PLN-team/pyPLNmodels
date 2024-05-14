@@ -56,11 +56,14 @@ acceleration.
 
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
 Component Analysis (PCA) is performed with the PLN-PCA model (left) and standard PCA on
-the log normalized data (right).  The data considered is the `scMARK` benchmark [@scMark] described in the
-benchmark section. We kept 1000 samples and 9 cell types for illustration purposes.
+the log normalized data (right). The data considered is the `scMARK` benchmark [@scMark] described in the
+benchmark section. We kept 1000 samples and 9 cell types for illustration
+purposes. The computational time for fitting PLN-PCA is 8 minutes, whereas
+standard PCA requires 2 seconds.
 
 
-![PLN-PCA (left) and standard PCA on log normalized data (right).](plnpca_vs_pca.png)
+![PLN-PCA (left) and standard PCA on log normalized data (right). The computational time for fitting PLN-PCA is 8 minutes, and seconds for
+standard PCA.](plnpca_vs_pca.png)
 
 # Statement of need
 While the R-package `PLNmodels` [@PLNmodels] implements PLN models, the python package

@@ -1,6 +1,7 @@
 from os.path import exists
 from pyPLNmodels import Pln, PlnPCA
 import numpy as np
+import pandas as pd
 import scanpy
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -41,28 +42,31 @@ def append_running_times_model(Y, model_str):
 def plot_dict(dict_rt, model_str):
     dict_rt_model = dict_rt[str(model_str)]
     if model_str == "Pln":
-        ps = ps_pln
         color = "blue"
     else:
-        ps = ps_plnpca
         color = "orange"
-    print("ps_pln:", ps_pln)
-    sns.lineplot(x=ps, y=dict_rt_model, color=color, label=f"{model_str}")
+    sns.lineplot(x=ps_plnpca, y=dict_rt_model, color=color, label=f"{model_str}")
     plt.legend()
     plt.xlabel(r"Number of variables $p$")
     plt.ylabel("Running time")
 
 
 if __name__ == "__main__":
-    n = 600
+    full, _, _ = get_sc_mark_data(max_n=1000, dim=1500)
+    full = np.flip(full, axis=1)
+    df = pd.DataFrame(full)
+    df.to_csv("full_scmark_little.csv")
+    df = pd.read_csv("full_scmark_little.csv")
+
+    n = 300
     # p0 = 2500
     # pn = 14059
     # ecart = 300
     fig = plt.figure(figsize=(20, 10))
-    pmax_pln = 1500
-    pn = 2000
+    pmax_pln = 500
+    pn = 700
     ecart = 100
-    rank = 40
+    rank = 5
     ps_pln = np.arange(100, pmax_pln, ecart)
     ps_plnpca = np.concatenate((ps_pln, np.arange(pmax_pln, pn, ecart)))
     name_file = (
@@ -76,17 +80,30 @@ if __name__ == "__main__":
     if True:
         # if exists(name_file) is False:
         for p in tqdm(ps_plnpca):
-            print("dim:", p)
-            Y, _, labels = get_sc_mark_data(max_n=n, dim=p)
+            Y = df.values[:n, :p]
+            # Y, _, labels = get_sc_mark_data(max_n=n, dim=p)
             append_running_times_model(Y, "PlnPCA")
             if p < pmax_pln:
                 append_running_times_model(Y, "Pln")
+            else:
+                dict_rt["Pln"].append(None)
+            print("dict_rt", dict_rt)
+
     else:
         with open(name_file, "rb") as fp:
             dict_rt = pickle.load(fp)
 
     with open(name_file, "wb") as fp:
         pickle.dump(dict_rt, fp)
+
+    df_results_pln = pd.DataFrame.from_dict(
+        {"Pln": dict_rt["Pln"]}, columns=ps_plnpca, orient="index"
+    )
+    df_results_plnpca = pd.DataFrame.from_dict(
+        {"PlnPCA": dict_rt["PlnPCA"]}, columns=ps_plnpca, orient="index"
+    )
+    df_results_pln.to_csv("csv_res_benchmark/python_pln.csv")
+    df_results_plnpca.to_csv("csv_res_benchmark/python_plnpca.csv")
     plot_dict(dict_rt, "Pln")
     plot_dict(dict_rt, "PlnPCA")
     plt.savefig(f"paper/illustration.png", format="png")
