@@ -474,7 +474,7 @@ def _get_simulation_components(dim: int, rank: int) -> torch.Tensor:
 
 
 def _get_simulation_coef_cov_offsets(
-    n_samples: int, nb_cov: int, dim: int, add_const: bool
+        n_samples: int, nb_cov: int, dim: int, add_const: bool, no_offsets: bool
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get offsets, covariates and regression coefficients with right shapes.
@@ -519,9 +519,12 @@ def _get_simulation_coef_cov_offsets(
         coef = None
     else:
         coef = torch.randn(covariates.shape[1], dim, device="cpu")
-    offsets = torch.randint(
-        low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
-    )
+    if no_offsets is True:
+        offsets = torch.zeros((n_samples, dim))
+    else:
+        offsets = torch.randint(
+            low=0, high=2, size=(n_samples, dim), dtype=torch.float64, device="cpu"
+        )
     torch.random.set_rng_state(prev_state)
     return coef, covariates, offsets
 
@@ -632,7 +635,7 @@ def _check_two_dimensions_are_equal(
 
 
 def get_simulation_parameters(
-    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5, add_const=True
+    n_samples: int = 100, dim: int = 25, nb_cov: int = 1, rank: int = 5, add_const=True, no_offsets = True
 ) -> Parameters:
     """
     Generate simulation parameters for a Poisson-lognormal model.
@@ -659,7 +662,7 @@ def get_simulation_parameters(
 
     """
     coef, covariates, offsets = _get_simulation_coef_cov_offsets(
-        n_samples, nb_cov, dim, add_const
+        n_samples, nb_cov, dim, add_const, no_offsets
     )
     components = _get_simulation_components(dim, rank)
     return Parameters(components, coef, covariates, offsets)
@@ -674,6 +677,8 @@ def get_simulated_count_data(
     seed: int = 0,
     distrib: str = "PLN",
     N_param: int = 1,
+    add_const = True,
+    no_offsets = True,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Get simulated count data from the PlnPCA model.
@@ -699,7 +704,7 @@ def get_simulated_count_data(
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         Tuple containing counts, covariates, and offsets.
     """
-    param = get_simulation_parameters(n_samples, dim, nb_cov, rank)
+    param = get_simulation_parameters(n_samples, dim, nb_cov, rank, add_const, no_offsets)
     counts = sample(
         param, seed=seed, return_latent=False, distrib=distrib, N_param=N_param
     )

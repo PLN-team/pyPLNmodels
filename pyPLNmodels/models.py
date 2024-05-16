@@ -11,7 +11,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import plotly.express as px
-from mlxtend.plotting import plot_pca_correlation_graph
 
 from ._closed_forms import (
     _closed_formula_coef,
@@ -37,6 +36,8 @@ from ._initialization import (
     _init_components,
     _init_coef,
     _init_latent_mean,
+    _MBinomialRegression,
+    _init_components_binomial_model,
 )
 
 if torch.cuda.is_available():
@@ -1627,6 +1628,27 @@ class BIGN(BIG):
             add_const=add_const,
         )
 
+    def _smart_init_model_parameters(self):
+        binreg = _MBinomialRegression(self._N_param)
+        binreg.fit(
+            self.counts.numpy(),
+            self.covariates.numpy(),
+            self.offsets.numpy(),
+        )
+        self.free_coef = torch.from_numpy(binreg._coef).double()
+
+        self._components = torch.from_numpy(_init_components_binomial_model(self.counts.numpy(), self.dim, self._N_param)).double()
+        self._ksi = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+
+    def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
+        self._latent_mean = torch.clone(self.covariates @ self.free_coef)
+        self._latent_sqrt_var = (
+            1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+        )
     @property
     def free_covariance(self):
         return self._components @ (self._components.T)
@@ -2753,6 +2775,7 @@ class PlnPCA(_model):
             1 / 2 * torch.ones((self.n_samples, self._rank)).to(DEVICE)
         )
         self._latent_mean = torch.ones((self.n_samples, self._rank)).to(DEVICE)
+
 
     def _smart_init_latent_parameters(self):
         """
