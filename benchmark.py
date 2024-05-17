@@ -1,4 +1,5 @@
 from os.path import exists
+import os
 from pyPLNmodels import Pln, PlnPCA
 import numpy as np
 import pandas as pd
@@ -8,6 +9,13 @@ import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 import pickle
 from tqdm import tqdm
+import torch
+
+
+if torch.cuda.is_available():
+    DEVICE = "GPU"
+else:
+    DEVICE = "cpu"
 
 
 def get_sc_mark_data(max_class=28, max_n=200, dim=100):
@@ -69,33 +77,56 @@ def dict_to_df(model_str):
 
 
 if __name__ == "__main__":
-    # full, _, _ = get_sc_mark_data(max_n=1000, dim=1500)
-    # full = np.flip(full, axis=1)
-    # df = pd.DataFrame(full)
-    # df.to_csv("full_scmark_little.csv", index = False)
-    df = pd.read_csv("full_scmark_little.csv")
+    # n_data, p_data = 2000,1500
+    # ns = [100, 1000,1500]
+    # pmin = 5
+    # pn_first = 100
+    # ecart_first = 50
+    # rank = 5
+    # ecart_second = 100
+    # pmax_pln = 300
+    # pn_second = pn_first + 300
 
-    ns = [100, 200]
-    # p0 = 2500
-    # pn = 14059
-    # ecart = 300
-    fig = plt.figure(figsize=(20, 10))
+    n_data, p_data = 20000, 15000
+    ns = [19000]
     pmin = 5
-    pn = 40
-    pmax_pln = 20
-    ecart = 5
+    pn_first = 100
+    ecart_first = 50
     rank = 5
-    ps_pln = np.arange(pmin, pmax_pln, ecart)
-    ps_plnpca = np.concatenate((ps_pln, np.arange(pmax_pln, pn, ecart)))
-    print("ps plnpca", ps_plnpca)
+    ecart_second = 2000
+    pmax_pln = 300
+    pn_second = 15000
+
+    if p_data == 15000:
+        namefile = "full_scmark.csv"
+    else:
+        namefile = "full_scmark_little.csv"
+    full, _, _ = get_sc_mark_data(max_n=n_data, dim=p_data)
+    full = np.flip(full, axis=1)
+    df = pd.DataFrame(full)
+    df.to_csv(namefile, index=False)
+    df = pd.read_csv(namefile)
+
+    fig = plt.figure(figsize=(20, 10))
+
+    ps_pln_first = np.arange(pmin, pn_first, ecart_first).astype(int)
+    ps_pln = np.concatenate(
+        (ps_pln_first, np.arange(pn_first, pmax_pln, ecart_second))
+    ).astype(int)
+    ps_plnpca = np.concatenate(
+        (ps_pln, np.arange(pn_first, pn_second, ecart_second))
+    ).astype(int)
+    print("ps_plnpca", ps_plnpca)
+
     dict_rt = {
         "Pln": {n: [] for n in ns},
         "PlnPCA": {n: [] for n in ns},
     }
 
     for n in ns:
-        name_file = f"dump/n_{n}_nbps_{len(ps_plnpca)}_p0_{pmax_pln}_pn_{pn}_ecart_{ecart}_rank_{rank}"
-        if False:
+        print("n:", n)
+        name_file = f"dump/n_{n}_nbps_{len(ps_plnpca)}_p0_{pmax_pln}_rank_{rank}"
+        if True:
             # if exists(name_file) is False:
             for p in tqdm(ps_plnpca):
                 Y = df.values[:n, :p]
@@ -105,7 +136,6 @@ if __name__ == "__main__":
                     append_running_times_model(Y, "Pln", n)
                 else:
                     dict_rt["Pln"][n].append(None)
-                print("dict_rt", dict_rt)
 
         else:
             with open(name_file, "rb") as fp:
@@ -119,8 +149,7 @@ if __name__ == "__main__":
     df_results_pln = dict_to_df("Pln")
     print("res pln", df_results_pln)
     df_results_plnpca = dict_to_df("PlnPCA")
-
-    df_results_pln.to_csv("csv_res_benchmark/python_pln.csv")
-    df_results_plnpca.to_csv("csv_res_benchmark/python_plnpca.csv")
+    df_results_pln.to_csv(f"csv_res_benchmark/python_pln_{DEVICE}.csv")
+    df_results_plnpca.to_csv(f"csv_res_benchmark/python_plnpca_{DEVICE}.csv")
     plt.savefig(f"paper/illustration.png", format="png")
     plt.show()
