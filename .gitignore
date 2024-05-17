@@ -174,3 +174,6 @@ viz_elbo.ipynb
 csv_computation/*
 elbos_res/*
 paper/paper.md
+
+dump/
+*.csv
