@@ -4,13 +4,18 @@ library(gridExtra)
 library(cowplot)
 
 
-file_pln = "csv_res_benchmark/python_pln.csv"
-file_plnpca = "csv_res_benchmark/python_plnpca.csv"
-filenames = c(file_pln,file_plnpca)
-modelnames = c("Pln", "PlnPCA")
+file_pln_python = "python_pln_cpu.csv"
+file_plnpca_python = "python_plnpca_cpu.csv"
+file_pln_r = "df_pln_r.csv"
+file_plnpca_r = "df_plnpca_r.csv"
+file_gllvm = "df_gllvm.csv"
+# filenames = c(file_pln_python, file_plnpca_python)
+# modelnames = c("Pln", "PlnPCA")
+filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
+modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
 nb_N = 2
 get_df <- function(filename, modelname){
-    df = read.csv(filename, header = TRUE, check.names = F)
+    df = read.csv(paste("csv_res_benchmark/",filename, sep = ""), header = TRUE, check.names = F)
     print('one df')
     print(df)
     df <- data.frame(df[,-1], check.names = F)
@@ -40,7 +45,7 @@ get_plot_i <- function(i){
     current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)")
 }
 
-pdf("plots_benchmark.pdf")
+pdf("paper/figures/plots_benchmark.pdf")
 print('y')
 print(df)
 plots <- list()
