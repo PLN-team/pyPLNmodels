@@ -9,11 +9,11 @@ file_plnpca_python = "python_plnpca_cpu.csv"
 file_pln_r = "df_pln_r.csv"
 file_plnpca_r = "df_plnpca_r.csv"
 file_gllvm = "df_gllvm.csv"
-# filenames = c(file_pln_python, file_plnpca_python)
-# modelnames = c("Pln", "PlnPCA")
-filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
-modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
-nb_N = 2
+filenames = c(file_pln_python, file_plnpca_python)
+modelnames = c("Pln", "PlnPCA")
+# filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
+# modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
+nb_N = 3
 get_df <- function(filename, modelname){
     df = read.csv(paste("csv_res_benchmark/",filename, sep = ""), header = TRUE, check.names = F)
     print('one df')
