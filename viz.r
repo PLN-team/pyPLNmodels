@@ -2,15 +2,19 @@ library(ggplot2)
 library(grid)
 library(gridExtra)
 library(cowplot)
+library(dplyr)
+library(naniar)
 
 
 file_pln_python = "python_pln_cpu.csv"
 file_plnpca_python = "python_plnpca_cpu.csv"
+file_pln_python_GPU = "python_pln_GPU.csv"
+file_plnpca_python_GPU = "python_plnpca_GPU.csv"
 file_pln_r = "df_pln_r.csv"
 file_plnpca_r = "df_plnpca_r.csv"
 file_gllvm = "df_gllvm.csv"
-filenames = c(file_pln_python, file_plnpca_python)
-modelnames = c("Pln", "PlnPCA")
+filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU)
+modelnames = c("Pln", "PlnPCA", "Pln-GPU", "PlnPCA-GPU")
 # filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
 # modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
 nb_N = 3
@@ -20,6 +24,9 @@ get_df <- function(filename, modelname){
     print(df)
     df <- data.frame(df[,-1], check.names = F)
     df[,"Model"] = modelname
+    # df <- df %>% replace_with_na(replace = list(x = 5000.))
+    df[df == 10001]  = NA
+    # replace(df, 10001, NA)
     return(df)
 }
 # ?read.csv
@@ -43,6 +50,7 @@ get_plot_i <- function(i){
     current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model))
     current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5)) + guides(fill = guide_legend(nrow = 1, byrow = TRUE))
     current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)")
+    current_plot <- current_plot + scale_y_log10()
 }
 
 pdf("paper/figures/plots_benchmark.pdf")

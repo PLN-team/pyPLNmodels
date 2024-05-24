@@ -1,9 +1,11 @@
 library(PLNmodels)
+install.packages("RcppGSL")
 library(gllvm)
+
 df <- read.csv("full_scmark_little.csv")
 
 ns = c(150,250)
-ps = c(10,20,30,50,100,200,300,500)
+ps = c(10,20,30,50)#,100,200,300,500)
 time_limit = 100
 
 
@@ -21,6 +23,9 @@ df_plnpca <- get_empty_df()
 df_plnpca$Model <- "RPLNPCA"
 df_gllvm <- get_empty_df()
 df_gllvm$Model <- "GLLVM"
+# other_df_gllvm <- read.table("csv_res_benchmark/df_gllvm.csv")
+# other_df_pln <-
+# other_df_plnpca <-
 
 
 RANK_GLL = 2

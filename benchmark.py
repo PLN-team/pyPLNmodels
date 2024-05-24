@@ -17,6 +17,8 @@ if torch.cuda.is_available():
 else:
     DEVICE = "cpu"
 
+print("device:", DEVICE)
+
 
 def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     data = scanpy.read_h5ad("2k_cell_per_study_10studies.h5ad")
@@ -29,28 +31,39 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100):
     GT_name = GT_name[filter]
     Y = Y[filter]
     GT = le.fit_transform(GT)
-    not_only_zeros = np.sum(Y, axis=0) > 0
-    Y = Y[:, not_only_zeros]
-    var = np.var(Y, axis=0)
-    most_variables = np.argsort(var)[-dim:]
-    Y = Y[:, most_variables]
+    # not_only_zeros = np.sum(Y, axis=0) > 0
+    # Y = Y[:, not_only_zeros]
+    # var = np.var(Y, axis=0)
+    # most_variables = np.argsort(var)[-dim:]
+    # Y = Y[:, most_variables]
+    Y = Y[:, :dim]
     return Y, GT, list(GT_name.values.__array__())
 
 
-def append_running_times_model(Y, model_str, n, time_limit, keep_going):
+def append_running_times_model(Y, model_str, n, time_limit, keep_going, p):
     if keep_going is True:
         if model_str == "Pln":
-            model = Pln(Y)
-            model.fit(nb_max_iteration=2000)
+            if p > 4500 and n > 10000:
+                to_append = time_limit + 1
+            else:
+                model = Pln(Y)
+                model.fit(nb_max_iteration=2000)
+                to_append = model._criterion_args.running_times[-1]
         else:
-            model = PlnPCA(Y, rank=rank)
-            model.fit(nb_max_iteration=2000)
+            if p > 12500 and n > 10000:
+                to_append = time_limit + 1
+            else:
+                model = PlnPCA(Y, rank=rank)
+                model.fit(nb_max_iteration=2000)
+                to_append = model._criterion_args.running_times[-1]
 
-        dict_rt[model_str][n].append(model._criterion_args.running_times[-1])
+        print("model:", model_str)
+        print("rt:", to_append)
+        dict_rt[model_str][n].append(to_append)
         if dict_rt[model_str][n][-1] > time_limit:
             keep_going = False
             print("Returning False")
-            print("time", model._criterion_args.running_times[-1])
+            print("time", None)
     else:
         dict_rt[model_str][n].append(None)
     return keep_going
@@ -86,48 +99,48 @@ def dict_to_df(model_str):
 
 
 if __name__ == "__main__":
-    n_data, p_data = 2000, 1500
-    ns = [100, 1000, 1500]
-
-    pmin = 5
-
-    pn_first = 100
-    ecart_first = 20
-
-    pn_second = 300
-    ecart_second = 100
-
-    pn_third = 1000
-    ecart_third = 200
-
-    time_limit = 15
-
-    ######
-
-    # n_data, p_data = 20000, 15000
-    # ns = [19000]
+    # n_data, p_data = 2000, 1500
+    # ns = [100, 1000, 1500]
 
     # pmin = 5
 
-    # pn_first = 200
-    # ecart_first = 5
+    # pn_first = 100
+    # ecart_first = 20
 
-    # pn_second = 2000
+    # pn_second = 300
     # ecart_second = 100
 
-    # pn_third = 16000
-    # ecart_third = 1000
+    # pn_third = 1000
+    # ecart_third = 200
 
-    # time_limit = 10000
+    # time_limit = 15
+
+    ######
+
+    n_data, p_data = 20000, 15000
+    ns = [100, 1000, 20000]
+
+    pmin = 10
+
+    pn_first = 200
+    ecart_first = 5
+
+    pn_second = 2000
+    ecart_second = 100
+
+    pn_third = 16000
+    ecart_third = 1000
+
+    time_limit = 10000
 
     if p_data == 15000:
         namefile = "full_scmark.csv"
     else:
         namefile = "full_scmark_little.csv"
-    # full, _, _ = get_sc_mark_data(max_n=n_data, dim=p_data)
+    full, _, _ = get_sc_mark_data(max_n=n_data, dim=p_data)
     # full = np.flip(full, axis=1)
-    # df = pd.DataFrame(full)
-    # df.to_csv(namefile, index=False)
+    df = pd.DataFrame(full)
+    df.to_csv(namefile, index=False)
 
     fig = plt.figure(figsize=(20, 10))
 
@@ -152,18 +165,18 @@ if __name__ == "__main__":
         print("n:", n)
         keep_going_pln = True
         keep_going_plnpca = True
-        name_file = f"dump/n_{n}_nbps_{len(ps_last)}_rank_{rank}"
-        if True:
-            # if exists(name_file) is False:
+        name_file = f"dump/n_{n}_nbps_{len(ps_last)}_rank_{rank}_device_{DEVICE}.dump"
+        # if True:
+        if exists(name_file) is False:
             for p in tqdm(ps_last):
+                print("p:", p)
                 Y = df.values[:n, :p]
                 # Y, _, labels = get_sc_mark_data(max_n=n, dim=p)
                 keep_going_plnpca = append_running_times_model(
-                    Y, "PlnPCA", n, time_limit, keep_going_plnpca
+                    Y, "PlnPCA", n, time_limit, keep_going_plnpca, p
                 )
-                print("keep going pln", keep_going_pln)
                 keep_going_pln = append_running_times_model(
-                    Y, "Pln", n, time_limit, keep_going_pln
+                    Y, "Pln", n, time_limit, keep_going_pln, p
                 )
                 keep_going_plnpca = True
         else:
@@ -173,12 +186,13 @@ if __name__ == "__main__":
         with open(name_file, "wb") as fp:
             pickle.dump(dict_rt, fp)
 
-    plot_dict(dict_rt, "Pln", ns)
-    plot_dict(dict_rt, "PlnPCA", ns)
     df_results_pln = dict_to_df("Pln")
     print("res pln", df_results_pln)
     df_results_plnpca = dict_to_df("PlnPCA")
+    print("res plnpca", df_results_plnpca)
     df_results_pln.to_csv(f"csv_res_benchmark/python_pln_{DEVICE}.csv")
     df_results_plnpca.to_csv(f"csv_res_benchmark/python_plnpca_{DEVICE}.csv")
+    plot_dict(dict_rt, "Pln", ns)
+    plot_dict(dict_rt, "PlnPCA", ns)
     plt.savefig(f"paper/illustration.png", format="png")
     plt.show()
