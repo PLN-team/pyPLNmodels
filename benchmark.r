@@ -1,12 +1,15 @@
 library(PLNmodels)
-install.packages("RcppGSL")
 library(gllvm)
 
-df <- read.csv("full_scmark_little.csv")
+df <- read.csv("full_scmark.csv")
 
-ns = c(150,250)
-ps = c(10,20,30,50)#,100,200,300,500)
-time_limit = 100
+ns = c(100,1000, 19998)
+# ps = c(10,20,30,50)#,100,200,300,500)
+ps = c(10    ,15    ,20    ,25    ,30    ,35    ,40    ,45    ,50    ,55    ,60    ,65 ,70    ,75    ,80    ,85    ,90    ,95   ,100   ,105   ,110   ,115   ,120   ,125 ,130   ,135   ,140   ,145   ,150   ,155   ,160   ,165   ,170   ,175   ,180   ,185 ,190   ,195   ,200   ,300   ,400   ,500   ,600   ,700   ,800   ,900  ,1000  ,1100 ,1200  ,1300  ,1400  ,1500  ,1600  ,1700  ,1800  ,1900  ,2000  ,3000  ,4000  ,5000 ,6000  ,7000  ,8000  ,9000 ,10000 ,11000 ,12000 ,13000 ,14000 ,14059)
+
+
+
+time_limit = 10000
 
 
 columns = c(ns,"dim")
@@ -36,6 +39,8 @@ get_pln_running_time <- function(n,p){
     covariates = rep(1,n)
     data = prepare_data(Y, covariates)
     pln = PLN("Abundance ~ 1", data)
+    print('rt')
+    print(difftime(Sys.time() , start, units = "secs")[[1]])
     return(difftime(Sys.time() , start, units = "secs")[[1]])
 }
 get_plnpca_running_time <- function(n,p){
@@ -45,6 +50,8 @@ get_plnpca_running_time <- function(n,p){
     covariates = rep(1,n)
     data = prepare_data(Y, covariates)
     pln = PLNPCA("Abundance ~ 1", data, ranks = RANK_PLN)
+    print('rt')
+    print(difftime(Sys.time() , start, units = "secs")[[1]])
     return(difftime(Sys.time() , start, units = "secs")[[1]])
 }
 
@@ -53,6 +60,8 @@ get_gllvm_running_time <- function(n,p){
     other_start = Sys.time()
     Y = as.matrix(df[1:n,1:p])
     gllvm(Y, family = "poisson", num.lv = RANK_GLL)
+    print('rt')
+    print(difftime(Sys.time() , start, units = "secs")[[1]])
     return(difftime(Sys.time() , start, units = "secs")[[1]])
 }
 
@@ -69,6 +78,8 @@ for (i in c(1:length(ns))){
         print('p:')
         print(p)
         if (keep_going_gll == TRUE){
+            print('model')
+            print('gllvm')
             rt_gllvm <- get_gllvm_running_time(n,p)
             if (rt_gllvm > time_limit){
                 keep_going_gll <- FALSE
@@ -82,6 +93,8 @@ for (i in c(1:length(ns))){
         df_gllvm[j,i] = rt_gllvm
 
         if (keep_going_plnpca == TRUE){
+            print('model')
+            print('plnpca')
             rt_plnpca <- get_plnpca_running_time(n,p)
             if (rt_plnpca > time_limit){
                 keep_going_plnpca <- FALSE
@@ -95,6 +108,8 @@ for (i in c(1:length(ns))){
 
 
         if (keep_going_pln == TRUE){
+            print('model')
+            print('pln')
             rt_pln <- get_pln_running_time(n,p)
             if (rt_pln > time_limit){
                 keep_going_pln <- FALSE
