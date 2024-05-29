@@ -60,6 +60,7 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     torch.Tensor
         Initialization of components of size (p,rank)
     """
+    t = time.time()
     log_y = torch.log(endog + (endog == 0) * math.exp(-2))
     max_dim = min(rank, endog.shape[0])
     pca = PCA(n_components=max_dim)
@@ -78,7 +79,7 @@ def _init_latent_mean(
     offsets: torch.Tensor,
     coef: torch.Tensor,
     components: torch.Tensor,
-    n_iter_max=500,
+    n_iter_max=40,
     lr=0.01,
     eps=7e-3,
 ) -> torch.Tensor:
@@ -99,7 +100,7 @@ def _init_latent_mean(
     components : torch.Tensor
         Components of size (p,rank)
     n_iter_max : int, optional
-        The maximum number of iterations in the gradient ascent. Default is 500.
+        The maximum number of iterations in the gradient ascent. Default is 40.
     lr : float, optional
         The learning rate of the optimizer. Default is 0.01.
     eps : float, optional
@@ -363,7 +364,7 @@ class _PoissonReg:
 
     Methods
     -------
-    fit(Y, exog, O, Niter_max=300, tol=0.001, lr=0.005, verbose=False)
+    fit(Y, exog, O, Niter_max=70, tol=0.001, lr=0.005, verbose=False)
         Fit the Poisson regression model to the given data.
 
     """
@@ -376,7 +377,7 @@ class _PoissonReg:
         Y: torch.Tensor,
         exog: torch.Tensor,
         offsets: torch.Tensor,
-        Niter_max: int = 300,
+        Niter_max: int = 70,
         tol: float = 0.001,
         lr: float = 0.005,
         verbose: bool = False,
@@ -393,7 +394,7 @@ class _PoissonReg:
         offsets : torch.Tensor
             The offset term of shape (n_samples, n_features).
         Niter_max : int, optional
-            The maximum number of iterations (default is 300).
+            The maximum number of iterations (default is 70).
         tol : float, optional
             The tolerance for convergence (default is 0.001).
         lr : float, optional

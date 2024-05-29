@@ -803,7 +803,7 @@ def _handle_data(
     samples_only_zeros = torch.sum(endog, axis=1) == 0
     if torch.sum(samples_only_zeros) > 0.5:
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
-        msg = "The following (index) counts contains only zeros and are removed."
+        msg = f"The ({len(samples)}) following (index) counts contains only zeros and are removed."
         msg += str(samples.numpy())
         msg += "You can access the samples that are non zeros with .useful_indices"
         warnings.warn(msg)
@@ -812,7 +812,7 @@ def _handle_data(
     dim_only_zeros = torch.sum(endog, axis=0) == 0
     if torch.sum(dim_only_zeros) > 0.5:
         dims = torch.arange(endog.shape[1])[dim_only_zeros]
-        msg = "The following (index) variables contains only zeros and are removed."
+        msg = f"The ({len(dims)}) following (index) variables contains only zeros and are removed."
         msg += str(dims.numpy())
         warnings.warn(msg)
         endog, exog, offsets = _remove_dims(endog, exog, offsets, dim_only_zeros)
