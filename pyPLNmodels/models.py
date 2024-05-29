@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import warnings
 import os
 from typing import Optional, Dict, List, Type, Any, Iterable, Union, Literal
+from tqdm import tqdm
 
 import pandas as pd
 import torch
@@ -25,6 +26,7 @@ from pyPLNmodels.elbos import (
     profiled_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
+    per_sample_elbo_plnpca,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -145,6 +147,7 @@ class _model(ABC):
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ):
         """
         Create a model instance from a formula and data.
@@ -164,6 +167,9 @@ class _model(ABC):
             The initialization dictionary. Defaults to None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the log of offsets. Defaults to False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         """
         endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
@@ -174,6 +180,7 @@ class _model(ABC):
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
+            batch_size=batch_size,
         )
 
     def _set_init_parameters(self, dict_initialization: dict):
@@ -218,18 +225,6 @@ class _model(ABC):
     @batch_size.setter
     def batch_size(self, batch_size: int):
         raise ValueError("Can not set the batch size.")
-
-    @property
-    def fitted(self) -> bool:
-        """
-        Whether the model is fitted.
-
-        Returns
-        -------
-        bool
-            True if the model is fitted, False otherwise.
-        """
-        return self._fitted
 
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
@@ -406,7 +401,7 @@ class _model(ABC):
 
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -418,8 +413,8 @@ class _model(ABC):
 
         Parameters
         ----------
-        nb_max_iteration : int, optional
-            The maximum number of iterations. Defaults to 50000.
+        nb_max_epoch : int, optional
+            The maximum number of epochs (iterations). Defaults to 400.
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         tol : float, optional(keyword-only)
@@ -427,14 +422,14 @@ class _model(ABC):
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
-            Whether to print training progress. Defaults to False.
+            Whether to print training progress.  Defaults to False.
         Raises
         ------
         ValueError
-            If 'nb_max_iteration' is not an int.
+            If 'nb_max_epoch' is not an int.
         """
-        if not isinstance(nb_max_iteration, int):
-            raise ValueError("The argument 'nb_max_iteration' should be an int.")
+        if not isinstance(nb_max_epoch, int):
+            raise ValueError("The argument 'nb_max_epoch' should be an int.")
         self._print_beginning_message()
         self._beginning_time = time.time()
         if self._fitted is False:
@@ -442,31 +437,59 @@ class _model(ABC):
         elif len(self._criterion_args.running_times) > 0:
             self._beginning_time -= self._criterion_args.running_times[-1]
         self._set_requiring_grad_true()
-        self._handle_optimizer(lr)
+        self._handle_optimizer(lr, nb_max_epoch)
         stop_condition = False
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
-
-        while self.nb_iteration_done < nb_max_iteration and not stop_condition:
+        nb_epoch_done = 0
+        pbar = tqdm(desc="Estimated remaining time", total=nb_max_epoch)
+        while nb_epoch_done < nb_max_epoch and not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
-
-            if abs(criterion) < tol:
+            if abs(criterion) < tol and self._onlyonebatch is True:
                 stop_condition = True
-            if self.nb_iteration_done % 50 == 1:
+            if nb_epoch_done % 25 == 0:
                 for name_param, param in self.model_parameters.items():
-                    mse_param = 0 if param is None else mse(param).detach()
+                    mse_param = 0 if param is None else mse(param).detach().item()
                     self._dict_mse[name_param].append(mse_param)
-                if verbose is True:
-                    self._print_stats()
+                if nb_epoch_done % 50 == 0 and verbose is True:
+                    self._print_stats(nb_epoch_done, nb_max_epoch, tol)
+            nb_epoch_done += 1
+            pbar.update(1)
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
-    def _handle_optimizer(self, lr):
+    @property
+    def fitted(self) -> bool:
+        """
+        Whether the model is fitted.
+
+        Returns
+        -------
+        bool
+            True if the model is fitted, False otherwise.
+        """
+        return self._fitted
+
+    def _display_norm(self, ax=None, label=None, color=None):
+        if ax is None:
+            _, ax = plt.subplots(1)
+        x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        for key, value in self._dict_mse.items():
+            ax.plot(x, value, label=key)
+        ax.legend()
+        ax.set_title("Norm of each parameter.")
+
+    def _handle_optimizer(self, lr, nb_max_epoch):
         if self.batch_size < self.n_samples:
             self.optim = torch.optim.Adam(
                 self._list_of_parameters_needing_gradient, lr=lr
             )
+            wrns = "No criterion for convergence is computed when batch_size < n_samples, the algorithm will stop "
+            wrns += f"only after {nb_max_epoch} iterations (epochs). You can monitor the norm "
+            wrns += " of each parameter calling .show() method after a fit. You can "
+            wrns += " also save the model by calling .save() and fit it again after."
+            warnings.warn(wrns)
         else:
             self.optim = torch.optim.Rprop(
                 self._list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
@@ -771,19 +794,30 @@ class _model(ABC):
             print(
                 "Maximum number of iterations reached : ",
                 self._criterion_args.iteration_number,
-                "last criterion = ",
+                ". Last criterion = ",
                 np.round(self._criterion_args.criterion_list[-1], 8),
+                f". Required tolerance = {tol}",
             )
 
-    def _print_stats(self):
+    def _print_stats(self, nb_epoch_done, nb_max_epoch, tol):
         """
         Print the training statistics.
         """
         print("-------UPDATE-------")
-        print("Iteration number: ", self._criterion_args.iteration_number)
-        print("Criterion: ", np.round(self._criterion_args.criterion_list[-1], 8))
+        print(
+            "Iteration ",
+            nb_epoch_done,
+            "out of ",
+            nb_max_epoch,
+            "iterations.",
+        )
+        msg_criterion = "Current criterion: " + str(
+            np.round(self._criterion_args.criterion_list[-1], 6)
+        )
+        if self._onlyonebatch is True:
+            msg_criterion += ". Stop if lower than " + str(tol)
+        print(msg_criterion)
         print("ELBO:", np.round(self._criterion_args._elbos_list[-1], 6))
-        print("loglike", self.loglike)
 
     def _update_criterion_args(self, loss):
         """
@@ -891,14 +925,9 @@ class _model(ABC):
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
-            for key, value in self._dict_mse.items():
-                axes[1].plot(x, value, label=key)
-            axes[1].legend()
-            axes[1].set_title("Norm of each parameter.")
             self._criterion_args._show_loss(ax=axes[2])
+            self._display_norm(ax=axes[1])
             self.display_covariance(ax=axes[0], display=False)
-
         else:
             self.display_covariance(ax=axes)
 
@@ -1614,6 +1643,7 @@ class Pln(_model):
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ):
         return super().from_formula(
             formula=formula,
@@ -1621,6 +1651,7 @@ class Pln(_model):
             offsets_formula=offsets_formula,
             dict_initialization=dict_initialization,
             take_log_offsets=take_log_offsets,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -1635,7 +1666,7 @@ class Pln(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -1643,7 +1674,7 @@ class Pln(_model):
         verbose: bool = False,
     ):
         super().fit(
-            nb_max_iteration,
+            nb_max_epoch,
             lr=lr,
             tol=tol,
             do_smart_init=do_smart_init,
@@ -2138,6 +2169,7 @@ class PlnPCAcollection:
         ranks: Iterable[int] = range(3, 5),
         dict_of_dict_initialization: Optional[dict] = None,
         take_log_offsets: bool = False,
+        batch_size: int = None,
     ) -> "PlnPCAcollection":
         """
         Create an instance of PlnPCAcollection from a formula.
@@ -2158,6 +2190,9 @@ class PlnPCAcollection:
             The dictionary of initialization, by default None.
         take_log_offsets : bool, optional(keyword-only)
             Whether to take the logarithm of offsets, by default False.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
 
         Returns
         -------
@@ -2183,6 +2218,7 @@ class PlnPCAcollection:
             dict_of_dict_initialization=dict_of_dict_initialization,
             take_log_offsets=take_log_offsets,
             add_const=False,
+            batch_size=batch_size,
         )
 
     @property
@@ -2455,7 +2491,7 @@ class PlnPCAcollection:
 
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -2467,8 +2503,8 @@ class PlnPCAcollection:
 
         Parameters
         ----------
-        nb_max_iteration : int, optional
-            The maximum number of iterations, by default 50000.
+        nb_max_epoch : int, optional
+            The maximum number of epochs (iterations), by default 400.
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
         tol : float, optional(keyword-only)
@@ -2484,7 +2520,7 @@ class PlnPCAcollection:
         for i in range(len(self.values())):
             model = self[self.ranks[i]]
             model.fit(
-                nb_max_iteration,
+                nb_max_epoch,
                 lr=lr,
                 tol=tol,
                 do_smart_init=do_smart_init,
@@ -2959,6 +2995,7 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
         return cls(
@@ -2969,6 +3006,7 @@ class PlnPCA(_model):
             rank=rank,
             dict_initialization=dict_initialization,
             add_const=False,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -2983,7 +3021,7 @@ class PlnPCA(_model):
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -2991,7 +3029,7 @@ class PlnPCA(_model):
         verbose: bool = False,
     ):
         super().fit(
-            nb_max_iteration,
+            nb_max_epoch,
             lr=lr,
             tol=tol,
             do_smart_init=do_smart_init,
@@ -3416,6 +3454,18 @@ class PlnPCA(_model):
             self._coef,
         )
 
+    @property
+    def _per_sample_elbo(self) -> torch.Tensor:
+        return per_sample_elbo_plnpca(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._components,
+            self._coef,
+        )
+
     @_add_doc(_model)
     def _random_init_model_parameters(self):
         super()._random_init_coef()
@@ -3658,6 +3708,7 @@ class ZIPln(_model):
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
         take_log_offsets: bool = False,
         use_closed_form_prob: bool = True,
+        batch_size: int = None,
     ):
         """
         Create a ZIPln instance from a formula and data.
@@ -3685,6 +3736,9 @@ class ZIPln(_model):
         use_closed_form_prob : bool, optional
             Whether or not use the closed formula for the latent probability.
             Default is True.
+        batch_size: int, optional(keyword-only)
+            The batch size when optimizing the elbo. If None,
+            batch gradient descent will be performed (i.e. batch_size = n_samples).
         Returns
         -------
         A ZIPln object
@@ -3730,6 +3784,7 @@ class ZIPln(_model):
             add_const=False,
             add_const_inflation=add_const_inflation,
             use_closed_form_prob=use_closed_form_prob,
+            batch_size=batch_size,
         )
 
     @_add_doc(
@@ -3744,13 +3799,13 @@ class ZIPln(_model):
         >>> from pyPLNmodels import ZIPln, load_scrna
         >>> data = load_scrna()
         >>> zi = ZIPln.from_formula("endog ~ 1", data)
-        >>> zi.fit( nb_max_iteration = 500, verbose = True)
+        >>> zi.fit( nb_max_epoch = 500, verbose = True)
         >>> print(zi)
         """,
     )
     def fit(
         self,
-        nb_max_iteration: int = 50000,
+        nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
         tol: float = 1e-3,
@@ -3758,7 +3813,7 @@ class ZIPln(_model):
         verbose: bool = False,
     ):
         super().fit(
-            nb_max_iteration,
+            nb_max_epoch,
             lr=lr,
             tol=tol,
             do_smart_init=do_smart_init,
@@ -3878,16 +3933,6 @@ class ZIPln(_model):
     @property
     def _covariance(self):
         return self._components @ (self._components.T)
-
-    @property
-    def closed_covariance(self):
-        return _closed_formula_covariance(
-            self._exog,
-            self._latent_mean,
-            self._latent_sqrt_var,
-            self._coef,
-            self.n_samples,
-        )
 
     def _get_max_components(self):
         """
