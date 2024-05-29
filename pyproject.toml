@@ -53,6 +53,7 @@ dependencies = [
 "scikit-learn",
 "patsy",
 "plotly",
+"tqdm",
 ]
 [project.optional-dependencies]
 tests = ["pytest","pytest_lazy_fixture"]
