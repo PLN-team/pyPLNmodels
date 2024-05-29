@@ -30,6 +30,7 @@ tests:
   only:
     - main
     - dev
+    - tags
 
 
 build_package:
