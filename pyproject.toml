@@ -52,7 +52,6 @@ dependencies = [
 "torch",
 "scikit-learn",
 "patsy",
-"plotly",
 "tqdm",
 ]
 [project.optional-dependencies]
