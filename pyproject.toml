@@ -53,7 +53,6 @@ dependencies = [
 "scikit-learn",
 "patsy",
 "tqdm",
-"pkg_resources",
 ]
 [project.optional-dependencies]
 tests = ["pytest","pytest_lazy_fixture"]
