@@ -65,3 +65,10 @@ Documentation = "https://bbatardiere.pages.mia.inra.fr/pyplnmodels"
 
 [tool.setuptools]
 py-modules = ["pyPLNmodels"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pyPLNmodels", "pyPLNmodels.*"]
+namespaces = false
+
+
