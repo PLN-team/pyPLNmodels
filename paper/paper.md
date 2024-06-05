@@ -63,7 +63,7 @@ standard PCA requires 2 seconds.
 
 
 ![PLN-PCA (left) and standard PCA on log normalized data (right). The computational time for fitting PLN-PCA is 8 minutes, and seconds for
-standard PCA.](plnpca_vs_pca.png)
+standard PCA.](figures/plnpca_vs_pca.png)
 
 # Statement of need
 While the R-package `PLNmodels` [@PLNmodels] implements PLN models, the python package
@@ -103,7 +103,7 @@ much faster.
 
 
 
-![Running time analysis on the scMARK benchmark.](illustration.png)
+![Running time analysis on the scMARK benchmark.](figures/illustration.png)
 
 # Mathematical description
 

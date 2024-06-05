@@ -4,6 +4,7 @@ library(gridExtra)
 library(cowplot)
 library(dplyr)
 library(naniar)
+library(latex2exp)
 
 
 file_pln_python = "python_pln_cpu.csv"
@@ -48,9 +49,9 @@ remove_legend <- function(myplot){
 
 get_plot_i <- function(i){
     current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model))
-    current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)")
+    current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)", x = TeX("Number of variables $p$"))
     current_plot <- current_plot + scale_y_log10()
-    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5)) + guides(fill = guide_legend(nrow = 7, byrow = FALSE))
+    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5),legend.text = element_text(size=8)) + guides(col = guide_legend(nrow = 1, byrow = FALSE, title = "")  )
 }
 
 pdf("paper/figures/plots_benchmark.pdf")
