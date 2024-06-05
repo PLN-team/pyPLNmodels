@@ -13,8 +13,8 @@ file_plnpca_python_GPU = "python_plnpca_GPU.csv"
 file_pln_r = "df_pln_r.csv"
 file_plnpca_r = "df_plnpca_r.csv"
 file_gllvm = "df_gllvm.csv"
-filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU)
-modelnames = c("Pln", "PlnPCA", "Pln-GPU", "PlnPCA-GPU")
+filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU, file_gllvm, file_pln_r, file_plnpca_r)
+modelnames = c("py-Pln-CPU", "py-PlnPCA-CPU", "py-Pln-GPU", "py-PlnPCA-GPU", "GLLVM", "R-Pln", "R-PlnPCA")
 # filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
 # modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
 nb_N = 3
@@ -48,9 +48,9 @@ remove_legend <- function(myplot){
 
 get_plot_i <- function(i){
     current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model))
-    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5)) + guides(fill = guide_legend(nrow = 1, byrow = TRUE))
     current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)")
     current_plot <- current_plot + scale_y_log10()
+    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5)) + guides(fill = guide_legend(nrow = 7, byrow = FALSE))
 }
 
 pdf("paper/figures/plots_benchmark.pdf")
