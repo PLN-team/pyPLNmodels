@@ -59,7 +59,6 @@ class _CriterionArgs:
         if self.iteration_number > 1:
             current_derivative = np.abs(
                 (self.normalized_elbo_list[-2] - self.normalized_elbo_list[-1])
-                / (self.running_times[-2] - self.running_times[-1])
             )
             old_derivative = self.new_derivative
             self.new_derivative = (
