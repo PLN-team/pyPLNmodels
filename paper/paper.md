@@ -58,8 +58,8 @@ To illustrate the main model's interest, we display below a visualization of the
 Component Analysis (PCA) is performed with the PLN-PCA model (left) and standard PCA on
 the log normalized data (right). The data considered is the `scMARK` benchmark [@scMark] described in the
 benchmark section. We kept 1000 samples and 9 cell types for illustration
-purposes. The computational time for fitting PLN-PCA is 8 minutes, whereas
-standard PCA requires 2 seconds.
+purposes. The computational time for fitting PLN-PCA is 5 minutes (on CPU), whereas
+standard PCA requires 0.7 seconds.
 
 
 ![PLN-PCA (left) and standard PCA on log normalized data (right). The computational time for fitting PLN-PCA is 8 minutes, and seconds for
@@ -103,7 +103,7 @@ much faster.
 
 
 
-![Running time analysis on the scMARK benchmark.](figures/illustration.png)
+![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 
 # Mathematical description
 
