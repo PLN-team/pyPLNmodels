@@ -91,15 +91,24 @@ practical computational limits.
 
 
 # Benchmark
-We fit PLN and PLN-PCA models with the `pyPLNmodels` package on the `scMARK` dataset, a benchmark
-for scRNA (sincle-cell Ribnonucleic acid ) data with
-$n=19998$ samples (cells) and 14059 features (gene expression). The cell type is given for each cell and can take 28 different values. We plot below the
-running times required to fit such models when the number of features (i.e.
-genes) grows. We used 60 Principal Components when fitting the PLN-PCA model. A tolerance must be set as stopping criterion when fitting each model. The running
-time required with the default tolerance is plot in solid line and a dotted line is plot with a relaxed tolerance. Note
-that the default tolerance ensures the model parameters have reached
-convergence but the relaxed one gives satisfying model parameters, while being
-much faster.
+We compare
+\begin{itemize}
+\item py-PLN-CPU (PLN fitted with `pyPLNmodels` on CPU)
+\item py-PLN-GPU (PLN fitted with `pyPLNmodels` on GPU)
+\item py-PLNPCA-CPU (PLN-PCA fitted with `pyPLNmodels` on CPU)
+\item py-PLNPCA-GPU (PLN-PCA fitted with `pyPLNmodels` on GPU)
+\item R-PLN (PLN fitted with `PLNmodels`, on CPU)
+\item R-PLNPCA (PLN-PCA fitted with `PLNmodels`, on CPU)
+\item GLLVM (on CPU)
+\end{itemize}
+on the `scMARK` dataset, a benchmark for scRNA data with
+$n=19998$ samples (cells) and 14059 features (gene expression).  We plot below the running times required to fit such models when the number of variables (i.e.
+genes) grows when $n = 100,1000, 19998$. We used $q =5$ when fitting each
+PLN-PCA model and the number of latent variables LV=$2$ for the `GLLVM` model.
+For each $n$,  we stop to fit each model as soon as the running time exceded $10000$ seconds. We did not run `GLLVM`
+for $n = 19998$ as the CPU run out of memory ($64$ GB RAM), as well as
+    `py-PLNPCA-GPU` when $n=19998$ and $p\geq 13000$ as the GPU run out of
+    memory ($24$ GB RAM).
 
 
 
@@ -140,8 +149,7 @@ Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\
 We infer the parameter $\theta$ by maximizing the bi-concave Evidence Lower BOund(ELBO):
 $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$
 where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq
-n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$. A
-stochastic optimization scheme is performed to scale to large datasets.
+n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$.
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent on giving

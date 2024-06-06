@@ -16,18 +16,21 @@ file_plnpca_r = "df_plnpca_r.csv"
 file_gllvm = "df_gllvm.csv"
 filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU, file_gllvm, file_pln_r, file_plnpca_r)
 modelnames = c("py-Pln-CPU", "py-PlnPCA-CPU", "py-Pln-GPU", "py-PlnPCA-GPU", "GLLVM", "R-Pln", "R-PlnPCA")
+###            GLLVM          pyplncpu         pyplngpu       pyplnpcaCPU      pyPLNPCAGPU  RPLN    RPLNPCA
+colors =     c("black",        "blue",          "blue",      "red",        "red",    "cornflowerblue", "firebrick")
+linestyles = c("solid",        "solid",        "dashed",     "solid",      "dashed",   "solid",   "solid")
 # filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
 # modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
+
+
 nb_N = 3
 get_df <- function(filename, modelname){
     df = read.csv(paste("csv_res_benchmark/",filename, sep = ""), header = TRUE, check.names = F)
+    df <- data.frame(df[,-1], check.names = F)
     print('one df')
     print(df)
-    df <- data.frame(df[,-1], check.names = F)
     df[,"Model"] = modelname
-    # df <- df %>% replace_with_na(replace = list(x = 5000.))
     df[df == 10001]  = NA
-    # replace(df, 10001, NA)
     return(df)
 }
 # ?read.csv
@@ -48,10 +51,11 @@ remove_legend <- function(myplot){
 
 
 get_plot_i <- function(i){
-    current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model))
+    current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model, linetype = Model))
     current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)", x = TeX("Number of variables $p$"))
     current_plot <- current_plot + scale_y_log10()
-    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5),legend.text = element_text(size=8)) + guides(col = guide_legend(nrow = 1, byrow = FALSE, title = "")  )
+    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5),legend.text = element_text(size=8)) + guides(col = guide_legend(nrow = 1, byrow = FALSE, title = ""), linetype =  guide_legend(nrow = 1, byrow = FALSE, title = "") )
+    current_plot <- current_plot + scale_color_manual(values=colors) + scale_linetype_manual(values=linestyles)
 }
 
 pdf("paper/figures/plots_benchmark.pdf")
