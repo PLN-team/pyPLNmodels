@@ -57,12 +57,11 @@ acceleration.
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
 Component Analysis (PCA) is performed with the PLN-PCA model (left) and standard PCA on
 the log normalized data (right). The data considered is the `scMARK` benchmark [@scMark] described in the
-benchmark section. We kept 1000 samples and 9 cell types for illustration
-purposes. The computational time for fitting PLN-PCA is 5 minutes (on CPU), whereas
-standard PCA requires 0.7 seconds.
+benchmark section. We kept 1000 samples for illustration
+purposes. The computational time for fitting PLN-PCA is 23 seconds (on GPU), whereas
+standard PCA requires 0.7 second.
 
-
-![PLN-PCA (left) and standard PCA on log normalized data (right). The computational time for fitting PLN-PCA is 8 minutes, and seconds for
+![PLN-PCA (left) and standard PCA on log normalized data (right). The computational time for fitting PLN-PCA is 23 seconds (on GPU), and 0.7 second for
 standard PCA.](figures/plnpca_vs_pca.png)
 
 # Statement of need
@@ -95,21 +94,20 @@ We compare
 \begin{itemize}
 \item py-PLN-CPU (PLN fitted with `pyPLNmodels` on CPU)
 \item py-PLN-GPU (PLN fitted with `pyPLNmodels` on GPU)
-\item py-PLNPCA-CPU (PLN-PCA fitted with `pyPLNmodels` on CPU)
-\item py-PLNPCA-GPU (PLN-PCA fitted with `pyPLNmodels` on GPU)
+\item py-PLN-PCA-CPU (PLN-PCA fitted with `pyPLNmodels` on CPU)
+\item py-PLN-PCA-GPU (PLN-PCA fitted with `pyPLNmodels` on GPU)
 \item R-PLN (PLN fitted with `PLNmodels`, on CPU)
-\item R-PLNPCA (PLN-PCA fitted with `PLNmodels`, on CPU)
+\item R-PLN-PCA (PLN-PCA fitted with `PLNmodels`, on CPU)
 \item GLLVM (on CPU)
 \end{itemize}
-on the `scMARK` dataset, a benchmark for scRNA data with
-$n=19998$ samples (cells) and 14059 features (gene expression).  We plot below the running times required to fit such models when the number of variables (i.e.
+on the `scMARK` dataset, a benchmark for scRNA data, with
+$n=19998$ cells (samples) and 14059 genes (variables) are available.  We plot below the running times required to fit such models when the number of variables (i.e.
 genes) grows when $n = 100,1000, 19998$. We used $q =5$ when fitting each
 PLN-PCA model and the number of latent variables LV=$2$ for the `GLLVM` model.
-For each $n$,  we stop to fit each model as soon as the running time exceded $10000$ seconds. We did not run `GLLVM`
-for $n = 19998$ as the CPU run out of memory ($64$ GB RAM), as well as
-    `py-PLNPCA-GPU` when $n=19998$ and $p\geq 13000$ as the GPU run out of
-    memory ($24$ GB RAM).
-
+For each model, the fitting process was halted if the running time exceeded
+10,000 seconds. We were unable to run `GLLVM` for $n = 19998$ due to CPU memory
+limitations (64 GB RAM). Similarly, `py-PLN-PCA-GPU` could not be run when
+$n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
 
 
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
@@ -146,7 +144,7 @@ Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\
 
 ## Inference
 
-We infer the parameter $\theta$ by maximizing the bi-concave Evidence Lower BOund(ELBO):
+We infer the parameter $\theta$ by maximizing in $(\theta, q)$ the following bi-concave Evidence Lower BOund(ELBO):
 $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$
 where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq
 n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$.
