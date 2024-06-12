@@ -33,6 +33,10 @@ suitable normalization and analysis of multivariate count data. It establishes
 implemented in the `pyPLNmodels` package introduced here.
 Possible fields of applications include
 \begin{itemize}
+
+Multivariate abundance data, consisting of observations of multiple interacting species from a set of samples, are often collected in ecological studies to characterize a community or assemblage of organisms.
+
+
 \item Ecology: Joint analysis of species abundances is a common task in ecology, whose goal is
 to understand the correlation between species given a matrix of abundances in different sites whose abundances are given by
 $$Y_{ij} = \text{number of species } j \text{ observed in site} i .$$
