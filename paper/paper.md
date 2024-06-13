@@ -32,16 +32,16 @@ suitable normalization and analysis of multivariate count data. It establishes
  patterns and dependency structures through a correlation matrix. Each model is
 implemented in the `pyPLNmodels` package introduced here.
 Possible fields of applications include
+<!-- Multivariate abundance data, consisting of observations of multiple interacting -->
+<!-- species from a set of samples, are often collected in ecological studies to -->
+<!-- characterize a community or assemblage of organisms. -->
+
 \begin{itemize}
-
-Multivariate abundance data, consisting of observations of multiple interacting species from a set of samples, are often collected in ecological studies to characterize a community or assemblage of organisms.
-
-
-\item Ecology: Joint analysis of species abundances is a common task in ecology, whose goal is
-to understand the correlation between species given a matrix of abundances in different sites whose abundances are given by
-$$Y_{ij} = \text{number of species } j \text{ observed in site} i .$$
-Specifically, it aims to establish
-potential dependencies, competitive interactions, and predatory dynamics.
+\item Ecology: Joint analysis of species abundances is a common task in
+ecology, whose goal is to understand the interaction between species to
+characterize a community, given a matrix of abundances in different sites with abundances given by
+$$Y_{ij} = \text{number of species } j \text{ observed in site } i .$$
+Specifically, it aims to establish potential dependencies, competitive interactions, and predatory dynamics.
 Additionally, the PLN models seek to explain the impact of covariates (when available), such as temperature, altitude, and other
   relevant factors, on the observed abundances.
 \item Genomics: High
@@ -51,7 +51,7 @@ chromatin and proteins) of humans, animals and plants. Single-cell RNA
 sequencing (scRNA-seq) is one of those and measure the expression of genes at the level of individual cells. For
 cell $i$ and gene $j$, the counts $Y_{ij}$ is given by
 $$Y_{ij} = \text{number of times gene } j \text{ is expressed in cell } i.$$
-One of the challenges with this type of data is managing the high
+One of the challenges with scRNA-seq data is managing the high
 dimensionality, necessitating variable reduction techniques adequate to count data.
 \end{itemize}
 The models can deal with offsets when needed. The main functionalities of the `pyPLNmodels` package are
@@ -88,8 +88,7 @@ standard PCA.](figures/plnpca_vs_pca.png)
 # Statement of need
 While the R-package `PLNmodels` [@PLNmodels] implements PLN models, the python package
 `pyPLNmodels` based on Pytorch [@Pytorch] has been built to handle
-large datasets of count data, such as scRNA (single-cell Ribonucleic acid)
-data. Real-world scRNA datasets typically involves thousands of cells ($n \approx 20000$) with
+large datasets of count data, such as scRNA-seq data. Real-world scRNA-seq datasets typically involves thousands of cells ($n \approx 20000$) with
 thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
 20000 \times 20000$. The package has GPU support for a better scalability.
 
@@ -135,8 +134,8 @@ $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 Each package uses variational inference, maximizing an Evidence
 Lower BOund(ELBO) approximating the log-likelihood of the model.
-```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a probit Generalized Linear
-Model(GLM), and two penalized probit GLM, while ```pyPLNmodels``` and
+```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a Negative Binomial (NB) Generalized Linear
+Model(GLM), and two penalized NB GLM coupled with a fixed-point algorithm, while ```pyPLNmodels``` and
 ```PLNmodels``` uses vanilla gradient ascent to maximize the ELBO.
 ```PLNmodels``` and ```GLLVM``` uses C++ backend while ```pyPLNmodels``` uses
 automatic differentiation from Pytorch to compute the gradients of the ELBO. Each
