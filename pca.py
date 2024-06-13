@@ -26,7 +26,7 @@ print("time took pca", time.time() - t)
 x = y_pca[:, 0]
 y = y_pca[:, 1]
 sns.scatterplot(x=x, y=y, ax=axes[1], hue=GT)
-axes[0].set_title("Principal Component Analysis with PlnPCA")
+axes[0].set_title("Principal Component Analysis with PLN-PCA")
 fontsize = 20
 axes[0].set_xlabel("PC1", fontsize=fontsize)
 axes[0].tick_params(axis="both", labelsize=fontsize - 5)
