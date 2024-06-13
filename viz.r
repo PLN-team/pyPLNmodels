@@ -15,7 +15,7 @@ file_pln_r = "df_pln_r.csv"
 file_plnpca_r = "df_plnpca_r.csv"
 file_gllvm = "df_gllvm.csv"
 filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU, file_gllvm, file_pln_r, file_plnpca_r)
-modelnames = c("py-Pln-CPU", "py-PlnPCA-CPU", "py-Pln-GPU", "py-PlnPCA-GPU", "GLLVM", "R-Pln", "R-PlnPCA")
+modelnames = c("py-PLN-CPU", "py-PLN-PCA-CPU", "py-PLN-GPU", "py-PLN-PCA-GPU", "GLLVM", "R-PLN", "R-PLN-PCA")
 ###            GLLVM          pyplncpu         pyplngpu       pyplnpcaCPU      pyPLNPCAGPU  RPLN    RPLNPCA
 colors =     c("black",        "blue",          "blue",      "red",        "red",    "cornflowerblue", "firebrick")
 linestyles = c("solid",        "solid",        "dashed",     "solid",      "dashed",   "solid",   "solid")
@@ -54,7 +54,7 @@ get_plot_i <- function(i){
     current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model, linetype = Model))
     current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)", x = TeX("Number of variables $p$"))
     current_plot <- current_plot + scale_y_log10()
-    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5),legend.text = element_text(size=8)) + guides(col = guide_legend(nrow = 1, byrow = FALSE, title = ""), linetype =  guide_legend(nrow = 1, byrow = FALSE, title = "") )
+    current_plot <- current_plot + theme_bw()+ theme(plot.title = element_text(hjust = 0.5),legend.text = element_text(size=7)) + guides(col = guide_legend(nrow = 1, byrow = FALSE, title = ""), linetype =  guide_legend(nrow = 1, byrow = FALSE, title = "") )
     current_plot <- current_plot + scale_color_manual(values=colors) + scale_linetype_manual(values=linestyles)
 }
 
