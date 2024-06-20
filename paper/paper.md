@@ -27,10 +27,12 @@ bibliography: paper.bib
 High dimensional count data are hard to analyse as is, and normalization must
 be performed but standard normalization does not fit to the characteristics of
 count data. The Poisson LogNormal(PLN)  [@PLN] and its Principal Component
-Analysis counterpart PLN-PCA [@PLNPCA] are two-sided models allowing both
-suitable normalization and analysis of multivariate count data. It establishes
- patterns and dependency structures through a correlation matrix. Each model is
-implemented in the `pyPLNmodels` package introduced here.
+Analysis variant PLN-PCA [@PLNPCA] are two-sided latent variable models allowing both
+suitable normalization and analysis of multivariate count data. The latent
+variable is structured as a multivariate Gaussian variable, modelling complex
+patterns and dependency structures. The PLN model is versatile and can be
+extended beyond PCA to accommodate other multivariate statistical tasks, such as Clustering, Linear
+Discriminant Analysis (LDA), and Network inference, described in [@PLNmodels].
 Possible fields of applications include
 <!-- Multivariate abundance data, consisting of observations of multiple interacting -->
 <!-- species from a set of samples, are often collected in ecological studies to -->
@@ -52,9 +54,10 @@ sequencing (scRNA-seq) is one of those and measure the expression of genes at th
 cell $i$ and gene $j$, the counts $Y_{ij}$ is given by
 $$Y_{ij} = \text{number of times gene } j \text{ is expressed in cell } i.$$
 One of the challenges with scRNA-seq data is managing the high
-dimensionality, necessitating variable reduction techniques adequate to count data.
+dimensionality, necessitating dimension reduction techniques adequate to count data.
 \end{itemize}
-The models can deal with offsets when needed. The main functionalities of the `pyPLNmodels` package are
+The PLN and PLN-PCA variants are implemented in the ```pyPLNmodels``` package
+introduced here whose main functionalities are
 \begin{itemize}
 \item Normalize count data to obtain more valuable data
 \item Analyse the significance of each variable and their correlation
@@ -62,13 +65,9 @@ The models can deal with offsets when needed. The main functionalities of the `p
 \item Reduce the number of features with PLN-PCA
 \item Visualize the normalized data
 \end{itemize}
-The PLN model is versatile and can be extended beyond PCA to accommodate other
-multivariate statistical tasks. These tasks include Clustering, Linear
-Discriminant Analysis, and Network inference, implemented (only) in the R-package ```PLNmodels```[^plnmodels] and described in [@PLNmodels].
-
 The ```pyPLNmodels```[^pyplnmodels]  package has been designed to efficiently process
 extensive datasets in a reasonable time and incorporates GPU
-acceleration.
+acceleration for a better scalability.
 
 
 [^pyplnmodels]: https://github.com/PLN-team/pyPLNmodels
@@ -86,48 +85,44 @@ standard PCA requires 0.7 second.
 standard PCA.](figures/plnpca_vs_pca.png)
 
 # Statement of need
-While the R-package `PLNmodels` [@PLNmodels] implements PLN models, the python package
-`pyPLNmodels` based on Pytorch [@Pytorch] has been built to handle
+While the R-package ```PLNmodels``` [@PLNmodels] implements PLN models (including the Clustering, LDA and Network inference variants), the python package
+```pyPLNmodels``` based on Pytorch [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA-seq data. Real-world scRNA-seq datasets typically involves thousands of cells ($n \approx 20000$) with
 thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
-20000 \times 20000$. The package has GPU support for a better scalability.
+20000 \times 20000$.
 
 The `statsmodels` [@statsmodels] python package allows to deal with count data
 thanks to the Generalized Linear Models `PoissonBayesMixedGLM` and
 `BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
 between features and performing Principal Component Analysis adequate to count data.
 
-The `gllvm` package [@GLLVM] offers a broader scope of modeling
+The `GLLVM` package [@GLLVM] offers a broader scope of modeling
 capabilities, enabling the incorporation of not
-only Poisson distribution but also Binomial or negative Binomial distributions,
+only Poisson distribution but also Binomial or Negative Binomial distributions,
 along with an additional zero-inflation component. However, its scalability is
 notably inferior to our proposed methodology. Our approach, specifically
 the PLN-PCA model, demonstrates superior scalability, effectively
 accommodating datasets with tens of thousands of variables, while the PLN model
 handles thousands of variables within a reasonable computational timeframe. In
-contrast, gllvm struggles to scale beyond a few hundred variables within
+contrast, ```GLLVM``` struggles to scale beyond a few hundred variables within
 practical computational limits.
 
 
 # Benchmark
 We compare
 \begin{itemize}
-\item py-PLN-CPU (PLN fitted with `pyPLNmodels` on CPU)
-\item py-PLN-GPU (PLN fitted with `pyPLNmodels` on GPU)
-\item py-PLN-PCA-CPU (PLN-PCA fitted with `pyPLNmodels` on CPU)
-\item py-PLN-PCA-GPU (PLN-PCA fitted with `pyPLNmodels` on GPU)
-\item R-PLN (PLN fitted with `PLNmodels`, on CPU)
-\item R-PLN-PCA (PLN-PCA fitted with `PLNmodels`, on CPU)
-\item GLLVM (on CPU)
+\item PLN and PLN-PCA variants fitted with  \verb|pyPLNmodels| on CPU and GPU
+\item PLN and PLN-PCA variants fitted with  \verb|PLNmodels| (on CPU)
+\item \verb|GLLVM| (on CPU)
 \end{itemize}
 on the `scMARK` dataset, a benchmark for scRNA data, with
 $n=19998$ cells (samples) and 14059 genes (variables) are available.
 We plot below the running times required to fit such models when the number of variables (i.e.
 genes) grows when $n = 100,1000, 19998$. We used $q =5$ Principal Components when fitting each
-PLN-PCA model and the number of latent variables LV=$2$ for the `GLLVM` model.
+PLN-PCA model and the number of latent variables LV=$2$ for the ```GLLVM``` model.
 For each model, the fitting process was halted if the running time exceeded
-10,000 seconds. We were unable to run `GLLVM` for $n = 19998$ due to CPU memory
-limitations (64 GB RAM). Similarly, `py-PLN-PCA-GPU` could not be run when
+10,000 seconds. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
+limitations (64 GB RAM). Similarly, ```py-PLN-PCA-GPU``` could not be run when
 $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
 
 
@@ -137,58 +132,27 @@ Lower BOund(ELBO) approximating the log-likelihood of the model.
 ```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a Negative Binomial (NB) Generalized Linear
 Model(GLM), and two penalized NB GLM coupled with a fixed-point algorithm, while ```pyPLNmodels``` and
 ```PLNmodels``` uses vanilla gradient ascent to maximize the ELBO.
-```PLNmodels``` and ```GLLVM``` uses C++ backend while ```pyPLNmodels``` uses
+```PLNmodels``` uses C++ backend along with ```nlopt```[@nlopt] optimization library.
+The backend of ```GLLVM``` is implemented in C++, while ```pyPLNmodels``` leverages the
 automatic differentiation from Pytorch to compute the gradients of the ELBO. Each
 PLN-PCA model is estimated using comparable variational inference methods.
 However, the variational approximation for the PLN model in the
 ```pyPLNmodels``` version is more efficient than its counterpart in
 ```PLNmodels```.
 
-<!-- # Mathematical description -->
-
-<!-- ## Models -->
-
-<!--  We introduce formally  the PLN [@PLN] and PLN-PCA [@PLNPCA] models. Let $n,p,d,q \in \mathbb N_{\star}^4$. We consider: -->
-<!-- \begin{itemize} -->
-<!-- \item $n$ samples $(i=1,\ldots,n)$ -->
-<!-- \item $p$ features $(j=1,\ldots,p)$ -->
-<!-- \item $n$ measures $X_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ : -->
-<!-- $X_{i h}=$ given covariate for sample $i$ -->
-<!-- \item $n$  counts $Y_i = (Y_{i j})_{1\leq j \leq p}$ -->
-<!-- \item $n$ offsets $O_i = (o_{ij})_{1\leq j\leq p}$ -->
-
-<!-- \end{itemize} -->
-<!-- We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i -->
-<!-- j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable -->
-<!-- $Z_{i} \in \mathbb R^{p}$ such that: -->
-<!-- \begin{equation}\label{model} -->
-<!-- \begin{array}{c} -->
-<!-- Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\ -->
-<!--  \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right), \\ -->
-<!-- \end{array} -->
-<!-- \end{equation} -->
-<!--  where $\beta \in \mathbb{R}^{d \times p}$ represents the unknown regression -->
-<!--  coefficients, and $C \in \mathbb{R}^{p \times q}$ denotes an unknown matrix, -->
-<!--  with $q \leq p$ is a hyperparameter. When $q < p$, the model -->
-<!--  corresponds to PLN-PCA. Conversely, when $q = p$, the model reverts to the -->
-<!--  standard PLN. The unknown (and -->
-<!--  identifiable) parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ corresponds to the covariance matrix of the gaussian component. -->
-
-<!-- # Inference -->
-
-<!-- We infer the parameter $\theta$ by maximizing in $(\theta, q)$ the following bi-concave Evidence Lower BOund(ELBO): -->
-<!-- $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$ -->
-<!-- where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq -->
-<!-- n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$. -->
 
 
-## Ongoing work
-A zero-inflated version of the PLN model is currently under development, with a preprint [@PLNzero] expected to be published in the near future.
+# Ongoing work
+A zero-inflated version of the PLN model is currently under development, with a
+preprint [@PLNzero] expected to be published in the near future.
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent on giving
-precious advices to build a proper python package. This work was
-supported by the French ANR SingleStatOmics.
+precious advices to build a proper python package.
+
+# Fundings
+Bastien Bartardière and Julien Chiquet are supported by
+the French ANR grant ANR-18-CE45-0023 Statistics and Machine Learning for Single Cell Genomics (SingleStatOmics).
 <!-- # Mathematics -->
 
 <!-- Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$ -->
@@ -230,4 +194,51 @@ supported by the French ANR SingleStatOmics.
 <!-- ![Caption for example figure.](figure.png){ width=20% } -->
 
 <!-- # Mathematical details -->
+<!-- Dire dans l'intro le versatile (et laisser l'ouverture pour plus tard) pas -->
+<!-- obligé que c'est implémenté dans Chiquet et al. Nlopt. Essayer de faire rentrer -->
+<!-- les images. -->
+<!-- Numéro de l'ANR. -->
+<!-- We compare pyPLNmodels with or without GPU, PLNmodels and ```GLLVM```. -->
+<!-- gllvm en gros ou en petit. Un item par package. -->
+<!-- Mettre tous les package en `````` -->
+
+
+<!-- # Mathematical description -->
+
+<!-- ## Models -->
+
+<!--  We introduce formally  the PLN [@PLN] and PLN-PCA [@PLNPCA] models. Let $n,p,d,q \in \mathbb N_{\star}^4$. We consider: -->
+<!-- \begin{itemize} -->
+<!-- \item $n$ samples $(i=1,\ldots,n)$ -->
+<!-- \item $p$ features $(j=1,\ldots,p)$ -->
+<!-- \item $n$ measures $X_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ : -->
+<!-- $X_{i h}=$ given covariate for sample $i$ -->
+<!-- \item $n$  counts $Y_i = (Y_{i j})_{1\leq j \leq p}$ -->
+<!-- \item $n$ offsets $O_i = (o_{ij})_{1\leq j\leq p}$ -->
+
+<!-- \end{itemize} -->
+<!-- We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i -->
+<!-- j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable -->
+<!-- $Z_{i} \in \mathbb R^{p}$ such that: -->
+<!-- \begin{equation}\label{model} -->
+<!-- \begin{array}{c} -->
+<!-- Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\ -->
+<!--  \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right), \\ -->
+<!-- \end{array} -->
+<!-- \end{equation} -->
+<!--  where $\beta \in \mathbb{R}^{d \times p}$ represents the unknown regression -->
+<!--  coefficients, and $C \in \mathbb{R}^{p \times q}$ denotes an unknown matrix, -->
+<!--  with $q \leq p$ is a hyperparameter. When $q < p$, the model -->
+<!--  corresponds to PLN-PCA. Conversely, when $q = p$, the model reverts to the -->
+<!--  standard PLN. The unknown (and -->
+<!--  identifiable) parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ corresponds to the covariance matrix of the gaussian component. -->
+
+<!-- # Inference -->
+
+<!-- We infer the parameter $\theta$ by maximizing in $(\theta, q)$ the following bi-concave Evidence Lower BOund(ELBO): -->
+<!-- $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$ -->
+<!-- where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq -->
+<!-- n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$. -->
+
+
 # References
