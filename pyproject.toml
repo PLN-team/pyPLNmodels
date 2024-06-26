@@ -53,6 +53,7 @@ dependencies = [
 "scikit-learn",
 "patsy",
 "tqdm",
+"statsmodels",
 ]
 [project.optional-dependencies]
 tests = ["pytest","pytest_lazy_fixture"]
@@ -70,5 +71,3 @@ include-package-data = true
 [tool.setuptools.packages.find]
 include = ["pyPLNmodels", "pyPLNmodels.*"]
 namespaces = false
-
-
