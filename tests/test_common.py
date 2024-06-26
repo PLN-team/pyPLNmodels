@@ -12,10 +12,8 @@ pln_and_plnpca = ["Pln", "PlnPCA"]
 single_models = ["Pln", "PlnPCA", "ZIPln"]
 
 
-# @pytest.mark.parametrize("any_model", dict_fixtures["loaded_and_fitted_model"])
-# @filter_models(single_models)
-@pytest.mark.parametrize("any_model", dict_fixtures["loaded_model"])
-@filter_models(["ZIPln"])
+@pytest.mark.parametrize("any_model", dict_fixtures["loaded_and_fitted_model"])
+@filter_models(single_models)
 def test_properties(any_model):
     assert hasattr(any_model, "latent_parameters")
     assert hasattr(any_model, "latent_variables")
@@ -25,7 +23,7 @@ def test_properties(any_model):
 
 @pytest.mark.parametrize("sim_model", dict_fixtures["loaded_and_fitted_model"])
 @filter_models(pln_and_plnpca)
-def test_predict_simulated(sim_model):
+def test_predict_simulated_and_summary(sim_model):
     if sim_model.nb_cov == 0:
         assert sim_model.predict() is None
         with pytest.raises(AttributeError):
@@ -35,6 +33,7 @@ def test_predict_simulated(sim_model):
         prediction = sim_model.predict(X)
         expected = X @ sim_model.coef
         assert torch.all(torch.eq(expected, prediction))
+    print(sim_model.summary(variable_number=2))
 
 
 @pytest.mark.parametrize("any_instance_model", dict_fixtures["instances"])
