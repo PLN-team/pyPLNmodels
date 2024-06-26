@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import matplotlib
 from scipy import stats
+from statsmodels.api import OLS
 
 from pyPLNmodels._closed_forms import (
     _closed_formula_coef,
@@ -458,6 +459,51 @@ class _model(ABC):
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
+
+    def summary(
+        self,
+        variable_number,
+        yname: str = None,
+        xname: list[str] = None,
+        title: str = None,
+        alpha: float = 0.05,
+        slim: bool = False,
+    ):
+        """
+        Summary from statsmodels on the latent variables.
+
+        parameters
+        ----------
+        yname : str, Optional
+            Name of endogenous (response) variable. The Default is y.
+        xname : str, Optional
+            Names for the exogenous variables. Default is var_## for ##
+            in the number of regressors.
+            Must match the number of parameters in the model.
+
+        title : str, Optional
+            Title for the top table. If not None, then this replaces the default title.
+        alpha : float, optional
+            The significance level for the confidence intervals.
+        slim: bool, Optional
+            Flag indicating to produce reduced set or diagnostic information. Default is False.
+        """
+        if self.exog is None:
+            print("No exog in the model, can not perform a summary.")
+        else:
+            ols = self._fit_ols(variable_number)
+            return ols.summary(
+                yname=yname, xname=xname, title=title, alpha=alpha, slim=slim
+            )
+
+    ## write docstrings on the summary function
+
+    def _fit_ols(self, variable_number):
+        return OLS(
+            self.latent_variables.numpy()[:, variable_number],
+            self.exog.numpy(),
+            hasconst=True,
+        ).fit()
 
     @property
     def fitted(self) -> bool:
@@ -4576,6 +4622,14 @@ class ZIPln(_model):
         """
         variables = self.latent_prob
         return self._viz_variables(variables, colors=colors, ax=ax, show_cov=False)
+
+    def _fit_ols(self, variable_number):
+        latent_variables, _ = self.latent_variables
+        return OLS(
+            latent_variables.numpy()[:, variable_number],
+            self.exog.numpy(),
+            hasconst=True,
+        ).fit()
 
 
 class Brute_ZIPln(ZIPln):

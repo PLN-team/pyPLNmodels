@@ -26,9 +26,9 @@ def load_microcosm(
     Parameters
     ----------
     n_samples : int, optional
-        Number of samples, by default max_samples.
+        Number of samples, by default 300.
     dim : int, optional
-        Dimension, by default max_dim.
+        Dimension, by default 200.
     get_affil: bool, optional (keyword-only)
         If True, will return the affiliations also. Default to False .
     cov_list: list, optional (keyword-only).
