@@ -405,7 +405,7 @@ class _model(ABC):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 5 * 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -419,7 +419,7 @@ class _model(ABC):
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         tol : float, optional(keyword-only)
-            The tolerance for convergence. Defaults to 1e-5.
+            The tolerance for convergence. Defaults to 5*1e-6.
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
@@ -1720,7 +1720,7 @@ class Pln(_model):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 5 * 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -2545,7 +2545,7 @@ class PlnPCAcollection:
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 5 * 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -2559,7 +2559,7 @@ class PlnPCAcollection:
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
         tol : float, optional(keyword-only)
-            The tolerance, by default 1e-5.
+            The tolerance, by default 5*1e-6.
         do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
@@ -3075,7 +3075,7 @@ class PlnPCA(_model):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 5 * 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -3859,7 +3859,7 @@ class ZIPln(_model):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 5 * 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
