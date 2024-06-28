@@ -535,6 +535,11 @@ class _model(ABC):
             wrns += f"only after {nb_max_epoch} iterations (epochs). You can monitor the norm "
             wrns += " of each parameter calling .show() method after a fit. You can "
             wrns += " also save the model by calling .save() and fit it again after."
+            wrns += (
+                "Also, the optimization with mini-batch has proven to be less stable "
+            )
+            wrns += "and lower than optimization with the full batch, even when the number of"
+            wrns += " samples is high."
             warnings.warn(wrns)
         else:
             self.optim = torch.optim.Rprop(
