@@ -64,10 +64,7 @@ class _CriterionArgs:
             self.new_derivative = (
                 self.new_derivative * (1 - BETA) + current_derivative * BETA
             )
-            current_hessian = np.abs(
-                (self.new_derivative - old_derivative)
-                / (self.running_times[-2] - self.running_times[-1])
-            )
+            current_hessian = np.abs(self.new_derivative - old_derivative)
             self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
             # self.criterion = np.abs((elbo - self.previous_elbo)/elbo)
             # self.previous_elbo = elbo
