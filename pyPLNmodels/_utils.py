@@ -526,6 +526,7 @@ def _extract_data_from_formula_with_infla(
     formula_infla = split_formula[1]
     try:
         exog_infla = dmatrix(formula_infla, data=data)
+        # print('names exog infla:', exog_infla.design_info.column_names)
     except PatsyError as err:
         msg = "Formula of exog infla did not work: {formula_infla}."
         msg += " Falling back to an intercept. Error from Patsy:"
@@ -559,6 +560,7 @@ def _extract_data_from_formula_no_infla(
     variables = dmatrices(formula, data=data)
     endog = variables[0]
     exog = variables[1]
+    # print('names exog :', exog.design_info.column_names)
     non_zero = exog.sum(axis=0) > 0
     exog = exog[:, non_zero]
 
