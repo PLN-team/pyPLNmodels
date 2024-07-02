@@ -235,6 +235,7 @@ class _model(ABC):
         ----------
         ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
+            If None, will display the plot.
         colors : Optional[np.ndarray], optional(keyword-only)
             The colors to use for plotting, by default None.
         show_cov: bool, Optional(keyword-only)
@@ -4619,6 +4620,7 @@ class ZIPln(_model):
         ----------
         ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
+            If None, will display the plot.
         colors : Optional[np.ndarray], optional(keyword-only)
             The colors to use for plotting, by default None.
         Raises
