@@ -3968,7 +3968,7 @@ class ZIPln(_model):
 
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = self._smart_device(
-                torch.randn(self.n_samples, self.dim)
+                torch.ones(self.n_samples, self.dim)
             )
         if not hasattr(self, "_latent_prob"):
             if self._use_closed_form_prob is False:
