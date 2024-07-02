@@ -295,13 +295,17 @@ class _model(ABC):
         y = proj_variables[:, 1]
         if ax is None:
             ax = plt.gca()
+            to_show = True
+        else:
+            to_show = False
         sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
-        plt.show()
+        if to_show is True:
+            plt.show()
         return ax
 
     def _project_parameters(self):
