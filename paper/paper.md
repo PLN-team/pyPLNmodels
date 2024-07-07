@@ -43,10 +43,8 @@ $$Y_{ij} = \text{number of species } j \text{ observed in site } i .$$
 Specifically, it aims to establish potential dependencies, competitive interactions, and predatory dynamics.
 Additionally, the PLN models seek to explain the impact of covariates (when available), such as temperature, altitude, and other
   relevant factors, on the observed abundances.
-\item Genomics: High
-throughput sequencing technologies now allow to quantify at the level of
-individual cells various measures from the genome (DNA, Ribonucleic Acid(RNA),
-chromatin and proteins) of humans, animals and plants. Single-cell RNA
+\item Genomics: High throughput sequencing technologies now allow to quantify at the level of
+individual cells various measures from the genome of humans, animals and plants. Single-cell Ribonucleic Acid
 sequencing (scRNA-seq) is one of those and measure the expression of genes at the level of individual cells. For
 cell $i$ and gene $j$, the counts $Y_{ij}$ is given by
 $$Y_{ij} = \text{number of times gene } j \text{ is expressed in cell } i.$$
