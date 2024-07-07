@@ -803,7 +803,7 @@ def _handle_data(
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
         msg = f"The ({len(samples)}) following (index) counts contains only zeros and are removed."
         msg += str(samples.numpy())
-        msg += "You can access the samples that are non zeros with .useful_indices"
+        msg += "\nYou can access the samples that are non zeros with .useful_indices"
         warnings.warn(msg)
         endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
         print(f"Now dataset of size {endog.shape}")
