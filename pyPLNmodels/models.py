@@ -28,6 +28,7 @@ from pyPLNmodels.elbos import (
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
     per_sample_elbo_plnpca,
+    _elbo_big_n,
 )
 from pyPLNmodels._utils import (
     _CriterionArgs,
@@ -4750,3 +4751,236 @@ class Brute_ZIPln(ZIPln):
         if self._use_closed_form_prob is True:
             return self.closed_formula_latent_prob.detach().cpu()
         return self._closed_formula_zero_grad_prob.detach().cpu()
+
+
+class BIG(Pln):
+    def compute_elbo(self):
+        """
+        Method for computing the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+        return _elbo_big_n(
+            self._endog,
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._covariance,
+            self._coef,
+            self._ksi,
+            1,
+        )
+
+    @property
+    def _coef(self):
+        """
+        Property representing the coefficients.
+
+        Returns
+        -------
+        torch.Tensor
+            The coefficients.
+        """
+        return _closed_formula_coef(self._exog, self._latent_mean)
+
+    @property
+    def _covariance(self):
+        """
+        Property representing the covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The covariance matrix or None.
+        """
+        return _closed_formula_covariance(
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._coef,
+            self.n_samples,
+        )
+
+    def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
+        self._random_init_latent_parameters()
+
+    def _random_init_latent_parameters(self):
+        """
+        Method for randomly initializing the latent parameters.
+        """
+        super()._random_init_latent_parameters()
+        if not hasattr(self, "_ksi"):
+            self._ksi = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    @property
+    def _list_of_parameters_needing_gradient(self):
+        """
+        Property representing the list of parameters needing gradient.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            The list of parameters needing gradient.
+        """
+        return [
+            self._ksi,
+            self._latent_mean,
+            self._latent_sqrt_var,
+        ]
+
+    def _smart_init_model_parameters(self):
+        ## closed form parameters
+        pass
+        # self._components = torch.randn(self.dim, self.dim).to(DEVICE)
+        # self.free_coef = torch.randn(self.nb_cov, self.dim).to(DEVICE)
+
+
+class BIGN(BIG):
+    def __init__(
+        self,
+        endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
+        N_param,
+        *,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        offsets_formula: {"zero", "logsum"} = "zero",
+        dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
+        add_const: bool = True,
+        batch_size: int = None,
+    ):
+        self._N_param = N_param
+        super().__init__(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            offsets_formula=offsets_formula,
+            dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
+            add_const=add_const,
+            batch_size=batch_size,
+        )
+
+    def _smart_init_model_parameters(self):
+        ## closed form parameters
+        pass
+        # binreg = _MBinomialRegression(self._N_param)
+        # binreg.fit(
+        #     self.endog.numpy(),
+        #     self.exog.numpy(),
+        #     self.offsets.numpy(),
+        # )
+        # self.free_coef = torch.from_numpy(binreg._coef).double()
+        # self._ksi = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    def _smart_init_latent_parameters(self):
+        """
+        Method for smartly initializing the latent parameters.
+        """
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            # we should do a poisson regression and initialise M with it
+            self._latent_mean = self._smart_device(
+                torch.logit(
+                    (
+                        self._endog
+                        + 0.5 * (self._endog == 0)
+                        - 0.5 * (self._endog == self._N_param)
+                    )
+                    / self._N_param
+                )
+            )
+        if not hasattr(self, "_ksi"):
+            self._ksi = torch.ones((self.n_samples, self.dim)).to(DEVICE)
+
+    def compute_elbo(self):
+        """
+        Method for computing the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+        return _elbo_big_n(
+            self._endog,
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self.covariance,
+            self.coef,
+            self._ksi,
+            self._N_param,
+        )
+
+    def _compute_elbo_b(self):
+        """
+        Method for computing the evidence lower bound (ELBO).
+
+        Returns
+        -------
+        torch.Tensor
+            The computed ELBO.
+        """
+        return _elbo_big_n(
+            self._endog,
+            self._exog,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self.covariance,
+            self.coef,
+            self._ksi,
+            self._N_param,
+        )
+
+    def gradient_M(self):
+        first = self._counts - self._N_param
+        MmoinsXB = self._latent_mean - self._covariates @ self.free_coef
+        second = -MmoinsXB @ (torch.inverse(self.free_covariance))
+        third = self._N_param / 2
+        f_ksi = -1 / (2 * self._ksi) * (torch.sigmoid(self._ksi) - 1 / 2)
+        fourth = self._N_param * 2 * f_ksi * self._latent_mean
+        return first + second + third + fourth
+
+    def gradient_S(self):
+        first = 1 / self._latent_sqrt_var
+        K = torch.multiply(
+            torch.full((self.n_samples, 1), 1.0),
+            torch.diag(torch.inverse(self.free_covariance)).unsqueeze(0),
+        )
+        sec = -self._latent_sqrt_var * K
+        f_ksi = -1 / (2 * self._ksi) * (torch.sigmoid(self._ksi) - 1 / 2)
+        third = self._N_param * 2 * f_ksi * self._latent_sqrt_var
+        return first + sec + third
+
+    def gradient_beta(self):
+        return (
+            -self._covariates.T
+            @ (self._covariates @ self.free_coef - self._latent_mean)
+            @ (torch.inverse(self.free_covariance))
+        )
+
+    def gradient_C(self):
+        deter = (
+            -self.n_samples
+            * torch.inverse(self._components @ (self._components.T))
+            @ self._components
+        )
+        omega = torch.inverse(self.free_covariance)
+        K = torch.sum(self._latent_sqrt_var**2, axis=0)
+        grad = omega @ torch.diag_embed(K) @ omega @ self._components
+        m_minus_xb = self._latent_mean - torch.mm(self._covariates, self.free_coef)
+        m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+        last = omega @ (m_moins_xb_outer) @ omega @ self._components
+        return deter + grad + last
+
+    def gradient_ksi(self):
+        return self._N_param * (
+            -1 / 2 + derivative_ksi(self._ksi, self._latent_mean, self._latent_sqrt_var)
+        )

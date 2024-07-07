@@ -6,6 +6,8 @@ from .models import (
     PlnPCA,
     ZIPln,
     Brute_ZIPln,
+    BIG,
+    BIGN,
 )  # pylint:disable=[C0114]
 from .oaks import load_oaks
 from .elbos import profiled_elbo_pln, elbo_plnpca, elbo_pln

@@ -6,6 +6,12 @@ import time
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import numpy as np
+import optax
+import jax.numpy as jnp
+from jax import grad
+from jax.scipy.special import logit
+from jax.scipy.stats.binom import logpmf
+from jax.nn import sigmoid
 
 
 if torch.cuda.is_available():
@@ -71,6 +77,41 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
         adding = np.random.randn(endog.shape[1], nb_missing) / rank
         pca_comp = np.concatenate((pca_comp, adding), axis=1)
     return torch.from_numpy(pca_comp)
+
+
+def _init_components_binomial_model(
+    endog: torch.Tensor, rank: int, n_trials: int
+) -> torch.Tensor:
+    """
+    Initialization for components for the Binomial PCA model. Get a first guess for covariance
+    that is easier to estimate and then takes the rank largest eigenvectors to get components.
+
+    Parameters
+    ----------
+    endog : torch.Tensor
+        Samples with size (n,p)
+    rank : int
+        The dimension of the latent space, i.e. the reduced dimension.
+    n_trials : int
+        The number of trials assumed in the Binomial model.
+
+    Returns
+    -------
+    torch.Tensor
+        Initialization of components of size (p,rank)
+    """
+    _endog = endog + (endog == 0) * math.exp(-2) - (endog == n_trials) * math.exp(-2)
+    normalized_y = _endog / n_trials
+    logit_y = logit(normalized_y)
+    max_dim = min(rank, endog.shape[0])
+    pca = PCA(n_components=max_dim)
+    pca.fit(logit_y)
+    pca_comp = pca.components_.T * np.sqrt(pca.explained_variance_)
+    if rank > max_dim:
+        nb_missing = rank - max_dim
+        adding = np.random.randn(endog.shape[1], nb_missing) / rank
+        pca_comp = np.concatenate((pca_comp, adding), axis=1)
+    return pca_comp
 
 
 def _init_latent_mean(
@@ -453,3 +494,90 @@ def compute_poissreg_log_like(
     """
     XB = torch.matmul(exog.unsqueeze(1), beta.unsqueeze(0)).squeeze()
     return torch.sum(-torch.exp(O + XB) + torch.multiply(Y, O + XB))
+
+
+class _MBinomialRegression:
+    """Multivariate Binomial Regression."""
+
+    def __init__(self, n_trials) -> None:
+        self._coef: Optional[jnp.ndarray] = None
+        self._n_trials = n_trials
+
+    def fit(
+        self,
+        endog: jnp.ndarray,
+        exog: jnp.ndarray,
+        offsets: jnp.ndarray,
+    ) -> None:
+        """
+        Fit the Poisson regression model to the given data.
+
+        Parameters
+        ----------
+        endog : jnp.ndarray
+            The dependent variable of shape (n_samples, n_features).
+        exog : jnp.ndarray
+            The exog of shape (n_samples, n_exog).
+        offsets : jnp.ndarray
+            The offset term of shape (n_samples, n_features).
+
+        """
+        n_iter_max = 300
+        tol = 0.001
+        coef = np.random.rand(exog.shape[1], endog.shape[1])
+        optim = optax.rprop(learning_rate=0.005)
+        dict_coef = {"coef": coef}
+        opt_state = optim.init(dict_coef)
+        i = 0
+        grad_norm = 2 * tol  # Criterion
+
+        def loss(dict_x):
+            return -_compute_binreg_loglike(
+                endog, offsets, exog, dict_x["coef"], self._n_trials
+            )
+
+        while i < n_iter_max and grad_norm > tol:
+            grads = grad(loss)(dict_coef)
+            updates, opt_state = optim.update(grads, opt_state)
+            dict_coef = optax.apply_updates(dict_coef, updates)
+            grad_norm = jnp.mean(grads["coef"] ** 2)
+            i += 1
+
+        self._coef = coef
+
+    @property
+    def coef(self):
+        """Coefficient of the Multivariate Binomial regression."""
+        return self.coef
+
+
+def _compute_binreg_loglike(
+    endog: torch.Tensor,
+    offsets: torch.Tensor,
+    exog: torch.Tensor,
+    coef: torch.Tensor,
+    n_trials: int,
+) -> jnp.ndarray:
+    """
+    Compute the log likelihood of a Poisson regression model.
+
+    Parameters
+    ----------
+    endog : torch.Tensor
+        The dependent variable of shape (n_samples, n_features).
+    offsets : torch.Tensor
+        The offset term of shape (n_samples, n_features).
+    exog : torch.Tensor
+        The exog of shape (n_samples, n_exog).
+    coef : torch.Tensor
+        The regression coefficients of shape (n_exog, n_features).
+
+    Returns
+    -------
+    torch.Tensor
+        The log likelihood of the Poisson regression model.
+
+    """
+    offsets_exog_coef = offsets + jnp.matmul(exog, coef)
+    jax_lpmf = logpmf(endog, n_trials, sigmoid(offsets_exog_coef))
+    return jnp.sum(jax_lpmf)

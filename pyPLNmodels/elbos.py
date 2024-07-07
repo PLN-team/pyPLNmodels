@@ -1,3 +1,5 @@
+import math
+
 import torch  # pylint:disable=[C0114]
 from pyPLNmodels._utils import _log_stirling, _trunc_log, _log1pexp
 from pyPLNmodels._closed_forms import _closed_formula_covariance, _closed_formula_coef
@@ -547,3 +549,80 @@ def elbo_brute_zipln_covariance(
     d = torch.sum(inside_d)
     elbo = a + b + c + d + e + logdet + n_samples * dim / 2
     return elbo / n_samples
+
+
+def _elbo_big_n(
+    counts: torch.Tensor,
+    covariates: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    covariance: torch.Tensor,
+    coef: torch.Tensor,
+    ksi: torch.Tensor,
+    N: int,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the Pln model.
+
+    Parameters:
+    ----------
+    counts : torch.Tensor
+        Counts with size (n, p).
+    covariates : torch.Tensor
+        Covariates with size (n, d).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_var : torch.Tensor
+        Variational parameter with size (n, p).
+    covariance : torch.Tensor
+        Model parameter with size (p, p).
+    coef : torch.Tensor
+        Model parameter with size (d, p).
+
+    Returns:
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound), of size one.
+    """
+    n_samples, dim = counts.shape
+    s_rond_s = torch.square(latent_sqrt_var)
+    if covariates is None:
+        XB = torch.zeros_like(counts)
+    else:
+        XB = covariates @ coef
+    m_minus_xb = latent_mean - XB
+    d_plus_minus_xb2 = (
+        torch.diag(torch.sum(s_rond_s, dim=0)) + m_minus_xb.T @ m_minus_xb
+    )
+
+    logPZ = (
+        -0.5
+        * n_samples
+        * (
+            torch.logdet(covariance)
+            + torch.trace(torch.inverse(covariance) @ d_plus_minus_xb2) / n_samples
+            + dim * math.log(2 * math.pi)
+        )
+    )
+
+    entropy = (
+        n_samples / 2 * dim * math.log(2 * math.pi)
+        + n_samples * dim / 2
+        + 0.5 * torch.sum(torch.log(s_rond_s))
+    )
+
+    logPY_given_Z = torch.sum((counts - N) * latent_mean) + N * 0.5 * torch.sum(
+        2 * torch.log(torch.sigmoid(ksi))
+        + latent_mean
+        - ksi
+        + (0.5 - torch.sigmoid(ksi))
+        / ksi
+        * (latent_mean**2 + latent_sqrt_var**2 - ksi**2)
+    )
+    log_constant = (
+        dim * _log_stirling(torch.tensor([N]))
+        - torch.sum(_log_stirling(counts))
+        - torch.sum(_log_stirling(N - counts))
+    )
+    elbo = logPY_given_Z + logPZ + entropy + log_constant
+    return elbo  # / n_samples
