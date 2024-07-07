@@ -34,9 +34,6 @@ patterns and dependency structures. The PLN model is versatile and can be
 extended beyond PCA to accommodate other multivariate statistical tasks, such as Clustering, Linear
 Discriminant Analysis (LDA), and Network inference, described in [@PLNmodels].
 Possible fields of applications include
-<!-- Multivariate abundance data, consisting of observations of multiple interacting -->
-<!-- species from a set of samples, are often collected in ecological studies to -->
-<!-- characterize a community or assemblage of organisms. -->
 
 \begin{itemize}
 \item Ecology: Joint analysis of species abundances is a common task in
@@ -153,92 +150,5 @@ precious advices to build a proper python package.
 # Fundings
 Bastien Bartardière and Julien Chiquet are supported by
 the French ANR grant ANR-18-CE45-0023 Statistics and Machine Learning for Single Cell Genomics (SingleStatOmics).
-<!-- # Mathematics -->
-
-<!-- Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$ -->
-
-<!-- Double dollars make self-standing equations: -->
-
-<!-- $$\Theta(x) = \left\{\begin{array}{l} -->
-<!-- 0\textrm{ if } x < 0\cr -->
-<!-- 1\textrm{ else} -->
-<!-- \end{array}\right.$$ -->
-
-<!-- You can also use plain \LaTeX for equations -->
-<!-- \begin{equation}\label{eq:fourier} -->
-<!-- \hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx -->
-<!-- \end{equation} -->
-<!-- and refer to \autoref{eq:fourier} from text. -->
-
-<!-- # Citations -->
-
-<!-- Citations to entries in paper.bib should be in -->
-<!-- [rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html) -->
-<!-- format. -->
-
-<!-- If you want to cite a software repository URL (e.g. something on GitHub without a preferred -->
-<!-- citation) then you can do it with the example BibTeX entry below for @fidgit. -->
-
-<!-- For a quick reference, the following citation commands can be used: -->
-<!-- - `@author:2001`  ->  "Author et al. (2001)" -->
-<!-- - `[@author:2001]` -> "(Author et al., 2001)" -->
-<!-- - `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)" -->
-
-<!-- # Figures -->
-
-<!-- Figures can be included like this: -->
-<!-- ![Caption for example figure.\label{fig:example}](figure.png) -->
-<!-- and referenced from text using \autoref{fig:example}. -->
-
-<!-- Figure sizes can be customized by adding an optional second parameter: -->
-<!-- ![Caption for example figure.](figure.png){ width=20% } -->
-
-<!-- # Mathematical details -->
-<!-- Dire dans l'intro le versatile (et laisser l'ouverture pour plus tard) pas -->
-<!-- obligé que c'est implémenté dans Chiquet et al. Nlopt. Essayer de faire rentrer -->
-<!-- les images. -->
-<!-- Numéro de l'ANR. -->
-<!-- We compare pyPLNmodels with or without GPU, PLNmodels and ```GLLVM```. -->
-<!-- gllvm en gros ou en petit. Un item par package. -->
-<!-- Mettre tous les package en `````` -->
-
-
-<!-- # Mathematical description -->
-
-<!-- ## Models -->
-
-<!--  We introduce formally  the PLN [@PLN] and PLN-PCA [@PLNPCA] models. Let $n,p,d,q \in \mathbb N_{\star}^4$. We consider: -->
-<!-- \begin{itemize} -->
-<!-- \item $n$ samples $(i=1,\ldots,n)$ -->
-<!-- \item $p$ features $(j=1,\ldots,p)$ -->
-<!-- \item $n$ measures $X_{i}=\left(x_{i h}\right)_{1 \leq h \leq d}$ : -->
-<!-- $X_{i h}=$ given covariate for sample $i$ -->
-<!-- \item $n$  counts $Y_i = (Y_{i j})_{1\leq j \leq p}$ -->
-<!-- \item $n$ offsets $O_i = (o_{ij})_{1\leq j\leq p}$ -->
-
-<!-- \end{itemize} -->
-<!-- We assume that for all ${1 \leq i \leq n}$, the observed abundances $\left(Y_{i -->
-<!-- j}\right)_{1 \leq j \leq p}$ are independent conditionally on a latent variable -->
-<!-- $Z_{i} \in \mathbb R^{p}$ such that: -->
-<!-- \begin{equation}\label{model} -->
-<!-- \begin{array}{c} -->
-<!-- Z_{i} \sim \mathcal N \left(\beta^{\top}X_i, CC^{\top} \right)  \\ -->
-<!--  \left(Y_{i j}  \mid Z_{i j} \right)  \sim \mathcal{P}\left(\exp \left(o_{i j} +Z_{i j}\right)\right), \\ -->
-<!-- \end{array} -->
-<!-- \end{equation} -->
-<!--  where $\beta \in \mathbb{R}^{d \times p}$ represents the unknown regression -->
-<!--  coefficients, and $C \in \mathbb{R}^{p \times q}$ denotes an unknown matrix, -->
-<!--  with $q \leq p$ is a hyperparameter. When $q < p$, the model -->
-<!--  corresponds to PLN-PCA. Conversely, when $q = p$, the model reverts to the -->
-<!--  standard PLN. The unknown (and -->
-<!--  identifiable) parameter is $\theta = (\Sigma,\beta)$, where $\Sigma = CC^{\top}$ corresponds to the covariance matrix of the gaussian component. -->
-
-<!-- # Inference -->
-
-<!-- We infer the parameter $\theta$ by maximizing in $(\theta, q)$ the following bi-concave Evidence Lower BOund(ELBO): -->
-<!-- $$J_Y(\theta, q) = \mathbb{E}_{q}\left[\log p_{\theta}(Y, Z)\right] -\mathbb{E}_{q}[\log q(Z)] \leq \log p_{\theta}(Y),$$ -->
-<!-- where $p_{\theta}$ is the model likelihood and $q=\left(q_i\right)_{1\leq i\leq -->
-<!-- n}$ is a variational parameter approximating the (unknown) law $Z\mid Y$. -->
-
 
 # References
