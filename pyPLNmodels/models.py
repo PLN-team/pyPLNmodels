@@ -299,7 +299,7 @@ class _model(ABC):
             to_show = True
         else:
             to_show = False
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
