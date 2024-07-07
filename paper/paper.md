@@ -10,7 +10,7 @@ tags:
 authors:
   - name: Bastien Batardiere
     orcid: 0009-0001-3960-7120
-    corresponding: true # (This is how to denote the corresponding author)
+    corresponding: true
     affiliation: 1
   - name: Joon Kwon
     affiliation: 1
@@ -60,7 +60,6 @@ introduced here whose main functionalities are
 \item Analyse the significance of each variable and their correlation
 \item Perform regression when covariates are available
 \item Reduce the number of features with PLN-PCA
-\item Visualize the normalized data
 \end{itemize}
 The ```pyPLNmodels```[^pyplnmodels]  package has been designed to efficiently process
 extensive datasets in a reasonable time and incorporates GPU
@@ -136,8 +135,6 @@ PLN-PCA model is estimated using comparable variational inference methods.
 However, the variational approximation for the PLN model in the
 ```pyPLNmodels``` version is more efficient than its counterpart in
 ```PLNmodels```.
-
-
 
 # Ongoing work
 A zero-inflated version of the PLN model is currently under development, with a
