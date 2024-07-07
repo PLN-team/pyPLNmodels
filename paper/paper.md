@@ -122,9 +122,10 @@ $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 Each package uses variational inference, maximizing an Evidence
 Lower BOund(ELBO) approximating the log-likelihood of the model.
-```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a Negative Binomial (NB) Generalized Linear
-Model(GLM), and two penalized NB GLM coupled with a fixed-point algorithm, while ```pyPLNmodels``` and
-```PLNmodels``` uses vanilla gradient ascent to maximize the ELBO.
+```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a
+Negative Binomial (NB) Generalized Linear Model(GLM), and two penalized NB GLM
+coupled with a fixed-point algorithm, while ```pyPLNmodels``` and
+```PLNmodels``` uses gradient ascent to maximize the ELBO.
 ```PLNmodels``` uses C++ backend along with ```nlopt```[@nlopt] optimization library.
 The backend of ```GLLVM``` is implemented in C++, while ```pyPLNmodels``` leverages the
 automatic differentiation from Pytorch to compute the gradients of the ELBO. Each
