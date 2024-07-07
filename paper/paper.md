@@ -77,11 +77,10 @@ benchmark section. We kept 1000 samples for illustration
 purposes. The computational time for fitting PLN-PCA is 23 seconds (on GPU), whereas
 standard PCA requires 0.7 second.
 
-![PLN-PCA (left) and standard PCA on log normalized data (right). The computational time for fitting PLN-PCA is 23 seconds (on GPU), and 0.7 second for
-standard PCA.](figures/plnpca_vs_pca.png)
+![PLN-PCA (left) and standard PCA on log normalized data (right).](figures/plnpca_vs_pca.png)
 
 # Statement of need
-While the R-package ```PLNmodels``` [@PLNmodels] implements PLN models (including the Clustering, LDA and Network inference variants), the python package
+While the R-package ```PLNmodels``` [@PLNmodels] implements PLN models (including some variants), the python package
 ```pyPLNmodels``` based on Pytorch [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA-seq data. Real-world scRNA-seq datasets typically involves thousands of cells ($n \approx 20000$) with
 thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
