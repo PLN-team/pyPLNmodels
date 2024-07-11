@@ -154,7 +154,7 @@ tests/ZIPln*
 slides/
 index.html
 
-paper/*
+# paper/*
 
 
 tests/docstrings_examples/*
@@ -167,13 +167,16 @@ results_simu/*
 
 
 results_computation/*
-figures/
+figures_zi/
 csv_data/*
 data_mahendra/*
 viz_elbo.ipynb
 csv_computation/*
 elbos_res/*
-paper/paper.md
-
+# paper/paper.md
+Rplots.pdf
+paper/media/
+paper/paper.jats
+paper/paper.pdf
 dump/
 *.csv
