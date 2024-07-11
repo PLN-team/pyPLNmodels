@@ -17,7 +17,7 @@ t = time.time()
 plnpca.fit(tol=0.001, verbose=True, nb_max_iteration=700)
 print("time took pln:", (time.time() - t) / 60)
 # plnpca.show()
-fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+fig, axes = plt.subplots(1, 2, figsize=(20, 13), layout="constrained")
 plnpca.viz(colors=GT, ax=axes[0])
 t = time.time()
 pca = PCA(n_components=2)
@@ -35,5 +35,22 @@ axes[1].set_xlabel("PC1", fontsize=fontsize)
 axes[1].tick_params(axis="both", labelsize=fontsize - 5)
 axes[1].set_ylabel("PC2", fontsize=fontsize)
 axes[1].set_title("Standard Principal Component Analysis")
-plt.savefig("paper/figures/plnpca_vs_pca_last.png", format="png")
+axes[0].get_legend().set_visible(False)
+
+handles, legend = axes[1].get_legend_handles_labels()
+axbox = axes[0].get_position()
+
+fig.legend(
+    handles,
+    legend,
+    ncol=5,
+    loc="lower center",
+    fontsize=14,
+    bbox_to_anchor=[0, axbox.y0 - 0.18, 1, 1],
+    bbox_transform=fig.transFigure,
+)
+
+axes[1].get_legend().set_visible(False)
+
+plt.savefig("paper/figures/plnpca_vs_pca_last.png", format="png", bbox_inches="tight")
 plt.show()
