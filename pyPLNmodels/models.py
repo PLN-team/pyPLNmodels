@@ -23,6 +23,7 @@ from pyPLNmodels._closed_forms import (
 )
 from pyPLNmodels.elbos import (
     elbo_plnpca,
+    elbo_pln,
     elbo_zi_pln,
     profiled_elbo_pln,
     elbo_brute_zipln_components,
@@ -464,6 +465,85 @@ class _model(ABC):
 
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
+
+    def fit_vem(
+        self,
+        nb_gradient_steps,
+        nb_max_epoch: int = 400,
+        *,
+        lr: float = 0.01,
+        tol: float = 1e-6,
+        do_smart_init: bool = True,
+        verbose: bool = False,
+    ):
+        if not isinstance(nb_max_epoch, int):
+            raise ValueError("The argument 'nb_max_epoch' should be an int.")
+        self._print_beginning_message()
+        self._beginning_time = time.time()
+        if self._fitted is False:
+            self._init_parameters(do_smart_init)
+        elif len(self._criterion_args.running_times) > 0:
+            self._beginning_time -= self._criterion_args.running_times[-1]
+        stop_condition = False
+        self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
+        nb_epoch_done = 0
+        if self._list_of_parameters_needing_gradient_m is not None:
+            self.optim_m = torch.optim.Rprop(
+                self._list_of_parameters_needing_gradient_m,
+                lr=lr,
+                step_sizes=(1e-10, 50),
+            )
+        self.optim_ve = torch.optim.Rprop(
+            self._list_of_parameters_needing_gradient_ve, lr=lr, step_sizes=(1e-10, 50)
+        )
+        pbar = tqdm(desc="Estimated remaining time", total=nb_max_epoch)
+        while nb_epoch_done < nb_max_epoch and not stop_condition:
+            loss = self._vem_trainstep(nb_gradient_steps)
+            criterion = self._update_criterion_args(loss)
+            if abs(criterion) < tol and self._onlyonebatch is True:
+                stop_condition = True
+            if nb_epoch_done % 25 == 0:
+                for name_param, param in self.model_parameters.items():
+                    mse_param = 0 if param is None else mse(param).detach().item()
+                    self._dict_mse[name_param].append(mse_param)
+                if nb_epoch_done % 50 == 0 and verbose is True:
+                    self._print_stats(nb_epoch_done, nb_max_epoch, tol)
+            nb_epoch_done += 1
+            pbar.update(1)
+
+        self._print_end_of_fitting_message(stop_condition, tol)
+        self._fitted = True
+
+    def _set_ve_grad_requiring(self, requiring: bool):
+        for parameter in self._list_of_parameters_needing_gradient_ve:
+            parameter.requires_grad_(requiring)
+
+    def _set_m_grad_requiring(self, requiring: bool):
+        if self._list_of_parameters_needing_gradient_m is not None:
+            for parameter in self._list_of_parameters_needing_gradient_m:
+                parameter.requires_grad_(requiring)
+
+    @property
+    def _list_of_parameters_needing_gradient_ve(self):
+        return [self._latent_mean, self._latent_sqrt_var]
+
+    def _vem_trainstep(self, nb_gradient_steps):
+        """
+        Perform a single pass of the data.
+
+        Returns
+        -------
+        torch.Tensor
+            The loss value.
+        """
+        elbo = 0
+        t = time.time()
+        self.mstep(nb_gradient_steps)
+        elbo = self.vestep(nb_gradient_steps)
+        if torch.sum(torch.isnan(elbo)):
+            print("There are nan in the loss:", loss)
+            raise ValueError("The ELBO contains nan values.")
+        return elbo.item()
 
     def summary(
         self,
@@ -1754,6 +1834,21 @@ class Pln(_model):
     def plot_expected_vs_true(self, ax=None, colors=None):
         super().plot_expected_vs_true(ax=ax, colors=colors)
 
+    def mstep(self, nb_gradient_steps):
+        pass
+
+    def vestep(self, nb_gradient_steps):
+        self._set_ve_grad_requiring(True)
+        cov = self.covariance
+        coef = self.coef
+        for i in range(nb_gradient_steps):
+            self.optim_ve.zero_grad()
+            loss = -self._compute_elbo_vem(cov, coef)
+            loss.backward()
+            self.optim_ve.step()
+        self._set_ve_grad_requiring(False)
+        return -loss
+
     @_add_doc(
         _model,
         example="""
@@ -2022,6 +2117,10 @@ class Pln(_model):
         return [self._latent_mean, self._latent_sqrt_var]
 
     @property
+    def _list_of_parameters_needing_gradient_m(self):
+        return None
+
+    @property
     @_add_doc(_model)
     def model_parameters(self) -> Dict[str, torch.Tensor]:
         return {"coef": self.coef, "covariance": self.covariance}
@@ -2062,6 +2161,17 @@ class Pln(_model):
     )
     def latent_variables(self):
         return self.latent_mean.detach()
+
+    def _compute_elbo_vem(self, cov, coef):
+        return elbo_pln(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            cov,
+            coef,
+        )
 
     @_add_doc(
         _model,
@@ -3109,6 +3219,29 @@ class PlnPCA(_model):
     def plot_expected_vs_true(self, ax=None, colors=None):
         super().plot_expected_vs_true(ax=ax, colors=colors)
 
+    @property
+    def _list_of_parameters_needing_gradient_m(self):
+        return [self._components, self._coef]
+
+    def mstep(self, nb_gradient_steps):
+        self._set_m_grad_requiring(True)
+        for i in range(nb_gradient_steps):
+            self.optim_m.zero_grad()
+            loss = -self._compute_elbo_vem()
+            loss.backward()
+            self.optim_m.step()
+        self._set_m_grad_requiring(False)
+
+    def vestep(self, nb_steps):
+        self._set_ve_grad_requiring(True)
+        for i in range(nb_steps):
+            self.optim_ve.zero_grad()
+            loss = -self._compute_elbo_vem()
+            loss.backward()
+            self.optim_ve.step()
+        self._set_ve_grad_requiring(False)
+        return -loss
+
     @_add_doc(
         _model,
         example="""
@@ -3497,6 +3630,9 @@ class PlnPCA(_model):
             self._components,
             self._coef,
         )
+
+    def _compute_elbo_vem(self):
+        return self.compute_elbo()
 
     @_add_doc(_model)
     def _compute_elbo_b(self) -> torch.Tensor:
