@@ -409,6 +409,7 @@ class _model(ABC):
     def fit(
         self,
         nb_max_epoch: int = 400,
+        max_time: int = 10,
         *,
         lr: float = 0.01,
         tol: float = 1e-6,
@@ -449,10 +450,11 @@ class _model(ABC):
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
         nb_epoch_done = 0
         pbar = tqdm(desc="Estimated remaining time", total=nb_max_epoch)
-        while nb_epoch_done < nb_max_epoch and not stop_condition:
+        while not stop_condition:
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
-            if abs(criterion) < tol and self._onlyonebatch is True:
+            # if abs(criterion) < tol and self._onlyonebatch is True:
+            if self.running_times[-1] > max_time:
                 stop_condition = True
             if nb_epoch_done % 25 == 0:
                 for name_param, param in self.model_parameters.items():
@@ -470,6 +472,7 @@ class _model(ABC):
         self,
         nb_gradient_steps,
         nb_max_epoch: int = 400,
+        max_time: int = 10,
         *,
         lr: float = 0.01,
         tol: float = 1e-6,
@@ -497,10 +500,11 @@ class _model(ABC):
             self._list_of_parameters_needing_gradient_ve, lr=lr, step_sizes=(1e-10, 50)
         )
         pbar = tqdm(desc="Estimated remaining time", total=nb_max_epoch)
-        while nb_epoch_done < nb_max_epoch and not stop_condition:
+        while not stop_condition:
             loss = self._vem_trainstep(nb_gradient_steps)
             criterion = self._update_criterion_args(loss)
-            if abs(criterion) < tol and self._onlyonebatch is True:
+            # if abs(criterion) < tol and self._onlyonebatch is True:
+            if self.running_times[-1] > max_time:
                 stop_condition = True
             if nb_epoch_done % 25 == 0:
                 for name_param, param in self.model_parameters.items():
@@ -543,7 +547,7 @@ class _model(ABC):
         if torch.sum(torch.isnan(elbo)):
             print("There are nan in the loss:", loss)
             raise ValueError("The ELBO contains nan values.")
-        return elbo.item()
+        return -elbo.item()
 
     def summary(
         self,
@@ -1092,6 +1096,10 @@ class _model(ABC):
             self._criterion_args._elbos_list.append(self.compute_elbo().item())
             self._criterion_args.running_times.append(time.time() - t0)
         return self.n_samples * self._elbos_list[-1]
+
+    @property
+    def running_times(self):
+        return self._criterion_args.running_times
 
     def compute_loglike(self):
         """
@@ -1803,6 +1811,7 @@ class Pln(_model):
     def fit(
         self,
         nb_max_epoch: int = 400,
+        max_time: int = 10,
         *,
         lr: float = 0.01,
         tol: float = 1e-6,
@@ -1811,6 +1820,7 @@ class Pln(_model):
     ):
         super().fit(
             nb_max_epoch,
+            max_time=max_time,
             lr=lr,
             tol=tol,
             do_smart_init=do_smart_init,
@@ -3188,6 +3198,7 @@ class PlnPCA(_model):
     def fit(
         self,
         nb_max_epoch: int = 400,
+        max_time: int = 10,
         *,
         lr: float = 0.01,
         tol: float = 1e-6,
@@ -3196,6 +3207,7 @@ class PlnPCA(_model):
     ):
         super().fit(
             nb_max_epoch,
+            max_time=max_time,
             lr=lr,
             tol=tol,
             do_smart_init=do_smart_init,
