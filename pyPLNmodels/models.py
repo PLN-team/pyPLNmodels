@@ -1855,6 +1855,7 @@ class Pln(_model):
             self.optim_ve.zero_grad()
             loss = -self._compute_elbo_vem(cov, coef)
             loss.backward()
+            self._update_criterion_args(loss.detach().item())
             self.optim_ve.step()
         self._set_ve_grad_requiring(False)
         return -loss
@@ -3241,6 +3242,7 @@ class PlnPCA(_model):
             self.optim_m.zero_grad()
             loss = -self._compute_elbo_vem()
             loss.backward()
+            self._update_criterion_args(loss.detach().item())
             self.optim_m.step()
         self._set_m_grad_requiring(False)
 
@@ -3250,6 +3252,7 @@ class PlnPCA(_model):
             self.optim_ve.zero_grad()
             loss = -self._compute_elbo_vem()
             loss.backward()
+            self._update_criterion_args(loss.detach().item())
             self.optim_ve.step()
         self._set_ve_grad_requiring(False)
         return -loss
