@@ -52,6 +52,35 @@ def profiled_elbo_pln(
     return elbo / n_samples
 
 
+def r_elbo_pln(
+    endog: torch.Tensor,
+    exog: Optional[torch.Tensor],
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    covariance: torch.Tensor,
+    coef: torch.Tensor,
+) -> torch.Tensor:
+    n_samples, dim = endog.shape
+    if exog is None:
+        XB = torch.zeros_like(endog)
+    else:
+        XB = exog @ coef
+    s2 = latent_sqrt_var**2
+    diag_s = torch.diag(torch.sum(s2, dim=0))
+    M = latent_mean - XB
+    Z = offsets + M + XB
+    A = torch.exp(Z + 0.5 * s2)
+    Omega = torch.inverse(covariance)
+
+    res = torch.sum(endog * Z - A + 0.5 * (torch.log(s2) - (M @ Omega) * M))
+    res -= 0.5 * torch.trace(Omega @ diag_s)
+    res += n_samples / 2 * torch.logdet(Omega)
+    res -= torch.sum(_log_stirling(endog))
+    res += n_samples * dim / 2
+    return res / n_samples
+
+
 def elbo_plnpca(
     endog: torch.Tensor,
     exog: torch.Tensor,
@@ -238,35 +267,6 @@ def elbo_pln(
     elbo -= torch.sum(_log_stirling(endog))
     elbo += n_samples * dim / 2
     return elbo / n_samples
-
-
-def r_elbo_pln(
-    endog: torch.Tensor,
-    exog: Optional[torch.Tensor],
-    offsets: torch.Tensor,
-    latent_mean: torch.Tensor,
-    latent_sqrt_var: torch.Tensor,
-    covariance: torch.Tensor,
-    coef: torch.Tensor,
-) -> torch.Tensor:
-    n_samples, dim = endog.shape
-    if exog is None:
-        XB = torch.zeros_like(endog)
-    else:
-        XB = exog @ coef
-    s2 = latent_sqrt_var**2
-    diag_s = torch.diag(torch.sum(s2, dim=0))
-    M = latent_mean - XB
-    Z = offsets + M + XB
-    A = torch.exp(Z + 0.5 * s2)
-    Omega = torch.inverse(covariance)
-
-    res = torch.sum(endog * Z - A + 0.5 * (torch.log(s2) - (M @ Omega) * M))
-    res -= 0.5 * torch.trace(Omega @ diag_s)
-    res += n_samples / 2 * torch.logdet(Omega)
-    res -= torch.sum(_log_stirling(endog))
-    res += n_samples * dim / 2
-    return res / n_samples
 
 
 ## pb with trunc_log

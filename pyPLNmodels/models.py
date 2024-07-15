@@ -26,6 +26,7 @@ from pyPLNmodels.elbos import (
     elbo_pln,
     elbo_zi_pln,
     profiled_elbo_pln,
+    r_elbo_pln,
     elbo_brute_zipln_components,
     elbo_brute_zipln_covariance,
     per_sample_elbo_plnpca,
@@ -2237,6 +2238,35 @@ class Pln(_model):
     @_add_doc(_model)
     def _list_of_parameters_needing_gradient(self):
         return [self._latent_mean, self._latent_sqrt_var]
+
+
+class Pln0(Pln):
+    @property
+    def _list_of_parameters_needing_gradient(self):
+        return [self.__coef, self._latent_mean, self._latent_sqrt_var]
+
+    def _compute_elbo_b(self) -> torch.Tensor:
+        print("heeeere")
+        elbo = r_elbo_pln(
+            self._endog,
+            self._exog,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_var,
+            self._covariance,
+            self.__coef,
+        )
+        return elbo
+
+    def _smart_init_model_parameters(self):
+        print("initializing")
+        self.__coef = _init_coef(self._endog, self._exog, self._offsets)
+
+    def _smart_init_latent_parameters(self):
+        print("smart init latent")
+        self._random_init_latent_sqrt_var()
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = torch.zeros(self._endog.shape[0], self._endog.shape[1])
 
 
 class PlnPCAcollection:
