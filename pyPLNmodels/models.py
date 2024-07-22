@@ -2246,7 +2246,6 @@ class Pln0(Pln):
         return [self.__coef, self._latent_mean, self._latent_sqrt_var]
 
     def _compute_elbo_b(self) -> torch.Tensor:
-        print("heeeere")
         elbo = r_elbo_pln(
             self._endog,
             self._exog,
