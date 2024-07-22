@@ -11,16 +11,16 @@ from jax import random
 import jax.numpy.linalg as LA
 from matplotlib.ticker import FormatStrFormatter
 
-max_time = 5
-nb_params = 3
-n_samples = 200
+max_time = 120
+nb_params = 15
+n_samples = 1000
 dim1 = 100
-dim2 = 200
+dim2 = 800
 nb_cov = 2
 latent_dim = 5
 nb_grad_steps = ["Singular", 10, 30]
 colors = ["red", "blue", "green", "orange"]
-nb_point = 200
+nb_point = 1000
 
 
 sns.color_palette("viridis")
@@ -69,7 +69,7 @@ def append_dict(dict_model):
                 np.linspace(0, len(model.running_times) - 1, nb_point)
             ):
                 i = int(i)
-                df = df.append(
+                dict_new = (
                     {
                         "model": model.__class__.__name__,
                         "dim": model.dim,
@@ -79,8 +79,9 @@ def append_dict(dict_model):
                         "time": model.running_times[i],
                         "absc": time_number,
                     },
-                    ignore_index=True,
                 )
+                new_df = pd.DataFrame.from_dict(dict_new)
+                df = pd.concat([df, new_df], ignore_index=True)
 
 
 def launch_dim(dim):
@@ -92,9 +93,9 @@ def launch_dim(dim):
 
 fig, all_axes = plt.subplots(2, figsize=(20, 10), layout="constrained")
 
-# launch_dim(dim1)
-# launch_dim(dim2)
-# df.to_csv("df.csv", index = False)
+launch_dim(dim1)
+launch_dim(dim2)
+df.to_csv("df.csv", index=False)
 
 df = pd.read_csv("df.csv").reset_index(drop=True)
 # df.loc[df["nb_grad_steps"] == '1',"nb_grad_steps"] = "Singular"
@@ -120,13 +121,13 @@ dict_axes = {
     dim2: {"PLN-PCA": all_axes[1]},
 }
 dict_bound = {
-    dim1: {"PLN-PCA": (0.1, 0.5)},
-    dim2: {"PLN-PCA": (0.1, 0.5)},
+    dim1: {"PLN-PCA": (0.1, 50)},
+    dim2: {"PLN-PCA": (0.1, 50)},
 }
 for dim in [dim1, dim2]:
     model = "PLN-PCA"
     df_ = df[(df["dim"] == dim) & (df["model"] == model)]
-    # print('df before:', df_)
+    print("df before:", df_)
     for integer in np.unique(df_["absc"]):
         wanted = df_["absc"] == integer
         df_.loc[wanted, "time"] = np.round(np.mean(df_[wanted]["time"]), 1)
@@ -135,6 +136,7 @@ for dim in [dim1, dim2]:
     )
     df_ = df_[wanted_absc]
     absc_unique = np.unique(df_["absc"])
+
     wanted_timepoint = (
         np.geomspace(max(np.min(absc_unique), 1), np.max(absc_unique), nb_points_final)
     ).astype(int)

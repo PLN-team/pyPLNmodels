@@ -11,15 +11,15 @@ from jax import random
 import jax.numpy.linalg as LA
 from matplotlib.ticker import FormatStrFormatter
 
-max_time = 2
-nb_params = 4
-n_samples = 400
+max_time = 20
+nb_params = 15
+n_samples = 1000
 dim1 = 100
-dim2 = 200
+dim2 = 800
 nb_cov = 2
 parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 colors = ["red", "blue", "green", "orange"]
-nb_point = 100
+nb_point = 300
 
 
 def fit_models(seed_param, dim):
@@ -48,14 +48,14 @@ def fit_models(seed_param, dim):
     exog = simulator.exog
     offsets = simulator.offsets
     for parametrization in parametrizations:
-        if parametrization == "0":
+        if parametrization == "uPLN-0":
             pln = Pln0(
                 np.asarray(counts),
                 exog=np.asarray(exog),
                 offsets=np.asarray(offsets),
                 add_const=False,
             )
-        elif parametrization == "PF":
+        elif parametrization == "uPLN-PF":
             pln = PlnPCA(
                 np.asarray(counts),
                 exog=np.asarray(exog),
@@ -63,7 +63,7 @@ def fit_models(seed_param, dim):
                 rank=dim,
                 add_const=False,
             )
-        else:
+        elif parametrization == "Profiled":
             pln = Pln(
                 np.asarray(counts),
                 exog=np.asarray(exog),
@@ -108,6 +108,7 @@ def append_dict(dict_model):
 
 def launch_dim(dim):
     for seed_param in range(nb_params):
+        print("seed", seed_param)
         dict_plns = fit_models(seed_param, dim)
         dict_pcas = fit_models(seed_param, dim)
         append_dict(dict_plns)
@@ -116,13 +117,13 @@ def launch_dim(dim):
 
 fig, all_axes = plt.subplots(2, figsize=(20, 10), layout="constrained")
 
-launch_dim(dim1)
 launch_dim(dim2)
+launch_dim(dim1)
 df.to_csv("df_parametrization.csv", index=False)
 
 df = pd.read_csv("df_parametrization.csv").reset_index(drop=True)
 nb_point = np.max(np.unique(df["absc"]))
-nb_points_final = 10
+nb_points_final = 5
 
 parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 colors = sns.color_palette("viridis")
@@ -134,7 +135,7 @@ df.loc[df["parametrization"] == "PF", "parametrization"] = "uPLN-PF"
 
 dict_axes = {dim1: all_axes[0], dim2: all_axes[1]}
 
-dict_bound = {dim1: (0.0, 100), dim2: (0, 60)}
+dict_bound = {dim1: (0.0, 100), dim2: (0, 100)}
 for dim in [dim1, dim2]:
     df_ = df[df["dim"] == dim]
     for integer in np.unique(df_["absc"]):
@@ -153,14 +154,14 @@ for dim in [dim1, dim2]:
         np.geomspace(max(np.min(absc_unique), 1), np.max(absc_unique), nb_points_final)
     ).astype(int)
     df_ = df_[df_["absc"].isin(wanted_timepoint)]
-    print("df", df_)
+    print("df", df[df["dim"] == 800])
     sns.boxplot(
         x="time",
         y="elbo",
         data=df_,
         ax=dict_axes[dim],
         hue="parametrization",
-        linewidth=0.5,
+        linewidth=0.3,
         showfliers=False,
         palette=my_palette,
     )
@@ -178,6 +179,12 @@ dict_axes[dim2].set_ylabel("Negative ELBO")
 dict_axes[dim2].set_xlabel("Time (seconds)")
 
 dict_axes[dim2].legend().remove()
+
+dict_axes[dim1].tick_params(axis="both", which="major", labelsize=18)
+dict_axes[dim1].tick_params(axis="both", which="minor", labelsize=18)
+dict_axes[dim2].tick_params(axis="both", which="major", labelsize=18)
+dict_axes[dim2].tick_params(axis="both", which="minor", labelsize=18)
+
 
 handles, legend = all_axes[0].get_legend_handles_labels()
 axbox = all_axes[1].get_position()

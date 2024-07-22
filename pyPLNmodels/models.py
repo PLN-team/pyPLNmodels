@@ -416,6 +416,7 @@ class _model(ABC):
         tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
+        only_iter: bool = False,
     ):
         """
         Fit the model. The lower tol, the more accurate the model.
@@ -440,11 +441,11 @@ class _model(ABC):
         if not isinstance(nb_max_epoch, int):
             raise ValueError("The argument 'nb_max_epoch' should be an int.")
         self._print_beginning_message()
-        self._beginning_time = time.time()
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._criterion_args.running_times) > 0:
             self._beginning_time -= self._criterion_args.running_times[-1]
+        self._beginning_time = time.time()
         self._set_requiring_grad_true()
         self._handle_optimizer(lr, nb_max_epoch)
         stop_condition = False
@@ -455,7 +456,10 @@ class _model(ABC):
             loss = self._trainstep()
             criterion = self._update_criterion_args(loss)
             # if abs(criterion) < tol and self._onlyonebatch is True:
-            if self.running_times[-1] > max_time:
+            if only_iter is True:
+                if self.nb_iteration_done > nb_max_epoch:
+                    stop_condition = True
+            elif self.running_times[-1] > max_time:
                 stop_condition = True
             if nb_epoch_done % 25 == 0:
                 for name_param, param in self.model_parameters.items():
@@ -483,11 +487,11 @@ class _model(ABC):
         if not isinstance(nb_max_epoch, int):
             raise ValueError("The argument 'nb_max_epoch' should be an int.")
         self._print_beginning_message()
-        self._beginning_time = time.time()
         if self._fitted is False:
             self._init_parameters(do_smart_init)
         elif len(self._criterion_args.running_times) > 0:
             self._beginning_time -= self._criterion_args.running_times[-1]
+        self._beginning_time = time.time()
         stop_condition = False
         self._dict_mse = {name_model: [] for name_model in self.model_parameters.keys()}
         nb_epoch_done = 0
@@ -632,8 +636,8 @@ class _model(ABC):
             wrns += " samples is high."
             warnings.warn(wrns)
         else:
-            self.optim = torch.optim.Rprop(
-                self._list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
+            self.optim = self.optim_choice(
+                self._list_of_parameters_needing_gradient, lr=lr
             )
 
     def _get_batch(self, shuffle=False):
@@ -1752,7 +1756,9 @@ class Pln(_model):
         take_log_offsets: bool = False,
         add_const: bool = True,
         batch_size: int = None,
+        optim_choice=torch.optim.Rprop,
     ):
+        self.optim_choice = optim_choice
         super().__init__(
             endog=endog,
             exog=exog,
@@ -1818,6 +1824,7 @@ class Pln(_model):
         tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
+        only_iter: bool = False,
     ):
         super().fit(
             nb_max_epoch,
@@ -1826,6 +1833,7 @@ class Pln(_model):
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            only_iter=only_iter,
         )
 
     @_add_doc(
@@ -3160,8 +3168,10 @@ class PlnPCA(_model):
         take_log_offsets: bool = False,
         add_const: bool = True,
         batch_size: int = None,
+        optim_choice=torch.optim.Rprop,
     ):
         self._rank = rank
+        self.optim_choice = optim_choice
         super().__init__(
             endog=endog,
             exog=exog,
@@ -3234,6 +3244,7 @@ class PlnPCA(_model):
         tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
+        only_iter: bool = False,
     ):
         super().fit(
             nb_max_epoch,
@@ -3242,6 +3253,7 @@ class PlnPCA(_model):
             tol=tol,
             do_smart_init=do_smart_init,
             verbose=verbose,
+            only_iter=only_iter,
         )
 
     @_add_doc(
