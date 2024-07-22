@@ -23,8 +23,7 @@ nb_point = 100
 
 
 def fit_models(seed_param, dim):
-    data = load_scrna(n_samples=n_samples, dim=dim)
-    n_samples_ = data["endog"].shape[0]
+    n_samples_ = n_samples
     mydict = get_linear_params_and_additional_data(
         seed=seed_param,
         n_samples=n_samples,
@@ -40,10 +39,14 @@ def fit_models(seed_param, dim):
     simulator = PlnPCAsampler.from_dict(mydict)
     counts = simulator.sample(seed=0)
     dict_models = {}
-    counts = data["endog"]
-    exog = np.ones((n_samples_, 1))
-    offsets = np.zeros((n_samples_, dim))
-    print("offsets", offsets.shape)
+    # data = load_scrna(n_samples=n_samples, dim=dim)
+    # n_samples_ = data["endog"].shape[0]
+    # counts = data["endog"]
+    # exog = np.ones((n_samples_, 1))
+    # offsets = np.zeros((n_samples_, dim))
+    # counts = data["endog"]
+    exog = simulator.exog
+    offsets = simulator.offsets
     for parametrization in parametrizations:
         if parametrization == "0":
             pln = Pln0(
