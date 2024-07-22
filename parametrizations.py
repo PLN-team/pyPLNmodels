@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pyPLNmodels import Pln, PlnPCA, Pln0
+from pyPLNmodels import Pln, PlnPCA, Pln0, load_scrna
 import seaborn as sns
 from structpca import PlnPCAsampler, get_linear_params_and_additional_data
 from structpca.pca_sampling_parameters import get_block_components
@@ -11,18 +11,20 @@ from jax import random
 import jax.numpy.linalg as LA
 from matplotlib.ticker import FormatStrFormatter
 
-max_time = 60
-nb_params = 5
-n_samples = 1000
+max_time = 2
+nb_params = 4
+n_samples = 400
 dim1 = 100
-dim2 = 800
+dim2 = 200
 nb_cov = 2
 parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 colors = ["red", "blue", "green", "orange"]
-nb_point = 15
+nb_point = 100
 
 
 def fit_models(seed_param, dim):
+    data = load_scrna(n_samples=n_samples, dim=dim)
+    n_samples_ = data["endog"].shape[0]
     mydict = get_linear_params_and_additional_data(
         seed=seed_param,
         n_samples=n_samples,
@@ -38,31 +40,37 @@ def fit_models(seed_param, dim):
     simulator = PlnPCAsampler.from_dict(mydict)
     counts = simulator.sample(seed=0)
     dict_models = {}
+    counts = data["endog"]
+    exog = np.ones((n_samples_, 1))
+    offsets = np.zeros((n_samples_, dim))
+    print("offsets", offsets.shape)
     for parametrization in parametrizations:
         if parametrization == "0":
             pln = Pln0(
                 np.asarray(counts),
-                exog=np.asarray(simulator.exog),
-                offsets=np.asarray(simulator.offsets),
+                exog=np.asarray(exog),
+                offsets=np.asarray(offsets),
                 add_const=False,
             )
         elif parametrization == "PF":
             pln = PlnPCA(
                 np.asarray(counts),
-                exog=np.asarray(simulator.exog),
-                offsets=np.asarray(simulator.offsets),
+                exog=np.asarray(exog),
+                offsets=np.asarray(offsets),
                 rank=dim,
                 add_const=False,
             )
         else:
             pln = Pln(
                 np.asarray(counts),
-                exog=np.asarray(simulator.exog),
-                offsets=np.asarray(simulator.offsets),
+                exog=np.asarray(exog),
+                offsets=np.asarray(offsets),
                 add_const=False,
             )
         pln.seed = seed_param
-        pln.fit(max_time=max_time)
+        pln.fit(
+            max_time=max_time,
+        )
         dict_models[parametrization] = pln
     return dict_models
 
@@ -80,7 +88,7 @@ def append_dict(dict_model):
             np.linspace(0, len(model.running_times) - 1, nb_point)
         ):
             i = int(i)
-            df = df.append(
+            dict_new = (
                 {
                     "model": model.__class__.__name__,
                     "dim": model.dim,
@@ -90,8 +98,9 @@ def append_dict(dict_model):
                     "time": model.running_times[i],
                     "absc": time_number,
                 },
-                ignore_index=True,
             )
+            new_df = pd.DataFrame.from_dict(dict_new)
+            df = pd.concat([df, new_df], ignore_index=True)
 
 
 def launch_dim(dim):
@@ -110,7 +119,7 @@ df.to_csv("df_parametrization.csv", index=False)
 
 df = pd.read_csv("df_parametrization.csv").reset_index(drop=True)
 nb_point = np.max(np.unique(df["absc"]))
-nb_points_final = 5
+nb_points_final = 10
 
 parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 colors = sns.color_palette("viridis")
@@ -119,7 +128,6 @@ my_palette = {"Profiled": colors[5], "uPLN-0": colors[0], "uPLN-PF": colors[1]}
 df.loc[df["parametrization"] == "0", "parametrization"] = "uPLN-0"
 df.loc[df["parametrization"] == "profiled", "parametrization"] = "Profiled"
 df.loc[df["parametrization"] == "PF", "parametrization"] = "uPLN-PF"
-
 
 dict_axes = {dim1: all_axes[0], dim2: all_axes[1]}
 
@@ -142,6 +150,7 @@ for dim in [dim1, dim2]:
         np.geomspace(max(np.min(absc_unique), 1), np.max(absc_unique), nb_points_final)
     ).astype(int)
     df_ = df_[df_["absc"].isin(wanted_timepoint)]
+    print("df", df_)
     sns.boxplot(
         x="time",
         y="elbo",
