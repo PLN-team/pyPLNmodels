@@ -11,7 +11,7 @@ from jax import random
 import jax.numpy.linalg as LA
 from matplotlib.ticker import FormatStrFormatter
 
-max_time = 120
+max_time = (5, 5)
 nb_params = 15
 n_samples = 1000
 dim1 = 100
@@ -20,7 +20,7 @@ nb_cov = 2
 latent_dim = 5
 nb_grad_steps = ["Singular", 10, 30]
 colors = ["red", "blue", "green", "orange"]
-nb_point = 1000
+nb_point = 3000
 
 
 sns.color_palette("viridis")
@@ -47,10 +47,14 @@ def fit_models(model, seed_param, dim):
             add_const=False,
         )
         pln.seed = seed_param
-        if nb_grad_step == "Singular":
-            pln.fit(max_time=max_time)
+        if dim == dim1:
+            max_time_ = max_time[0]
         else:
-            pln.fit_vem(nb_gradient_steps=nb_grad_step, max_time=max_time)
+            max_time_ = max_time[1]
+        if nb_grad_step == "Singular":
+            pln.fit(max_time=max_time_)
+        else:
+            pln.fit_vem(nb_gradient_steps=nb_grad_step, max_time=max_time_)
         dict_models[nb_grad_step] = pln
     return dict_models
 
@@ -113,7 +117,7 @@ my_palette = {
 # my_palette = {nb_grad_steps[i]: colors[i] for i in range(4)}
 
 nb_point = np.max(np.unique(df["absc"]))
-nb_points_final = 12
+nb_points_final = 9
 
 
 dict_axes = {
@@ -121,13 +125,12 @@ dict_axes = {
     dim2: {"PLN-PCA": all_axes[1]},
 }
 dict_bound = {
-    dim1: {"PLN-PCA": (0.1, 50)},
-    dim2: {"PLN-PCA": (0.1, 50)},
+    dim1: {"PLN-PCA": (0.0, 0.6)},
+    dim2: {"PLN-PCA": (0.0, 0.6)},
 }
 for dim in [dim1, dim2]:
     model = "PLN-PCA"
     df_ = df[(df["dim"] == dim) & (df["model"] == model)]
-    print("df before:", df_)
     for integer in np.unique(df_["absc"]):
         wanted = df_["absc"] == integer
         df_.loc[wanted, "time"] = np.round(np.mean(df_[wanted]["time"]), 1)
@@ -141,16 +144,17 @@ for dim in [dim1, dim2]:
         np.geomspace(max(np.min(absc_unique), 1), np.max(absc_unique), nb_points_final)
     ).astype(int)
     df_ = df_[df_["absc"].isin(wanted_timepoint)]
-    print("unique", np.unique(df_["nb_grad_steps"]))
+    print("df before:", df_[df_["time"] == max(df_["time"])])
     sns.boxplot(
         x="time",
         y="elbo",
         data=df_,
         ax=dict_axes[dim][model],
         hue="nb_grad_steps",
-        linewidth=0.5,
+        linewidth=0.3,
         showfliers=False,
         palette=my_palette,
+        fill=True,
     )
 
 
@@ -197,8 +201,8 @@ fig.legend(
 
 # dict_axes[dim1]["PLN-PCA"].legend().remove()
 plt.savefig(
-    "/home/bastien/These/manuscript/tex/figures/intro/elbos.pdf",
-    format="pdf",
+    "/home/bastien/These/manuscript/tex/figures/intro/elbos.png",
+    format="png",
     bbox_inches="tight",
 )
 plt.show()

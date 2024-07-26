@@ -117,9 +117,9 @@ def launch_dim(dim):
 
 fig, all_axes = plt.subplots(2, figsize=(20, 10), layout="constrained")
 
-launch_dim(dim2)
-launch_dim(dim1)
-df.to_csv("df_parametrization.csv", index=False)
+# launch_dim(dim2)
+# launch_dim(dim1)
+# df.to_csv("df_parametrization.csv", index=False)
 
 df = pd.read_csv("df_parametrization.csv").reset_index(drop=True)
 nb_point = np.max(np.unique(df["absc"]))
@@ -135,7 +135,7 @@ df.loc[df["parametrization"] == "PF", "parametrization"] = "uPLN-PF"
 
 dict_axes = {dim1: all_axes[0], dim2: all_axes[1]}
 
-dict_bound = {dim1: (0.0, 100), dim2: (0, 100)}
+dict_bound = {dim1: (0.0, 1.5), dim2: (0, 10)}
 for dim in [dim1, dim2]:
     df_ = df[df["dim"] == dim]
     for integer in np.unique(df_["absc"]):
@@ -176,6 +176,7 @@ dict_axes[dim2].set_yscale("log")
 
 dict_axes[dim1].set_ylabel("Negative ELBO")
 dict_axes[dim2].set_ylabel("Negative ELBO")
+dict_axes[dim1].set_xlabel("")
 dict_axes[dim2].set_xlabel("Time (seconds)")
 
 dict_axes[dim2].legend().remove()
@@ -202,8 +203,8 @@ fig.legend(
 dict_axes[dim1].legend().remove()
 # all_axes[0,0].legend()
 plt.savefig(
-    "/home/bastien/These/manuscript/tex/figures/intro/parametrizations.pdf",
-    format="pdf",
+    "/home/bastien/These/manuscript/tex/figures/intro/parametrizations.png",
+    format="png",
     bbox_inches="tight",
 )
 plt.show()
