@@ -125,13 +125,13 @@ df = pd.read_csv("df_parametrization.csv").reset_index(drop=True)
 nb_point = np.max(np.unique(df["absc"]))
 nb_points_final = 5
 
-parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
+parametrizations = ["uPLN-closed", "uPLN-0", "uPLN-PF"]
 colors = sns.color_palette("viridis")
-my_palette = {"Profiled": colors[5], "uPLN-0": colors[0], "uPLN-PF": colors[1]}
+my_palette = {"uPLN-closed": colors[5], "uPLN-0": colors[0], "uPLN-PF": colors[1]}
 
-df.loc[df["parametrization"] == "0", "parametrization"] = "uPLN-0"
-df.loc[df["parametrization"] == "profiled", "parametrization"] = "Profiled"
-df.loc[df["parametrization"] == "PF", "parametrization"] = "uPLN-PF"
+# df.loc[df["parametrization"] == "0", "parametrization"] = "uPLN-0"
+df.loc[df["parametrization"] == "Profiled", "parametrization"] = "uPLN-closed"
+# df.loc[df["parametrization"] == "PF", "parametrization"] = "uPLN-PF"
 
 dict_axes = {dim1: all_axes[0], dim2: all_axes[1]}
 
