@@ -10,8 +10,9 @@ import jax.numpy as jnp
 from jax import random
 import jax.numpy.linalg as LA
 from matplotlib.ticker import FormatStrFormatter
+from matplotlib.ticker import LogLocator, LogFormatterSciNotation
 
-max_time = 20
+max_time = 10
 nb_params = 15
 n_samples = 1000
 dim1 = 100
@@ -20,6 +21,15 @@ nb_cov = 2
 parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 colors = ["red", "blue", "green", "orange"]
 nb_point = 300
+# max_time = 3
+# nb_params = 2
+# n_samples = 100
+# dim1 = 100
+# dim2 = 800
+# nb_cov = 2
+# parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
+# colors = ["red", "blue", "green", "orange"]
+# nb_point = 300
 
 
 def fit_models(seed_param, dim):
@@ -141,9 +151,9 @@ for dim in [dim1, dim2]:
     for integer in np.unique(df_["absc"]):
         wanted = df_["absc"] == integer
         if dim == dim1:
-            df_.loc[wanted, "time"] = np.round(np.mean(df_[wanted]["time"]), 3)
+            df_.loc[wanted, "time"] = np.round(np.mean(df_[wanted]["time"]), 1)
         else:
-            df_.loc[wanted, "time"] = np.round(np.mean(df_[wanted]["time"]), 3)
+            df_.loc[wanted, "time"] = np.round(np.mean(df_[wanted]["time"]), 1)
 
     wanted_absc = (df_["time"] > dict_bound[dim][0]) & (
         df_["time"] < dict_bound[dim][1]
@@ -167,25 +177,54 @@ for dim in [dim1, dim2]:
     )
 
 
-dict_axes[dim1].set_title(rf"Pln $p$={dim1}")
-dict_axes[dim2].set_title(rf"Pln $p$={dim2}")
+dict_axes[dim1].set_title(rf"Pln $p$={dim1}", fontsize=18)
+dict_axes[dim2].set_title(rf"Pln $p$={dim2}", fontsize=18)
 
 
 dict_axes[dim1].set_yscale("log")
 dict_axes[dim2].set_yscale("log")
-
-dict_axes[dim1].set_ylabel("Negative ELBO")
-dict_axes[dim2].set_ylabel("Negative ELBO")
+dict_axes[dim1].tick_params(axis="y", which="minor", bottom=False)
+dict_axes[dim1].set_ylabel("Negative ELBO", fontsize=18)
+dict_axes[dim2].set_ylabel("Negative ELBO", fontsize=18)
 dict_axes[dim1].set_xlabel("")
-dict_axes[dim2].set_xlabel("Time (seconds)")
+dict_axes[dim2].set_xlabel("Time (seconds)", fontsize=18)
 
 dict_axes[dim2].legend().remove()
 
 dict_axes[dim1].tick_params(axis="both", which="major", labelsize=18)
-dict_axes[dim1].tick_params(axis="both", which="minor", labelsize=18)
+dict_axes[dim1].tick_params(axis="both", which="minor", labelsize=12)
 dict_axes[dim2].tick_params(axis="both", which="major", labelsize=18)
-dict_axes[dim2].tick_params(axis="both", which="minor", labelsize=18)
+dict_axes[dim2].tick_params(axis="both", which="minor", labelsize=12)
 
+
+# dict_axes[dim1].yaxis.set_major_locator(MultipleLocator(0.5))
+# dict_axes[dim1].yaxis.set_major_locator(plt.MaxNLocator(prune='lower'))
+
+
+# dict_axes[dim1].yaxis.set_major_locator(LogLocator(base=10.0, numticks=10))
+# dict_axes[dim1].yaxis.set_minor_locator(LogLocator(base=10.0, numticks=10))
+
+
+dict_axes[dim1].yaxis.set_minor_locator(
+    LogLocator(base=10.0, subs=np.arange(1.0, 6) * 0.1, numticks=4)
+)
+dict_axes[dim2].yaxis.set_minor_locator(
+    LogLocator(base=10.0, subs=np.arange(1.0, 6) * 0.1, numticks=4)
+)
+
+
+# formatter = ScalarFormatter()
+# formatter.set_scientific(True)
+formatter = LogFormatterSciNotation(
+    base=10, minor_thresholds=(1000, 1000), labelOnlyBase=False
+)
+dict_axes[dim1].yaxis.set_minor_formatter(formatter)
+dict_axes[dim2].yaxis.set_minor_formatter(formatter)
+
+# dict_axes[dim1].yaxis.get_major_formatter().set_scientific(True)
+# dict_axes[dim1].yaxis.get_major_formatter().set_useOffset(False)
+# dict_axes[dim1].yaxis.set_major_formatter(ScalarFormatter())
+# dict_axes[dim1].yaxis.set_minor_formatter(ScalarFormatter())
 
 handles, legend = all_axes[0].get_legend_handles_labels()
 axbox = all_axes[1].get_position()
