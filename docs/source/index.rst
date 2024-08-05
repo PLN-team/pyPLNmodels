@@ -13,10 +13,11 @@ API documentation
    :maxdepth: 1
    :caption: Classes
 
+   ./getting_started.md
    ./plnpcacollection.rst
    ./plnpca.rst
    ./pln.rst
-   ./zipln.rst
+   .. ./zipln.rst
 
 .. toctree::
    :maxdepth: 1
