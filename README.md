@@ -34,6 +34,16 @@ version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels).
 pip install pyPLNmodels
 ```
 
+## Statistical description
+Consider $\mathbf Y$ as a count matrix consisting of $n$ rows and $p$ columns.
+It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
+row of $\mathbf Y$, is independent from the others and adheres to a Poisson
+lognormal distribution:
+$$Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad \bZ_i \sim \mcN(\bo_i +
+\BXi, \bSig), \quad \bSig = \bC \bC^{\tr}.$$
+
+
+
 ## ⚡️ Quickstart
 
 The package comes with an ecological data set to present the functionality
@@ -74,7 +84,6 @@ transformed_data = zi.transform()
 ## 👐 Contributing
 
 Feel free to contribute, but read the [CONTRIBUTING.md](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/blob/main/CONTRIBUTING.md) first. A public roadmap will be available soon.
-
 
 ## ⚡️ Citations
 
