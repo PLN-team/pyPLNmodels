@@ -39,11 +39,14 @@ row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
-where $\mathbf x_i \in \mathbb R^d$ and $\mathbf o_i \mathbb R^p$ are
+where $\mathbf x_i \in \mathbb R^d$ (```exog```) and $\mathbf o_i \mathbb R^p$ (```offsets```) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
 covariance matrix. The goal is to estimate the parameters $\mathbf B$ and
-$\mathbf \Sigma$, denoted as ```coef``` and ```covariance``` in the package.
+$\mathbf \Sigma$, denoted as ```coef``` and ```covariance``` in the package,
+respectively. A normalization procedure adequate to count data can be applied
+by extracting the ```latent_variables``` $\mathbf Z_i$ once the parameters are learned.
+
 
 
 ## ⚡️ Quickstart
