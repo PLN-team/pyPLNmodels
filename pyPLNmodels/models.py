@@ -225,7 +225,15 @@ class _model(ABC):
     def batch_size(self, batch_size: int):
         raise ValueError("Can not set the batch size.")
 
-    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        dict_colors=None,
+        markers=None,
+    ):
         """
         Visualize the gaussian latent variables with a classic PCA.
 
@@ -248,7 +256,14 @@ class _model(ABC):
             The matplotlib axis.
         """
         variables = self.transform()
-        return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
+        return self._viz_variables(
+            variables,
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            dict_colors=dict_colors,
+            markers=markers,
+        )
 
     def viz_positions(self, *, ax=None, colors=None, show_cov: bool = False):
         variables = self.latent_position
@@ -259,7 +274,14 @@ class _model(ABC):
         return self.transform() - self.mean_gaussian
 
     def _viz_variables(
-        self, variables, *, ax=None, colors=None, show_cov: bool = False
+        self,
+        variables,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        dict_colors=None,
+        markers=None,
     ):
         """
         Visualize variables with a classic PCA.
@@ -293,7 +315,16 @@ class _model(ABC):
         y = proj_variables[:, 1]
         if ax is None:
             ax = plt.gca()
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
+        print("markers", markers)
+        sns.scatterplot(
+            x=x,
+            y=y,
+            hue=colors,
+            ax=ax,
+            palette=dict_colors,
+            markers=markers,
+            style=colors,
+        )
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
@@ -3111,8 +3142,21 @@ class PlnPCA(_model):
             >>> plt.show()
             """,
     )
-    def viz(self, ax: matplotlib.axes.Axes = None, colors=None, show_cov: bool = False):
-        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+    def viz(
+        self,
+        ax: matplotlib.axes.Axes = None,
+        colors=None,
+        show_cov: bool = False,
+        dict_colors=None,
+        markers=None,
+    ):
+        super().viz(
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            dict_colors=dict_colors,
+            markers=markers,
+        )
 
     @_add_doc(
         _model,

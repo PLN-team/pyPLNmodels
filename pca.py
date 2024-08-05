@@ -10,22 +10,45 @@ import time
 n = 1000
 p = 15000
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
+viridis = sns.color_palette("viridis")
+colors = [
+    viridis[0],
+    viridis[0],
+    viridis[0],
+    viridis[2],
+    viridis[2],
+    viridis[2],
+    viridis[5],
+    viridis[5],
+    viridis[5],
+]
+
+markers = ["o", "s", "v", "o", "s", "v", "o", "s", "v"]
+dict_markers = dict(zip(np.unique(GT), markers))
+dict_colors = dict(zip(np.unique(GT), colors))
 
 
 plnpca = PlnPCA(Y, rank=2)
 t = time.time()
 plnpca.fit(tol=0.001, verbose=True, nb_max_iteration=700)
 print("time took pln:", (time.time() - t) / 60)
+
 # plnpca.show()
 fig, axes = plt.subplots(1, 2, figsize=(20, 10), layout="constrained")
-plnpca.viz(colors=GT, ax=axes[0])
+plnpca.viz(colors=GT, ax=axes[0], markers=dict_markers, dict_colors=dict_colors)
+
+
 t = time.time()
 pca = PCA(n_components=2)
 y_pca = pca.fit_transform(np.log(Y + (Y == 0)))
 print("time took pca", time.time() - t)
 x = y_pca[:, 0]
 y = y_pca[:, 1]
-sns.scatterplot(x=x, y=y, ax=axes[1], hue=GT)
+sns.scatterplot(
+    x=x, y=y, ax=axes[1], hue=GT, markers=markers, palette=dict_colors, style=GT
+)
+
+
 axes[0].set_title("Principal Component Analysis with PLN-PCA")
 fontsize = 20
 axes[0].set_xlabel("PC1", fontsize=fontsize)
