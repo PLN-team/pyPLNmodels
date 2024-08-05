@@ -67,7 +67,7 @@ pln = Pln.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = 
 pln.fit()
 print(pln)
 transformed_data = pln.transform()
-
+pln.show()
 ```
 
 
