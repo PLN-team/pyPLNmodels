@@ -39,7 +39,7 @@ row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
-where $\mathbf x_i \in \mathbb R^d$ (```exog```) and $\mathbf o_i \mathbb R^p$ (```offsets```) are
+where $\mathbf x_i \in \mathbb R^d$ (```exog```) and $\mathbf o_i \in \mathbb R^p$ ( ```offsets``` ) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
 covariance matrix. The goal is to estimate the parameters $\mathbf B$ and
@@ -51,7 +51,7 @@ by extracting the ```latent_variables``` $\mathbf Z_i$ once the parameters are l
 
 ## ⚡️ Quickstart
 
-The package comes with an ecological data set to present the functionality
+The package comes with an ecological data set to present the functionality:
 ```
 import pyPLNmodels
 from pyPLNmodels.models import PlnPCAcollection, Pln, ZIPln
@@ -61,15 +61,18 @@ oaks = load_oaks()
 
 ### Unpenalized Poisson lognormal model (aka PLN)
 
+This is the building-block of the package. It fits a Poisson lognormal model to the data.
 ```
 pln = Pln.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
 pln.fit()
 print(pln)
 transformed_data = pln.transform()
+
 ```
 
 
 ### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PLNPCA)
+
 
 ```
 pca =  PlnPCAcollection.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
