@@ -5,6 +5,9 @@ library(cowplot)
 library(dplyr)
 library(naniar)
 library(latex2exp)
+library(viridis)
+
+
 
 
 file_pln_python = "python_pln_cpu.csv"
@@ -17,7 +20,12 @@ file_gllvm = "df_gllvm.csv"
 filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU, file_gllvm, file_pln_r, file_plnpca_r)
 modelnames = c("py-PLN-CPU", "py-PLN-PCA-CPU", "py-PLN-GPU", "py-PLN-PCA-GPU", "GLLVM", "R-PLN", "R-PLN-PCA")
 ###            GLLVM          pyplncpu         pyplngpu       pyplnpcaCPU      pyPLNPCAGPU  RPLN    RPLNPCA
-colors =     c("black",        "blue",          "blue",      "red",        "red",    "cornflowerblue", "firebrick")
+
+
+col_viridis = viridis(10)
+
+# colors =     c("black",        "blue",          "blue",      "red",        "red",    "cornflowerblue", "firebrick")
+colors =     c(col_viridis[[1]],    col_viridis[[4]],          col_viridis[[4]],      col_viridis[[8]],        col_viridis[[8]],    col_viridis[[3]], col_viridis[[9]])
 linestyles = c("solid",        "solid",        "dashed",     "solid",      "dashed",   "solid",   "solid")
 # filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
 # modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
