@@ -33,13 +33,17 @@ pip install pyPLNmodels
 ```
 
 ## Statistical description
-Consider $\mathbf Y$ a count matrix consisting of $n$ rows and $p$ columns.
+Consider $\mathbf Y$ a count matrix consisting of $n$ rows and $p$ columns (denoted as ```endog``` in the package).
 It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
-\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf X_i, \mathbf \Sigma).$$
-
+\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
+where $\mathbf x_i \in \mathbb R^d$ and $\mathbf o_i \mathbb R^p$ are
+user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
+matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
+covariance matrix. The goal is to estimate the parameters $\mathbf B$ and
+$\mathbf \Sigma$, denoted as ```coef``` and ```covariance``` in the package.
 
 
 ## ⚡️ Quickstart
