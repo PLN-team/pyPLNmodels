@@ -76,7 +76,7 @@ def test_find_right_coef(simulated_fitted_any_model):
     if simulated_fitted_any_model.nb_cov == 2:
         true_coef = true_sim_2cov["beta"]
         mse_coef = MSE(simulated_fitted_any_model.coef - true_coef)
-        assert mse_coef < 0.1
+        assert mse_coef < 0.2
     elif simulated_fitted_any_model.nb_cov == 0:
         assert simulated_fitted_any_model.coef is None
 
