@@ -38,7 +38,7 @@ It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
-\mathcal N(\mathbf \o_i + \matr B ^{\transpose} \mathbf X_i, \mathbf \Sigma).$$
+\mathcal N(\mathbf o_i + \matr B ^{\transpose} \mathbf X_i, \mathbf \Sigma).$$
 
 
 
