@@ -229,7 +229,15 @@ class _model(ABC):
     def batch_size(self, batch_size: int):
         raise ValueError("Can not set the batch size.")
 
-    def viz(self, *, ax=None, colors=None, show_cov: bool = False, dict_colors=None):
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        dict_colors=None,
+        markers=None,
+    ):
         """
         Visualize the gaussian latent variables with a classic PCA.
 
@@ -254,7 +262,12 @@ class _model(ABC):
         """
         variables = self.transform()
         return self._viz_variables(
-            variables, ax=ax, colors=colors, show_cov=show_cov, dict_colors=dict_colors
+            variables,
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            dict_colors=dict_colors,
+            markers=markers,
         )
 
     def viz_positions(self, *, ax=None, colors=None, show_cov: bool = False):
@@ -273,6 +286,7 @@ class _model(ABC):
         colors=None,
         show_cov: bool = False,
         dict_colors=None,
+        markers=None,
     ):
         """
         Visualize variables with a classic PCA.
@@ -309,7 +323,16 @@ class _model(ABC):
             to_show = True
         else:
             to_show = False
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, palette=dict_colors)
+        sns.scatterplot(
+            x=x,
+            y=y,
+            hue=colors,
+            ax=ax,
+            palette=dict_colors,
+            s=80,
+            markers=markers,
+            style=colors,
+        )
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
@@ -3328,8 +3351,15 @@ class PlnPCA(_model):
         colors=None,
         show_cov: bool = False,
         dict_colors=None,
+        markers=None,
     ):
-        super().viz(ax=ax, colors=colors, show_cov=show_cov, dict_colors=dict_colors)
+        super().viz(
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            dict_colors=dict_colors,
+            markers=markers,
+        )
 
     @_add_doc(
         _model,
