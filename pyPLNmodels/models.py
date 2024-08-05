@@ -926,6 +926,27 @@ class _model(ABC):
         if display is True:
             plt.show()  # to avoid displaying a blank screen
 
+    def display_coef(self, ax=None, savefig=False, name_file="", display=True):
+        """
+        Display the regression coefficient matrix.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes to plot on. If None, a new figure will be created. Defaults to None.
+        savefig : bool, optional
+            Whether to save the figure. Defaults to False.
+        name_file : str, optional
+            The name of the file to save. Defaults to "".
+        """
+        sns.heatmap(self.coef, ax=ax)
+        ax.set_title("Regression coefficient Matrix")
+        plt.legend()
+        if savefig:
+            plt.savefig(name_file + self._NAME)
+        if display is True:
+            plt.show()  # to avoid displaying a blank screen
+
     def __repr__(self):
         """
         Generate the string representation of the object.
@@ -984,13 +1005,14 @@ class _model(ABC):
         if self._fitted is False:
             nb_axes = 1
         else:
-            nb_axes = 3
+            nb_axes = 4
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            self._criterion_args._show_loss(ax=axes[2])
-            self._display_norm(ax=axes[1])
             self.display_covariance(ax=axes[0], display=False)
+            self.display_coef(ax=axes[1], display=False)
+            self._display_norm(ax=axes[2])
+            self._criterion_args._show_loss(ax=axes[3])
         else:
             self.display_covariance(ax=axes)
 
