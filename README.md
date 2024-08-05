@@ -20,6 +20,8 @@
 ##  Getting started
 The getting started can be found [here](Getting_started.ipynb). If you need just a quick view of the package, see the quickstart next.
 
+$$ x + y = \mathcal P(Z)$$
+
 ## 🛠 Installation
 
 **pyPLNmodels** is available on
