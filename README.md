@@ -20,8 +20,6 @@
 ##  Getting started
 The getting started can be found [here](Getting_started.ipynb). If you need just a quick view of the package, see the quickstart next.
 
-$$ x + y = \mathcal P(Z)$$
-
 ## 🛠 Installation
 
 **pyPLNmodels** is available on
@@ -35,12 +33,12 @@ pip install pyPLNmodels
 ```
 
 ## Statistical description
-Consider $\mathbf Y$ as a count matrix consisting of $n$ rows and $p$ columns.
+Consider $\mathbf Y$ a count matrix consisting of $n$ rows and $p$ columns.
 It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
-row of $\mathbf Y$, is independent from the others and adheres to a Poisson
+row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
-$$Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad \bZ_i \sim \mcN(\bo_i +
-\BXi, \bSig), \quad \bSig = \bC \bC^{\tr}.$$
+$$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
+\mathcal N(\mathbf \o_i + \matr B ^{\transpose} \mathbf X_i, \mathbf \Sigma).$$
 
 
 
