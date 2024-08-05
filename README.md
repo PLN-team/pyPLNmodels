@@ -49,6 +49,7 @@ by extracting the ```latent_variables``` $\mathbf Z_i$ once the parameters are l
 
 
 
+
 ## ⚡️ Quickstart
 
 The package comes with an ecological data set to present the functionality:
@@ -58,6 +59,19 @@ from pyPLNmodels.models import PlnPCAcollection, Pln, ZIPln
 from pyPLNmodels.oaks import load_oaks
 oaks = load_oaks()
 ```
+
+### How to specify a model
+We allow two different to specify the model:
+- by formula (similar to R), where a data frame is passed and the formula is specified using the  ```from_formula``` initialization:
+```model = Model.from_formula("endog ~ 1  + covariate_name ", data = oaks)```
+We rely to the [patsy](https://github.com/pydata/patsy) package for the formula parsing.
+- by specifying the endog, exog, and offsets matrices directly:
+```model = Model(endog = oaks["endog"], exog = oaks[["covariate_name"]], offsets = oaks[["offset_name"]])```
+
+The parameters `exog` and `offsets` are optional. By default,
+`exog` is set to represent an intercept, which is a vector of ones. Similarly,
+`offsets` defaults to a matrix of zeros.
+
 
 ### Unpenalized Poisson lognormal model (aka PLN)
 
@@ -73,6 +87,11 @@ pln.show()
 
 ### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PLNPCA)
 
+This model is efficient for dimension reduction and scales to high-dimensional
+count data. It is a variant of the PLN model with a rank constraint on the
+covariance matrix. It can be seen as a generalization of the [probabilistic PCA](https://academic.oup.com/jrsssb/article/61/3/611/7083217) to count data.
+We allow the user to specify the rank of the covariance matrix, and specify
+multiple ranks at the same time.
 
 ```
 pca =  PlnPCAcollection.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
@@ -80,6 +99,8 @@ pca.fit()
 print(pca)
 transformed_data = pca.best_model().transform()
 ```
+
+
 ### Zero inflated Poisson Log normal Model (aka ZIPln)
 ```
 zi =  ZIPln.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
