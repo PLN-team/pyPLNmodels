@@ -405,6 +405,10 @@ class _model(ABC):
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
+    @property
+    def _running_times(self):
+        return self._criterion_args.running_times
+
     def fit(
         self,
         nb_max_epoch: int = 400,
@@ -526,8 +530,11 @@ class _model(ABC):
         if ax is None:
             _, ax = plt.subplots(1)
         x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        x = x * len(self._running_times) / len(x)
+        x = np.array(self._running_times)[x.astype(int)]
         for key, value in self._dict_mse.items():
             ax.plot(x, value, label=key)
+        ax.set_xlabel("Seconds", fontsize=15)
         ax.legend()
         ax.set_title("Norm of each parameter.")
 

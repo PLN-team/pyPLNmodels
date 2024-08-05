@@ -99,10 +99,10 @@ class _CriterionArgs:
         ax = plt.gca() if ax is None else ax
         ax.plot(self.running_times, -np.array(self._elbos_list), label="Negative ELBO")
         last_elbos = np.round(self._elbos_list[-1], 6)
-        ax.set_title(f"Negative ELBO. Best ELBO ={last_elbos}")
+        ax.set_title(f"Negative ELBO. Best ELBO ={last_elbos}", fontsize=14)
         ax.set_yscale("log")
-        ax.set_xlabel("Seconds")
-        ax.set_ylabel("ELBO")
+        ax.set_xlabel("Seconds", fontsize=14)
+        ax.set_ylabel("ELBO", fontsize=14)
         ax.legend()
 
     def _show_stopping_criterion(self, ax=None):
