@@ -535,6 +535,7 @@ class _model(ABC):
         for key, value in self._dict_mse.items():
             ax.plot(x, value, label=key)
         ax.set_xlabel("Seconds", fontsize=15)
+        ax.set_yscale("log")
         ax.legend()
         ax.set_title("Norm of each parameter.")
 
