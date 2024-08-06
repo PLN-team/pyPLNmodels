@@ -77,13 +77,12 @@ The parameters `exog` and `offsets` are optional. By default,
 
 This is the building-block of the package. It fits a Poisson lognormal model to the data.
 ```
-pln = Pln.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
+pln = Pln.from_formula("endog ~ 1  + tree ", data = oaks, take_log_offsets = True)
 pln.fit()
 print(pln)
 transformed_data = pln.transform()
 pln.show()
 ```
-
 
 ### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PLNPCA)
 
@@ -96,20 +95,20 @@ The user can provide the rank of the covariance
 matrix, with the additional capability to specify multiple ranks concurrently
 in a single object, and retrieve the best model according to the AIC (default) or BIC criterion::
 ```
-pca_col =  PlnPCAcollection.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
+pca_col =  PlnPCAcollection.from_formula("endog ~ 1  + tree ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca_col.fit()
 print(pca_col)
 pca_col.show()
-best_model = pca_col.best_model()
-best_model.show()
-transformed_data = best_model.transform(project = True)
+best_pca = pca_col.best_model()
+best_pca.show()
+transformed_data = best_pca.transform(project = True)
 print('Original data shape: ', oaks["endog"].shape)
 print('Transformed data shape: ', transformed_data.shape)
 ```
 
 A correlation circle can be plotted to visualize the correlation between the variables and the components:
 ```
-best_model.plot_pca_correlation_circle(["var_1","var_2"], indices_of_variables = [0,1])
+best_pca.plot_pca_correlation_circle(["var_1","var_2"], indices_of_variables = [0,1])
 ```
 
 
@@ -119,26 +118,40 @@ The ```ZiPln``` model is a variant of the PLN model that accounts for zero
 inflation in the data:
 $$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), W_{ij} \sim \mathcal B(\sigma( \mathbf x_i^{0^{\top}}\mathbf B^0_j))$$
+
 It is particularly useful when the data contains many
-zeros. The model accounts for additional covariates for the zero inflation coefficient, and are specified using the pipe `|` symbol in the formula:`
+zeros. The model accounts for additional covariates for the zero inflation coefficient, and are specified after the pipe `|` symbol in the formula:`
 ```
-zi =  ZIPln.from_formula("endog ~ 1  + tree + dist2ground + orientation | 1 + tree", data = oaks, take_log_offsets = True)
+zi =  ZIPln.from_formula("endog ~ 1  + tree | 1 + tree", data = oaks, take_log_offsets = True)
 zi.fit()
 print(zi)
+print("Transformed data shape: "zi.transform().shape)
 z_latent_variables, w_latent_variables = zi.transform(return_latent_prob = True)
 print(r'$Z$ latent variables shape', z_latent_variables.shape)
 print(r'$W$ latent variables shape', w_latent_variables.shape)
 ```
-The transformed data is composed of both the latent
+
+By default, only the $\mathbf Z$ (`latent_mean`) variable is
+returned when transforming the data. However,  if `return_latent_prob` is set to `True`, the transformed data is
+composed of both the latent variables $\mathbf W$ (`latent_prob`) accounting for the zero inflation and $\mathbf Z$ accounting for the Poisson
+parameter.
 
 ### Visualization
 
 The package comes with a set of visualization functions to help the user
-interpret the data.
-```
-best_model.viz()
-```
+interpret the data. The `viz` method performs  PCA on the latent variables,
+while the `viz_positions` method performs PCA on the latent variables corrected for the covariates.
+The `viz_prob` method visualizes the probability of zero inflation.
 
+```
+best_pca.viz(colors = oaks["tree"])
+best_pca.viz_positions(colors = oaks["dist2ground"])
+pln.viz(colors = oaks["tree"])
+pln.viz_positions(colors = oaks["dist2ground"])
+zi.viz(colors = oaks["tree"])
+zi.viz_positions(colors = oaks["dist2ground"])
+zi.viz_prob(colors = oaks["tree"])
+```
 
 
 ## 👐 Contributing
