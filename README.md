@@ -37,7 +37,7 @@ Consider $\mathbf Y$ a count matrix consisting of $n$ rows and $p$ columns (deno
 It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
-$$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
+$$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
 where $\mathbf x_i \in \mathbb R^d$ (`exog`) and $\mathbf o_i \in \mathbb R^p$ (`offsets`) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
@@ -117,7 +117,7 @@ best_model.plot_pca_correlation_circle(["var_1","var_2"], indices_of_variables =
 
 The ```ZiPln``` model is a variant of the PLN model that accounts for zero
 inflation in the data:
-$$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf \Z_i \sim
+$$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), W_{ij} \sim \mathcal B(\sigma( \mathbf x_i^{0^{\top}}\mathbf B^0_j))$$
 It is particularly useful when the data contains many
 zeros. The model accounts for additional covariates for the zero inflation coefficient, and are specified using the pipe `|` symbol in the formula:`
