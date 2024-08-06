@@ -96,24 +96,38 @@ The user can provide the rank of the covariance
 matrix, with the additional capability to specify multiple ranks concurrently
 in a single object, and retrieve the best model according to the AIC (default) or BIC criterion::
 ```
-pca =  PlnPCAcollection.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
-pca.fit()
-print(pca)
-pca.show()
-best_model = pca.best_model()
+pca_col =  PlnPCAcollection.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
+pca_col.fit()
+print(pca_col)
+pca_col.show()
+best_model = pca_col.best_model()
+best_model.show()
 transformed_data = best_model.transform(project = True)
 print('Original data shape: ', oaks["endog"].shape)
 print('Transformed data shape: ', transformed_data.shape)
 ```
 
+A correlation circle can be plotted to visualize the correlation between the variables and the components:
+```
+best_model.plot_pca_correlation_circle(["var_1","var_2"], indices_of_variables = [0,1])
+```
+
 
 ### Zero inflated Poisson Log normal Model (aka ZIPln)
+
+The ```ZiPln``` model is a variant of the PLN model that accounts for zero
+inflation in the data:
+$$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf \Z_i \sim
+\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), W_{ij} \sim \mathcal B(\sigma( \mathbf x_i^{\top}\mathbf B^0_j))$$
+It is particularly useful when the data contains many
+zeros. The model accounts for additional covariates for the zero inflation coefficient, and are specified using the pipe `|` symbol in the formula:`
 ```
-zi =  ZIPln.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True)
+zi =  ZIPln.from_formula("endog ~ 1  + tree + dist2ground + orientation | 1 + tree", data = oaks, take_log_offsets = True)
 zi.fit()
 print(zi)
 transformed_data = zi.transform()
 ```
+The transformed data is composed of both the latent
 
 
 ## 👐 Contributing
