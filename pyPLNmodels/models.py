@@ -290,8 +290,7 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = PCA(n_components=2)
-        pca.fit(variables)
-        proj_variables = pca.transform(self.transform())
+        proj_variables = pca.fit_transform(variables)
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         if ax is None:
