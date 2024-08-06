@@ -457,6 +457,7 @@ class _model(ABC):
             criterion = self._update_criterion_args(loss)
             if abs(criterion) < tol and self._onlyonebatch is True:
                 stop_condition = True
+            print("elbo", loss)
             if nb_epoch_done % 25 == 0:
                 for name_param, param in self.model_parameters.items():
                     mse_param = 0 if param is None else mse(param).detach().item()
@@ -3080,6 +3081,7 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
         batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
@@ -3090,6 +3092,7 @@ class PlnPCA(_model):
             offsets_formula=offsets_formula,
             rank=rank,
             dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
             add_const=False,
             batch_size=batch_size,
         )
