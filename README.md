@@ -118,16 +118,27 @@ best_model.plot_pca_correlation_circle(["var_1","var_2"], indices_of_variables =
 The ```ZiPln``` model is a variant of the PLN model that accounts for zero
 inflation in the data:
 $$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf \Z_i \sim
-\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), W_{ij} \sim \mathcal B(\sigma( \mathbf x_i^{\top}\mathbf B^0_j))$$
+\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), W_{ij} \sim \mathcal B(\sigma( \mathbf x_i^{0^{\top}}\mathbf B^0_j))$$
 It is particularly useful when the data contains many
 zeros. The model accounts for additional covariates for the zero inflation coefficient, and are specified using the pipe `|` symbol in the formula:`
 ```
 zi =  ZIPln.from_formula("endog ~ 1  + tree + dist2ground + orientation | 1 + tree", data = oaks, take_log_offsets = True)
 zi.fit()
 print(zi)
-transformed_data = zi.transform()
+z_latent_variables, w_latent_variables = zi.transform(return_latent_prob = True)
+print(r'$Z$ latent variables shape', z_latent_variables.shape)
+print(r'$W$ latent variables shape', w_latent_variables.shape)
 ```
 The transformed data is composed of both the latent
+
+### Visualization
+
+The package comes with a set of visualization functions to help the user
+interpret the data.
+```
+best_model.viz()
+```
+
 
 
 ## 👐 Contributing
