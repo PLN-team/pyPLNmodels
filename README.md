@@ -39,7 +39,7 @@ row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf \Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
-where $\mathbf x_i \in \mathbb R^d$ (```exog```) and $\mathbf o_i \in \mathbb R^p$ ( ```offsets``` ) are
+where $\mathbf x_i \in \mathbb R^d$ (`exog`) and $\mathbf o_i \in \mathbb R^p$ (`offsets`) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
 covariance matrix. The goal is to estimate the parameters $\mathbf B$ and
@@ -61,7 +61,7 @@ oaks = load_oaks()
 ```
 
 ### How to specify a model
-We allow two different to specify the model:
+Each model can be specified in two distinct manners:
 - by formula (similar to R), where a data frame is passed and the formula is specified using the  ```from_formula``` initialization:
 ```model = Model.from_formula("endog ~ 1  + covariate_name ", data = oaks)```
 We rely to the [patsy](https://github.com/pydata/patsy) package for the formula parsing.
@@ -88,16 +88,22 @@ pln.show()
 ### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka PLNPCA)
 
 This model is efficient for dimension reduction and scales to high-dimensional
-count data. It is a variant of the PLN model with a rank constraint on the
-covariance matrix. It can be seen as a generalization of the [probabilistic PCA](https://academic.oup.com/jrsssb/article/61/3/611/7083217) to count data.
-We allow the user to specify the rank of the covariance matrix, and specify
-multiple ranks at the same time.
-
+count data ($p >> 1$). It is a variant of the PLN model with a rank constraint on the
+covariance matrix. It can be seen as a generalization of the [probabilistic
+PCA](https://academic.oup.com/jrsssb/article/61/3/611/7083217) to count data,
+with the rank giving the number of components of the probabilistic PCA.
+The user can provide the rank of the covariance
+matrix, with the additional capability to specify multiple ranks concurrently
+in a single object, and retrieve the best model according to the AIC (default) or BIC criterion::
 ```
 pca =  PlnPCAcollection.from_formula("endog ~ 1  + tree + dist2ground + orientation ", data = oaks, take_log_offsets = True, ranks = [3,4,5])
 pca.fit()
 print(pca)
-transformed_data = pca.best_model().transform()
+pca.show()
+best_model = pca.best_model()
+transformed_data = best_model.transform(project = True)
+print('Original data shape: ', oaks["endog"].shape)
+print('Transformed data shape: ', transformed_data.shape)
 ```
 
 
