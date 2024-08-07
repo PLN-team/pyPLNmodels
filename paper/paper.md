@@ -69,7 +69,7 @@ acceleration for a better scalability.
 
 
 To illustrate the main model's interest, we display below a visualization of the first two principal components when Principal
-Component Analysis (PCA) is performed with the PLN-PCA model (left) and standard PCA on
+Component Analysis (PCA) is performed with the PLN-PCA model (left, ours) and standard PCA on
 the log normalized data (right). The data considered is the `scMARK` benchmark [@scMark] described in the
 benchmark section. We kept 1000 samples for illustration
 purposes. The computational time for fitting PLN-PCA is 23 seconds (on GPU), whereas
