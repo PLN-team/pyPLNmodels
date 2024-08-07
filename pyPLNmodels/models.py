@@ -254,11 +254,11 @@ class _model(ABC):
         return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
 
     def viz_positions(self, *, ax=None, colors=None, show_cov: bool = False):
-        variables = self.latent_position
+        variables = self.latent_positions
         return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
 
     @property
-    def latent_position(self):
+    def latent_positions(self):
         return self.transform() - self.mean_gaussian
 
     def _viz_variables(
