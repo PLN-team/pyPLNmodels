@@ -64,10 +64,7 @@ class _CriterionArgs:
             self.new_derivative = (
                 self.new_derivative * (1 - BETA) + current_derivative * BETA
             )
-            current_hessian = np.abs(
-                (self.new_derivative - old_derivative)
-                / (self.running_times[-2] - self.running_times[-1])
-            )
+            current_hessian = np.abs(self.new_derivative - old_derivative)
             self.criterion = self.criterion * (1 - BETA) + current_hessian * BETA
             # self.criterion = np.abs((elbo - self.previous_elbo)/elbo)
             # self.previous_elbo = elbo
@@ -102,10 +99,10 @@ class _CriterionArgs:
         ax = plt.gca() if ax is None else ax
         ax.plot(self.running_times, -np.array(self._elbos_list), label="Negative ELBO")
         last_elbos = np.round(self._elbos_list[-1], 6)
-        ax.set_title(f"Negative ELBO. Best ELBO ={last_elbos}")
+        ax.set_title(f"Negative ELBO. Best ELBO ={last_elbos}", fontsize=14)
         ax.set_yscale("log")
-        ax.set_xlabel("Seconds")
-        ax.set_ylabel("ELBO")
+        ax.set_xlabel("Seconds", fontsize=14)
+        ax.set_ylabel("ELBO", fontsize=14)
         ax.legend()
 
     def _show_stopping_criterion(self, ax=None):
@@ -529,6 +526,7 @@ def _extract_data_from_formula_with_infla(
     formula_infla = split_formula[1]
     try:
         exog_infla = dmatrix(formula_infla, data=data)
+        # print('names exog infla:', exog_infla.design_info.column_names)
     except PatsyError as err:
         msg = "Formula of exog infla did not work: {formula_infla}."
         msg += " Falling back to an intercept. Error from Patsy:"
@@ -562,6 +560,7 @@ def _extract_data_from_formula_no_infla(
     variables = dmatrices(formula, data=data)
     endog = variables[0]
     exog = variables[1]
+    # print('names exog :', exog.design_info.column_names)
     non_zero = exog.sum(axis=0) > 0
     exog = exog[:, non_zero]
 
@@ -804,7 +803,7 @@ def _handle_data(
         samples = torch.arange(endog.shape[0])[samples_only_zeros]
         msg = f"The ({len(samples)}) following (index) counts contains only zeros and are removed."
         msg += str(samples.numpy())
-        msg += "You can access the samples that are non zeros with .useful_indices"
+        msg += "\nYou can access the samples that are non zeros with .useful_indices"
         warnings.warn(msg)
         endog, exog, offsets = _remove_samples(endog, exog, offsets, samples_only_zeros)
         print(f"Now dataset of size {endog.shape}")
@@ -1015,8 +1014,8 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     # Draw the unit circle, for clarity
     circle = Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
     axs.add_patch(circle)
-    axs.set_xlabel(f"PCA 1 {(np.round(explained_ratio[0]*100, 3))}%")
-    axs.set_ylabel(f"PCA 2 {(np.round(explained_ratio[1]*100, 3))}%")
+    axs.set_xlabel(f"PCA 1 ({(np.round(explained_ratio[0]*100, 3))}%)")
+    axs.set_ylabel(f"PCA 2 ({(np.round(explained_ratio[1]*100, 3))}%)")
     axs.set_title(f"Correlation circle on the transformed variables{title}")
     # plt.ion()
 
