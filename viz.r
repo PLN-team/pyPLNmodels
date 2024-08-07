@@ -34,8 +34,6 @@ nb_N = 3
 get_df <- function(filename, modelname){
     df = read.csv(paste("csv_res_benchmark/",filename, sep = ""), header = TRUE, check.names = F)
     df <- data.frame(df[,-1], check.names = F)
-    print('one df')
-    print(df)
     df[,"Model"] = modelname
     df[df == 10001]  = NA
     return(df)
@@ -66,15 +64,31 @@ get_plot_i <- function(i){
 }
 
 pdf("paper/figures/plots_benchmark.pdf")
-print('y')
-print(df)
 plots <- list()
 for (i in c(1:nb_N)){
     tmp_plot <- get_plot_i(i)
     common_legend = get_legend(tmp_plot)
     tmp_plot <- remove_legend(tmp_plot)
+    # if (i == 1){
+        # tmp_plot <- tmp_plot + annotate("text", x = 1, y = -1, label = "Ours", hjust = -0.08, size = 3)+coord_cartesian(xlim=c(10,14), clip = "off")
+        # tmp_plot <- tmp_plot + annotate("text", x = 1, y = -2, label = "Others", hjust = -0.08, size = 3)
+        # tmp_plot <- tmp_plot + annotation_custom(
+        #               grob = textGrob(label = "test", hjust = 1, gp = gpar(cex = 1.5)),
+        #               ymin = -14,      # Vertical position of the textGrob
+        #               ymax = 14,
+        #               xmin = -14.3,         # Note: The grobs are positioned outside the plot area
+        #               xmax = 14.3)
+        # tmp_plot = tmp_plot + geom_text(aes(label = "test", x = 3, y = 3), hjust = -3, vjust = 3.5)
+    # }
     plots <- append(list(tmp_plot), plots)
 }
-grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 1, bottom = common_legend, common.legend = TRUE)#, top=paste("alpha = ", alpha))
+mygrid = grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 1, bottom = common_legend, common.legend = TRUE)#, top=paste("alpha = ", alpha))
+# mygrid <- mygrid + annotation_custom(
+#                       grob = textGrob(label = "test", hjust = 1, gp = gpar(cex = 1.5)),
+#                       ymin = -1,      # Vertical position of the textGrob
+#                       ymax = 1,
+#                       xmin = -1.3,         # Note: The grobs are positioned outside the plot area
+#                       xmax = 1.3)
+# mygrid
 
 dev.off()
