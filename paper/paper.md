@@ -75,7 +75,12 @@ benchmark section. We kept 1000 samples for illustration
 purposes. The computational time for fitting PLN-PCA is 23 seconds (on GPU), whereas
 standard PCA requires 0.7 second.
 
-![PLN-PCA (left) and standard PCA on log normalized data (right).](figures/plnpca_vs_pca_last.png)
+![PLN-PCA (left) and standard PCA on log normalized data (right). Each cell is
+identified by its respective cell type. This is done solely to demonstrate the
+method's ability to differentiate between various cell types. Unlike the
+standard Principal Component Analysis (PCA) which fails to distinguish between
+different cell types, the PLN-PCA method is capable of doing
+so.](figures/plnpca_vs_pca_last.png)
 
 # Statement of need
 While the R-package ```PLNmodels``` [@PLNmodels] implements PLN models (including some variants), the python package
