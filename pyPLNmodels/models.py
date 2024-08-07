@@ -939,11 +939,8 @@ class _model(ABC):
         name_file : str, optional
             The name of the file to save. Defaults to "".
         """
-        if self.coef is None:
-            coef = torch.zeros(self.dim)
-        else:
-            coef = self.coef
-        sns.heatmap(coef, ax=ax)
+        if self.coef is not None:
+            sns.heatmap(self.coef, ax=ax)
         ax.set_title("Regression coefficient Matrix")
         plt.legend()
         if savefig:
