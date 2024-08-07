@@ -29,7 +29,7 @@ tests:
     - pytest .
   only:
     - main
-    - dev
+    # - dev
     - tags
 
 
@@ -66,6 +66,7 @@ pages:
     - pip install '.[build-doc]'
   script:
     - pip install .
+    - pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
     - make -C docs html
     - rm -rf public/
     - cp -r docs/build/html public
