@@ -77,3 +77,4 @@ pages:
     - docker
   only:
     - tags
+    - dev
