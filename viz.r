@@ -25,10 +25,9 @@ modelnames = c("py-PLN-CPU (ours)", "py-PLN-PCA-CPU (ours)", "py-PLN-GPU (ours)"
 col_viridis = viridis(10)
 
 colors =     c(col_viridis[[5]],    col_viridis[[8]],          col_viridis[[5]],      col_viridis[[8]],        col_viridis[[1]],    col_viridis[[5]], col_viridis[[8]])
-linestyles = c("solid",        "solid",        "dashed",     "dashed",      "dotted",   "dotted",   "dotted")
+linestyles = c("solid",        "solid",        "dashed",     "dashed",      "dotdash",   "dotted",   "dotted")
 # filenames = c(file_pln_r,file_plnpca_r, file_gllvm)
 # modelnames = c("R-Pln", "R-PlnPCA", "GLLVM")
-
 
 nb_N = 3
 get_df <- function(filename, modelname){
@@ -56,7 +55,7 @@ remove_legend <- function(myplot){
 
 
 get_plot_i <- function(i){
-    current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model, linetype = Model), shape = 23, size = 0.75)
+    current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model, linetype = Model), shape = 23, size = 0.6)
     current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)", x = TeX("Number of variables $p$"))
     current_plot <- current_plot + scale_y_log10()
     current_plot <- current_plot + scale_color_manual(values=colors, limits = modelnames) + scale_linetype_manual(values=linestyles, limits = modelnames)
