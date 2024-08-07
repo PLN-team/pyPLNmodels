@@ -145,7 +145,7 @@ coefficient, which are specified following the pipe `|` symbol in the formula or
 zi =  ZIPln.from_formula("endog ~ 1  + tree | 1 + tree", data = oaks)
 zi.fit()
 print(zi)
-print("Transformed data shape: "zi.transform().shape)
+print("Transformed data shape: ", zi.transform().shape)
 z_latent_variables, w_latent_variables = zi.transform(return_latent_prob = True)
 print(r'$Z$ latent variables shape', z_latent_variables.shape)
 print(r'$W$ latent variables shape', w_latent_variables.shape)
