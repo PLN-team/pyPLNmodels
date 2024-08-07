@@ -65,7 +65,8 @@ pages:
   before_script:
     - pip install '.[build-doc]'
   script:
-    - apt-get install -y pandoc
+    - wget https://github.com/jgm/pandoc/releases/download/1.15.1/pandoc-1.15.1-1-amd64.deb
+    - dpkg -i pandoc-1.15.1-1-amd64.deb
     - pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
     - pip install .
     - make -C docs html
