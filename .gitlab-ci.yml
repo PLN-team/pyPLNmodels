@@ -60,16 +60,12 @@ publish_package:
     - tags
 
 pages:
-  stage: publish
-  image:
-    name: pandoc
-    entrypoint: ["/bin/sh", "-c"]
-  script:
-     - pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
   image: "registry.forgemia.inra.fr/bbatardiere/docker-image-pandas-torch-sphinx-jupyter"
   before_script:
     - pip install '.[build-doc]'
   script:
+    - apt-get install -y pandoc
+    - pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
     - pip install .
     - make -C docs html
     - rm -rf public/
