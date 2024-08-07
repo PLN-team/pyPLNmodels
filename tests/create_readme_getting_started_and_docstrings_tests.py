@@ -46,10 +46,14 @@ def get_example_readme(lines):
         if len(line) > 2:
             if line[0:3] == "```":
                 if in_example is False:
-                    in_example = True
+                    if "not run" in line:
+                        in_example = False
+                    else:
+                        in_example = True
                 else:
                     in_example = False
             elif in_example is True:
+                print("line:", line)
                 example.append(line)
     example.pop()  # The last line is pip install pyPLNmodels which is not python code.
     return [example]
