@@ -57,7 +57,7 @@ dependencies = [
 ]
 [project.optional-dependencies]
 tests = ["pytest","pytest_lazy_fixture"]
-build-doc = ["sphinx","sphinx_rtd_theme", "pandoc"]
+build-doc = ["sphinx","sphinx_rtd_theme"]
 
 [project.urls]
 Repository = "https://github.com/PLN-team/pyPLNmodels"
