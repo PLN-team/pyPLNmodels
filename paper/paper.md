@@ -30,8 +30,9 @@ count data. The Poisson LogNormal(PLN)  [@PLN] and its Principal Component
 Analysis variant PLN-PCA [@PLNPCA] are two-sided latent variable models allowing both
 suitable normalization and analysis of multivariate count data, implemented in this package.
 
-Consider $\mathbf Y$ a count matrix consisting of $n$ rows and $p$ columns.
-It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
+Consider $\mathbf Y$ a count matrix consisting of $n$ rows and $p$ columns. The
+$\mathcal P$ (resp. $\mathcal N$) denotes a Poisson (resp. Normal)
+distribution. It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent of the others and follows a Poisson
 lognormal distribution:
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
@@ -97,7 +98,7 @@ benchmark section. We kept 1000 samples for illustration
 purposes. The computational time for fitting PLN-PCA is 23 seconds (on GPU), whereas
 standard PCA requires 0.7 second.
 
-![PLN-PCA (left) and standard PCA on log normalized data (right). Each cell is
+![PLN-PCA (left, ours) and standard PCA on log normalized data (right). Each cell is
 identified by its respective cell type. This categorization is done solely to demonstrate the
 method's ability to differentiate between various cell types. Unlike the
 standard Principal Component Analysis (PCA), which fails to distinguish between
@@ -168,7 +169,7 @@ preprint [@PLNzero] expected to be published shortly.
 
 # Acknowledgements
 The authors would like to thank Jean-Benoist Léger for the time spent giving
-precious advice to build a proper Python package.
+precious advice on how to build a proper Python package.
 
 # Fundings
 Bastien Bartardière and Julien Chiquet are supported by
