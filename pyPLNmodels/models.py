@@ -235,6 +235,7 @@ class _model(ABC):
         ----------
         ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
+            If None, will display the plot.
         colors : Optional[np.ndarray], optional(keyword-only)
             The colors to use for plotting, by default None.
         show_cov: bool, Optional(keyword-only)
@@ -253,11 +254,11 @@ class _model(ABC):
         return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
 
     def viz_positions(self, *, ax=None, colors=None, show_cov: bool = False):
-        variables = self.latent_position
+        variables = self.latent_positions
         return self._viz_variables(variables, ax=ax, colors=colors, show_cov=show_cov)
 
     @property
-    def latent_position(self):
+    def latent_positions(self):
         return self.transform() - self.mean_gaussian
 
     def _viz_variables(
@@ -289,19 +290,22 @@ class _model(ABC):
         if self._get_max_components() < 2:
             raise RuntimeError("Can't perform visualization for dim < 2.")
         pca = PCA(n_components=2)
-        pca.fit(variables)
-        proj_variables = pca.transform(self.transform())
+        proj_variables = pca.fit_transform(variables)
         x = proj_variables[:, 0]
         y = proj_variables[:, 1]
         if ax is None:
             ax = plt.gca()
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax)
+            to_show = True
+        else:
+            to_show = False
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80)
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)
             covariances = self._get_pca_low_dim_covariances(sk_components).detach()
             for i in range(covariances.shape[0]):
                 _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
-        plt.show()
+        if to_show is True:
+            plt.show()
         return ax
 
     def _project_parameters(self):
@@ -400,12 +404,16 @@ class _model(ABC):
         for parameter in self._list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
+    @property
+    def _running_times(self):
+        return self._criterion_args.running_times
+
     def fit(
         self,
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -419,7 +427,7 @@ class _model(ABC):
         lr : float, optional(keyword-only)
             The learning rate. Defaults to 0.01.
         tol : float, optional(keyword-only)
-            The tolerance for convergence. Defaults to 1e-5.
+            The tolerance for convergence. Defaults to 1e-6.
         do_smart_init : bool, optional(keyword-only)
             Whether to perform smart initialization. Defaults to True.
         verbose : bool, optional(keyword-only)
@@ -521,8 +529,12 @@ class _model(ABC):
         if ax is None:
             _, ax = plt.subplots(1)
         x = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        x = x * len(self._running_times) / len(x)
+        x = np.array(self._running_times)[x.astype(int)]
         for key, value in self._dict_mse.items():
             ax.plot(x, value, label=key)
+        ax.set_xlabel("Seconds", fontsize=15)
+        ax.set_yscale("log")
         ax.legend()
         ax.set_title("Norm of each parameter.")
 
@@ -535,6 +547,11 @@ class _model(ABC):
             wrns += f"only after {nb_max_epoch} iterations (epochs). You can monitor the norm "
             wrns += " of each parameter calling .show() method after a fit. You can "
             wrns += " also save the model by calling .save() and fit it again after."
+            wrns += (
+                "Also, the optimization with mini-batch has proven to be less stable "
+            )
+            wrns += "and lower than optimization with the full batch, even when the number of"
+            wrns += " samples is high."
             warnings.warn(wrns)
         else:
             self.optim = torch.optim.Rprop(
@@ -909,6 +926,28 @@ class _model(ABC):
         if display is True:
             plt.show()  # to avoid displaying a blank screen
 
+    def display_coef(self, ax=None, savefig=False, name_file="", display=True):
+        """
+        Display the regression coefficient matrix.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes to plot on. If None, a new figure will be created. Defaults to None.
+        savefig : bool, optional
+            Whether to save the figure. Defaults to False.
+        name_file : str, optional
+            The name of the file to save. Defaults to "".
+        """
+        if self.coef is not None:
+            sns.heatmap(self.coef, ax=ax)
+        ax.set_title("Regression coefficient Matrix")
+        plt.legend()
+        if savefig:
+            plt.savefig(name_file + self._NAME)
+        if display is True:
+            plt.show()  # to avoid displaying a blank screen
+
     def __repr__(self):
         """
         Generate the string representation of the object.
@@ -967,13 +1006,14 @@ class _model(ABC):
         if self._fitted is False:
             nb_axes = 1
         else:
-            nb_axes = 3
+            nb_axes = 4
         if axes is None:
             _, axes = plt.subplots(1, nb_axes, figsize=(23, 5))
         if self._fitted is True:
-            self._criterion_args._show_loss(ax=axes[2])
-            self._display_norm(ax=axes[1])
             self.display_covariance(ax=axes[0], display=False)
+            self.display_coef(ax=axes[1], display=False)
+            self._display_norm(ax=axes[2])
+            self._criterion_args._show_loss(ax=axes[3])
         else:
             self.display_covariance(ax=axes)
 
@@ -1715,7 +1755,7 @@ class Pln(_model):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -2540,7 +2580,7 @@ class PlnPCAcollection:
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -2554,7 +2594,7 @@ class PlnPCAcollection:
         lr : float, optional(keyword-only)
             The learning rate, by default 0.01.
         tol : float, optional(keyword-only)
-            The tolerance, by default 1e-5.
+            The tolerance, by default 1e-6.
         do_smart_init : bool, optional(keyword-only)
             Whether to do smart initialization, by default True.
         verbose : bool, optional(keyword-only)
@@ -3041,6 +3081,7 @@ class PlnPCA(_model):
         rank: int = 5,
         offsets_formula: {"zero", "logsum"} = "zero",
         dict_initialization: Optional[Dict[str, torch.Tensor]] = None,
+        take_log_offsets: bool = False,
         batch_size: int = None,
     ):
         endog, exog, offsets = _extract_data_from_formula_no_infla(formula, data)
@@ -3051,6 +3092,7 @@ class PlnPCA(_model):
             offsets_formula=offsets_formula,
             rank=rank,
             dict_initialization=dict_initialization,
+            take_log_offsets=take_log_offsets,
             add_const=False,
             batch_size=batch_size,
         )
@@ -3070,7 +3112,7 @@ class PlnPCA(_model):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -3854,7 +3896,7 @@ class ZIPln(_model):
         nb_max_epoch: int = 400,
         *,
         lr: float = 0.01,
-        tol: float = 1e-5,
+        tol: float = 1e-6,
         do_smart_init: bool = True,
         verbose: bool = False,
     ):
@@ -3968,7 +4010,7 @@ class ZIPln(_model):
 
         if not hasattr(self, "_latent_sqrt_var"):
             self._latent_sqrt_var = self._smart_device(
-                torch.randn(self.n_samples, self.dim)
+                torch.ones(self.n_samples, self.dim)
             )
         if not hasattr(self, "_latent_prob"):
             if self._use_closed_form_prob is False:
@@ -4610,6 +4652,7 @@ class ZIPln(_model):
         ----------
         ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
             The matplotlib axis to use. If None, the current axis is used, by default None.
+            If None, will display the plot.
         colors : Optional[np.ndarray], optional(keyword-only)
             The colors to use for plotting, by default None.
         Raises

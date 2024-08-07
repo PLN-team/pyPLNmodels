@@ -6,32 +6,14 @@
 Welcome to pyPLNmodels's documentation!
 =======================================
 
-API documentation
-=================
+Here is the :ref:`documentation-label`.
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Classes
 
-   ./plnpcacollection.rst
-   ./plnpca.rst
-   ./pln.rst
-   ./zipln.rst
+A notebook to get started with pyPLNmodels is available `HERE
+<https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__.
+Otherwise, the next section is an overview of the package.
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Load saved models
+Overview
+========
 
-   ./load.rst
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Sampling PLN data
-
-   ./sampling.rst
-Indices and tables
-==================
-
-* :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
+.. include:: ./readme.rst

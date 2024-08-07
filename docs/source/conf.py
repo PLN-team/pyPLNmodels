@@ -35,7 +35,9 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx_rtd_theme",
+    "sphinx.ext.autosectionlabel",
 ]
+# source_suffix = [".rst", ".md"]
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 
