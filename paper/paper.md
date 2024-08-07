@@ -133,9 +133,10 @@ practical computational limits.
 # Benchmark
 We compare
 \begin{itemize}
-\item PLN and PLN-PCA variants fitted with  \verb|pyPLNmodels| on CPU and GPU
-\item PLN and PLN-PCA variants fitted with  \verb|PLNmodels| (on CPU)
-\item \verb|GLLVM| (on CPU)
+\item PLN and PLN-PCA variants fitted with  \verb|pyPLNmodels| on CPU: \textbf{py-PLN-CPU} and \textbf{py-PLN-PCA-CPU}
+\item PLN and PLN-PCA variants fitted with  \verb|pyPLNmodels| on GPU: \textbf{py-PLN-GPU} and \textbf{py-PLN-PCA-GPU}
+\item PLN and PLN-PCA variants fitted with  \verb|PLNmodels| (on CPU): \textbf{R-PLN} and \textbf{R-PLN-PCA}
+\item \verb|GLLVM| (on CPU): \textbf{GLLVM}
 \end{itemize}
 on the `scMARK` dataset, a benchmark for scRNA data, with
 $n=19998$ cells (samples) and 14059 genes (variables) are available.
