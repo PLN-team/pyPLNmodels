@@ -790,6 +790,7 @@ def get_simulation_parameters(
         mean_infla,
         seed,
     )
+    offsets *= 0
     if add_const_inflation is True and zero_inflation_formula is None:
         warnings.warn(
             "add const_inflation set to True but no zero inflation is sampled."
