@@ -18,8 +18,8 @@
 <!-- > comprehensive introduction. -->
 
 ##  Getting started
-A notebook to get started can be found
-[HERE](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
+[A notebook to get started can be found
+here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
 If you need just a quick view of the package, see the quickstart next.
 
 ## 🛠 Installation
@@ -48,8 +48,10 @@ Consider $\mathbf Y$ a count matrix (denoted as ```endog``` in the package) cons
 It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
+
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
+
 where $\mathbf x_i \in \mathbb R^d$ (`exog`) and $\mathbf o_i \in \mathbb R^p$ (`offsets`) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
