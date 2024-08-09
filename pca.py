@@ -28,7 +28,7 @@ dict_markers = dict(zip(np.unique(GT), markers))
 dict_colors = dict(zip(np.unique(GT), colors))
 
 
-plnpca = PlnPCA(Y, rank=2)
+plnpca = PlnPCA(Y)
 t = time.time()
 plnpca.fit(tol=0.001, verbose=True, nb_max_iteration=700)
 print("time took pln:", (time.time() - t) / 60)
