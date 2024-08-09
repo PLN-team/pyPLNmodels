@@ -9,7 +9,7 @@ Welcome to pyPLNmodels's documentation!
 Here is the :ref:`documentation-label`.
 
 
-A notebook to get started with pyPLNmodels is available `HERE
+`A notebook to get started with pyPLNmodels is available here
 <https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__.
 Otherwise, the next section is an overview of the package.
 
