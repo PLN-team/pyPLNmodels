@@ -30,7 +30,7 @@ dict_colors = dict(zip(np.unique(GT), colors))
 
 plnpca = PlnPCA(Y)
 t = time.time()
-plnpca.fit(tol=0.001, verbose=True, nb_max_iteration=700)
+plnpca.fit(tol=0.0001, verbose=True, nb_max_iteration=700)
 print("time took pln:", (time.time() - t) / 60)
 
 # plnpca.show()
