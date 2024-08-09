@@ -48,8 +48,10 @@ Consider $\mathbf Y$ a count matrix (denoted as ```endog``` in the package) cons
 It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
+
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
+
 where $\mathbf x_i \in \mathbb R^d$ (`exog`) and $\mathbf o_i \in \mathbb R^p$ (`offsets`) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
