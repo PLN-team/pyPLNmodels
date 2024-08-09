@@ -149,6 +149,7 @@ $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
 
 
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
+
 Each package uses variational inference, maximizing an Evidence
 Lower BOund(ELBO) approximating the log-likelihood of the model.
 ```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a
