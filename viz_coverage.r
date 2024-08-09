@@ -7,7 +7,7 @@ library(cowplot)
 
 
 
-filename = "coverage_times_n.csv"
+filename = "coverage.csv"
 df = read.csv(filename)
 df$n = as.factor(df$n)
 df$p = as.factor(df$p)
@@ -29,7 +29,7 @@ plot_ns_d_p <- function(d,p){
     sub_df <- df[selected,]
     current_plot <- ggplot(sub_df, aes(x = n, y  = Coverage, fill = method)) + geom_violin(position="dodge", alpha=0.5)
     # current_plot <- current_plot + stat_summary(fun.data = mean_sdl)
-    current_plot <- current_plot + ylim(0.5,1) + theme_bw() + scale_fill_viridis_d()
+    current_plot <- current_plot + ylim(0.1,1) + theme_bw() + scale_fill_viridis_d()
     current_plot <- current_plot + guides(fill=guide_legend(title="Method", nrow = 1, byrow = TRUE))
     current_plot <- current_plot + geom_hline(yintercept=0.95, color = "red")
     if (p == ps[[1]]){

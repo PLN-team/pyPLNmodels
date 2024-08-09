@@ -9,9 +9,9 @@ import pandas as pd
 import numpy as np
 
 nb_max_iter = 700
-nb_seed = 3
+nb_seed = 10
 ns = [250, 500, 1000]
-dims = [20, 40, 50]
+dims = [10, 20, 40]
 nb_covs = [1, 2, 3]
 
 
@@ -76,7 +76,10 @@ class Fisher_Pln:
         IX = torch.kron(torch.eye(self.p), self.X)
         out = torch.multiply(IXt, vecA.unsqueeze(0)) @ (IX)
         # return torch.inverse(math.sqrt(self.n)*out)
-        return out / self.n
+        # bigmat = torch.diag(vecA)
+        # other = IXt @ bigmat @ IX
+
+        return out / (self.n)
 
 
 def get_cover_from_gaussian(asymptoticGaussianVariational):
@@ -96,14 +99,15 @@ def get_each_cover(ns, nb_cov, dim):
             seed=seed_param,
             nb_cov=nb_cov - 1,
             add_const=True,
+            mean_gaussian=2,
         )
-        sim_param._set_gaussian_mean(2)
+        # sim_param._set_gaussian_mean(2)
         _endog = sample_pln(sim_param, seed=seed_param)
         _exog = sim_param.exog
         _offsets = sim_param.offsets
         true_covariance = sim_param.covariance
         true_coef = sim_param.coef
-        print("XB", torch.mean(_exog @ true_coef))
+        XB = _exog @ true_coef
         for i, n in enumerate(ns):
             print("n:", n)
             endog = _endog[:n]
@@ -132,12 +136,13 @@ def get_each_cover(ns, nb_cov, dim):
             N01_fisher = normalizing(
                 pln.coef, true_coef, var_variational, pln.n_samples
             )
-
+            cover_fisher = get_cover_from_gaussian(N01_fisher)
+            # sns.histplot(N01_fisher)
+            # plt.title(f"Coverage {cover_fisher}")
+            # plt.show()
+            dict_covers_fisher[n].append(cover_fisher)
             cover_sandwich = get_cover_from_gaussian(N01_sandwich)
             dict_covers_sandwich[n].append(cover_sandwich)
-            cover_fisher = get_cover_from_gaussian(N01_fisher)
-            print("cover fisher", cover_fisher)
-            dict_covers_fisher[n].append(cover_fisher)
     return dict_covers_sandwich, dict_covers_fisher
 
 
@@ -178,8 +183,3 @@ for dim in tqdm(dims):
 
 df.to_csv("coverage_times_n.csv")
 print("df", df)
-
-
-# sns.histplot(asymptotic_N01)
-# plt.title(f"Cover ={cover}")
-# plt.show()

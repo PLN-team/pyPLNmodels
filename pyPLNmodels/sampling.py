@@ -53,6 +53,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
     add_const_inflation: bool,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"},
     mean_infla: float,
+    mean_gaussian: float,
     seed: int,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -196,7 +197,9 @@ def _get_simulation_coef_cov_offsets_coefzi(
     if exog is None:
         coef = None
     else:
-        coef = torch.randn(exog.shape[1], dim) / np.sqrt(nb_cov + 1)
+        coef = torch.randn(exog.shape[1], dim)
+        coef /= np.sqrt(coef.shape[0])
+        coef[0, :] += mean_gaussian
     offsets = torch.randint(low=0, high=2, size=(n_samples, dim), dtype=torch.float64)
     torch.random.set_rng_state(prev_state)
     return coef, exog, exog_inflation, offsets, coef_inflation
@@ -735,6 +738,7 @@ def get_simulation_parameters(
     add_const_inflation: bool = False,
     zero_inflation_formula: {None, "global", "column-wise", "row-wise"} = None,
     mean_infla=0.2,
+    mean_gaussian=0,
     seed=0,
 ) -> Union[PlnParameters, ZIPlnParameters]:
     """
@@ -788,6 +792,7 @@ def get_simulation_parameters(
         add_const_inflation,
         zero_inflation_formula,
         mean_infla,
+        mean_gaussian,
         seed,
     )
     offsets *= 0
