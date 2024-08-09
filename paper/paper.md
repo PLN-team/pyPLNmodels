@@ -62,7 +62,6 @@ Possible fields of applications include
 ecology, whose goal is to understand the interaction between species to
 characterize a community, given a matrix of abundances in different sites with abundances given by
 $$Y_{ij} = \text{number of species } j \text{ observed in site } i .$$
-<!-- Specifically, it aims to establish potential dependencies, competitive interactions, and predatory dynamics. -->
 Additionally, the PLN models seek to explain the impact of covariates (when available), such as temperature, altitude, and other
   relevant factors on the observed abundances.
 \item Genomics: High throughput sequencing technologies now allow quantification, at the level of
