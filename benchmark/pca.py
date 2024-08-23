@@ -8,7 +8,8 @@ import time
 
 
 n = 1000
-p = 15000
+# p = 15000
+p = 1500
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
 viridis = sns.color_palette("viridis")
 colors = [
@@ -30,11 +31,11 @@ dict_colors = dict(zip(np.unique(GT), colors))
 
 plnpca = PlnPCA(Y)
 t = time.time()
-plnpca.fit(tol=0.0001, verbose=True, nb_max_iteration=700)
+plnpca.fit(tol=0.0001, verbose=True, nb_max_iteration=7)
 print("time took pln:", (time.time() - t) / 60)
 
 # plnpca.show()
-fig, axes = plt.subplots(1, 2, figsize=(20, 10), layout="constrained")
+fig, axes = plt.subplots(1, 2, figsize=(20, 15), layout="constrained")
 plnpca.viz(colors=GT, ax=axes[0], markers=dict_markers, dict_colors=dict_colors)
 
 
@@ -49,15 +50,15 @@ sns.scatterplot(
 )
 
 
-axes[0].set_title("Principal Component Analysis with PLN-PCA")
 fontsize = 20
+axes[0].set_title("Principal Component Analysis with PLN-PCA", fontsize=fontsize + 3)
 axes[0].set_xlabel("PC1", fontsize=fontsize)
 axes[0].tick_params(axis="both", labelsize=fontsize - 5)
 axes[0].set_ylabel("PC2", fontsize=fontsize)
 axes[1].set_xlabel("PC1", fontsize=fontsize)
 axes[1].tick_params(axis="both", labelsize=fontsize - 5)
 axes[1].set_ylabel("PC2", fontsize=fontsize)
-axes[1].set_title("Standard Principal Component Analysis")
+axes[1].set_title("Standard Principal Component Analysis", fontsize=fontsize + 3)
 axes[0].get_legend().set_visible(False)
 
 handles, legend = axes[1].get_legend_handles_labels()
@@ -68,12 +69,14 @@ fig.legend(
     legend,
     ncol=5,
     loc="lower center",
-    fontsize=14,
+    fontsize=fontsize,
     bbox_to_anchor=[0, axbox.y0 - 0.18, 1, 1],
     bbox_transform=fig.transFigure,
 )
 
 axes[1].get_legend().set_visible(False)
 
-plt.savefig("paper/figures/plnpca_vs_pca_last.png", format="png", bbox_inches="tight")
+plt.savefig(
+    "../paper/figures/plnpca_vs_pca_last.png", format="png", bbox_inches="tight"
+)
 plt.show()

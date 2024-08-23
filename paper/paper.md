@@ -53,7 +53,7 @@ The only difference between the PLN and PLN-PCA models is that the latter
 assumes a low-rank structure on the covariance matrix, which is helpful for
 dimension
 reduction. Other variants of the PLN model exist, which are detailed in
-the work of [@PLNmodels].
+the work of @PLNmodels.
 
 # Fields of applications and functionalities
 Possible fields of applications include
@@ -70,15 +70,15 @@ sequencing (scRNA-seq) is one of those and measures the expression of genes at t
 cell $i$ and gene $j$, the counts $Y_{ij}$ is given by
 $$Y_{ij} = \text{number of times gene } j \text{ is expressed in cell } i.$$
 One of the challenges with scRNA-seq data is managing the high
-dimensionality, necessitating dimension reduction techniques adequate to count data.
+dimensionality, necessitating dimension reduction techniques suitable to count data.
 \end{itemize}
 The PLN and PLN-PCA variants are implemented in the ```pyPLNmodels``` package
 introduced here, whose main functionalities are
 \begin{itemize}
-\item Normalize count data to obtain more valuable data
-\item Analyse the significance of each variable and their correlation
-\item Perform regression when covariates are available
-\item Reduce the number of features with PLN-PCA
+\item Normalize count data to obtain more valuable data,
+\item Analyse the significance of each variable and their correlation,
+\item Perform regression when covariates are available,
+\item Reduce the number of features with PLN-PCA.
 \end{itemize}
 The ```pyPLNmodels```[^pyplnmodels]  package has been designed to efficiently process
 extensive datasets in a reasonable time and incorporates GPU
