@@ -1,541 +1,1441 @@
 ,n,p,d,seed,method,Coverage
 0,250,10,1,0,Sandwich,1.0
-1,250,10,1,0,Variational Fisher,0.1
-2,250,10,1,1,Sandwich,1.0
-3,250,10,1,1,Variational Fisher,0.2
+1,250,10,1,0,Variational Fisher,0.3
+2,250,10,1,1,Sandwich,0.9
+3,250,10,1,1,Variational Fisher,0.5
 4,250,10,1,2,Sandwich,1.0
-5,250,10,1,2,Variational Fisher,0.4
+5,250,10,1,2,Variational Fisher,0.3
 6,250,10,1,3,Sandwich,1.0
-7,250,10,1,3,Variational Fisher,0.4
-8,250,10,1,4,Sandwich,0.9
-9,250,10,1,4,Variational Fisher,0.0
-10,250,10,1,5,Sandwich,1.0
-11,250,10,1,5,Variational Fisher,0.3
-12,250,10,1,6,Sandwich,1.0
-13,250,10,1,6,Variational Fisher,0.4
-14,250,10,1,7,Sandwich,0.8
-15,250,10,1,7,Variational Fisher,0.3
-16,250,10,1,8,Sandwich,0.9
-17,250,10,1,8,Variational Fisher,0.2
+7,250,10,1,3,Variational Fisher,0.1
+8,250,10,1,4,Sandwich,1.0
+9,250,10,1,4,Variational Fisher,0.2
+10,250,10,1,5,Sandwich,0.9
+11,250,10,1,5,Variational Fisher,0.4
+12,250,10,1,6,Sandwich,0.9
+13,250,10,1,6,Variational Fisher,0.3
+14,250,10,1,7,Sandwich,1.0
+15,250,10,1,7,Variational Fisher,0.4
+16,250,10,1,8,Sandwich,0.8
+17,250,10,1,8,Variational Fisher,0.1
 18,250,10,1,9,Sandwich,0.9
-19,250,10,1,9,Variational Fisher,0.3
-20,250,10,2,0,Sandwich,0.75
-21,250,10,2,0,Variational Fisher,0.25
-22,250,10,2,1,Sandwich,0.75
-23,250,10,2,1,Variational Fisher,0.05
-24,250,10,2,2,Sandwich,0.45
-25,250,10,2,2,Variational Fisher,0.0
-26,250,10,2,3,Sandwich,0.85
-27,250,10,2,3,Variational Fisher,0.2
-28,250,10,2,4,Sandwich,0.5
-29,250,10,2,4,Variational Fisher,0.1
-30,250,10,2,5,Sandwich,0.65
-31,250,10,2,5,Variational Fisher,0.0
-32,250,10,2,6,Sandwich,0.75
-33,250,10,2,6,Variational Fisher,0.05
-34,250,10,2,7,Sandwich,0.6
-35,250,10,2,7,Variational Fisher,0.25
-36,250,10,2,8,Sandwich,0.6
-37,250,10,2,8,Variational Fisher,0.1
-38,250,10,2,9,Sandwich,0.9
-39,250,10,2,9,Variational Fisher,0.25
-40,250,10,3,0,Sandwich,0.7666666666666667
-41,250,10,3,0,Variational Fisher,0.16666666666666666
-42,250,10,3,1,Sandwich,0.9333333333333333
-43,250,10,3,1,Variational Fisher,0.2
-44,250,10,3,2,Sandwich,0.9666666666666667
-45,250,10,3,2,Variational Fisher,0.3
-46,250,10,3,3,Sandwich,0.5666666666666667
-47,250,10,3,3,Variational Fisher,0.06666666666666667
-48,250,10,3,4,Sandwich,0.8666666666666667
-49,250,10,3,4,Variational Fisher,0.23333333333333334
-50,250,10,3,5,Sandwich,0.8
-51,250,10,3,5,Variational Fisher,0.1
-52,250,10,3,6,Sandwich,0.8666666666666667
-53,250,10,3,6,Variational Fisher,0.13333333333333333
-54,250,10,3,7,Sandwich,0.9333333333333333
-55,250,10,3,7,Variational Fisher,0.03333333333333333
-56,250,10,3,8,Sandwich,0.8333333333333334
-57,250,10,3,8,Variational Fisher,0.26666666666666666
-58,250,10,3,9,Sandwich,0.7666666666666667
-59,250,10,3,9,Variational Fisher,0.13333333333333333
-60,250,20,1,0,Sandwich,0.95
-61,250,20,1,0,Variational Fisher,0.2
-62,250,20,1,1,Sandwich,0.95
-63,250,20,1,1,Variational Fisher,0.1
-64,250,20,1,2,Sandwich,0.95
-65,250,20,1,2,Variational Fisher,0.15
-66,250,20,1,3,Sandwich,0.85
-67,250,20,1,3,Variational Fisher,0.15
-68,250,20,1,4,Sandwich,0.9
-69,250,20,1,4,Variational Fisher,0.25
-70,250,20,1,5,Sandwich,1.0
-71,250,20,1,5,Variational Fisher,0.4
-72,250,20,1,6,Sandwich,0.95
-73,250,20,1,6,Variational Fisher,0.35
-74,250,20,1,7,Sandwich,1.0
-75,250,20,1,7,Variational Fisher,0.05
-76,250,20,1,8,Sandwich,0.95
-77,250,20,1,8,Variational Fisher,0.25
-78,250,20,1,9,Sandwich,0.95
-79,250,20,1,9,Variational Fisher,0.2
-80,250,20,2,0,Sandwich,0.85
-81,250,20,2,0,Variational Fisher,0.175
-82,250,20,2,1,Sandwich,0.65
-83,250,20,2,1,Variational Fisher,0.2
-84,250,20,2,2,Sandwich,0.525
-85,250,20,2,2,Variational Fisher,0.075
-86,250,20,2,3,Sandwich,0.65
-87,250,20,2,3,Variational Fisher,0.225
-88,250,20,2,4,Sandwich,0.85
-89,250,20,2,4,Variational Fisher,0.225
-90,250,20,2,5,Sandwich,0.775
-91,250,20,2,5,Variational Fisher,0.15
-92,250,20,2,6,Sandwich,0.75
-93,250,20,2,6,Variational Fisher,0.225
-94,250,20,2,7,Sandwich,0.7
-95,250,20,2,7,Variational Fisher,0.225
-96,250,20,2,8,Sandwich,0.875
-97,250,20,2,8,Variational Fisher,0.175
-98,250,20,2,9,Sandwich,0.8
-99,250,20,2,9,Variational Fisher,0.175
-100,250,20,3,0,Sandwich,0.7833333333333333
-101,250,20,3,0,Variational Fisher,0.15
-102,250,20,3,1,Sandwich,0.8166666666666667
-103,250,20,3,1,Variational Fisher,0.23333333333333334
-104,250,20,3,2,Sandwich,0.7833333333333333
-105,250,20,3,2,Variational Fisher,0.15
-106,250,20,3,3,Sandwich,0.7
-107,250,20,3,3,Variational Fisher,0.18333333333333332
-108,250,20,3,4,Sandwich,0.7333333333333333
-109,250,20,3,4,Variational Fisher,0.08333333333333333
-110,250,20,3,5,Sandwich,0.8
-111,250,20,3,5,Variational Fisher,0.21666666666666667
-112,250,20,3,6,Sandwich,0.7166666666666667
-113,250,20,3,6,Variational Fisher,0.16666666666666666
-114,250,20,3,7,Sandwich,0.8666666666666667
-115,250,20,3,7,Variational Fisher,0.1
-116,250,20,3,8,Sandwich,0.7833333333333333
-117,250,20,3,8,Variational Fisher,0.18333333333333332
-118,250,20,3,9,Sandwich,0.75
-119,250,20,3,9,Variational Fisher,0.15
-120,250,40,1,0,Sandwich,0.825
-121,250,40,1,0,Variational Fisher,0.225
-122,250,40,1,1,Sandwich,0.925
-123,250,40,1,1,Variational Fisher,0.35
-124,250,40,1,2,Sandwich,0.925
-125,250,40,1,2,Variational Fisher,0.25
-126,250,40,1,3,Sandwich,0.825
-127,250,40,1,3,Variational Fisher,0.15
-128,250,40,1,4,Sandwich,0.85
-129,250,40,1,4,Variational Fisher,0.075
-130,250,40,1,5,Sandwich,0.95
-131,250,40,1,5,Variational Fisher,0.175
-132,250,40,1,6,Sandwich,0.875
-133,250,40,1,6,Variational Fisher,0.125
-134,250,40,1,7,Sandwich,0.875
-135,250,40,1,7,Variational Fisher,0.225
-136,250,40,1,8,Sandwich,0.875
-137,250,40,1,8,Variational Fisher,0.15
-138,250,40,1,9,Sandwich,0.875
-139,250,40,1,9,Variational Fisher,0.2
-140,250,40,2,0,Sandwich,0.775
-141,250,40,2,0,Variational Fisher,0.2375
-142,250,40,2,1,Sandwich,0.7125
-143,250,40,2,1,Variational Fisher,0.15
-144,250,40,2,2,Sandwich,0.7625
-145,250,40,2,2,Variational Fisher,0.225
-146,250,40,2,3,Sandwich,0.5875
-147,250,40,2,3,Variational Fisher,0.2125
-148,250,40,2,4,Sandwich,0.55
-149,250,40,2,4,Variational Fisher,0.15
-150,250,40,2,5,Sandwich,0.7875
-151,250,40,2,5,Variational Fisher,0.1625
-152,250,40,2,6,Sandwich,0.6
-153,250,40,2,6,Variational Fisher,0.15
-154,250,40,2,7,Sandwich,0.7
-155,250,40,2,7,Variational Fisher,0.25
-156,250,40,2,8,Sandwich,0.75
-157,250,40,2,8,Variational Fisher,0.2125
-158,250,40,2,9,Sandwich,0.6125
-159,250,40,2,9,Variational Fisher,0.175
-160,250,40,3,0,Sandwich,0.6
-161,250,40,3,0,Variational Fisher,0.20833333333333334
-162,250,40,3,1,Sandwich,0.6416666666666667
-163,250,40,3,1,Variational Fisher,0.25
-164,250,40,3,2,Sandwich,0.5833333333333334
-165,250,40,3,2,Variational Fisher,0.2
-166,250,40,3,3,Sandwich,0.5416666666666666
-167,250,40,3,3,Variational Fisher,0.15833333333333333
-168,250,40,3,4,Sandwich,0.5416666666666666
-169,250,40,3,4,Variational Fisher,0.20833333333333334
-170,250,40,3,5,Sandwich,0.6333333333333333
-171,250,40,3,5,Variational Fisher,0.19166666666666668
-172,250,40,3,6,Sandwich,0.5916666666666667
-173,250,40,3,6,Variational Fisher,0.19166666666666668
-174,250,40,3,7,Sandwich,0.5416666666666666
-175,250,40,3,7,Variational Fisher,0.16666666666666666
-176,250,40,3,8,Sandwich,0.5833333333333334
-177,250,40,3,8,Variational Fisher,0.24166666666666667
-178,250,40,3,9,Sandwich,0.5916666666666667
-179,250,40,3,9,Variational Fisher,0.21666666666666667
-180,500,10,1,0,Sandwich,0.7
-181,500,10,1,0,Variational Fisher,0.0
-182,500,10,1,1,Sandwich,1.0
-183,500,10,1,1,Variational Fisher,0.2
-184,500,10,1,2,Sandwich,0.9
-185,500,10,1,2,Variational Fisher,0.2
-186,500,10,1,3,Sandwich,1.0
-187,500,10,1,3,Variational Fisher,0.0
-188,500,10,1,4,Sandwich,1.0
-189,500,10,1,4,Variational Fisher,0.0
-190,500,10,1,5,Sandwich,1.0
-191,500,10,1,5,Variational Fisher,0.2
-192,500,10,1,6,Sandwich,1.0
-193,500,10,1,6,Variational Fisher,0.3
-194,500,10,1,7,Sandwich,0.9
-195,500,10,1,7,Variational Fisher,0.1
-196,500,10,1,8,Sandwich,1.0
-197,500,10,1,8,Variational Fisher,0.2
-198,500,10,1,9,Sandwich,0.9
-199,500,10,1,9,Variational Fisher,0.1
-200,500,10,2,0,Sandwich,0.85
-201,500,10,2,0,Variational Fisher,0.35
-202,500,10,2,1,Sandwich,0.7
-203,500,10,2,1,Variational Fisher,0.05
-204,500,10,2,2,Sandwich,0.4
-205,500,10,2,2,Variational Fisher,0.05
-206,500,10,2,3,Sandwich,0.7
-207,500,10,2,3,Variational Fisher,0.05
-208,500,10,2,4,Sandwich,0.45
-209,500,10,2,4,Variational Fisher,0.0
-210,500,10,2,5,Sandwich,0.8
-211,500,10,2,5,Variational Fisher,0.1
-212,500,10,2,6,Sandwich,0.75
-213,500,10,2,6,Variational Fisher,0.3
-214,500,10,2,7,Sandwich,0.5
-215,500,10,2,7,Variational Fisher,0.0
-216,500,10,2,8,Sandwich,0.75
-217,500,10,2,8,Variational Fisher,0.1
-218,500,10,2,9,Sandwich,0.8
-219,500,10,2,9,Variational Fisher,0.1
-220,500,10,3,0,Sandwich,0.5333333333333333
-221,500,10,3,0,Variational Fisher,0.1
-222,500,10,3,1,Sandwich,0.8333333333333334
-223,500,10,3,1,Variational Fisher,0.16666666666666666
-224,500,10,3,2,Sandwich,0.9666666666666667
-225,500,10,3,2,Variational Fisher,0.2
-226,500,10,3,3,Sandwich,0.6666666666666666
-227,500,10,3,3,Variational Fisher,0.2
-228,500,10,3,4,Sandwich,0.8666666666666667
-229,500,10,3,4,Variational Fisher,0.26666666666666666
-230,500,10,3,5,Sandwich,0.9333333333333333
-231,500,10,3,5,Variational Fisher,0.2
-232,500,10,3,6,Sandwich,0.8666666666666667
-233,500,10,3,6,Variational Fisher,0.16666666666666666
-234,500,10,3,7,Sandwich,0.9
-235,500,10,3,7,Variational Fisher,0.16666666666666666
-236,500,10,3,8,Sandwich,0.8
-237,500,10,3,8,Variational Fisher,0.23333333333333334
-238,500,10,3,9,Sandwich,0.8
-239,500,10,3,9,Variational Fisher,0.2
-240,500,20,1,0,Sandwich,0.9
-241,500,20,1,0,Variational Fisher,0.1
-242,500,20,1,1,Sandwich,0.9
-243,500,20,1,1,Variational Fisher,0.15
-244,500,20,1,2,Sandwich,0.9
-245,500,20,1,2,Variational Fisher,0.3
-246,500,20,1,3,Sandwich,0.95
-247,500,20,1,3,Variational Fisher,0.2
-248,500,20,1,4,Sandwich,1.0
-249,500,20,1,4,Variational Fisher,0.25
-250,500,20,1,5,Sandwich,1.0
-251,500,20,1,5,Variational Fisher,0.1
-252,500,20,1,6,Sandwich,1.0
-253,500,20,1,6,Variational Fisher,0.25
-254,500,20,1,7,Sandwich,0.95
-255,500,20,1,7,Variational Fisher,0.1
-256,500,20,1,8,Sandwich,0.95
-257,500,20,1,8,Variational Fisher,0.25
-258,500,20,1,9,Sandwich,1.0
-259,500,20,1,9,Variational Fisher,0.1
-260,500,20,2,0,Sandwich,0.875
-261,500,20,2,0,Variational Fisher,0.125
-262,500,20,2,1,Sandwich,0.6
-263,500,20,2,1,Variational Fisher,0.175
-264,500,20,2,2,Sandwich,0.675
-265,500,20,2,2,Variational Fisher,0.125
-266,500,20,2,3,Sandwich,0.65
-267,500,20,2,3,Variational Fisher,0.15
-268,500,20,2,4,Sandwich,0.825
-269,500,20,2,4,Variational Fisher,0.15
-270,500,20,2,5,Sandwich,0.825
-271,500,20,2,5,Variational Fisher,0.15
-272,500,20,2,6,Sandwich,0.575
-273,500,20,2,6,Variational Fisher,0.125
-274,500,20,2,7,Sandwich,0.7
-275,500,20,2,7,Variational Fisher,0.15
-276,500,20,2,8,Sandwich,0.75
-277,500,20,2,8,Variational Fisher,0.15
-278,500,20,2,9,Sandwich,0.85
-279,500,20,2,9,Variational Fisher,0.175
-280,500,20,3,0,Sandwich,0.85
-281,500,20,3,0,Variational Fisher,0.16666666666666666
-282,500,20,3,1,Sandwich,0.85
-283,500,20,3,1,Variational Fisher,0.2
-284,500,20,3,2,Sandwich,0.85
-285,500,20,3,2,Variational Fisher,0.16666666666666666
-286,500,20,3,3,Sandwich,0.75
-287,500,20,3,3,Variational Fisher,0.15
-288,500,20,3,4,Sandwich,0.8
-289,500,20,3,4,Variational Fisher,0.2
-290,500,20,3,5,Sandwich,0.8166666666666667
-291,500,20,3,5,Variational Fisher,0.21666666666666667
-292,500,20,3,6,Sandwich,0.75
-293,500,20,3,6,Variational Fisher,0.13333333333333333
-294,500,20,3,7,Sandwich,0.8
-295,500,20,3,7,Variational Fisher,0.2
-296,500,20,3,8,Sandwich,0.7333333333333333
-297,500,20,3,8,Variational Fisher,0.21666666666666667
-298,500,20,3,9,Sandwich,0.7
-299,500,20,3,9,Variational Fisher,0.15
-300,500,40,1,0,Sandwich,0.875
-301,500,40,1,0,Variational Fisher,0.225
-302,500,40,1,1,Sandwich,0.9
-303,500,40,1,1,Variational Fisher,0.225
-304,500,40,1,2,Sandwich,0.95
-305,500,40,1,2,Variational Fisher,0.25
-306,500,40,1,3,Sandwich,0.95
-307,500,40,1,3,Variational Fisher,0.325
-308,500,40,1,4,Sandwich,0.8
-309,500,40,1,4,Variational Fisher,0.1
-310,500,40,1,5,Sandwich,1.0
-311,500,40,1,5,Variational Fisher,0.15
-312,500,40,1,6,Sandwich,0.875
-313,500,40,1,6,Variational Fisher,0.125
-314,500,40,1,7,Sandwich,0.925
-315,500,40,1,7,Variational Fisher,0.075
-316,500,40,1,8,Sandwich,0.9
-317,500,40,1,8,Variational Fisher,0.275
-318,500,40,1,9,Sandwich,0.9
-319,500,40,1,9,Variational Fisher,0.175
-320,500,40,2,0,Sandwich,0.7625
-321,500,40,2,0,Variational Fisher,0.15
-322,500,40,2,1,Sandwich,0.675
-323,500,40,2,1,Variational Fisher,0.15
-324,500,40,2,2,Sandwich,0.8125
-325,500,40,2,2,Variational Fisher,0.1625
-326,500,40,2,3,Sandwich,0.725
-327,500,40,2,3,Variational Fisher,0.175
-328,500,40,2,4,Sandwich,0.5625
-329,500,40,2,4,Variational Fisher,0.075
-330,500,40,2,5,Sandwich,0.775
-331,500,40,2,5,Variational Fisher,0.2
-332,500,40,2,6,Sandwich,0.7875
-333,500,40,2,6,Variational Fisher,0.1875
-334,500,40,2,7,Sandwich,0.825
-335,500,40,2,7,Variational Fisher,0.2
-336,500,40,2,8,Sandwich,0.8125
-337,500,40,2,8,Variational Fisher,0.2875
-338,500,40,2,9,Sandwich,0.7125
-339,500,40,2,9,Variational Fisher,0.1375
-340,500,40,3,0,Sandwich,0.7916666666666666
-341,500,40,3,0,Variational Fisher,0.26666666666666666
-342,500,40,3,1,Sandwich,0.775
-343,500,40,3,1,Variational Fisher,0.20833333333333334
-344,500,40,3,2,Sandwich,0.7166666666666667
-345,500,40,3,2,Variational Fisher,0.3
-346,500,40,3,3,Sandwich,0.775
-347,500,40,3,3,Variational Fisher,0.225
-348,500,40,3,4,Sandwich,0.6583333333333333
-349,500,40,3,4,Variational Fisher,0.18333333333333332
-350,500,40,3,5,Sandwich,0.7
-351,500,40,3,5,Variational Fisher,0.13333333333333333
-352,500,40,3,6,Sandwich,0.7083333333333334
-353,500,40,3,6,Variational Fisher,0.2
-354,500,40,3,7,Sandwich,0.675
-355,500,40,3,7,Variational Fisher,0.20833333333333334
-356,500,40,3,8,Sandwich,0.8333333333333334
-357,500,40,3,8,Variational Fisher,0.18333333333333332
-358,500,40,3,9,Sandwich,0.7666666666666667
-359,500,40,3,9,Variational Fisher,0.25833333333333336
-360,1000,10,1,0,Sandwich,0.8
-361,1000,10,1,0,Variational Fisher,0.2
-362,1000,10,1,1,Sandwich,0.8
-363,1000,10,1,1,Variational Fisher,0.3
-364,1000,10,1,2,Sandwich,0.9
-365,1000,10,1,2,Variational Fisher,0.1
-366,1000,10,1,3,Sandwich,1.0
-367,1000,10,1,3,Variational Fisher,0.1
-368,1000,10,1,4,Sandwich,1.0
-369,1000,10,1,4,Variational Fisher,0.2
-370,1000,10,1,5,Sandwich,1.0
-371,1000,10,1,5,Variational Fisher,0.2
-372,1000,10,1,6,Sandwich,1.0
-373,1000,10,1,6,Variational Fisher,0.2
-374,1000,10,1,7,Sandwich,0.8
-375,1000,10,1,7,Variational Fisher,0.2
-376,1000,10,1,8,Sandwich,0.8
-377,1000,10,1,8,Variational Fisher,0.1
-378,1000,10,1,9,Sandwich,1.0
-379,1000,10,1,9,Variational Fisher,0.0
-380,1000,10,2,0,Sandwich,0.7
-381,1000,10,2,0,Variational Fisher,0.2
-382,1000,10,2,1,Sandwich,0.7
-383,1000,10,2,1,Variational Fisher,0.05
-384,1000,10,2,2,Sandwich,0.25
-385,1000,10,2,2,Variational Fisher,0.0
-386,1000,10,2,3,Sandwich,0.65
-387,1000,10,2,3,Variational Fisher,0.0
-388,1000,10,2,4,Sandwich,0.45
-389,1000,10,2,4,Variational Fisher,0.0
-390,1000,10,2,5,Sandwich,0.45
-391,1000,10,2,5,Variational Fisher,0.05
-392,1000,10,2,6,Sandwich,0.85
-393,1000,10,2,6,Variational Fisher,0.25
-394,1000,10,2,7,Sandwich,0.8
-395,1000,10,2,7,Variational Fisher,0.25
-396,1000,10,2,8,Sandwich,0.55
-397,1000,10,2,8,Variational Fisher,0.15
-398,1000,10,2,9,Sandwich,0.85
-399,1000,10,2,9,Variational Fisher,0.1
-400,1000,10,3,0,Sandwich,0.5
-401,1000,10,3,0,Variational Fisher,0.06666666666666667
-402,1000,10,3,1,Sandwich,0.8
-403,1000,10,3,1,Variational Fisher,0.13333333333333333
-404,1000,10,3,2,Sandwich,0.8666666666666667
-405,1000,10,3,2,Variational Fisher,0.13333333333333333
-406,1000,10,3,3,Sandwich,0.6
-407,1000,10,3,3,Variational Fisher,0.13333333333333333
-408,1000,10,3,4,Sandwich,0.8666666666666667
-409,1000,10,3,4,Variational Fisher,0.06666666666666667
-410,1000,10,3,5,Sandwich,0.8666666666666667
-411,1000,10,3,5,Variational Fisher,0.1
-412,1000,10,3,6,Sandwich,0.8
-413,1000,10,3,6,Variational Fisher,0.16666666666666666
-414,1000,10,3,7,Sandwich,0.9333333333333333
-415,1000,10,3,7,Variational Fisher,0.13333333333333333
-416,1000,10,3,8,Sandwich,0.8
-417,1000,10,3,8,Variational Fisher,0.3
-418,1000,10,3,9,Sandwich,0.8666666666666667
-419,1000,10,3,9,Variational Fisher,0.06666666666666667
-420,1000,20,1,0,Sandwich,0.9
-421,1000,20,1,0,Variational Fisher,0.15
-422,1000,20,1,1,Sandwich,0.85
-423,1000,20,1,1,Variational Fisher,0.25
-424,1000,20,1,2,Sandwich,0.95
-425,1000,20,1,2,Variational Fisher,0.25
-426,1000,20,1,3,Sandwich,1.0
-427,1000,20,1,3,Variational Fisher,0.3
-428,1000,20,1,4,Sandwich,0.95
-429,1000,20,1,4,Variational Fisher,0.2
-430,1000,20,1,5,Sandwich,0.95
-431,1000,20,1,5,Variational Fisher,0.15
-432,1000,20,1,6,Sandwich,1.0
-433,1000,20,1,6,Variational Fisher,0.2
-434,1000,20,1,7,Sandwich,0.85
-435,1000,20,1,7,Variational Fisher,0.2
-436,1000,20,1,8,Sandwich,1.0
-437,1000,20,1,8,Variational Fisher,0.4
-438,1000,20,1,9,Sandwich,1.0
-439,1000,20,1,9,Variational Fisher,0.15
-440,1000,20,2,0,Sandwich,0.775
-441,1000,20,2,0,Variational Fisher,0.225
-442,1000,20,2,1,Sandwich,0.75
-443,1000,20,2,1,Variational Fisher,0.1
-444,1000,20,2,2,Sandwich,0.7
-445,1000,20,2,2,Variational Fisher,0.125
-446,1000,20,2,3,Sandwich,0.875
-447,1000,20,2,3,Variational Fisher,0.175
-448,1000,20,2,4,Sandwich,0.75
-449,1000,20,2,4,Variational Fisher,0.05
-450,1000,20,2,5,Sandwich,0.775
-451,1000,20,2,5,Variational Fisher,0.125
-452,1000,20,2,6,Sandwich,0.75
-453,1000,20,2,6,Variational Fisher,0.15
-454,1000,20,2,7,Sandwich,0.775
-455,1000,20,2,7,Variational Fisher,0.225
-456,1000,20,2,8,Sandwich,0.95
-457,1000,20,2,8,Variational Fisher,0.125
-458,1000,20,2,9,Sandwich,0.725
-459,1000,20,2,9,Variational Fisher,0.125
-460,1000,20,3,0,Sandwich,0.75
-461,1000,20,3,0,Variational Fisher,0.18333333333333332
-462,1000,20,3,1,Sandwich,0.7833333333333333
-463,1000,20,3,1,Variational Fisher,0.21666666666666667
-464,1000,20,3,2,Sandwich,0.6833333333333333
-465,1000,20,3,2,Variational Fisher,0.16666666666666666
-466,1000,20,3,3,Sandwich,0.9
-467,1000,20,3,3,Variational Fisher,0.26666666666666666
-468,1000,20,3,4,Sandwich,0.65
-469,1000,20,3,4,Variational Fisher,0.15
-470,1000,20,3,5,Sandwich,0.8333333333333334
-471,1000,20,3,5,Variational Fisher,0.16666666666666666
-472,1000,20,3,6,Sandwich,0.75
-473,1000,20,3,6,Variational Fisher,0.18333333333333332
-474,1000,20,3,7,Sandwich,0.8
-475,1000,20,3,7,Variational Fisher,0.16666666666666666
-476,1000,20,3,8,Sandwich,0.75
-477,1000,20,3,8,Variational Fisher,0.18333333333333332
-478,1000,20,3,9,Sandwich,0.7333333333333333
-479,1000,20,3,9,Variational Fisher,0.21666666666666667
-480,1000,40,1,0,Sandwich,0.875
-481,1000,40,1,0,Variational Fisher,0.15
-482,1000,40,1,1,Sandwich,1.0
-483,1000,40,1,1,Variational Fisher,0.35
-484,1000,40,1,2,Sandwich,1.0
-485,1000,40,1,2,Variational Fisher,0.225
-486,1000,40,1,3,Sandwich,0.875
-487,1000,40,1,3,Variational Fisher,0.125
-488,1000,40,1,4,Sandwich,0.875
-489,1000,40,1,4,Variational Fisher,0.125
-490,1000,40,1,5,Sandwich,0.975
-491,1000,40,1,5,Variational Fisher,0.225
-492,1000,40,1,6,Sandwich,0.925
-493,1000,40,1,6,Variational Fisher,0.2
-494,1000,40,1,7,Sandwich,0.925
-495,1000,40,1,7,Variational Fisher,0.125
-496,1000,40,1,8,Sandwich,1.0
-497,1000,40,1,8,Variational Fisher,0.25
-498,1000,40,1,9,Sandwich,0.925
-499,1000,40,1,9,Variational Fisher,0.375
-500,1000,40,2,0,Sandwich,0.7625
-501,1000,40,2,0,Variational Fisher,0.2
-502,1000,40,2,1,Sandwich,0.5375
-503,1000,40,2,1,Variational Fisher,0.175
-504,1000,40,2,2,Sandwich,0.7375
-505,1000,40,2,2,Variational Fisher,0.0875
-506,1000,40,2,3,Sandwich,0.75
-507,1000,40,2,3,Variational Fisher,0.0875
-508,1000,40,2,4,Sandwich,0.6375
-509,1000,40,2,4,Variational Fisher,0.1125
-510,1000,40,2,5,Sandwich,0.7875
-511,1000,40,2,5,Variational Fisher,0.15
-512,1000,40,2,6,Sandwich,0.8
-513,1000,40,2,6,Variational Fisher,0.1875
-514,1000,40,2,7,Sandwich,0.7
-515,1000,40,2,7,Variational Fisher,0.125
-516,1000,40,2,8,Sandwich,0.6
-517,1000,40,2,8,Variational Fisher,0.2
-518,1000,40,2,9,Sandwich,0.6
-519,1000,40,2,9,Variational Fisher,0.1125
-520,1000,40,3,0,Sandwich,0.7583333333333333
-521,1000,40,3,0,Variational Fisher,0.24166666666666667
-522,1000,40,3,1,Sandwich,0.85
-523,1000,40,3,1,Variational Fisher,0.125
-524,1000,40,3,2,Sandwich,0.7833333333333333
-525,1000,40,3,2,Variational Fisher,0.15833333333333333
-526,1000,40,3,3,Sandwich,0.7583333333333333
-527,1000,40,3,3,Variational Fisher,0.125
-528,1000,40,3,4,Sandwich,0.75
-529,1000,40,3,4,Variational Fisher,0.14166666666666666
-530,1000,40,3,5,Sandwich,0.7166666666666667
-531,1000,40,3,5,Variational Fisher,0.14166666666666666
-532,1000,40,3,6,Sandwich,0.625
-533,1000,40,3,6,Variational Fisher,0.21666666666666667
-534,1000,40,3,7,Sandwich,0.8
-535,1000,40,3,7,Variational Fisher,0.20833333333333334
-536,1000,40,3,8,Sandwich,0.9
-537,1000,40,3,8,Variational Fisher,0.13333333333333333
-538,1000,40,3,9,Sandwich,0.725
-539,1000,40,3,9,Variational Fisher,0.2
+19,250,10,1,9,Variational Fisher,0.2
+20,250,10,1,10,Sandwich,1.0
+21,250,10,1,10,Variational Fisher,0.5
+22,250,10,1,11,Sandwich,1.0
+23,250,10,1,11,Variational Fisher,0.1
+24,250,10,1,12,Sandwich,0.9
+25,250,10,1,12,Variational Fisher,0.1
+26,250,10,1,13,Sandwich,0.8
+27,250,10,1,13,Variational Fisher,0.3
+28,250,10,1,14,Sandwich,1.0
+29,250,10,1,14,Variational Fisher,0.2
+30,250,10,1,15,Sandwich,0.8
+31,250,10,1,15,Variational Fisher,0.1
+32,250,10,1,16,Sandwich,0.8
+33,250,10,1,16,Variational Fisher,0.0
+34,250,10,1,17,Sandwich,0.9
+35,250,10,1,17,Variational Fisher,0.2
+36,250,10,1,18,Sandwich,0.9
+37,250,10,1,18,Variational Fisher,0.0
+38,250,10,1,19,Sandwich,0.9
+39,250,10,1,19,Variational Fisher,0.2
+40,250,10,2,0,Sandwich,0.5
+41,250,10,2,0,Variational Fisher,0.0
+42,250,10,2,1,Sandwich,0.65
+43,250,10,2,1,Variational Fisher,0.15
+44,250,10,2,2,Sandwich,0.95
+45,250,10,2,2,Variational Fisher,0.15
+46,250,10,2,3,Sandwich,0.85
+47,250,10,2,3,Variational Fisher,0.2
+48,250,10,2,4,Sandwich,0.7
+49,250,10,2,4,Variational Fisher,0.15
+50,250,10,2,5,Sandwich,0.95
+51,250,10,2,5,Variational Fisher,0.35
+52,250,10,2,6,Sandwich,0.65
+53,250,10,2,6,Variational Fisher,0.3
+54,250,10,2,7,Sandwich,0.7
+55,250,10,2,7,Variational Fisher,0.2
+56,250,10,2,8,Sandwich,0.75
+57,250,10,2,8,Variational Fisher,0.0
+58,250,10,2,9,Sandwich,0.9
+59,250,10,2,9,Variational Fisher,0.2
+60,250,10,2,10,Sandwich,0.9
+61,250,10,2,10,Variational Fisher,0.2
+62,250,10,2,11,Sandwich,0.7
+63,250,10,2,11,Variational Fisher,0.2
+64,250,10,2,12,Sandwich,0.8
+65,250,10,2,12,Variational Fisher,0.1
+66,250,10,2,13,Sandwich,0.95
+67,250,10,2,13,Variational Fisher,0.3
+68,250,10,2,14,Sandwich,0.85
+69,250,10,2,14,Variational Fisher,0.05
+70,250,10,2,15,Sandwich,0.9
+71,250,10,2,15,Variational Fisher,0.3
+72,250,10,2,16,Sandwich,0.55
+73,250,10,2,16,Variational Fisher,0.05
+74,250,10,2,17,Sandwich,0.65
+75,250,10,2,17,Variational Fisher,0.05
+76,250,10,2,18,Sandwich,0.85
+77,250,10,2,18,Variational Fisher,0.35
+78,250,10,2,19,Sandwich,0.95
+79,250,10,2,19,Variational Fisher,0.15
+80,250,10,3,0,Sandwich,0.8333333333333334
+81,250,10,3,0,Variational Fisher,0.2
+82,250,10,3,1,Sandwich,0.7666666666666667
+83,250,10,3,1,Variational Fisher,0.06666666666666667
+84,250,10,3,2,Sandwich,0.9666666666666667
+85,250,10,3,2,Variational Fisher,0.16666666666666666
+86,250,10,3,3,Sandwich,0.7
+87,250,10,3,3,Variational Fisher,0.3
+88,250,10,3,4,Sandwich,0.6333333333333333
+89,250,10,3,4,Variational Fisher,0.03333333333333333
+90,250,10,3,5,Sandwich,0.8666666666666667
+91,250,10,3,5,Variational Fisher,0.16666666666666666
+92,250,10,3,6,Sandwich,0.9333333333333333
+93,250,10,3,6,Variational Fisher,0.06666666666666667
+94,250,10,3,7,Sandwich,0.6666666666666666
+95,250,10,3,7,Variational Fisher,0.1
+96,250,10,3,8,Sandwich,0.8
+97,250,10,3,8,Variational Fisher,0.26666666666666666
+98,250,10,3,9,Sandwich,0.8333333333333334
+99,250,10,3,9,Variational Fisher,0.2
+100,250,10,3,10,Sandwich,0.9666666666666667
+101,250,10,3,10,Variational Fisher,0.3
+102,250,10,3,11,Sandwich,0.9
+103,250,10,3,11,Variational Fisher,0.16666666666666666
+104,250,10,3,12,Sandwich,0.9
+105,250,10,3,12,Variational Fisher,0.23333333333333334
+106,250,10,3,13,Sandwich,0.8666666666666667
+107,250,10,3,13,Variational Fisher,0.23333333333333334
+108,250,10,3,14,Sandwich,0.7
+109,250,10,3,14,Variational Fisher,0.1
+110,250,10,3,15,Sandwich,0.7
+111,250,10,3,15,Variational Fisher,0.16666666666666666
+112,250,10,3,16,Sandwich,0.8666666666666667
+113,250,10,3,16,Variational Fisher,0.3
+114,250,10,3,17,Sandwich,0.8666666666666667
+115,250,10,3,17,Variational Fisher,0.13333333333333333
+116,250,10,3,18,Sandwich,0.7
+117,250,10,3,18,Variational Fisher,0.2
+118,250,10,3,19,Sandwich,0.7333333333333333
+119,250,10,3,19,Variational Fisher,0.1
+120,250,20,1,0,Sandwich,0.9
+121,250,20,1,0,Variational Fisher,0.05
+122,250,20,1,1,Sandwich,0.95
+123,250,20,1,1,Variational Fisher,0.1
+124,250,20,1,2,Sandwich,0.95
+125,250,20,1,2,Variational Fisher,0.3
+126,250,20,1,3,Sandwich,0.85
+127,250,20,1,3,Variational Fisher,0.25
+128,250,20,1,4,Sandwich,0.95
+129,250,20,1,4,Variational Fisher,0.25
+130,250,20,1,5,Sandwich,1.0
+131,250,20,1,5,Variational Fisher,0.4
+132,250,20,1,6,Sandwich,0.9
+133,250,20,1,6,Variational Fisher,0.35
+134,250,20,1,7,Sandwich,0.95
+135,250,20,1,7,Variational Fisher,0.2
+136,250,20,1,8,Sandwich,0.95
+137,250,20,1,8,Variational Fisher,0.25
+138,250,20,1,9,Sandwich,0.9
+139,250,20,1,9,Variational Fisher,0.05
+140,250,20,1,10,Sandwich,0.85
+141,250,20,1,10,Variational Fisher,0.15
+142,250,20,1,11,Sandwich,0.85
+143,250,20,1,11,Variational Fisher,0.05
+144,250,20,1,12,Sandwich,1.0
+145,250,20,1,12,Variational Fisher,0.25
+146,250,20,1,13,Sandwich,1.0
+147,250,20,1,13,Variational Fisher,0.35
+148,250,20,1,14,Sandwich,0.95
+149,250,20,1,14,Variational Fisher,0.25
+150,250,20,1,15,Sandwich,0.95
+151,250,20,1,15,Variational Fisher,0.2
+152,250,20,1,16,Sandwich,0.95
+153,250,20,1,16,Variational Fisher,0.2
+154,250,20,1,17,Sandwich,0.95
+155,250,20,1,17,Variational Fisher,0.15
+156,250,20,1,18,Sandwich,0.9
+157,250,20,1,18,Variational Fisher,0.25
+158,250,20,1,19,Sandwich,0.8
+159,250,20,1,19,Variational Fisher,0.0
+160,250,20,2,0,Sandwich,0.725
+161,250,20,2,0,Variational Fisher,0.15
+162,250,20,2,1,Sandwich,0.75
+163,250,20,2,1,Variational Fisher,0.175
+164,250,20,2,2,Sandwich,0.625
+165,250,20,2,2,Variational Fisher,0.05
+166,250,20,2,3,Sandwich,0.725
+167,250,20,2,3,Variational Fisher,0.175
+168,250,20,2,4,Sandwich,0.875
+169,250,20,2,4,Variational Fisher,0.15
+170,250,20,2,5,Sandwich,0.75
+171,250,20,2,5,Variational Fisher,0.125
+172,250,20,2,6,Sandwich,0.8
+173,250,20,2,6,Variational Fisher,0.175
+174,250,20,2,7,Sandwich,0.7
+175,250,20,2,7,Variational Fisher,0.275
+176,250,20,2,8,Sandwich,0.925
+177,250,20,2,8,Variational Fisher,0.25
+178,250,20,2,9,Sandwich,0.75
+179,250,20,2,9,Variational Fisher,0.175
+180,250,20,2,10,Sandwich,0.6
+181,250,20,2,10,Variational Fisher,0.25
+182,250,20,2,11,Sandwich,0.825
+183,250,20,2,11,Variational Fisher,0.125
+184,250,20,2,12,Sandwich,0.825
+185,250,20,2,12,Variational Fisher,0.3
+186,250,20,2,13,Sandwich,0.6
+187,250,20,2,13,Variational Fisher,0.125
+188,250,20,2,14,Sandwich,0.575
+189,250,20,2,14,Variational Fisher,0.1
+190,250,20,2,15,Sandwich,0.9
+191,250,20,2,15,Variational Fisher,0.275
+192,250,20,2,16,Sandwich,0.575
+193,250,20,2,16,Variational Fisher,0.1
+194,250,20,2,17,Sandwich,0.85
+195,250,20,2,17,Variational Fisher,0.15
+196,250,20,2,18,Sandwich,0.6
+197,250,20,2,18,Variational Fisher,0.1
+198,250,20,2,19,Sandwich,0.625
+199,250,20,2,19,Variational Fisher,0.125
+200,250,20,3,0,Sandwich,0.7166666666666667
+201,250,20,3,0,Variational Fisher,0.18333333333333332
+202,250,20,3,1,Sandwich,0.8333333333333334
+203,250,20,3,1,Variational Fisher,0.25
+204,250,20,3,2,Sandwich,0.65
+205,250,20,3,2,Variational Fisher,0.21666666666666667
+206,250,20,3,3,Sandwich,0.7
+207,250,20,3,3,Variational Fisher,0.25
+208,250,20,3,4,Sandwich,0.8666666666666667
+209,250,20,3,4,Variational Fisher,0.26666666666666666
+210,250,20,3,5,Sandwich,0.85
+211,250,20,3,5,Variational Fisher,0.16666666666666666
+212,250,20,3,6,Sandwich,0.8166666666666667
+213,250,20,3,6,Variational Fisher,0.21666666666666667
+214,250,20,3,7,Sandwich,0.7666666666666667
+215,250,20,3,7,Variational Fisher,0.15
+216,250,20,3,8,Sandwich,0.8833333333333333
+217,250,20,3,8,Variational Fisher,0.13333333333333333
+218,250,20,3,9,Sandwich,0.7166666666666667
+219,250,20,3,9,Variational Fisher,0.2
+220,250,20,3,10,Sandwich,0.7333333333333333
+221,250,20,3,10,Variational Fisher,0.15
+222,250,20,3,11,Sandwich,0.7666666666666667
+223,250,20,3,11,Variational Fisher,0.23333333333333334
+224,250,20,3,12,Sandwich,0.6166666666666667
+225,250,20,3,12,Variational Fisher,0.16666666666666666
+226,250,20,3,13,Sandwich,0.7
+227,250,20,3,13,Variational Fisher,0.26666666666666666
+228,250,20,3,14,Sandwich,0.8166666666666667
+229,250,20,3,14,Variational Fisher,0.13333333333333333
+230,250,20,3,15,Sandwich,0.7
+231,250,20,3,15,Variational Fisher,0.18333333333333332
+232,250,20,3,16,Sandwich,0.7666666666666667
+233,250,20,3,16,Variational Fisher,0.2
+234,250,20,3,17,Sandwich,0.7666666666666667
+235,250,20,3,17,Variational Fisher,0.18333333333333332
+236,250,20,3,18,Sandwich,0.7833333333333333
+237,250,20,3,18,Variational Fisher,0.06666666666666667
+238,250,20,3,19,Sandwich,0.7166666666666667
+239,250,20,3,19,Variational Fisher,0.16666666666666666
+240,250,40,1,0,Sandwich,0.825
+241,250,40,1,0,Variational Fisher,0.15
+242,250,40,1,1,Sandwich,0.85
+243,250,40,1,1,Variational Fisher,0.275
+244,250,40,1,2,Sandwich,0.875
+245,250,40,1,2,Variational Fisher,0.125
+246,250,40,1,3,Sandwich,0.775
+247,250,40,1,3,Variational Fisher,0.1
+248,250,40,1,4,Sandwich,0.85
+249,250,40,1,4,Variational Fisher,0.075
+250,250,40,1,5,Sandwich,0.875
+251,250,40,1,5,Variational Fisher,0.25
+252,250,40,1,6,Sandwich,0.8
+253,250,40,1,6,Variational Fisher,0.05
+254,250,40,1,7,Sandwich,0.8
+255,250,40,1,7,Variational Fisher,0.075
+256,250,40,1,8,Sandwich,0.95
+257,250,40,1,8,Variational Fisher,0.2
+258,250,40,1,9,Sandwich,0.925
+259,250,40,1,9,Variational Fisher,0.15
+260,250,40,1,10,Sandwich,0.975
+261,250,40,1,10,Variational Fisher,0.25
+262,250,40,1,11,Sandwich,0.875
+263,250,40,1,11,Variational Fisher,0.175
+264,250,40,1,12,Sandwich,0.825
+265,250,40,1,12,Variational Fisher,0.15
+266,250,40,1,13,Sandwich,0.925
+267,250,40,1,13,Variational Fisher,0.2
+268,250,40,1,14,Sandwich,0.875
+269,250,40,1,14,Variational Fisher,0.175
+270,250,40,1,15,Sandwich,0.8
+271,250,40,1,15,Variational Fisher,0.075
+272,250,40,1,16,Sandwich,0.925
+273,250,40,1,16,Variational Fisher,0.2
+274,250,40,1,17,Sandwich,0.875
+275,250,40,1,17,Variational Fisher,0.175
+276,250,40,1,18,Sandwich,1.0
+277,250,40,1,18,Variational Fisher,0.125
+278,250,40,1,19,Sandwich,0.875
+279,250,40,1,19,Variational Fisher,0.125
+280,250,40,2,0,Sandwich,0.625
+281,250,40,2,0,Variational Fisher,0.175
+282,250,40,2,1,Sandwich,0.7125
+283,250,40,2,1,Variational Fisher,0.1625
+284,250,40,2,2,Sandwich,0.8
+285,250,40,2,2,Variational Fisher,0.125
+286,250,40,2,3,Sandwich,0.5625
+287,250,40,2,3,Variational Fisher,0.2
+288,250,40,2,4,Sandwich,0.7625
+289,250,40,2,4,Variational Fisher,0.2125
+290,250,40,2,5,Sandwich,0.7875
+291,250,40,2,5,Variational Fisher,0.2625
+292,250,40,2,6,Sandwich,0.5625
+293,250,40,2,6,Variational Fisher,0.225
+294,250,40,2,7,Sandwich,0.6875
+295,250,40,2,7,Variational Fisher,0.2
+296,250,40,2,8,Sandwich,0.675
+297,250,40,2,8,Variational Fisher,0.1125
+298,250,40,2,9,Sandwich,0.7
+299,250,40,2,9,Variational Fisher,0.225
+300,250,40,2,10,Sandwich,0.7
+301,250,40,2,10,Variational Fisher,0.2
+302,250,40,2,11,Sandwich,0.6375
+303,250,40,2,11,Variational Fisher,0.175
+304,250,40,2,12,Sandwich,0.5125
+305,250,40,2,12,Variational Fisher,0.1625
+306,250,40,2,13,Sandwich,0.5875
+307,250,40,2,13,Variational Fisher,0.2125
+308,250,40,2,14,Sandwich,0.4875
+309,250,40,2,14,Variational Fisher,0.225
+310,250,40,2,15,Sandwich,0.7125
+311,250,40,2,15,Variational Fisher,0.2125
+312,250,40,2,16,Sandwich,0.65
+313,250,40,2,16,Variational Fisher,0.1375
+314,250,40,2,17,Sandwich,0.725
+315,250,40,2,17,Variational Fisher,0.125
+316,250,40,2,18,Sandwich,0.6375
+317,250,40,2,18,Variational Fisher,0.2125
+318,250,40,2,19,Sandwich,0.625
+319,250,40,2,19,Variational Fisher,0.15
+320,250,40,3,0,Sandwich,0.6083333333333333
+321,250,40,3,0,Variational Fisher,0.21666666666666667
+322,250,40,3,1,Sandwich,0.65
+323,250,40,3,1,Variational Fisher,0.26666666666666666
+324,250,40,3,2,Sandwich,0.575
+325,250,40,3,2,Variational Fisher,0.2
+326,250,40,3,3,Sandwich,0.6666666666666666
+327,250,40,3,3,Variational Fisher,0.225
+328,250,40,3,4,Sandwich,0.5333333333333333
+329,250,40,3,4,Variational Fisher,0.2
+330,250,40,3,5,Sandwich,0.6666666666666666
+331,250,40,3,5,Variational Fisher,0.15833333333333333
+332,250,40,3,6,Sandwich,0.5916666666666667
+333,250,40,3,6,Variational Fisher,0.175
+334,250,40,3,7,Sandwich,0.6
+335,250,40,3,7,Variational Fisher,0.15833333333333333
+336,250,40,3,8,Sandwich,0.5833333333333334
+337,250,40,3,8,Variational Fisher,0.2
+338,250,40,3,9,Sandwich,0.7
+339,250,40,3,9,Variational Fisher,0.175
+340,250,40,3,10,Sandwich,0.6166666666666667
+341,250,40,3,10,Variational Fisher,0.225
+342,250,40,3,11,Sandwich,0.6
+343,250,40,3,11,Variational Fisher,0.16666666666666666
+344,250,40,3,12,Sandwich,0.675
+345,250,40,3,12,Variational Fisher,0.25
+346,250,40,3,13,Sandwich,0.5916666666666667
+347,250,40,3,13,Variational Fisher,0.275
+348,250,40,3,14,Sandwich,0.575
+349,250,40,3,14,Variational Fisher,0.18333333333333332
+350,250,40,3,15,Sandwich,0.6083333333333333
+351,250,40,3,15,Variational Fisher,0.20833333333333334
+352,250,40,3,16,Sandwich,0.6166666666666667
+353,250,40,3,16,Variational Fisher,0.19166666666666668
+354,250,40,3,17,Sandwich,0.6583333333333333
+355,250,40,3,17,Variational Fisher,0.2
+356,250,40,3,18,Sandwich,0.575
+357,250,40,3,18,Variational Fisher,0.2
+358,250,40,3,19,Sandwich,0.6583333333333333
+359,250,40,3,19,Variational Fisher,0.16666666666666666
+360,500,10,1,0,Sandwich,0.9
+361,500,10,1,0,Variational Fisher,0.3
+362,500,10,1,1,Sandwich,1.0
+363,500,10,1,1,Variational Fisher,0.3
+364,500,10,1,2,Sandwich,0.9
+365,500,10,1,2,Variational Fisher,0.5
+366,500,10,1,3,Sandwich,1.0
+367,500,10,1,3,Variational Fisher,0.1
+368,500,10,1,4,Sandwich,1.0
+369,500,10,1,4,Variational Fisher,0.2
+370,500,10,1,5,Sandwich,1.0
+371,500,10,1,5,Variational Fisher,0.3
+372,500,10,1,6,Sandwich,1.0
+373,500,10,1,6,Variational Fisher,0.4
+374,500,10,1,7,Sandwich,1.0
+375,500,10,1,7,Variational Fisher,0.0
+376,500,10,1,8,Sandwich,1.0
+377,500,10,1,8,Variational Fisher,0.5
+378,500,10,1,9,Sandwich,0.9
+379,500,10,1,9,Variational Fisher,0.1
+380,500,10,1,10,Sandwich,1.0
+381,500,10,1,10,Variational Fisher,0.0
+382,500,10,1,11,Sandwich,0.9
+383,500,10,1,11,Variational Fisher,0.0
+384,500,10,1,12,Sandwich,1.0
+385,500,10,1,12,Variational Fisher,0.3
+386,500,10,1,13,Sandwich,1.0
+387,500,10,1,13,Variational Fisher,0.1
+388,500,10,1,14,Sandwich,1.0
+389,500,10,1,14,Variational Fisher,0.3
+390,500,10,1,15,Sandwich,0.8
+391,500,10,1,15,Variational Fisher,0.0
+392,500,10,1,16,Sandwich,1.0
+393,500,10,1,16,Variational Fisher,0.3
+394,500,10,1,17,Sandwich,0.9
+395,500,10,1,17,Variational Fisher,0.1
+396,500,10,1,18,Sandwich,1.0
+397,500,10,1,18,Variational Fisher,0.1
+398,500,10,1,19,Sandwich,1.0
+399,500,10,1,19,Variational Fisher,0.0
+400,500,10,2,0,Sandwich,0.65
+401,500,10,2,0,Variational Fisher,0.15
+402,500,10,2,1,Sandwich,0.75
+403,500,10,2,1,Variational Fisher,0.1
+404,500,10,2,2,Sandwich,1.0
+405,500,10,2,2,Variational Fisher,0.05
+406,500,10,2,3,Sandwich,0.8
+407,500,10,2,3,Variational Fisher,0.2
+408,500,10,2,4,Sandwich,0.8
+409,500,10,2,4,Variational Fisher,0.2
+410,500,10,2,5,Sandwich,0.9
+411,500,10,2,5,Variational Fisher,0.2
+412,500,10,2,6,Sandwich,0.6
+413,500,10,2,6,Variational Fisher,0.2
+414,500,10,2,7,Sandwich,0.75
+415,500,10,2,7,Variational Fisher,0.25
+416,500,10,2,8,Sandwich,0.8
+417,500,10,2,8,Variational Fisher,0.15
+418,500,10,2,9,Sandwich,0.8
+419,500,10,2,9,Variational Fisher,0.2
+420,500,10,2,10,Sandwich,0.8
+421,500,10,2,10,Variational Fisher,0.05
+422,500,10,2,11,Sandwich,0.65
+423,500,10,2,11,Variational Fisher,0.1
+424,500,10,2,12,Sandwich,1.0
+425,500,10,2,12,Variational Fisher,0.1
+426,500,10,2,13,Sandwich,0.85
+427,500,10,2,13,Variational Fisher,0.2
+428,500,10,2,14,Sandwich,0.95
+429,500,10,2,14,Variational Fisher,0.2
+430,500,10,2,15,Sandwich,0.85
+431,500,10,2,15,Variational Fisher,0.25
+432,500,10,2,16,Sandwich,0.65
+433,500,10,2,16,Variational Fisher,0.25
+434,500,10,2,17,Sandwich,0.75
+435,500,10,2,17,Variational Fisher,0.25
+436,500,10,2,18,Sandwich,0.9
+437,500,10,2,18,Variational Fisher,0.2
+438,500,10,2,19,Sandwich,0.6
+439,500,10,2,19,Variational Fisher,0.15
+440,500,10,3,0,Sandwich,0.7666666666666667
+441,500,10,3,0,Variational Fisher,0.13333333333333333
+442,500,10,3,1,Sandwich,0.7
+443,500,10,3,1,Variational Fisher,0.1
+444,500,10,3,2,Sandwich,0.9
+445,500,10,3,2,Variational Fisher,0.06666666666666667
+446,500,10,3,3,Sandwich,0.8666666666666667
+447,500,10,3,3,Variational Fisher,0.1
+448,500,10,3,4,Sandwich,0.8
+449,500,10,3,4,Variational Fisher,0.06666666666666667
+450,500,10,3,5,Sandwich,0.9666666666666667
+451,500,10,3,5,Variational Fisher,0.2
+452,500,10,3,6,Sandwich,0.9
+453,500,10,3,6,Variational Fisher,0.2
+454,500,10,3,7,Sandwich,0.7333333333333333
+455,500,10,3,7,Variational Fisher,0.13333333333333333
+456,500,10,3,8,Sandwich,0.7666666666666667
+457,500,10,3,8,Variational Fisher,0.23333333333333334
+458,500,10,3,9,Sandwich,0.8333333333333334
+459,500,10,3,9,Variational Fisher,0.1
+460,500,10,3,10,Sandwich,0.8333333333333334
+461,500,10,3,10,Variational Fisher,0.06666666666666667
+462,500,10,3,11,Sandwich,0.9333333333333333
+463,500,10,3,11,Variational Fisher,0.2
+464,500,10,3,12,Sandwich,0.8333333333333334
+465,500,10,3,12,Variational Fisher,0.13333333333333333
+466,500,10,3,13,Sandwich,0.7666666666666667
+467,500,10,3,13,Variational Fisher,0.23333333333333334
+468,500,10,3,14,Sandwich,0.8333333333333334
+469,500,10,3,14,Variational Fisher,0.23333333333333334
+470,500,10,3,15,Sandwich,0.6333333333333333
+471,500,10,3,15,Variational Fisher,0.16666666666666666
+472,500,10,3,16,Sandwich,0.8333333333333334
+473,500,10,3,16,Variational Fisher,0.16666666666666666
+474,500,10,3,17,Sandwich,0.8333333333333334
+475,500,10,3,17,Variational Fisher,0.4
+476,500,10,3,18,Sandwich,0.6666666666666666
+477,500,10,3,18,Variational Fisher,0.13333333333333333
+478,500,10,3,19,Sandwich,0.7333333333333333
+479,500,10,3,19,Variational Fisher,0.2
+480,500,20,1,0,Sandwich,0.9
+481,500,20,1,0,Variational Fisher,0.25
+482,500,20,1,1,Sandwich,0.95
+483,500,20,1,1,Variational Fisher,0.05
+484,500,20,1,2,Sandwich,0.8
+485,500,20,1,2,Variational Fisher,0.2
+486,500,20,1,3,Sandwich,0.9
+487,500,20,1,3,Variational Fisher,0.15
+488,500,20,1,4,Sandwich,0.9
+489,500,20,1,4,Variational Fisher,0.15
+490,500,20,1,5,Sandwich,1.0
+491,500,20,1,5,Variational Fisher,0.25
+492,500,20,1,6,Sandwich,0.95
+493,500,20,1,6,Variational Fisher,0.25
+494,500,20,1,7,Sandwich,0.9
+495,500,20,1,7,Variational Fisher,0.05
+496,500,20,1,8,Sandwich,0.9
+497,500,20,1,8,Variational Fisher,0.2
+498,500,20,1,9,Sandwich,1.0
+499,500,20,1,9,Variational Fisher,0.1
+500,500,20,1,10,Sandwich,0.95
+501,500,20,1,10,Variational Fisher,0.2
+502,500,20,1,11,Sandwich,0.9
+503,500,20,1,11,Variational Fisher,0.2
+504,500,20,1,12,Sandwich,1.0
+505,500,20,1,12,Variational Fisher,0.05
+506,500,20,1,13,Sandwich,0.95
+507,500,20,1,13,Variational Fisher,0.2
+508,500,20,1,14,Sandwich,0.9
+509,500,20,1,14,Variational Fisher,0.3
+510,500,20,1,15,Sandwich,0.9
+511,500,20,1,15,Variational Fisher,0.05
+512,500,20,1,16,Sandwich,0.85
+513,500,20,1,16,Variational Fisher,0.15
+514,500,20,1,17,Sandwich,0.85
+515,500,20,1,17,Variational Fisher,0.2
+516,500,20,1,18,Sandwich,1.0
+517,500,20,1,18,Variational Fisher,0.45
+518,500,20,1,19,Sandwich,0.9
+519,500,20,1,19,Variational Fisher,0.05
+520,500,20,2,0,Sandwich,0.675
+521,500,20,2,0,Variational Fisher,0.1
+522,500,20,2,1,Sandwich,0.825
+523,500,20,2,1,Variational Fisher,0.2
+524,500,20,2,2,Sandwich,0.725
+525,500,20,2,2,Variational Fisher,0.225
+526,500,20,2,3,Sandwich,0.725
+527,500,20,2,3,Variational Fisher,0.2
+528,500,20,2,4,Sandwich,0.95
+529,500,20,2,4,Variational Fisher,0.225
+530,500,20,2,5,Sandwich,0.7
+531,500,20,2,5,Variational Fisher,0.225
+532,500,20,2,6,Sandwich,0.725
+533,500,20,2,6,Variational Fisher,0.175
+534,500,20,2,7,Sandwich,0.7
+535,500,20,2,7,Variational Fisher,0.15
+536,500,20,2,8,Sandwich,0.825
+537,500,20,2,8,Variational Fisher,0.15
+538,500,20,2,9,Sandwich,0.775
+539,500,20,2,9,Variational Fisher,0.15
+540,500,20,2,10,Sandwich,0.7
+541,500,20,2,10,Variational Fisher,0.2
+542,500,20,2,11,Sandwich,0.95
+543,500,20,2,11,Variational Fisher,0.175
+544,500,20,2,12,Sandwich,0.8
+545,500,20,2,12,Variational Fisher,0.2
+546,500,20,2,13,Sandwich,0.7
+547,500,20,2,13,Variational Fisher,0.1
+548,500,20,2,14,Sandwich,0.8
+549,500,20,2,14,Variational Fisher,0.175
+550,500,20,2,15,Sandwich,0.7
+551,500,20,2,15,Variational Fisher,0.1
+552,500,20,2,16,Sandwich,0.75
+553,500,20,2,16,Variational Fisher,0.075
+554,500,20,2,17,Sandwich,0.6
+555,500,20,2,17,Variational Fisher,0.175
+556,500,20,2,18,Sandwich,0.75
+557,500,20,2,18,Variational Fisher,0.075
+558,500,20,2,19,Sandwich,0.775
+559,500,20,2,19,Variational Fisher,0.2
+560,500,20,3,0,Sandwich,0.75
+561,500,20,3,0,Variational Fisher,0.2
+562,500,20,3,1,Sandwich,0.8
+563,500,20,3,1,Variational Fisher,0.11666666666666667
+564,500,20,3,2,Sandwich,0.7333333333333333
+565,500,20,3,2,Variational Fisher,0.26666666666666666
+566,500,20,3,3,Sandwich,0.8166666666666667
+567,500,20,3,3,Variational Fisher,0.21666666666666667
+568,500,20,3,4,Sandwich,0.8
+569,500,20,3,4,Variational Fisher,0.15
+570,500,20,3,5,Sandwich,0.8666666666666667
+571,500,20,3,5,Variational Fisher,0.2
+572,500,20,3,6,Sandwich,0.85
+573,500,20,3,6,Variational Fisher,0.15
+574,500,20,3,7,Sandwich,0.85
+575,500,20,3,7,Variational Fisher,0.18333333333333332
+576,500,20,3,8,Sandwich,0.7833333333333333
+577,500,20,3,8,Variational Fisher,0.08333333333333333
+578,500,20,3,9,Sandwich,0.7666666666666667
+579,500,20,3,9,Variational Fisher,0.13333333333333333
+580,500,20,3,10,Sandwich,0.8
+581,500,20,3,10,Variational Fisher,0.21666666666666667
+582,500,20,3,11,Sandwich,0.8333333333333334
+583,500,20,3,11,Variational Fisher,0.15
+584,500,20,3,12,Sandwich,0.7166666666666667
+585,500,20,3,12,Variational Fisher,0.13333333333333333
+586,500,20,3,13,Sandwich,0.8833333333333333
+587,500,20,3,13,Variational Fisher,0.16666666666666666
+588,500,20,3,14,Sandwich,0.9333333333333333
+589,500,20,3,14,Variational Fisher,0.21666666666666667
+590,500,20,3,15,Sandwich,0.8666666666666667
+591,500,20,3,15,Variational Fisher,0.16666666666666666
+592,500,20,3,16,Sandwich,0.8333333333333334
+593,500,20,3,16,Variational Fisher,0.21666666666666667
+594,500,20,3,17,Sandwich,0.8833333333333333
+595,500,20,3,17,Variational Fisher,0.23333333333333334
+596,500,20,3,18,Sandwich,0.6833333333333333
+597,500,20,3,18,Variational Fisher,0.15
+598,500,20,3,19,Sandwich,0.7666666666666667
+599,500,20,3,19,Variational Fisher,0.16666666666666666
+600,500,40,1,0,Sandwich,0.875
+601,500,40,1,0,Variational Fisher,0.125
+602,500,40,1,1,Sandwich,0.875
+603,500,40,1,1,Variational Fisher,0.2
+604,500,40,1,2,Sandwich,0.95
+605,500,40,1,2,Variational Fisher,0.275
+606,500,40,1,3,Sandwich,0.875
+607,500,40,1,3,Variational Fisher,0.2
+608,500,40,1,4,Sandwich,0.85
+609,500,40,1,4,Variational Fisher,0.05
+610,500,40,1,5,Sandwich,0.975
+611,500,40,1,5,Variational Fisher,0.15
+612,500,40,1,6,Sandwich,0.925
+613,500,40,1,6,Variational Fisher,0.175
+614,500,40,1,7,Sandwich,0.975
+615,500,40,1,7,Variational Fisher,0.15
+616,500,40,1,8,Sandwich,0.95
+617,500,40,1,8,Variational Fisher,0.3
+618,500,40,1,9,Sandwich,0.925
+619,500,40,1,9,Variational Fisher,0.175
+620,500,40,1,10,Sandwich,0.875
+621,500,40,1,10,Variational Fisher,0.2
+622,500,40,1,11,Sandwich,0.95
+623,500,40,1,11,Variational Fisher,0.15
+624,500,40,1,12,Sandwich,0.85
+625,500,40,1,12,Variational Fisher,0.15
+626,500,40,1,13,Sandwich,0.9
+627,500,40,1,13,Variational Fisher,0.1
+628,500,40,1,14,Sandwich,0.9
+629,500,40,1,14,Variational Fisher,0.15
+630,500,40,1,15,Sandwich,0.9
+631,500,40,1,15,Variational Fisher,0.2
+632,500,40,1,16,Sandwich,0.925
+633,500,40,1,16,Variational Fisher,0.2
+634,500,40,1,17,Sandwich,0.9
+635,500,40,1,17,Variational Fisher,0.25
+636,500,40,1,18,Sandwich,0.95
+637,500,40,1,18,Variational Fisher,0.225
+638,500,40,1,19,Sandwich,0.95
+639,500,40,1,19,Variational Fisher,0.2
+640,500,40,2,0,Sandwich,0.7375
+641,500,40,2,0,Variational Fisher,0.15
+642,500,40,2,1,Sandwich,0.75
+643,500,40,2,1,Variational Fisher,0.15
+644,500,40,2,2,Sandwich,0.7
+645,500,40,2,2,Variational Fisher,0.1375
+646,500,40,2,3,Sandwich,0.7
+647,500,40,2,3,Variational Fisher,0.0875
+648,500,40,2,4,Sandwich,0.7125
+649,500,40,2,4,Variational Fisher,0.1125
+650,500,40,2,5,Sandwich,0.7375
+651,500,40,2,5,Variational Fisher,0.15
+652,500,40,2,6,Sandwich,0.65
+653,500,40,2,6,Variational Fisher,0.0875
+654,500,40,2,7,Sandwich,0.625
+655,500,40,2,7,Variational Fisher,0.1125
+656,500,40,2,8,Sandwich,0.775
+657,500,40,2,8,Variational Fisher,0.1125
+658,500,40,2,9,Sandwich,0.7
+659,500,40,2,9,Variational Fisher,0.175
+660,500,40,2,10,Sandwich,0.725
+661,500,40,2,10,Variational Fisher,0.125
+662,500,40,2,11,Sandwich,0.6125
+663,500,40,2,11,Variational Fisher,0.175
+664,500,40,2,12,Sandwich,0.6125
+665,500,40,2,12,Variational Fisher,0.1875
+666,500,40,2,13,Sandwich,0.725
+667,500,40,2,13,Variational Fisher,0.15
+668,500,40,2,14,Sandwich,0.6
+669,500,40,2,14,Variational Fisher,0.1875
+670,500,40,2,15,Sandwich,0.6625
+671,500,40,2,15,Variational Fisher,0.1625
+672,500,40,2,16,Sandwich,0.7
+673,500,40,2,16,Variational Fisher,0.125
+674,500,40,2,17,Sandwich,0.7375
+675,500,40,2,17,Variational Fisher,0.15
+676,500,40,2,18,Sandwich,0.5875
+677,500,40,2,18,Variational Fisher,0.1125
+678,500,40,2,19,Sandwich,0.6875
+679,500,40,2,19,Variational Fisher,0.1
+680,500,40,3,0,Sandwich,0.775
+681,500,40,3,0,Variational Fisher,0.21666666666666667
+682,500,40,3,1,Sandwich,0.675
+683,500,40,3,1,Variational Fisher,0.18333333333333332
+684,500,40,3,2,Sandwich,0.65
+685,500,40,3,2,Variational Fisher,0.15833333333333333
+686,500,40,3,3,Sandwich,0.8083333333333333
+687,500,40,3,3,Variational Fisher,0.18333333333333332
+688,500,40,3,4,Sandwich,0.65
+689,500,40,3,4,Variational Fisher,0.125
+690,500,40,3,5,Sandwich,0.7833333333333333
+691,500,40,3,5,Variational Fisher,0.15
+692,500,40,3,6,Sandwich,0.75
+693,500,40,3,6,Variational Fisher,0.225
+694,500,40,3,7,Sandwich,0.7333333333333333
+695,500,40,3,7,Variational Fisher,0.21666666666666667
+696,500,40,3,8,Sandwich,0.8
+697,500,40,3,8,Variational Fisher,0.20833333333333334
+698,500,40,3,9,Sandwich,0.7083333333333334
+699,500,40,3,9,Variational Fisher,0.16666666666666666
+700,500,40,3,10,Sandwich,0.6583333333333333
+701,500,40,3,10,Variational Fisher,0.21666666666666667
+702,500,40,3,11,Sandwich,0.75
+703,500,40,3,11,Variational Fisher,0.15
+704,500,40,3,12,Sandwich,0.725
+705,500,40,3,12,Variational Fisher,0.14166666666666666
+706,500,40,3,13,Sandwich,0.725
+707,500,40,3,13,Variational Fisher,0.18333333333333332
+708,500,40,3,14,Sandwich,0.6333333333333333
+709,500,40,3,14,Variational Fisher,0.175
+710,500,40,3,15,Sandwich,0.7666666666666667
+711,500,40,3,15,Variational Fisher,0.21666666666666667
+712,500,40,3,16,Sandwich,0.7
+713,500,40,3,16,Variational Fisher,0.11666666666666667
+714,500,40,3,17,Sandwich,0.7333333333333333
+715,500,40,3,17,Variational Fisher,0.19166666666666668
+716,500,40,3,18,Sandwich,0.675
+717,500,40,3,18,Variational Fisher,0.13333333333333333
+718,500,40,3,19,Sandwich,0.8
+719,500,40,3,19,Variational Fisher,0.18333333333333332
+720,1000,10,1,0,Sandwich,0.9
+721,1000,10,1,0,Variational Fisher,0.1
+722,1000,10,1,1,Sandwich,0.9
+723,1000,10,1,1,Variational Fisher,0.0
+724,1000,10,1,2,Sandwich,1.0
+725,1000,10,1,2,Variational Fisher,0.1
+726,1000,10,1,3,Sandwich,0.9
+727,1000,10,1,3,Variational Fisher,0.0
+728,1000,10,1,4,Sandwich,1.0
+729,1000,10,1,4,Variational Fisher,0.3
+730,1000,10,1,5,Sandwich,1.0
+731,1000,10,1,5,Variational Fisher,0.2
+732,1000,10,1,6,Sandwich,1.0
+733,1000,10,1,6,Variational Fisher,0.4
+734,1000,10,1,7,Sandwich,1.0
+735,1000,10,1,7,Variational Fisher,0.0
+736,1000,10,1,8,Sandwich,0.8
+737,1000,10,1,8,Variational Fisher,0.2
+738,1000,10,1,9,Sandwich,1.0
+739,1000,10,1,9,Variational Fisher,0.1
+740,1000,10,1,10,Sandwich,1.0
+741,1000,10,1,10,Variational Fisher,0.2
+742,1000,10,1,11,Sandwich,0.9
+743,1000,10,1,11,Variational Fisher,0.2
+744,1000,10,1,12,Sandwich,1.0
+745,1000,10,1,12,Variational Fisher,0.2
+746,1000,10,1,13,Sandwich,1.0
+747,1000,10,1,13,Variational Fisher,0.1
+748,1000,10,1,14,Sandwich,1.0
+749,1000,10,1,14,Variational Fisher,0.2
+750,1000,10,1,15,Sandwich,1.0
+751,1000,10,1,15,Variational Fisher,0.3
+752,1000,10,1,16,Sandwich,0.9
+753,1000,10,1,16,Variational Fisher,0.1
+754,1000,10,1,17,Sandwich,0.9
+755,1000,10,1,17,Variational Fisher,0.1
+756,1000,10,1,18,Sandwich,1.0
+757,1000,10,1,18,Variational Fisher,0.0
+758,1000,10,1,19,Sandwich,0.9
+759,1000,10,1,19,Variational Fisher,0.2
+760,1000,10,2,0,Sandwich,0.7
+761,1000,10,2,0,Variational Fisher,0.1
+762,1000,10,2,1,Sandwich,0.85
+763,1000,10,2,1,Variational Fisher,0.15
+764,1000,10,2,2,Sandwich,0.75
+765,1000,10,2,2,Variational Fisher,0.15
+766,1000,10,2,3,Sandwich,0.85
+767,1000,10,2,3,Variational Fisher,0.2
+768,1000,10,2,4,Sandwich,0.95
+769,1000,10,2,4,Variational Fisher,0.3
+770,1000,10,2,5,Sandwich,0.85
+771,1000,10,2,5,Variational Fisher,0.05
+772,1000,10,2,6,Sandwich,0.45
+773,1000,10,2,6,Variational Fisher,0.05
+774,1000,10,2,7,Sandwich,0.75
+775,1000,10,2,7,Variational Fisher,0.35
+776,1000,10,2,8,Sandwich,0.75
+777,1000,10,2,8,Variational Fisher,0.2
+778,1000,10,2,9,Sandwich,0.8
+779,1000,10,2,9,Variational Fisher,0.2
+780,1000,10,2,10,Sandwich,0.5
+781,1000,10,2,10,Variational Fisher,0.2
+782,1000,10,2,11,Sandwich,0.5
+783,1000,10,2,11,Variational Fisher,0.05
+784,1000,10,2,12,Sandwich,0.75
+785,1000,10,2,12,Variational Fisher,0.05
+786,1000,10,2,13,Sandwich,0.85
+787,1000,10,2,13,Variational Fisher,0.1
+788,1000,10,2,14,Sandwich,0.85
+789,1000,10,2,14,Variational Fisher,0.05
+790,1000,10,2,15,Sandwich,0.7
+791,1000,10,2,15,Variational Fisher,0.15
+792,1000,10,2,16,Sandwich,0.85
+793,1000,10,2,16,Variational Fisher,0.3
+794,1000,10,2,17,Sandwich,0.75
+795,1000,10,2,17,Variational Fisher,0.2
+796,1000,10,2,18,Sandwich,0.65
+797,1000,10,2,18,Variational Fisher,0.15
+798,1000,10,2,19,Sandwich,0.45
+799,1000,10,2,19,Variational Fisher,0.1
+800,1000,10,3,0,Sandwich,0.7333333333333333
+801,1000,10,3,0,Variational Fisher,0.26666666666666666
+802,1000,10,3,1,Sandwich,0.5666666666666667
+803,1000,10,3,1,Variational Fisher,0.13333333333333333
+804,1000,10,3,2,Sandwich,0.7333333333333333
+805,1000,10,3,2,Variational Fisher,0.1
+806,1000,10,3,3,Sandwich,0.6333333333333333
+807,1000,10,3,3,Variational Fisher,0.23333333333333334
+808,1000,10,3,4,Sandwich,0.6333333333333333
+809,1000,10,3,4,Variational Fisher,0.06666666666666667
+810,1000,10,3,5,Sandwich,0.9
+811,1000,10,3,5,Variational Fisher,0.13333333333333333
+812,1000,10,3,6,Sandwich,0.7
+813,1000,10,3,6,Variational Fisher,0.13333333333333333
+814,1000,10,3,7,Sandwich,0.7666666666666667
+815,1000,10,3,7,Variational Fisher,0.16666666666666666
+816,1000,10,3,8,Sandwich,0.8333333333333334
+817,1000,10,3,8,Variational Fisher,0.16666666666666666
+818,1000,10,3,9,Sandwich,0.8
+819,1000,10,3,9,Variational Fisher,0.06666666666666667
+820,1000,10,3,10,Sandwich,0.8666666666666667
+821,1000,10,3,10,Variational Fisher,0.23333333333333334
+822,1000,10,3,11,Sandwich,0.8666666666666667
+823,1000,10,3,11,Variational Fisher,0.2
+824,1000,10,3,12,Sandwich,0.8
+825,1000,10,3,12,Variational Fisher,0.13333333333333333
+826,1000,10,3,13,Sandwich,0.7666666666666667
+827,1000,10,3,13,Variational Fisher,0.13333333333333333
+828,1000,10,3,14,Sandwich,0.9
+829,1000,10,3,14,Variational Fisher,0.26666666666666666
+830,1000,10,3,15,Sandwich,0.7
+831,1000,10,3,15,Variational Fisher,0.13333333333333333
+832,1000,10,3,16,Sandwich,0.7666666666666667
+833,1000,10,3,16,Variational Fisher,0.2
+834,1000,10,3,17,Sandwich,0.8333333333333334
+835,1000,10,3,17,Variational Fisher,0.26666666666666666
+836,1000,10,3,18,Sandwich,0.6666666666666666
+837,1000,10,3,18,Variational Fisher,0.06666666666666667
+838,1000,10,3,19,Sandwich,0.8
+839,1000,10,3,19,Variational Fisher,0.13333333333333333
+840,1000,20,1,0,Sandwich,1.0
+841,1000,20,1,0,Variational Fisher,0.2
+842,1000,20,1,1,Sandwich,0.95
+843,1000,20,1,1,Variational Fisher,0.15
+844,1000,20,1,2,Sandwich,0.95
+845,1000,20,1,2,Variational Fisher,0.35
+846,1000,20,1,3,Sandwich,0.95
+847,1000,20,1,3,Variational Fisher,0.1
+848,1000,20,1,4,Sandwich,1.0
+849,1000,20,1,4,Variational Fisher,0.25
+850,1000,20,1,5,Sandwich,1.0
+851,1000,20,1,5,Variational Fisher,0.15
+852,1000,20,1,6,Sandwich,0.9
+853,1000,20,1,6,Variational Fisher,0.2
+854,1000,20,1,7,Sandwich,0.8
+855,1000,20,1,7,Variational Fisher,0.15
+856,1000,20,1,8,Sandwich,1.0
+857,1000,20,1,8,Variational Fisher,0.3
+858,1000,20,1,9,Sandwich,1.0
+859,1000,20,1,9,Variational Fisher,0.25
+860,1000,20,1,10,Sandwich,0.9
+861,1000,20,1,10,Variational Fisher,0.25
+862,1000,20,1,11,Sandwich,0.95
+863,1000,20,1,11,Variational Fisher,0.15
+864,1000,20,1,12,Sandwich,0.9
+865,1000,20,1,12,Variational Fisher,0.2
+866,1000,20,1,13,Sandwich,0.85
+867,1000,20,1,13,Variational Fisher,0.0
+868,1000,20,1,14,Sandwich,0.95
+869,1000,20,1,14,Variational Fisher,0.3
+870,1000,20,1,15,Sandwich,0.9
+871,1000,20,1,15,Variational Fisher,0.2
+872,1000,20,1,16,Sandwich,0.95
+873,1000,20,1,16,Variational Fisher,0.05
+874,1000,20,1,17,Sandwich,0.85
+875,1000,20,1,17,Variational Fisher,0.35
+876,1000,20,1,18,Sandwich,0.95
+877,1000,20,1,18,Variational Fisher,0.2
+878,1000,20,1,19,Sandwich,1.0
+879,1000,20,1,19,Variational Fisher,0.2
+880,1000,20,2,0,Sandwich,0.7
+881,1000,20,2,0,Variational Fisher,0.125
+882,1000,20,2,1,Sandwich,0.9
+883,1000,20,2,1,Variational Fisher,0.125
+884,1000,20,2,2,Sandwich,0.75
+885,1000,20,2,2,Variational Fisher,0.025
+886,1000,20,2,3,Sandwich,0.8
+887,1000,20,2,3,Variational Fisher,0.225
+888,1000,20,2,4,Sandwich,0.95
+889,1000,20,2,4,Variational Fisher,0.2
+890,1000,20,2,5,Sandwich,0.65
+891,1000,20,2,5,Variational Fisher,0.125
+892,1000,20,2,6,Sandwich,0.675
+893,1000,20,2,6,Variational Fisher,0.125
+894,1000,20,2,7,Sandwich,0.7
+895,1000,20,2,7,Variational Fisher,0.125
+896,1000,20,2,8,Sandwich,0.775
+897,1000,20,2,8,Variational Fisher,0.175
+898,1000,20,2,9,Sandwich,0.625
+899,1000,20,2,9,Variational Fisher,0.125
+900,1000,20,2,10,Sandwich,0.6
+901,1000,20,2,10,Variational Fisher,0.225
+902,1000,20,2,11,Sandwich,0.925
+903,1000,20,2,11,Variational Fisher,0.125
+904,1000,20,2,12,Sandwich,0.75
+905,1000,20,2,12,Variational Fisher,0.175
+906,1000,20,2,13,Sandwich,0.7
+907,1000,20,2,13,Variational Fisher,0.15
+908,1000,20,2,14,Sandwich,0.775
+909,1000,20,2,14,Variational Fisher,0.075
+910,1000,20,2,15,Sandwich,0.7
+911,1000,20,2,15,Variational Fisher,0.025
+912,1000,20,2,16,Sandwich,0.65
+913,1000,20,2,16,Variational Fisher,0.0
+914,1000,20,2,17,Sandwich,0.675
+915,1000,20,2,17,Variational Fisher,0.15
+916,1000,20,2,18,Sandwich,0.6
+917,1000,20,2,18,Variational Fisher,0.1
+918,1000,20,2,19,Sandwich,0.775
+919,1000,20,2,19,Variational Fisher,0.175
+920,1000,20,3,0,Sandwich,0.8333333333333334
+921,1000,20,3,0,Variational Fisher,0.2
+922,1000,20,3,1,Sandwich,0.7833333333333333
+923,1000,20,3,1,Variational Fisher,0.21666666666666667
+924,1000,20,3,2,Sandwich,0.55
+925,1000,20,3,2,Variational Fisher,0.2
+926,1000,20,3,3,Sandwich,0.8333333333333334
+927,1000,20,3,3,Variational Fisher,0.2
+928,1000,20,3,4,Sandwich,0.6833333333333333
+929,1000,20,3,4,Variational Fisher,0.1
+930,1000,20,3,5,Sandwich,0.8
+931,1000,20,3,5,Variational Fisher,0.13333333333333333
+932,1000,20,3,6,Sandwich,0.8333333333333334
+933,1000,20,3,6,Variational Fisher,0.2
+934,1000,20,3,7,Sandwich,0.8
+935,1000,20,3,7,Variational Fisher,0.11666666666666667
+936,1000,20,3,8,Sandwich,0.8666666666666667
+937,1000,20,3,8,Variational Fisher,0.15
+938,1000,20,3,9,Sandwich,0.8333333333333334
+939,1000,20,3,9,Variational Fisher,0.16666666666666666
+940,1000,20,3,10,Sandwich,0.7666666666666667
+941,1000,20,3,10,Variational Fisher,0.13333333333333333
+942,1000,20,3,11,Sandwich,0.8
+943,1000,20,3,11,Variational Fisher,0.25
+944,1000,20,3,12,Sandwich,0.7
+945,1000,20,3,12,Variational Fisher,0.11666666666666667
+946,1000,20,3,13,Sandwich,0.8333333333333334
+947,1000,20,3,13,Variational Fisher,0.18333333333333332
+948,1000,20,3,14,Sandwich,0.9
+949,1000,20,3,14,Variational Fisher,0.13333333333333333
+950,1000,20,3,15,Sandwich,0.8
+951,1000,20,3,15,Variational Fisher,0.13333333333333333
+952,1000,20,3,16,Sandwich,0.8166666666666667
+953,1000,20,3,16,Variational Fisher,0.2
+954,1000,20,3,17,Sandwich,0.8333333333333334
+955,1000,20,3,17,Variational Fisher,0.16666666666666666
+956,1000,20,3,18,Sandwich,0.7666666666666667
+957,1000,20,3,18,Variational Fisher,0.1
+958,1000,20,3,19,Sandwich,0.7833333333333333
+959,1000,20,3,19,Variational Fisher,0.15
+960,1000,40,1,0,Sandwich,0.9
+961,1000,40,1,0,Variational Fisher,0.125
+962,1000,40,1,1,Sandwich,0.925
+963,1000,40,1,1,Variational Fisher,0.275
+964,1000,40,1,2,Sandwich,0.975
+965,1000,40,1,2,Variational Fisher,0.275
+966,1000,40,1,3,Sandwich,0.8
+967,1000,40,1,3,Variational Fisher,0.125
+968,1000,40,1,4,Sandwich,0.875
+969,1000,40,1,4,Variational Fisher,0.175
+970,1000,40,1,5,Sandwich,0.95
+971,1000,40,1,5,Variational Fisher,0.175
+972,1000,40,1,6,Sandwich,0.9
+973,1000,40,1,6,Variational Fisher,0.25
+974,1000,40,1,7,Sandwich,0.925
+975,1000,40,1,7,Variational Fisher,0.075
+976,1000,40,1,8,Sandwich,1.0
+977,1000,40,1,8,Variational Fisher,0.275
+978,1000,40,1,9,Sandwich,0.925
+979,1000,40,1,9,Variational Fisher,0.25
+980,1000,40,1,10,Sandwich,0.9
+981,1000,40,1,10,Variational Fisher,0.175
+982,1000,40,1,11,Sandwich,0.925
+983,1000,40,1,11,Variational Fisher,0.175
+984,1000,40,1,12,Sandwich,0.875
+985,1000,40,1,12,Variational Fisher,0.125
+986,1000,40,1,13,Sandwich,0.9
+987,1000,40,1,13,Variational Fisher,0.2
+988,1000,40,1,14,Sandwich,0.85
+989,1000,40,1,14,Variational Fisher,0.1
+990,1000,40,1,15,Sandwich,0.9
+991,1000,40,1,15,Variational Fisher,0.1
+992,1000,40,1,16,Sandwich,0.9
+993,1000,40,1,16,Variational Fisher,0.125
+994,1000,40,1,17,Sandwich,0.925
+995,1000,40,1,17,Variational Fisher,0.15
+996,1000,40,1,18,Sandwich,0.875
+997,1000,40,1,18,Variational Fisher,0.075
+998,1000,40,1,19,Sandwich,0.9
+999,1000,40,1,19,Variational Fisher,0.175
+1000,1000,40,2,0,Sandwich,0.725
+1001,1000,40,2,0,Variational Fisher,0.1125
+1002,1000,40,2,1,Sandwich,0.75
+1003,1000,40,2,1,Variational Fisher,0.25
+1004,1000,40,2,2,Sandwich,0.7
+1005,1000,40,2,2,Variational Fisher,0.1125
+1006,1000,40,2,3,Sandwich,0.775
+1007,1000,40,2,3,Variational Fisher,0.175
+1008,1000,40,2,4,Sandwich,0.6375
+1009,1000,40,2,4,Variational Fisher,0.1375
+1010,1000,40,2,5,Sandwich,0.7
+1011,1000,40,2,5,Variational Fisher,0.1375
+1012,1000,40,2,6,Sandwich,0.65
+1013,1000,40,2,6,Variational Fisher,0.125
+1014,1000,40,2,7,Sandwich,0.6875
+1015,1000,40,2,7,Variational Fisher,0.1125
+1016,1000,40,2,8,Sandwich,0.55
+1017,1000,40,2,8,Variational Fisher,0.1375
+1018,1000,40,2,9,Sandwich,0.65
+1019,1000,40,2,9,Variational Fisher,0.15
+1020,1000,40,2,10,Sandwich,0.7125
+1021,1000,40,2,10,Variational Fisher,0.1
+1022,1000,40,2,11,Sandwich,0.6625
+1023,1000,40,2,11,Variational Fisher,0.15
+1024,1000,40,2,12,Sandwich,0.7
+1025,1000,40,2,12,Variational Fisher,0.1375
+1026,1000,40,2,13,Sandwich,0.8125
+1027,1000,40,2,13,Variational Fisher,0.1625
+1028,1000,40,2,14,Sandwich,0.5375
+1029,1000,40,2,14,Variational Fisher,0.1125
+1030,1000,40,2,15,Sandwich,0.775
+1031,1000,40,2,15,Variational Fisher,0.15
+1032,1000,40,2,16,Sandwich,0.725
+1033,1000,40,2,16,Variational Fisher,0.175
+1034,1000,40,2,17,Sandwich,0.65
+1035,1000,40,2,17,Variational Fisher,0.1125
+1036,1000,40,2,18,Sandwich,0.6125
+1037,1000,40,2,18,Variational Fisher,0.1625
+1038,1000,40,2,19,Sandwich,0.675
+1039,1000,40,2,19,Variational Fisher,0.1125
+1040,1000,40,3,0,Sandwich,0.8083333333333333
+1041,1000,40,3,0,Variational Fisher,0.175
+1042,1000,40,3,1,Sandwich,0.775
+1043,1000,40,3,1,Variational Fisher,0.23333333333333334
+1044,1000,40,3,2,Sandwich,0.7666666666666667
+1045,1000,40,3,2,Variational Fisher,0.10833333333333334
+1046,1000,40,3,3,Sandwich,0.7166666666666667
+1047,1000,40,3,3,Variational Fisher,0.18333333333333332
+1048,1000,40,3,4,Sandwich,0.6416666666666667
+1049,1000,40,3,4,Variational Fisher,0.09166666666666666
+1050,1000,40,3,5,Sandwich,0.8
+1051,1000,40,3,5,Variational Fisher,0.15833333333333333
+1052,1000,40,3,6,Sandwich,0.7083333333333334
+1053,1000,40,3,6,Variational Fisher,0.15833333333333333
+1054,1000,40,3,7,Sandwich,0.7333333333333333
+1055,1000,40,3,7,Variational Fisher,0.11666666666666667
+1056,1000,40,3,8,Sandwich,0.8166666666666667
+1057,1000,40,3,8,Variational Fisher,0.13333333333333333
+1058,1000,40,3,9,Sandwich,0.6666666666666666
+1059,1000,40,3,9,Variational Fisher,0.1
+1060,1000,40,3,10,Sandwich,0.7333333333333333
+1061,1000,40,3,10,Variational Fisher,0.15833333333333333
+1062,1000,40,3,11,Sandwich,0.8416666666666667
+1063,1000,40,3,11,Variational Fisher,0.15
+1064,1000,40,3,12,Sandwich,0.85
+1065,1000,40,3,12,Variational Fisher,0.24166666666666667
+1066,1000,40,3,13,Sandwich,0.7333333333333333
+1067,1000,40,3,13,Variational Fisher,0.18333333333333332
+1068,1000,40,3,14,Sandwich,0.7666666666666667
+1069,1000,40,3,14,Variational Fisher,0.125
+1070,1000,40,3,15,Sandwich,0.7833333333333333
+1071,1000,40,3,15,Variational Fisher,0.175
+1072,1000,40,3,16,Sandwich,0.6416666666666667
+1073,1000,40,3,16,Variational Fisher,0.16666666666666666
+1074,1000,40,3,17,Sandwich,0.7666666666666667
+1075,1000,40,3,17,Variational Fisher,0.18333333333333332
+1076,1000,40,3,18,Sandwich,0.7666666666666667
+1077,1000,40,3,18,Variational Fisher,0.175
+1078,1000,40,3,19,Sandwich,0.75
+1079,1000,40,3,19,Variational Fisher,0.14166666666666666
+1080,2000,10,1,0,Sandwich,0.8
+1081,2000,10,1,0,Variational Fisher,0.2
+1082,2000,10,1,1,Sandwich,0.9
+1083,2000,10,1,1,Variational Fisher,0.4
+1084,2000,10,1,2,Sandwich,0.9
+1085,2000,10,1,2,Variational Fisher,0.1
+1086,2000,10,1,3,Sandwich,0.9
+1087,2000,10,1,3,Variational Fisher,0.4
+1088,2000,10,1,4,Sandwich,1.0
+1089,2000,10,1,4,Variational Fisher,0.3
+1090,2000,10,1,5,Sandwich,1.0
+1091,2000,10,1,5,Variational Fisher,0.2
+1092,2000,10,1,6,Sandwich,1.0
+1093,2000,10,1,6,Variational Fisher,0.2
+1094,2000,10,1,7,Sandwich,0.9
+1095,2000,10,1,7,Variational Fisher,0.2
+1096,2000,10,1,8,Sandwich,1.0
+1097,2000,10,1,8,Variational Fisher,0.4
+1098,2000,10,1,9,Sandwich,1.0
+1099,2000,10,1,9,Variational Fisher,0.2
+1100,2000,10,1,10,Sandwich,1.0
+1101,2000,10,1,10,Variational Fisher,0.1
+1102,2000,10,1,11,Sandwich,0.9
+1103,2000,10,1,11,Variational Fisher,0.0
+1104,2000,10,1,12,Sandwich,0.9
+1105,2000,10,1,12,Variational Fisher,0.2
+1106,2000,10,1,13,Sandwich,0.8
+1107,2000,10,1,13,Variational Fisher,0.2
+1108,2000,10,1,14,Sandwich,1.0
+1109,2000,10,1,14,Variational Fisher,0.1
+1110,2000,10,1,15,Sandwich,0.9
+1111,2000,10,1,15,Variational Fisher,0.3
+1112,2000,10,1,16,Sandwich,0.9
+1113,2000,10,1,16,Variational Fisher,0.0
+1114,2000,10,1,17,Sandwich,0.8
+1115,2000,10,1,17,Variational Fisher,0.1
+1116,2000,10,1,18,Sandwich,1.0
+1117,2000,10,1,18,Variational Fisher,0.0
+1118,2000,10,1,19,Sandwich,1.0
+1119,2000,10,1,19,Variational Fisher,0.3
+1120,2000,10,2,0,Sandwich,0.65
+1121,2000,10,2,0,Variational Fisher,0.05
+1122,2000,10,2,1,Sandwich,0.9
+1123,2000,10,2,1,Variational Fisher,0.1
+1124,2000,10,2,2,Sandwich,0.55
+1125,2000,10,2,2,Variational Fisher,0.1
+1126,2000,10,2,3,Sandwich,0.75
+1127,2000,10,2,3,Variational Fisher,0.1
+1128,2000,10,2,4,Sandwich,0.65
+1129,2000,10,2,4,Variational Fisher,0.1
+1130,2000,10,2,5,Sandwich,0.75
+1131,2000,10,2,5,Variational Fisher,0.15
+1132,2000,10,2,6,Sandwich,0.2
+1133,2000,10,2,6,Variational Fisher,0.05
+1134,2000,10,2,7,Sandwich,0.75
+1135,2000,10,2,7,Variational Fisher,0.15
+1136,2000,10,2,8,Sandwich,0.6
+1137,2000,10,2,8,Variational Fisher,0.1
+1138,2000,10,2,9,Sandwich,0.8
+1139,2000,10,2,9,Variational Fisher,0.0
+1140,2000,10,2,10,Sandwich,0.45
+1141,2000,10,2,10,Variational Fisher,0.0
+1142,2000,10,2,11,Sandwich,0.5
+1143,2000,10,2,11,Variational Fisher,0.0
+1144,2000,10,2,12,Sandwich,0.75
+1145,2000,10,2,12,Variational Fisher,0.05
+1146,2000,10,2,13,Sandwich,0.8
+1147,2000,10,2,13,Variational Fisher,0.05
+1148,2000,10,2,14,Sandwich,0.75
+1149,2000,10,2,14,Variational Fisher,0.1
+1150,2000,10,2,15,Sandwich,0.75
+1151,2000,10,2,15,Variational Fisher,0.3
+1152,2000,10,2,16,Sandwich,0.45
+1153,2000,10,2,16,Variational Fisher,0.05
+1154,2000,10,2,17,Sandwich,0.7
+1155,2000,10,2,17,Variational Fisher,0.15
+1156,2000,10,2,18,Sandwich,0.65
+1157,2000,10,2,18,Variational Fisher,0.15
+1158,2000,10,2,19,Sandwich,0.55
+1159,2000,10,2,19,Variational Fisher,0.0
+1160,2000,10,3,0,Sandwich,0.7
+1161,2000,10,3,0,Variational Fisher,0.16666666666666666
+1162,2000,10,3,1,Sandwich,0.4666666666666667
+1163,2000,10,3,1,Variational Fisher,0.06666666666666667
+1164,2000,10,3,2,Sandwich,0.7666666666666667
+1165,2000,10,3,2,Variational Fisher,0.16666666666666666
+1166,2000,10,3,3,Sandwich,0.5666666666666667
+1167,2000,10,3,3,Variational Fisher,0.13333333333333333
+1168,2000,10,3,4,Sandwich,0.6
+1169,2000,10,3,4,Variational Fisher,0.06666666666666667
+1170,2000,10,3,5,Sandwich,0.7
+1171,2000,10,3,5,Variational Fisher,0.16666666666666666
+1172,2000,10,3,6,Sandwich,0.7
+1173,2000,10,3,6,Variational Fisher,0.06666666666666667
+1174,2000,10,3,7,Sandwich,0.6666666666666666
+1175,2000,10,3,7,Variational Fisher,0.06666666666666667
+1176,2000,10,3,8,Sandwich,0.7333333333333333
+1177,2000,10,3,8,Variational Fisher,0.16666666666666666
+1178,2000,10,3,9,Sandwich,0.8333333333333334
+1179,2000,10,3,9,Variational Fisher,0.13333333333333333
+1180,2000,10,3,10,Sandwich,0.6
+1181,2000,10,3,10,Variational Fisher,0.0
+1182,2000,10,3,11,Sandwich,0.8
+1183,2000,10,3,11,Variational Fisher,0.2
+1184,2000,10,3,12,Sandwich,0.7333333333333333
+1185,2000,10,3,12,Variational Fisher,0.13333333333333333
+1186,2000,10,3,13,Sandwich,0.7333333333333333
+1187,2000,10,3,13,Variational Fisher,0.2
+1188,2000,10,3,14,Sandwich,0.8
+1189,2000,10,3,14,Variational Fisher,0.36666666666666664
+1190,2000,10,3,15,Sandwich,0.5
+1191,2000,10,3,15,Variational Fisher,0.0
+1192,2000,10,3,16,Sandwich,0.8333333333333334
+1193,2000,10,3,16,Variational Fisher,0.13333333333333333
+1194,2000,10,3,17,Sandwich,0.6666666666666666
+1195,2000,10,3,17,Variational Fisher,0.13333333333333333
+1196,2000,10,3,18,Sandwich,0.5
+1197,2000,10,3,18,Variational Fisher,0.16666666666666666
+1198,2000,10,3,19,Sandwich,0.6666666666666666
+1199,2000,10,3,19,Variational Fisher,0.06666666666666667
+1200,2000,20,1,0,Sandwich,0.95
+1201,2000,20,1,0,Variational Fisher,0.15
+1202,2000,20,1,1,Sandwich,0.95
+1203,2000,20,1,1,Variational Fisher,0.1
+1204,2000,20,1,2,Sandwich,1.0
+1205,2000,20,1,2,Variational Fisher,0.2
+1206,2000,20,1,3,Sandwich,0.95
+1207,2000,20,1,3,Variational Fisher,0.2
+1208,2000,20,1,4,Sandwich,0.9
+1209,2000,20,1,4,Variational Fisher,0.05
+1210,2000,20,1,5,Sandwich,0.95
+1211,2000,20,1,5,Variational Fisher,0.25
+1212,2000,20,1,6,Sandwich,0.95
+1213,2000,20,1,6,Variational Fisher,0.15
+1214,2000,20,1,7,Sandwich,0.95
+1215,2000,20,1,7,Variational Fisher,0.25
+1216,2000,20,1,8,Sandwich,1.0
+1217,2000,20,1,8,Variational Fisher,0.15
+1218,2000,20,1,9,Sandwich,1.0
+1219,2000,20,1,9,Variational Fisher,0.2
+1220,2000,20,1,10,Sandwich,0.85
+1221,2000,20,1,10,Variational Fisher,0.1
+1222,2000,20,1,11,Sandwich,0.85
+1223,2000,20,1,11,Variational Fisher,0.1
+1224,2000,20,1,12,Sandwich,1.0
+1225,2000,20,1,12,Variational Fisher,0.15
+1226,2000,20,1,13,Sandwich,0.9
+1227,2000,20,1,13,Variational Fisher,0.1
+1228,2000,20,1,14,Sandwich,0.95
+1229,2000,20,1,14,Variational Fisher,0.2
+1230,2000,20,1,15,Sandwich,1.0
+1231,2000,20,1,15,Variational Fisher,0.2
+1232,2000,20,1,16,Sandwich,0.9
+1233,2000,20,1,16,Variational Fisher,0.2
+1234,2000,20,1,17,Sandwich,0.9
+1235,2000,20,1,17,Variational Fisher,0.1
+1236,2000,20,1,18,Sandwich,0.9
+1237,2000,20,1,18,Variational Fisher,0.05
+1238,2000,20,1,19,Sandwich,1.0
+1239,2000,20,1,19,Variational Fisher,0.25
+1240,2000,20,2,0,Sandwich,0.65
+1241,2000,20,2,0,Variational Fisher,0.15
+1242,2000,20,2,1,Sandwich,0.9
+1243,2000,20,2,1,Variational Fisher,0.025
+1244,2000,20,2,2,Sandwich,0.7
+1245,2000,20,2,2,Variational Fisher,0.05
+1246,2000,20,2,3,Sandwich,0.75
+1247,2000,20,2,3,Variational Fisher,0.175
+1248,2000,20,2,4,Sandwich,0.775
+1249,2000,20,2,4,Variational Fisher,0.125
+1250,2000,20,2,5,Sandwich,0.475
+1251,2000,20,2,5,Variational Fisher,0.025
+1252,2000,20,2,6,Sandwich,0.4
+1253,2000,20,2,6,Variational Fisher,0.025
+1254,2000,20,2,7,Sandwich,0.9
+1255,2000,20,2,7,Variational Fisher,0.15
+1256,2000,20,2,8,Sandwich,0.75
+1257,2000,20,2,8,Variational Fisher,0.075
+1258,2000,20,2,9,Sandwich,0.525
+1259,2000,20,2,9,Variational Fisher,0.025
+1260,2000,20,2,10,Sandwich,0.65
+1261,2000,20,2,10,Variational Fisher,0.175
+1262,2000,20,2,11,Sandwich,0.75
+1263,2000,20,2,11,Variational Fisher,0.075
+1264,2000,20,2,12,Sandwich,0.7
+1265,2000,20,2,12,Variational Fisher,0.15
+1266,2000,20,2,13,Sandwich,0.7
+1267,2000,20,2,13,Variational Fisher,0.15
+1268,2000,20,2,14,Sandwich,0.85
+1269,2000,20,2,14,Variational Fisher,0.175
+1270,2000,20,2,15,Sandwich,0.55
+1271,2000,20,2,15,Variational Fisher,0.0
+1272,2000,20,2,16,Sandwich,0.675
+1273,2000,20,2,16,Variational Fisher,0.075
+1274,2000,20,2,17,Sandwich,0.675
+1275,2000,20,2,17,Variational Fisher,0.1
+1276,2000,20,2,18,Sandwich,0.6
+1277,2000,20,2,18,Variational Fisher,0.1
+1278,2000,20,2,19,Sandwich,0.775
+1279,2000,20,2,19,Variational Fisher,0.1
+1280,2000,20,3,0,Sandwich,0.75
+1281,2000,20,3,0,Variational Fisher,0.15
+1282,2000,20,3,1,Sandwich,0.75
+1283,2000,20,3,1,Variational Fisher,0.23333333333333334
+1284,2000,20,3,2,Sandwich,0.7166666666666667
+1285,2000,20,3,2,Variational Fisher,0.15
+1286,2000,20,3,3,Sandwich,0.8
+1287,2000,20,3,3,Variational Fisher,0.16666666666666666
+1288,2000,20,3,4,Sandwich,0.65
+1289,2000,20,3,4,Variational Fisher,0.016666666666666666
+1290,2000,20,3,5,Sandwich,0.6833333333333333
+1291,2000,20,3,5,Variational Fisher,0.21666666666666667
+1292,2000,20,3,6,Sandwich,0.75
+1293,2000,20,3,6,Variational Fisher,0.25
+1294,2000,20,3,7,Sandwich,0.8
+1295,2000,20,3,7,Variational Fisher,0.2
+1296,2000,20,3,8,Sandwich,0.8
+1297,2000,20,3,8,Variational Fisher,0.13333333333333333
+1298,2000,20,3,9,Sandwich,0.8833333333333333
+1299,2000,20,3,9,Variational Fisher,0.2
+1300,2000,20,3,10,Sandwich,0.8333333333333334
+1301,2000,20,3,10,Variational Fisher,0.11666666666666667
+1302,2000,20,3,11,Sandwich,0.6666666666666666
+1303,2000,20,3,11,Variational Fisher,0.11666666666666667
+1304,2000,20,3,12,Sandwich,0.6
+1305,2000,20,3,12,Variational Fisher,0.15
+1306,2000,20,3,13,Sandwich,0.7833333333333333
+1307,2000,20,3,13,Variational Fisher,0.18333333333333332
+1308,2000,20,3,14,Sandwich,0.8333333333333334
+1309,2000,20,3,14,Variational Fisher,0.11666666666666667
+1310,2000,20,3,15,Sandwich,0.7666666666666667
+1311,2000,20,3,15,Variational Fisher,0.13333333333333333
+1312,2000,20,3,16,Sandwich,0.8833333333333333
+1313,2000,20,3,16,Variational Fisher,0.15
+1314,2000,20,3,17,Sandwich,0.8333333333333334
+1315,2000,20,3,17,Variational Fisher,0.15
+1316,2000,20,3,18,Sandwich,0.8
+1317,2000,20,3,18,Variational Fisher,0.18333333333333332
+1318,2000,20,3,19,Sandwich,0.8166666666666667
+1319,2000,20,3,19,Variational Fisher,0.13333333333333333
+1320,2000,40,1,0,Sandwich,0.9
+1321,2000,40,1,0,Variational Fisher,0.15
+1322,2000,40,1,1,Sandwich,0.925
+1323,2000,40,1,1,Variational Fisher,0.275
+1324,2000,40,1,2,Sandwich,0.95
+1325,2000,40,1,2,Variational Fisher,0.225
+1326,2000,40,1,3,Sandwich,0.9
+1327,2000,40,1,3,Variational Fisher,0.125
+1328,2000,40,1,4,Sandwich,1.0
+1329,2000,40,1,4,Variational Fisher,0.175
+1330,2000,40,1,5,Sandwich,0.95
+1331,2000,40,1,5,Variational Fisher,0.15
+1332,2000,40,1,6,Sandwich,0.9
+1333,2000,40,1,6,Variational Fisher,0.15
+1334,2000,40,1,7,Sandwich,0.95
+1335,2000,40,1,7,Variational Fisher,0.15
+1336,2000,40,1,8,Sandwich,1.0
+1337,2000,40,1,8,Variational Fisher,0.2
+1338,2000,40,1,9,Sandwich,0.925
+1339,2000,40,1,9,Variational Fisher,0.275
+1340,2000,40,1,10,Sandwich,0.85
+1341,2000,40,1,10,Variational Fisher,0.15
+1342,2000,40,1,11,Sandwich,0.975
+1343,2000,40,1,11,Variational Fisher,0.225
+1344,2000,40,1,12,Sandwich,0.9
+1345,2000,40,1,12,Variational Fisher,0.175
+1346,2000,40,1,13,Sandwich,0.975
+1347,2000,40,1,13,Variational Fisher,0.1
+1348,2000,40,1,14,Sandwich,0.9
+1349,2000,40,1,14,Variational Fisher,0.225
+1350,2000,40,1,15,Sandwich,0.825
+1351,2000,40,1,15,Variational Fisher,0.15
+1352,2000,40,1,16,Sandwich,0.95
+1353,2000,40,1,16,Variational Fisher,0.2
+1354,2000,40,1,17,Sandwich,0.95
+1355,2000,40,1,17,Variational Fisher,0.175
+1356,2000,40,1,18,Sandwich,0.925
+1357,2000,40,1,18,Variational Fisher,0.1
+1358,2000,40,1,19,Sandwich,0.875
+1359,2000,40,1,19,Variational Fisher,0.075
+1360,2000,40,2,0,Sandwich,0.625
+1361,2000,40,2,0,Variational Fisher,0.0625
+1362,2000,40,2,1,Sandwich,0.5625
+1363,2000,40,2,1,Variational Fisher,0.1875
+1364,2000,40,2,2,Sandwich,0.6625
+1365,2000,40,2,2,Variational Fisher,0.075
+1366,2000,40,2,3,Sandwich,0.7125
+1367,2000,40,2,3,Variational Fisher,0.1125
+1368,2000,40,2,4,Sandwich,0.55
+1369,2000,40,2,4,Variational Fisher,0.0625
+1370,2000,40,2,5,Sandwich,0.7625
+1371,2000,40,2,5,Variational Fisher,0.075
+1372,2000,40,2,6,Sandwich,0.6375
+1373,2000,40,2,6,Variational Fisher,0.1125
+1374,2000,40,2,7,Sandwich,0.7375
+1375,2000,40,2,7,Variational Fisher,0.1125
+1376,2000,40,2,8,Sandwich,0.6875
+1377,2000,40,2,8,Variational Fisher,0.05
+1378,2000,40,2,9,Sandwich,0.6
+1379,2000,40,2,9,Variational Fisher,0.1375
+1380,2000,40,2,10,Sandwich,0.7125
+1381,2000,40,2,10,Variational Fisher,0.1125
+1382,2000,40,2,11,Sandwich,0.7625
+1383,2000,40,2,11,Variational Fisher,0.1875
+1384,2000,40,2,12,Sandwich,0.7
+1385,2000,40,2,12,Variational Fisher,0.1
+1386,2000,40,2,13,Sandwich,0.725
+1387,2000,40,2,13,Variational Fisher,0.1375
+1388,2000,40,2,14,Sandwich,0.5375
+1389,2000,40,2,14,Variational Fisher,0.0875
+1390,2000,40,2,15,Sandwich,0.6875
+1391,2000,40,2,15,Variational Fisher,0.15
+1392,2000,40,2,16,Sandwich,0.525
+1393,2000,40,2,16,Variational Fisher,0.1125
+1394,2000,40,2,17,Sandwich,0.625
+1395,2000,40,2,17,Variational Fisher,0.0625
+1396,2000,40,2,18,Sandwich,0.5875
+1397,2000,40,2,18,Variational Fisher,0.0875
+1398,2000,40,2,19,Sandwich,0.65
+1399,2000,40,2,19,Variational Fisher,0.1875
+1400,2000,40,3,0,Sandwich,0.8
+1401,2000,40,3,0,Variational Fisher,0.25
+1402,2000,40,3,1,Sandwich,0.8666666666666667
+1403,2000,40,3,1,Variational Fisher,0.21666666666666667
+1404,2000,40,3,2,Sandwich,0.7666666666666667
+1405,2000,40,3,2,Variational Fisher,0.11666666666666667
+1406,2000,40,3,3,Sandwich,0.6166666666666667
+1407,2000,40,3,3,Variational Fisher,0.15
+1408,2000,40,3,4,Sandwich,0.6083333333333333
+1409,2000,40,3,4,Variational Fisher,0.10833333333333334
+1410,2000,40,3,5,Sandwich,0.775
+1411,2000,40,3,5,Variational Fisher,0.09166666666666666
+1412,2000,40,3,6,Sandwich,0.7583333333333333
+1413,2000,40,3,6,Variational Fisher,0.19166666666666668
+1414,2000,40,3,7,Sandwich,0.75
+1415,2000,40,3,7,Variational Fisher,0.15833333333333333
+1416,2000,40,3,8,Sandwich,0.7916666666666666
+1417,2000,40,3,8,Variational Fisher,0.15833333333333333
+1418,2000,40,3,9,Sandwich,0.7333333333333333
+1419,2000,40,3,9,Variational Fisher,0.08333333333333333
+1420,2000,40,3,10,Sandwich,0.775
+1421,2000,40,3,10,Variational Fisher,0.18333333333333332
+1422,2000,40,3,11,Sandwich,0.8666666666666667
+1423,2000,40,3,11,Variational Fisher,0.10833333333333334
+1424,2000,40,3,12,Sandwich,0.7416666666666667
+1425,2000,40,3,12,Variational Fisher,0.14166666666666666
+1426,2000,40,3,13,Sandwich,0.75
+1427,2000,40,3,13,Variational Fisher,0.19166666666666668
+1428,2000,40,3,14,Sandwich,0.8083333333333333
+1429,2000,40,3,14,Variational Fisher,0.14166666666666666
+1430,2000,40,3,15,Sandwich,0.7583333333333333
+1431,2000,40,3,15,Variational Fisher,0.10833333333333334
+1432,2000,40,3,16,Sandwich,0.675
+1433,2000,40,3,16,Variational Fisher,0.15833333333333333
+1434,2000,40,3,17,Sandwich,0.8
+1435,2000,40,3,17,Variational Fisher,0.18333333333333332
+1436,2000,40,3,18,Sandwich,0.725
+1437,2000,40,3,18,Variational Fisher,0.11666666666666667
+1438,2000,40,3,19,Sandwich,0.7416666666666667
+1439,2000,40,3,19,Variational Fisher,0.18333333333333332

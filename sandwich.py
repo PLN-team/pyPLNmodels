@@ -8,9 +8,9 @@ from itertools import product
 import pandas as pd
 import numpy as np
 
-nb_max_iter = 700
-nb_seed = 10
-ns = [250, 500, 1000]
+nb_max_iter = 800
+nb_seed = 20
+ns = [250, 500, 1000, 2000]
 dims = [10, 20, 40]
 nb_covs = [1, 2, 3]
 
@@ -121,7 +121,7 @@ def get_each_cover(ns, nb_cov, dim):
             endog = _endog[:n]
             exog = _exog[:n]
             pln = Pln(endog, exog=exog)
-            pln.fit(nb_max_epoch=nb_max_iter)
+            pln.fit(nb_max_epoch=nb_max_iter, tol=1e-8)
             rmse_sigma = compute_rmse(pln.covariance - true_covariance)
             rmse_coef = compute_rmse(pln.coef - true_coef)
             rmses["sigma"][n].append(rmse_sigma)
