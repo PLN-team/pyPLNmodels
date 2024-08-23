@@ -63,7 +63,7 @@ get_plot_i <- function(i){
     # current_plot <- current_plot + guides()
 }
 
-pdf("paper/figures/plots_benchmark.pdf")
+pdf("../paper/figures/plots_benchmark.pdf")
 plots <- list()
 for (i in c(1:nb_N)){
     tmp_plot <- get_plot_i(i)
