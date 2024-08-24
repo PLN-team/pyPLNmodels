@@ -26,7 +26,7 @@ bibliography: paper.bib
 # Summary
 High dimensional count data are complex to analyze as is, and normalization must
 be performed, but standard normalization does not fit the characteristics of
-count data. The Poisson LogNormal(PLN)  [@PLN] and its Principal Component
+count data. The Poisson LogNormal(PLN) [@PLN] and its Principal Component
 Analysis variant PLN-PCA [@PLNPCA] are two-sided latent variable models allowing both
 suitable normalization and analysis of multivariate count data, implemented in this package.
 
@@ -76,11 +76,11 @@ The PLN and PLN-PCA variants are implemented in the ```pyPLNmodels``` package
 introduced here, whose main functionalities are
 \begin{itemize}
 \item Normalize count data to obtain more valuable data,
-\item Analyse the significance of each variable and their correlation,
+\item Analyze the significance of each variable and their correlation,
 \item Perform regression when covariates are available,
 \item Reduce the number of features with PLN-PCA.
 \end{itemize}
-The ```pyPLNmodels```[^pyplnmodels]  package has been designed to efficiently process
+The ```pyPLNmodels```[^pyplnmodels] package has been designed to efficiently process
 extensive datasets in a reasonable time and incorporates GPU
 acceleration for better scalability.
 
@@ -147,14 +147,16 @@ We conducted a comparison using the following configurations:
 - PLN and PLN-PCA models fitted with `pyPLNmodels` on CPU, referred to as **py-PLN-CPU** and **py-PLN-PCA-CPU** respectively.
 - PLN and PLN-PCA models fitted with `pyPLNmodels` on GPU, referred to as **py-PLN-GPU** and **py-PLN-PCA-GPU** respectively.
 - PLN and PLN-PCA models fitted with `PLNmodels` on CPU, referred to as **R-PLN** and **R-PLN-PCA** respectively.
-- The `GLLVM` model  with Poisson distributed responses, fitted on CPU, referred to as **GLLVM**.
+- The `GLLVM` model with Poisson distributed responses, fitted on CPU, referred to as **GLLVM**.
 
 These models were tested on the `scMARK` dataset, a benchmark for scRNA data,
 which contains 19998 cell samples and 14059 gene variables.
 We plotted the fitting time for these models against an increasing number of
 gene variables, ranging from $5$ to $14059$. Additionally, we varied the number
-of cell samples at $n = 100, 1000, 19998$.
-For each model, the fitting process was halted if the running time exceeded
+of cell samples at $n = 100, 1000, 19998$. We used $q =5$ Principal Components when fitting each
+PLN-PCA model and the number of latent variables LV=$2$ for the
+```GLLVM``` model. For each model, the fitting process was halted
+if the running time exceeded
 10,000 seconds. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
 limitations (64 GB RAM). Similarly, ```py-PLN-PCA-GPU``` could not be run when
 $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
@@ -167,7 +169,7 @@ latent variables by minimizing the divergence between the posterior and a
 variational distribution. Each package uses variational inference
 [@blei2017variational] to maximize an Evidence Lower BOund(ELBO), which serves
 as an approximation to the model's log-likelihood.
- Each package uses its  ```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a
+ Each package uses its ```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a
 Negative Binomial (NB) Generalized Linear Model(GLM) and two penalized NB GLM
 coupled with a fixed-point algorithm, while ```pyPLNmodels``` and
 ```PLNmodels``` uses gradient ascent to maximize the ELBO.
