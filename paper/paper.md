@@ -164,19 +164,20 @@ $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
 
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 
-Variational inference aims to approximate the posterior distribution of the
-latent variables by minimizing the divergence between the posterior and a
-variational distribution. Each package uses variational inference
+ Each package uses variational inference
 [@blei2017variational] to maximize an Evidence Lower BOund(ELBO), which serves
 as an approximation to the model's log-likelihood.
- Each package uses its ```GLLVM``` uses an alternate-optimization scheme, fitting alternatively a
-Negative Binomial (NB) Generalized Linear Model(GLM) and two penalized NB GLM
-coupled with a fixed-point algorithm, while ```pyPLNmodels``` and
-```PLNmodels``` uses gradient ascent to maximize the ELBO.
-```PLNmodels``` uses C++ backend along with ```nlopt```[@nlopt] optimization library.
-The backend of ```GLLVM``` is implemented in C++, while ```pyPLNmodels``` leverages the
-automatic differentiation from Pytorch to compute the gradients of the ELBO. Each
-PLN-PCA model is estimated using comparable variational inference methods.
+Variational inference aims to approximate the posterior distribution of the
+latent variables by minimizing the divergence between the posterior and a
+variational distribution. To maximize the ELBO,  all the methods uses gradient
+ascent. The ```GLLVM``` uses the automatic differentiation of Template Model
+Builder (TMB) library [@tmb] with a `C++` backend.
+<!-- an alternate-optimization scheme, fitting alternatively a -->
+<!-- Negative Binomial (NB) Generalized Linear Model(GLM) and two penalized NB GLM -->
+<!-- coupled with a fixed-point algorithm, -->
+```PLNmodels``` uses C++ backend along with ```nlopt```[@nlopt] optimization library,
+ while ```pyPLNmodels``` leverages the automatic differentiation from Pytorch
+     to compute the gradients of the ELBO. Each PLN-PCA model is estimated using comparable variational inference methods.
 However, the variational approximation for the PLN model in the
 ```pyPLNmodels``` version is more efficient than its counterpart in
 ```PLNmodels```.
