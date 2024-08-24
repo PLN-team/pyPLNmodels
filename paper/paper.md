@@ -112,19 +112,30 @@ datasets typically involve thousands of cells ($n \approx 20000$) with
 thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
 20000 \times 20000$.
 
-The `statsmodels` [@statsmodels] Python package allows to deal with count data
-thanks to the Generalized Linear Models `PoissonBayesMixedGLM` and
-`BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
-between features and performing Principal Component Analysis adequate to count data.
 
-The `GLLVM` package [@GLLVM] offers a broader scope of modeling
+
+
+The `statsmodels` [@statsmodels] is a Python library providing classes and
+functions for the estimation of many different statistical
+models, as well as for conducting statistical tests and statistical data
+exploration. Notably, It handles count data
+through the Generalized Linear Models `PoissonBayesMixedGLM` and
+`BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
+between features and performing Principal Component Analysis suitable to count data.
+
+
+
+The R package `GLLVM` package is designed for fitting Generalized Linear
+Latent Variable Models. It allows for flexible modeling of multivariate
+response data, accommodating both continuous and discrete responses.
+Compared to the `pyPLNmodels` package, it offers a broader scope of modeling
 capabilities, enabling the incorporation of Poisson distribution as well as
 Binomial or Negative Binomial distributions
 and an additional zero-inflation component. However, its scalability is
 notably inferior to our proposed methodology. Our approach, specifically
 the PLN-PCA model, demonstrates superior scalability, effectively
-accommodating datasets with tens of thousands of variables. In contrast, the
-PLN model handles thousands of variables within a reasonable computational timeframe. In
+accommodating datasets with tens of thousands of variables and the
+PLN model handles couple thousands of variables within a reasonable computational timeframe. In
 contrast, ```GLLVM``` struggles to scale beyond a few hundred variables within
 practical computational limits.
 
@@ -136,12 +147,12 @@ We conducted a comparison using the following configurations:
 - PLN and PLN-PCA models fitted with `pyPLNmodels` on CPU, referred to as **py-PLN-CPU** and **py-PLN-PCA-CPU** respectively.
 - PLN and PLN-PCA models fitted with `pyPLNmodels` on GPU, referred to as **py-PLN-GPU** and **py-PLN-PCA-GPU** respectively.
 - PLN and PLN-PCA models fitted with `PLNmodels` on CPU, referred to as **R-PLN** and **R-PLN-PCA** respectively.
-- The `GLLVM` model fitted on CPU, referred to as **GLLVM**.
+- The `GLLVM` model  with Poisson distributed responses, fitted on CPU, referred to as **GLLVM**.
 
 These models were tested on the `scMARK` dataset, a benchmark for scRNA data,
-which contains 19,998 cell samples and 14,059 gene variables.
+which contains 19998 cell samples and 14059 gene variables.
 We plotted the fitting time for these models against an increasing number of
-gene variables, ranging from $5$ to $15000$. Additionally, we varied the number
+gene variables, ranging from $5$ to $14059$. Additionally, we varied the number
 of cell samples at $n = 100, 1000, 19998$.
 For each model, the fitting process was halted if the running time exceeded
 10,000 seconds. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
