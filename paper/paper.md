@@ -105,7 +105,8 @@ different cell types, the PLN-PCA method is capable of doing
 so.](figures/plnpca_vs_pca_last.png)
 
 # Statement of need
-While the R-package ```PLNmodels``` [@PLNmodels] implements PLN models (including some variants), the Python package
+While the R-package ```PLNmodels``` [@plnmodels_package] implements PLN models
+including some variants [@PLNmodels], the Python package
 ```pyPLNmodels``` based on Pytorch [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA-seq data. Real-world scRNA-seq
 datasets typically involve thousands of cells ($n \approx 20000$) with
