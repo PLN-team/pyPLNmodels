@@ -9,7 +9,7 @@ import time
 
 n = 1000
 # p = 15000
-p = 1500
+p = 15000
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
 viridis = sns.color_palette("viridis")
 colors = [
@@ -31,7 +31,7 @@ dict_colors = dict(zip(np.unique(GT), colors))
 
 plnpca = PlnPCA(Y)
 t = time.time()
-plnpca.fit(tol=0.0001, verbose=True, nb_max_iteration=7)
+plnpca.fit(tol=0.0001, verbose=True)
 print("time took pln:", (time.time() - t) / 60)
 
 # plnpca.show()
