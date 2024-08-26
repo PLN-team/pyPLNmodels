@@ -157,9 +157,12 @@ of cell samples at $n = 100, 1000, 19998$. We used $q =5$ Principal Components w
 PLN-PCA model and the number of latent variables LV=$2$ for the
 ```GLLVM``` model. For each model, the fitting process was halted
 if the running time exceeded
-10,000 seconds. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
-limitations (64 GB RAM). Similarly, ```py-PLN-PCA-GPU``` could not be run when
-$n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
+10,000 seconds.
+The computational resources utilized for this study include a machine equipped
+with a CPU boasting 64 GB of RAM and 32 cores, in addition to a GPU (RTX A5000) furnished
+with 24 GB of RAM. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
+limitations. Similarly, ```py-PLN-PCA-GPU``` could not be run when
+$n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity.
 
 
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
