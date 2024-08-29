@@ -74,8 +74,8 @@ for (d in rev(levels(df$d))){
 print("nb replicates")
 print(nb_replicates)
 
-title <- paste("Coverage for ", nb_replicates ," replicates on B", sep = "")
+# title <- paste("Coverage for ", nb_replicates ," replicates on B", sep = "")
 
-grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 3, bottom = common_legend, common.legend = TRUE,top=textGrob(title,gp=gpar(fontsize=20,font=3)))
+grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 3, bottom = common_legend, common.legend = TRUE)
 
 dev.off()

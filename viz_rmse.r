@@ -71,8 +71,9 @@ for (d in rev(levels(df$d))){
     }
 }
 
-title <- paste("RMSE for ", nb_replicates, " replicates",sep = "")
+# title <- paste("RMSE for ", nb_replicates, " replicates",sep = "")
 
-grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 3, bottom = common_legend, common.legend = TRUE,top=textGrob(title,gp=gpar(fontsize=20,font=3)))
+# grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 3, bottom = common_legend, common.legend = TRUE,top=textGrob(title,gp=gpar(fontsize=20,font=3)))
+grid.arrange(grobs = plots, as.table = TRUE, align = c("v"), ncol = 3, bottom = common_legend, common.legend = TRUE)
 
 dev.off()
