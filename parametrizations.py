@@ -16,7 +16,8 @@ max_time = 10
 nb_params = 15
 n_samples = 1000
 dim1 = 100
-dim2 = 800
+# dim2 = 800
+dim2 = 1500
 nb_cov = 2
 parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 colors = ["red", "blue", "green", "orange"]
@@ -137,7 +138,7 @@ nb_points_final = 5
 
 parametrizations = ["uPLN-closed", "uPLN-0", "uPLN-PF"]
 colors = sns.color_palette("viridis")
-my_palette = {"uPLN-closed": colors[5], "uPLN-0": colors[0], "uPLN-PF": colors[1]}
+my_palette = {"uPLN-closed": colors[5], "uPLN-0": colors[3], "uPLN-PF": colors[0]}
 
 # df.loc[df["parametrization"] == "0", "parametrization"] = "uPLN-0"
 df.loc[df["parametrization"] == "Profiled", "parametrization"] = "uPLN-closed"
@@ -164,7 +165,7 @@ for dim in [dim1, dim2]:
         np.geomspace(max(np.min(absc_unique), 1), np.max(absc_unique), nb_points_final)
     ).astype(int)
     df_ = df_[df_["absc"].isin(wanted_timepoint)]
-    print("df", df[df["dim"] == 800])
+    # print("df", df[df["dim"] == 800])
     sns.boxplot(
         x="time",
         y="elbo",
