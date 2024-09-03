@@ -169,7 +169,7 @@ $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity.
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 
  Each package uses variational inference
-[@blei2017variational] to maximize an Evidence Lower BOund(ELBO), which serves
+[@blei2017variational] to maximize an Evidence Lower Bound(ELBO), which serves
 as an approximation to the model's log-likelihood.
 Variational inference aims to approximate the posterior distribution of the
 latent variables by minimizing the divergence between the posterior and a
