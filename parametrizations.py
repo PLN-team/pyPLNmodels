@@ -46,6 +46,11 @@ def fit_models(seed_param, dim):
     C = mydict["components"]
     sigma = C @ (C.T)
     sigma = C @ (C.T) + jnp.eye(dim)
+    # fig, ax = plt.subplots(figsize = (20,20), layout = "constrained")
+    # sns.heatmap(sigma, ax=ax)
+    # plt.savefig("sigma.png", format = "png")
+    # x
+
     mydict["components"] = LA.cholesky(sigma)
     simulator = PlnPCAsampler.from_dict(mydict)
     counts = simulator.sample(seed=0)
