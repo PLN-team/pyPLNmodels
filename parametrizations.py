@@ -31,6 +31,7 @@ nb_point = 300
 # parametrizations = ["Profiled", "uPLN-0", "uPLN-PF"]
 # colors = ["red", "blue", "green", "orange"]
 # nb_point = 300
+sns.color_palette("viridis")
 
 
 def fit_models(seed_param, dim):
@@ -46,10 +47,13 @@ def fit_models(seed_param, dim):
     C = mydict["components"]
     sigma = C @ (C.T)
     sigma = C @ (C.T) + jnp.eye(dim)
-    # fig, ax = plt.subplots(figsize = (20,20), layout = "constrained")
-    # sns.heatmap(sigma, ax=ax)
-    # plt.savefig("sigma.png", format = "png")
-    # x
+    fig, ax = plt.subplots(figsize=(20, 20), layout="constrained")
+    sns.heatmap(sigma, ax=ax, cmap="viridis")
+    ax.tick_params(left=False, bottom=False)
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    plt.savefig("sigma.png", format="png")
+    x
 
     mydict["components"] = LA.cholesky(sigma)
     simulator = PlnPCAsampler.from_dict(mydict)
@@ -134,7 +138,7 @@ def launch_dim(dim):
 fig, all_axes = plt.subplots(2, figsize=(20, 10), layout="constrained")
 
 # launch_dim(dim2)
-# launch_dim(dim1)
+launch_dim(dim1)
 # df.to_csv("df_parametrization.csv", index=False)
 
 df = pd.read_csv("df_parametrization.csv").reset_index(drop=True)
