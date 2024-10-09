@@ -3612,6 +3612,18 @@ class PlnPCA(_model):
             "latent_mean": self.latent_mean,
         }
 
+    def get_fisher(self):
+        A = torch.exp(
+            self.offsets
+            + self.latent_variables
+            + 1 / 2 * self._latent_sqrt_var**2 @ (self.components * self.components).T
+        )
+        vecA = A.flatten()
+        IXt = torch.kron(torch.eye(self.dim), self.exog).T
+        IX = torch.kron(torch.eye(self.dim), self.exog)
+        out = torch.multiply(IXt, vecA.unsqueeze(0)) @ (IX) / (self.n_samples)
+        return out
+
 
 class ZIPln(_model):
     """
