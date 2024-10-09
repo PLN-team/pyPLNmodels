@@ -79,10 +79,6 @@ class Fisher_Pln:
         IXt = torch.kron(torch.eye(self.p), self.X).T
         IX = torch.kron(torch.eye(self.p), self.X)
         out = torch.multiply(IXt, vecA.unsqueeze(0)) @ (IX)
-        # return torch.inverse(math.sqrt(self.n)*out)
-        # bigmat = torch.diag(vecA)
-        # other = IXt @ bigmat @ IX
-
         return out / (self.n)
 
 
