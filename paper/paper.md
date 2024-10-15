@@ -105,7 +105,8 @@ different cell types, the PLN-PCA method is capable of doing
 so.](figures/plnpca_vs_pca_last.png)
 
 # Statement of need
-While the R-package ```PLNmodels``` [@PLNmodels] implements PLN models (including some variants), the Python package
+While the R-package ```PLNmodels``` [@plnmodels_package] implements PLN models
+including some variants [@PLNmodels], the Python package
 ```pyPLNmodels``` based on Pytorch [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA-seq data. Real-world scRNA-seq
 datasets typically involve thousands of cells ($n \approx 20000$) with
@@ -157,15 +158,18 @@ of cell samples at $n = 100, 1000, 19998$. We used $q =5$ Principal Components w
 PLN-PCA model and the number of latent variables LV=$2$ for the
 ```GLLVM``` model. For each model, the fitting process was halted
 if the running time exceeded
-10,000 seconds. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
-limitations (64 GB RAM). Similarly, ```py-PLN-PCA-GPU``` could not be run when
-$n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity (24 GB RAM).
+10,000 seconds.
+The computational resources utilized for this study include a machine equipped
+with a CPU boasting 64 GB of RAM and 32 cores, in addition to a GPU (RTX A5000) furnished
+with 24 GB of RAM. We were unable to run ```GLLVM``` for $n = 19998$ due to CPU memory
+limitations. Similarly, ```py-PLN-PCA-GPU``` could not be run when
+$n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity.
 
 
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 
  Each package uses variational inference
-[@blei2017variational] to maximize an Evidence Lower BOund(ELBO), which serves
+[@blei2017variational] to maximize an Evidence Lower Bound(ELBO), which serves
 as an approximation to the model's log-likelihood.
 Variational inference aims to approximate the posterior distribution of the
 latent variables by minimizing the divergence between the posterior and a
