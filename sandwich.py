@@ -12,7 +12,8 @@ nb_max_iter = 800
 nb_seed = 20
 ns = [250, 500, 1000, 2000]
 dims = [10, 20, 40]
-nb_covs = [1, 2, 3]
+nb_covs = [1, 2, 3, 4]
+mean_gaussian = 2
 
 
 def normalizing(Theta, true_Theta, hess, n):
@@ -81,6 +82,14 @@ class Fisher_Pln:
         out = torch.multiply(IXt, vecA.unsqueeze(0)) @ (IX)
         return out / (self.n)
 
+    def get_centered_theta(self, beta):
+        inv_sandwich = self.getInvSandwich()
+        print("inv sandwich", inv_sandwich)
+        vec_Theta = beta.flatten()
+        chol = torch.linalg.cholesky(inv_sandwich)
+        n_theta_1 = math.sqrt(self.n) * torch.matmul(chol, vec_Theta)
+        return n_theta_1
+
 
 def get_cover_from_gaussian(asymptoticGaussianVariational):
     q1MoinsAlphaSurDeux = 1.96  ## quantile
@@ -103,8 +112,11 @@ def get_each_cover(ns, nb_cov, dim):
             seed=seed_param,
             nb_cov=nb_cov - 1,
             add_const=True,
-            mean_gaussian=2,
+            mean_gaussian=mean_gaussian,
         )
+        sim_param._exog = torch.from_numpy(
+            np.random.multinomial(1, [1 / nb_cov] * nb_cov, size=sim_param.n_samples)
+        ).double()
         # sim_param._set_gaussian_mean(2)
         _endog = sample_pln(sim_param, seed=seed_param)
         _exog = sim_param.exog
@@ -112,11 +124,13 @@ def get_each_cover(ns, nb_cov, dim):
         true_covariance = sim_param.covariance
         true_coef = sim_param.coef
         XB = _exog @ true_coef
+        print("mean XB", torch.mean(XB))
+        print("min XB", torch.min(XB))
         for i, n in enumerate(ns):
             print("n:", n)
             endog = _endog[:n]
             exog = _exog[:n]
-            pln = Pln(endog, exog=exog)
+            pln = Pln(endog, exog=exog, add_const=False)
             pln.fit(nb_max_epoch=nb_max_iter, tol=1e-8)
             rmse_sigma = compute_rmse(pln.covariance - true_covariance)
             rmse_coef = compute_rmse(pln.coef - true_coef)
@@ -154,66 +168,65 @@ def get_each_cover(ns, nb_cov, dim):
     return dict_covers_sandwich, dict_covers_fisher, rmses
 
 
-method = ["Sandwich", "Variational Fisher"]
-seed_list = np.arange(nb_seed)
-params = ["coef", "sigma"]
+if __name__ == "__main__":
+    method = ["Sandwich", "Variational Fisher"]
+    seed_list = np.arange(nb_seed)
+    params = ["coef", "sigma"]
 
-df_cov = pd.DataFrame(
-    list(product(ns, dims, nb_covs, seed_list, method)),
-    columns=["n", "p", "d", "seed", "method"],
-)
-df_cov["Coverage"] = -1
+    df_cov = pd.DataFrame(
+        list(product(ns, dims, nb_covs, seed_list, method)),
+        columns=["n", "p", "d", "seed", "method"],
+    )
+    df_cov["Coverage"] = -1
 
+    df_rmse = pd.DataFrame(
+        list(product(ns, dims, nb_covs, seed_list, params)),
+        columns=["n", "p", "d", "seed", "param"],
+    )
+    df_rmse["RMSE"] = -1
 
-df_rmse = pd.DataFrame(
-    list(product(ns, dims, nb_covs, seed_list, params)),
-    columns=["n", "p", "d", "seed", "param"],
-)
-df_rmse["RMSE"] = -1
+    for dim in tqdm(dims):
+        print("dim:", dim)
+        for nb_cov in nb_covs:
+            covers_sandwich, covers_fisher, _rmses = get_each_cover(ns, nb_cov, dim)
+            rmses_coef = _rmses["coef"]
+            rmses_sigma = _rmses["sigma"]
+            for i in range(len(ns)):
+                n = ns[i]
+                sandwich = covers_sandwich[n]
+                fisher = covers_fisher[n]
+                for seed in seed_list:
+                    df_cov["Coverage"][
+                        (df_cov["n"] == n)
+                        & (df_cov["p"] == dim)
+                        & (df_cov["d"] == nb_cov)
+                        & (df_cov["seed"] == seed)
+                        & (df_cov["method"] == "Sandwich")
+                    ] = sandwich[seed].item()
+                    df_cov["Coverage"][
+                        (df_cov["n"] == n)
+                        & (df_cov["p"] == dim)
+                        & (df_cov["d"] == nb_cov)
+                        & (df_cov["seed"] == seed)
+                        & (df_cov["method"] == "Variational Fisher")
+                    ] = fisher[seed].item()
 
+                    df_rmse["RMSE"][
+                        (df_cov["n"] == n)
+                        & (df_rmse["p"] == dim)
+                        & (df_rmse["d"] == nb_cov)
+                        & (df_rmse["seed"] == seed)
+                        & (df_rmse["param"] == "sigma")
+                    ] = rmses_sigma[n][seed].item()
+                    df_rmse["RMSE"][
+                        (df_rmse["n"] == n)
+                        & (df_rmse["p"] == dim)
+                        & (df_rmse["d"] == nb_cov)
+                        & (df_rmse["seed"] == seed)
+                        & (df_rmse["param"] == "coef")
+                    ] = rmses_coef[n][seed].item()
 
-for dim in tqdm(dims):
-    print("dim:", dim)
-    for nb_cov in nb_covs:
-        covers_sandwich, covers_fisher, _rmses = get_each_cover(ns, nb_cov, dim)
-        rmses_coef = _rmses["coef"]
-        rmses_sigma = _rmses["sigma"]
-        for i in range(len(ns)):
-            n = ns[i]
-            sandwich = covers_sandwich[n]
-            fisher = covers_fisher[n]
-            for seed in seed_list:
-                df_cov["Coverage"][
-                    (df_cov["n"] == n)
-                    & (df_cov["p"] == dim)
-                    & (df_cov["d"] == nb_cov)
-                    & (df_cov["seed"] == seed)
-                    & (df_cov["method"] == "Sandwich")
-                ] = sandwich[seed].item()
-                df_cov["Coverage"][
-                    (df_cov["n"] == n)
-                    & (df_cov["p"] == dim)
-                    & (df_cov["d"] == nb_cov)
-                    & (df_cov["seed"] == seed)
-                    & (df_cov["method"] == "Variational Fisher")
-                ] = fisher[seed].item()
-
-                df_rmse["RMSE"][
-                    (df_cov["n"] == n)
-                    & (df_rmse["p"] == dim)
-                    & (df_rmse["d"] == nb_cov)
-                    & (df_rmse["seed"] == seed)
-                    & (df_rmse["param"] == "sigma")
-                ] = rmses_sigma[n][seed].item()
-                df_rmse["RMSE"][
-                    (df_rmse["n"] == n)
-                    & (df_rmse["p"] == dim)
-                    & (df_rmse["d"] == nb_cov)
-                    & (df_rmse["seed"] == seed)
-                    & (df_rmse["param"] == "coef")
-                ] = rmses_coef[n][seed].item()
-
-df_cov.to_csv("coverage.csv")
-df_rmse.to_csv("rmse.csv")
-print("df_cov", df_cov)
-print("df rmse ", df_rmse)
+    df_cov.to_csv("coverage.csv")
+    df_rmse.to_csv("rmse.csv")
+    print("df_cov", df_cov)
+    print("df rmse ", df_rmse)

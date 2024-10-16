@@ -61,7 +61,8 @@ plot_ns_d_p <- function(d,p){
     return(current_plot)
 }
 
-pdf("/home/bastien/These/manuscript/tex/figures/appendix//coverage.pdf")
+# pdf("/home/bastien/These/manuscript/tex/figures/appendix//coverage.pdf")
+pdf("figure_sandwich/coverage.pdf")
 plots = list()
 for (d in rev(levels(df$d))){
     for (p in rev(levels(df$p))){
