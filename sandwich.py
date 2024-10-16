@@ -124,7 +124,7 @@ def get_each_cover(ns, nb_cov, dim):
         true_covariance = sim_param.covariance
         true_coef = sim_param.coef
         XB = _exog @ true_coef
-        print("mean XB", torch.mean(XB))
+        print(" mean XB", torch.mean(XB))
         print("min XB", torch.min(XB))
         for i, n in enumerate(ns):
             print("n:", n)
