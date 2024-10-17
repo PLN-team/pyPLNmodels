@@ -13,7 +13,7 @@ df$hh <- df$coef + df$hh
 df$label <- factor(df$label, levels=rev(df$label))
 df$groups <- as.factor(df$groups)
 
-pdf("figure_sandwich/real_coverage.pdf")
+pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/real_coverage.pdf")
 fp <- ggplot(data=df, aes(x=label, y=coef, ymin=ll, ymax=hh)) +
         theme_bw()+  # use a white background
         coord_flip() +  # flip coordinates (puts labels on y axis)

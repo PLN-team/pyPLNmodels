@@ -50,7 +50,7 @@ plot_ns_d_p_facet <- function(){
 }
 print("nb replicates")
 print(nb_replicates)
-pdf("figure_sandwich/coverage.pdf")
+pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/coverage.pdf")
 plot_ns_d_p_facet()
 
 # title <- paste("Coverage for ", nb_replicates ," replicates on B", sep = "")
