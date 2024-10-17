@@ -35,7 +35,7 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
 n = 1000
 p = 30
 nb_max_iter = 800
-max_class = 2
+max_class = 3
 Y, GT, GT_name = get_sc_mark_data(max_class=max_class, max_n=n, dim=p, seed=0)
 ohe = OneHotEncoder()
 GT_onehot = ohe.fit_transform(GT[:, None]).toarray()
@@ -56,10 +56,20 @@ fisher_pln = Fisher_Pln(
     Omega=torch.inverse(pln.covariance),
     Sigma=pln.covariance,
 )
+print("coef", pln._coef)
+print("flatten", pln._coef.flatten())
+groups = np.array([[i] * p for i in range(max_class)])
+dimensions = [i for i in range(p)] * max_class
 
 var_theta = fisher_pln.get_var_theta(pln._coef) * 1.96
 
 df = pd.DataFrame(
-    {"coef": pln._coef.detach().cpu().flatten(), "ll": -var_theta, "hh": var_theta}
+    {
+        "coef": pln._coef.detach().cpu().flatten(),
+        "ll": -var_theta,
+        "hh": var_theta,
+        "groups": groups.flatten(),
+        "dimensions": dimensions,
+    }
 )
 df.to_csv(f"csv_ic/real_ic_n_{n}.csv")
