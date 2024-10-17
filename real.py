@@ -4,11 +4,12 @@ import numpy as np
 import torch
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from pyPLNmodels import Pln
+import pandas as pd
 
 
 def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
-    # data = scanpy.read_h5ad("/home/bastien/code/data/2k_cell_per_study_10studies.h5ad")
-    data = scanpy.read_h5ad("/home/bastien/Downloads/2k_cell_per_study_10studies.h5ad")
+    data = scanpy.read_h5ad("/home/bastien/code/data/2k_cell_per_study_10studies.h5ad")
+    # data = scanpy.read_h5ad("/home/bastien/Downloads/2k_cell_per_study_10studies.h5ad")
     Y = data.X.toarray()
     GT_name = data.obs["standard_true_celltype_v5"]
     le = LabelEncoder()
@@ -31,7 +32,7 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
     return Y, GT, list(GT_name.values.__array__())
 
 
-n = 2000
+n = 1000
 p = 30
 nb_max_iter = 800
 max_class = 2
@@ -56,6 +57,9 @@ fisher_pln = Fisher_Pln(
     Sigma=pln.covariance,
 )
 
-print("coef", pln._coef)
-centered_theta = fisher_pln.get_centered_theta(pln._coef)
-print("centered theta", centered_theta)
+var_theta = fisher_pln.get_var_theta(pln._coef) * 1.96
+
+df = pd.DataFrame(
+    {"coef": pln._coef.detach().cpu().flatten(), "ll": -var_theta, "hh": var_theta}
+)
+df.to_csv(f"csv_ic/real_ic_n_{n}.csv")

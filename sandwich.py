@@ -74,6 +74,12 @@ class Fisher_Pln:
         Cn = self.getCnTheta()
         return torch.mm(torch.mm(Cn, torch.inverse(Dn)), Cn)
 
+    def getSandwich(self):
+        Dn = self.getDnTheta()
+        Cn = self.getCnTheta()
+        inv_C = torch.inverse(Cn)
+        return torch.mm(torch.mm(inv_C, Dn), inv_C)
+
     def getInvFisher(self):
         vecA = self.A.flatten()
         # X = torch.zeros((self.n,self.d)).detach().clone()
@@ -82,15 +88,12 @@ class Fisher_Pln:
         out = torch.multiply(IXt, vecA.unsqueeze(0)) @ (IX)
         return out / (self.n)
 
-    def get_centered_theta(self, beta):
-        inv_sandwich = self.getInvSandwich()
+    def get_var_theta(self, beta):
+        sandwich = self.getSandwich()
         # print("inv sandwich", inv_sandwich)
-        print("diag ", torch.diag(inv_sandwich))
-        print("diag sqrt", torch.sqrt(torch.diag(inv_sandwich)))
+        diag_sand = torch.diag(sandwich)
         vec_Theta = beta.flatten()
-        chol = torch.linalg.cholesky(inv_sandwich)
-        n_theta_1 = math.sqrt(self.n) * torch.matmul(chol, vec_Theta)
-        return n_theta_1
+        return torch.sqrt(diag_sand / self.n)
 
 
 def get_cover_from_gaussian(asymptoticGaussianVariational):
