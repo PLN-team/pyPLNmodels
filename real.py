@@ -9,24 +9,30 @@ from pyPLNmodels import Pln
 def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
     # data = scanpy.read_h5ad("/home/bastien/code/data/2k_cell_per_study_10studies.h5ad")
     data = scanpy.read_h5ad("/home/bastien/Downloads/2k_cell_per_study_10studies.h5ad")
-    np.random.seed(seed)
-    samples_chosen = np.random.choice(data.n_obs, max_n)
-    Y = data.X.toarray()[samples_chosen]
-    GT_name = data.obs["standard_true_celltype_v5"][samples_chosen]
+    Y = data.X.toarray()
+    GT_name = data.obs["standard_true_celltype_v5"]
     le = LabelEncoder()
     GT = le.fit_transform(GT_name)
-    filter = GT < max_class
-    GT = GT[filter]
-    GT_name = GT_name[filter]
-    Y = Y[filter]
+    nb_per_class = np.bincount(GT)
+    class_took = nb_per_class.argsort()[::-1][:max_class]
+    filter_class = np.isin(GT, class_took)
+    GT = GT[filter_class]
+    Y = Y[filter_class]
+    GT_name = GT_name[filter_class]
+    np.random.seed(seed)
+    samples_chosen = np.random.choice(Y.shape[0], max_n)
+    Y = Y[samples_chosen]
+    GT = GT[samples_chosen]
+    GT_name = GT_name[samples_chosen]
     GT = le.fit_transform(GT)
+    random_indices = np.random.choice(Y.shape[1], dim, replace=False)
     best_var = np.var(Y, axis=0).argsort()[::-1][:dim]
     Y = Y[:, best_var]
     return Y, GT, list(GT_name.values.__array__())
 
 
 n = 2000
-p = 5
+p = 30
 nb_max_iter = 800
 max_class = 2
 Y, GT, GT_name = get_sc_mark_data(max_class=max_class, max_n=n, dim=p, seed=0)

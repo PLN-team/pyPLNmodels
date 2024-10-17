@@ -84,7 +84,9 @@ class Fisher_Pln:
 
     def get_centered_theta(self, beta):
         inv_sandwich = self.getInvSandwich()
-        print("inv sandwich", inv_sandwich)
+        # print("inv sandwich", inv_sandwich)
+        print("diag ", torch.diag(inv_sandwich))
+        print("diag sqrt", torch.sqrt(torch.diag(inv_sandwich)))
         vec_Theta = beta.flatten()
         chol = torch.linalg.cholesky(inv_sandwich)
         n_theta_1 = math.sqrt(self.n) * torch.matmul(chol, vec_Theta)
