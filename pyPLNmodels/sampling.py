@@ -197,10 +197,7 @@ def _get_simulation_coef_cov_offsets_coefzi(
     if exog is None:
         coef = None
     else:
-        coef = torch.randn(exog.shape[1], dim)
-        if nb_cov > 1:
-            coef /= np.sqrt(2)
-        coef += mean_gaussian
+        coef = torch.randn(exog.shape[1], dim) + mean_gaussian
     offsets = torch.randint(low=0, high=2, size=(n_samples, dim), dtype=torch.float64)
     torch.random.set_rng_state(prev_state)
     return coef, exog, exog_inflation, offsets, coef_inflation
