@@ -1,44 +1,53 @@
 library(ggplot2)
 library(grid)
 library(gridExtra)
-# install.packages("cowplot")
+library(dplyr)
 library(cowplot)
 library(latex2exp)
 
 
 
 
-filename = "rmse_groups.csv"
+filename = "csvs/res_nb_seed_count5_nb_seed_param_1.csv"
+
 df = read.csv(filename)
-df$n = as.factor(df$n)
+df <- subset(df, select = -c(X,Sandwich.based.Information,Variational.Fisher.Information))
+df$n_samples = as.factor(df$n_samples)
 df$p = as.factor(df$p)
-df$d = as.factor(df$d)
+df$nb_cov = as.factor(df$nb_cov)
 
-nb_replicates = max(df$seed) + 1
-df$seed = as.factor(df$seed)
+nb_replicates = max(df$seed_param) + 1
+df$seed_param = as.factor(df$seed_param)
 
-print(df)
 # df["param"][df["param"] == "coef"] = "B"#TeX("RMSE $B$")
 # df["param"][df["param"] == "sigma"] = "test"#TeX("RMSE $\\Sigma$")
 
-ds = unique(df$d)
-ns = unique(df$n)
+ds = unique(df$nb_cov)
+ns = unique(df$n_samples)
 ps = unique(df$p)
 
 
 label_equal <- function(variable, value){
-    if (variable == "d"){
+    if (variable == "nb_cov"){
         variable = "m"
     }
     return(paste(variable, "=", value))
 }
+
+df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "seed_count", "seed_param"), value.name = "RMSE")
+
+
+df <- df %>% group_by(n_samples, nb_cov ,variable, p, dim_number, seed_count, seed_param) %>% summarise( RMSE = mean(RMSE)) %>% ungroup()
+print('head')
+print(head(df))
+
 plot_ns_d_p_facet <- function() {
-    current_plot <- ggplot(df, aes(x = n, y  = RMSE, fill = param)) +
+    current_plot <- ggplot(df, aes(x = n_samples, y  = RMSE, fill = variable)) +
                     geom_violin(position="dodge", alpha=0.5) +
                     guides(fill=guide_legend(title="", nrow = 1, byrow = TRUE)) +
                     theme_bw() +
                     scale_fill_viridis_d(labels = unname(TeX(c("RMSE$(\\hat{B} - B^{*})$", "RMSE$(\\hat{\\Sigma} - \\Sigma^{*})$")))) +
-                    facet_grid(d ~ p, scales = "free", labeller = label_equal) +
+                    facet_grid(nb_cov ~ p, scales = "free", labeller = label_equal) +
                     ylab("RMSE") +
                     xlab(TeX("Number of samples $n$")) +
                     theme(legend.position="bottom", legend.title = element_blank())+
@@ -46,9 +55,10 @@ plot_ns_d_p_facet <- function() {
     return(current_plot)
 }
 
+
+
 pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/rmse.pdf")
 plot_ns_d_p_facet()
-# print(current_plot)
 dev.off()
 
 # pdf("figure_sandwich/rmse.pdf")
