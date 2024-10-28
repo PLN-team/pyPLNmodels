@@ -23,7 +23,7 @@ def rmse(t):
 
 nb_max_iter = 800
 nb_seed_param = 1
-nb_seed_count = 30
+nb_seed_count = 5
 ns = [500, 700]
 dims = [25, 50]
 nb_covs = [1, 2, 3]
