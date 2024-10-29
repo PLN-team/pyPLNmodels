@@ -4,7 +4,7 @@ library(reshape2)
 library(dplyr)
 library(latex2exp)
 
-filename = "csvs/res_nb_seed_count10_nb_seed_param_1.csv"
+filename = "csvs/res_nb_seed_count100_nb_seed_param_1.csv"
 p_wanted = 50
 wanted_dims = c(1,2,3)
 nb_cov_wanted = 3
@@ -76,19 +76,19 @@ df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "se
 df <- df %>% group_by(variable, n_samples, nb_cov, dim_number) %>% do(make_qq(., "N01")) %>% ungroup()
 
 levels(df$dim_number) <- c("1"= TeX("$ B_{1,1}$", bold = TRUE), "2"= TeX("$B_{1,2}$", bold = TRUE), "3"= TeX("$B_{1,3}$", bold = TRUE))
-levels(df$n_samples) <- c("750"= TeX("$n = 750 $"), "1500"= TeX("$n = 1500$"))
+levels(df$n_samples) <- c("750"= TeX("$n = 750 $"), "1500"= TeX("$n = 1500$"), "3000"= TeX("$n = 3000$"))
 # levels(df$dim_number) <- c("3"= "31", "4"= "32", "5"= "33")
 
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
-myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable)) + geom_point(size = 1) +
+myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable)) + geom_point(size = 0.5) +
     facet_grid(dim_number ~ n_samples, labeller = label_parsed) + geom_abline(slope = 1, intercept = 0, linewidth = 0.05) +
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     xlab(element_blank()) +
-    ylab(element_blank()) +
-    geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed", linewidth = 0.05) +
-    geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed", linewidth = 0.05)
+    ylab(element_blank())
+    # geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed", linewidth = 0.05) +
+    # geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed", linewidth = 0.05)
 
 myqqplot
 dev.off()

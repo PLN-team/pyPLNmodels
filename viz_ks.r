@@ -11,7 +11,7 @@ get_ks_p_value <- function(vector) {
 
 pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/ks.pdf")
 
-filename = "csvs/res_nb_seed_count10_nb_seed_param_1.csv"
+filename = "csvs/res_nb_seed_count100_nb_seed_param_1.csv"
 
 df = read.csv(filename)
 df = subset(df, select = -c(X))
@@ -32,7 +32,7 @@ df <- df %>% group_by(n_samples, nb_cov ,variable, p, dim_number) %>% summarise(
 
 # levels(df$n_samples) <- c("500"= TeX("$N = 500 $"), "700"= TeX("$N = 700$"))
 levels(df$p) <- c("50"= TeX("$p = 50$"), "100"= TeX("$p = 100$"), "150"= TeX("$p = 150$"))
-levels(df$nb_cov) <- c("1"= TeX("$m = 1$"), "2"= TeX("$m = 2$"), "3" = TeX("$m = 3$"))
+levels(df$nb_cov) <- c("1"= TeX("$m = 1$"), "2"= TeX("$m = 2$"), "3" = TeX("$m = 3$"), "4" = TeX("$m = 4$"))
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
 myqqplot <- ggplot(df, aes(x = n_samples, y = ks,  fill = variable)) +

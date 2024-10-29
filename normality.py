@@ -23,10 +23,10 @@ def rmse(t):
 
 nb_max_iter = 800
 nb_seed_param = 1
-nb_seed_count = 10
-ns = [750, 1500][::-1]
-dims = [50, 100, 150][::-1]
-nb_covs = [1, 2, 3][::-1]
+nb_seed_count = 100
+ns = [500, 1000, 2000][::-1]
+dims = [25, 50, 100][::-1]
+nb_covs = [1, 2, 3, 4][::-1]
 mean_gaussian = 2
 
 N_SAMPLES_KEY = "n_samples"
@@ -59,7 +59,7 @@ def get_each_gaussian(ns, nb_cov, dim):
     tmp_df = pd.DataFrame(columns=LIST_KEY)
     for seed_param in range(nb_seed_param):
         sim_param = get_simulation_parameters(
-            n_samples=ns[-1],
+            n_samples=max(ns),
             dim=dim,
             seed=seed_param,
             nb_cov=nb_cov - 1,
@@ -83,6 +83,7 @@ def get_each_gaussian(ns, nb_cov, dim):
 
                 endog = _endog[:n]
                 exog = _exog[:n]
+                print("endog shape", endog.shape)
                 pln = Pln(endog, exog=exog, add_const=False)
                 pln.fit(nb_max_epoch=nb_max_iter, tol=1e-8)
 
