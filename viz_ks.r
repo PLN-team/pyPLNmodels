@@ -36,7 +36,7 @@ levels(df$nb_cov) <- c("1"= TeX("$m = 1$"), "2"= TeX("$m = 2$"), "3" = TeX("$m =
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
 myqqplot <- ggplot(df, aes(x = n_samples, y = ks,  fill = variable)) +
-    geom_boxplot(lwd = 0.1, outlier.shape= NA) +
+    geom_boxplot(lwd = 0.1, outlier.shape= NA, alpha = 0.5) +
     facet_grid(nb_cov ~ p, labeller = label_parsed) +
     scale_fill_viridis_d() +
     theme_bw() +

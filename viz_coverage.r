@@ -34,7 +34,7 @@ df <- df %>% group_by(n_samples, nb_cov ,variable, p, dim_number) %>%
 
 # levels(df$n_samples) <- c("500"= TeX("$N = 500 $"), "700"= TeX("$N = 700$"))
 levels(df$p) <- c("50"= TeX("$p = 50$"), "100"= TeX("$p = 100$"), "150"= TeX("$p = 150$"))
-levels(df$nb_cov) <- c("1"= TeX("$d = 1$"), "2"= TeX("$d = 2$"), "3" = TeX("$d = 3$"))
+levels(df$nb_cov) <- c("1"= TeX("$m = 1$"), "2"= TeX("$m = 2$"), "3" = TeX("$m = 3$"))
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
 myqqplot <- ggplot(df, aes(x = n_samples, y = cover,  fill = variable)) +
