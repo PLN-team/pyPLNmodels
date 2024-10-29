@@ -38,7 +38,7 @@ levels(df$nb_cov) <- c("1"= TeX("$d = 1$"), "2"= TeX("$d = 2$"), "3" = TeX("$d =
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
 myqqplot <- ggplot(df, aes(x = n_samples, y = cover,  fill = variable)) +
-    geom_violin() +
+    geom_violin(alpha = 0.5) +
     facet_grid(nb_cov ~ p, labeller = label_parsed) +
     scale_fill_viridis_d() +
     theme_bw() +

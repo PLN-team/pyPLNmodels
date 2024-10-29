@@ -27,10 +27,11 @@ fp <- ggplot(data=df, aes(x=label, y=coef, ymin=ll, ymax=hh)) +
         theme_bw()+
         coord_flip() +
         theme(axis.text.y = element_text(size = 5), legend.position = "bottom") +
-        geom_pointrange(aes(ymin = ll, ymax = hh), size = 0.1) +
+        geom_pointrange(aes(ymin = ll, ymax = hh), size = 0.1, alpha = 0.5) +
         geom_hline(yintercept=0, lty=2) +
         geom_point(aes(color=groups), size=0.5)+
         guides(color = guide_legend(title = NULL)) +
+        scale_colour_viridis_d() +
         xlab("Cell type:dimension") + ylab(TeX("95% CI of regression parameter $B$", bold = TRUE))
 print(fp)
 dev.off()
