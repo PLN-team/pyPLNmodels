@@ -4,8 +4,8 @@ library(reshape2)
 library(dplyr)
 library(latex2exp)
 
-filename = "csvs/res_nb_seed_count5_nb_seed_param_1.csv"
-p_wanted = 25
+filename = "csvs/res_nb_seed_count10_nb_seed_param_1.csv"
+p_wanted = 50
 wanted_dims = c(1,2,3)
 nb_cov_wanted = 3
 

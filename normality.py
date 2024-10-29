@@ -22,11 +22,11 @@ def rmse(t):
 
 
 nb_max_iter = 800
-nb_seed_param = 10
-nb_seed_count = 100
-ns = [750, 1500, 2000][::-1]
+nb_seed_param = 1
+nb_seed_count = 10
+ns = [750, 1500][::-1]
 dims = [50, 100, 150][::-1]
-nb_covs = [1, 2, 3, 4][::-1]
+nb_covs = [1, 2, 3][::-1]
 mean_gaussian = 2
 
 N_SAMPLES_KEY = "n_samples"
