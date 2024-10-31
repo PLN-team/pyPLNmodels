@@ -1,6 +1,9 @@
 from typing import Tuple, Union
 import warnings
 import pkg_resources
+import scipy.linalg as sl
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 import torch
 import numpy as np
@@ -798,12 +801,20 @@ def get_simulation_parameters(
         warnings.warn(
             "add const_inflation set to True but no zero inflation is sampled."
         )
-    components = _get_simulation_components(dim, rank)
-    sigma = components @ (components.T)
-    sigma += torch.eye(components.shape[0])
+    torch.manual_seed(seed)
+    r1 = 0.8
+    r2 = 0.95
+    parameter = (r1 - r2) * torch.rand(1) + r2
+    print("parameter", parameter)
+    to_toeplitz = parameter ** (torch.arange(dim))
+    sig = torch.from_numpy(sl.toeplitz(to_toeplitz.numpy()))
+    sig = sig + torch.eye(dim)
+    # components = _get_simulation_components(dim, rank)
+    # sigma = components @ (components.T)
+    # sigma += torch.eye(components.shape[0])
     # omega = torch.inverse(sigma)
     # omega = sigma
-    components = torch.linalg.cholesky(sigma)
+    components = torch.linalg.cholesky(sig)
     if coef_inflation is None:
         print("Pln model will be sampled.")
         return PlnParameters(

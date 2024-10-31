@@ -4,12 +4,13 @@ library(reshape2)
 library(dplyr)
 library(latex2exp)
 
+# filename = "csvs/res_nb_seed_count100_nb_seed_param_1_diagonal.csv"
 filename = "csvs/res_nb_seed_count100_nb_seed_param_1.csv"
-p_wanted = 50
+p_wanted = 100
 wanted_dims = c(1,2,3)
 nb_cov_wanted = 3
 
-pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/qqplots.pdf")
+pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/qqplots.pdf", width = 10, height = 8)
 
 get_df_bound <- function(n_samples) {
   # Set parameters for bounds
@@ -76,12 +77,12 @@ df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "se
 df <- df %>% group_by(variable, n_samples, nb_cov, dim_number) %>% do(make_qq(., "N01")) %>% ungroup()
 
 levels(df$dim_number) <- c("1"= TeX("$ B_{1,1}$", bold = TRUE), "2"= TeX("$B_{1,2}$", bold = TRUE), "3"= TeX("$B_{1,3}$", bold = TRUE))
-levels(df$n_samples) <- c("750"= TeX("$n = 750 $"), "1500"= TeX("$n = 1500$"), "3000"= TeX("$n = 3000$"))
+levels(df$n_samples) <- c("500"= TeX("$n = 500 $"), "1000"= TeX("$n = 1000$"), "2000"= TeX("$n = 2000$"))
 # levels(df$dim_number) <- c("3"= "31", "4"= "32", "5"= "33")
 
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
-myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable)) + geom_point(size = 0.5) +
+myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable)) + geom_point(size = 0.8) +
     facet_grid(dim_number ~ n_samples, labeller = label_parsed) + geom_abline(slope = 1, intercept = 0, linewidth = 0.05) +
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +

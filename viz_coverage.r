@@ -12,6 +12,7 @@ get_ks_p_value <- function(vector) {
 }
 
 
+# filename = "csvs/res_nb_seed_count100_nb_seed_param_1_diagonal.csv"
 filename = "csvs/res_nb_seed_count100_nb_seed_param_1.csv"
 
 df = read.csv(filename)
@@ -33,7 +34,7 @@ df <- df %>% group_by(n_samples, nb_cov ,variable, p, dim_number) %>%
 
 
 # levels(df$n_samples) <- c("500"= TeX("$N = 500 $"), "700"= TeX("$N = 700$"))
-levels(df$p) <- c("50"= TeX("$p = 50$"), "100"= TeX("$p = 100$"), "150"= TeX("$p = 150$"))
+levels(df$p) <- c("25"= TeX("$p = 25$"), "50"= TeX("$p = 50$"), "100"= TeX("$p = 100$"))
 levels(df$nb_cov) <- c("1"= TeX("$m = 1$"), "2"= TeX("$m = 2$"), "3" = TeX("$m = 3$"), "4" = TeX("$m = 4$"))
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 

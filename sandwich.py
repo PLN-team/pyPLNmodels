@@ -20,8 +20,12 @@ def normalizing(Theta, true_Theta, hess, n):
     ## Studentization of the error
     vec_Theta = Theta.flatten()
     vec_true_Theta = true_Theta.flatten()
-    C_hess = torch.linalg.cholesky(hess)
-    n01 = math.sqrt(n) * torch.matmul(C_hess, vec_Theta - vec_true_Theta)
+
+    # C_hess = torch.linalg.cholesky(hess)
+    # n01 = math.sqrt(n) * torch.matmul(C_hess, vec_Theta - vec_true_Theta)
+    C_hess = 1 / torch.sqrt(torch.diag(torch.inverse(hess)))
+    print("C hess shape", C_hess.shape)
+    n01 = math.sqrt(n) * C_hess * (vec_Theta - vec_true_Theta)
     return n01
 
 

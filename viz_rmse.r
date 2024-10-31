@@ -57,7 +57,7 @@ plot_ns_d_p_facet <- function() {
 
 
 
-pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/rmse.pdf")
+pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/rmse.pdf", width = 10, height = 8)
 plot_ns_d_p_facet()
 dev.off()
 
