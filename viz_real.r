@@ -1,7 +1,7 @@
 library(ggplot2)
 library(latex2exp)
 
-df = read.csv("csv_ic/real_ic_n_1000.csv")
+df = read.csv("csv_ic/real_ic_n_5000.csv")
 df = subset(df, select = -c(X))
 print('df')
 print(head(df))
@@ -12,6 +12,11 @@ df$cell_label[df$group == 0] <- "CD8+"
 df$cell_label[df$group == 1] <- "CD4+"
 df$cell_label[df$group == 2] <- "Mac"
 df$label <- paste(as.character(df$cell_label), as.character(df$dimensions), sep = ":")
+
+
+df <- df[df$coef < 0.25,]
+df <- df[df$coef > -0.25,]
+
 
 # df$label <- paste(as.character(df$groups),as.character(df$dimensions), sep = ":")
 df = df[order(df$coef),]

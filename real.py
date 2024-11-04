@@ -32,8 +32,8 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
     return Y, GT, list(GT_name.values.__array__())
 
 
-n = 1000
-p = 30
+n = 5000
+p = 300
 nb_max_iter = 800
 max_class = 3
 Y, GT, GT_name = get_sc_mark_data(max_class=max_class, max_n=n, dim=p, seed=0)

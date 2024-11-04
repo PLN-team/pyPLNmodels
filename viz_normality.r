@@ -5,8 +5,8 @@ library(dplyr)
 library(latex2exp)
 
 # filename = "csvs/res_nb_seed_count100_nb_seed_param_1_diagonal.csv"
-filename = "csvs/res_nb_seed_count100_nb_seed_param_1.csv"
-p_wanted = 100
+filename = "csvs/res_nb_seed_count30_diagonal.csv"
+p_wanted = 200
 wanted_dims = c(1,2,3)
 nb_cov_wanted = 3
 
@@ -87,9 +87,9 @@ myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable)) + geom_point(size
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     xlab(element_blank()) +
+    # geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed") +
+    # geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed") +
     ylab(element_blank())
-    # geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed", linewidth = 0.05) +
-    # geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed", linewidth = 0.05)
 
 myqqplot
 dev.off()
