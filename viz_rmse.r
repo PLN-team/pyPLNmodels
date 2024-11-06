@@ -4,6 +4,7 @@ library(gridExtra)
 library(dplyr)
 library(cowplot)
 library(latex2exp)
+library(viridis)
 
 
 
@@ -46,12 +47,15 @@ df <- df %>% group_by(n_samples, nb_cov ,variable, p, dim_number, seed_count, se
 print('head')
 print(head(df))
 
+viridis_colors <- viridis(4)  # Change the number to the number of colors you need
+
 plot_ns_d_p_facet <- function() {
     current_plot <- ggplot(df, aes(x = n_samples, y  = RMSE, fill = variable)) +
                     geom_violin(position="dodge", alpha=0.5) +
                     guides(fill=guide_legend(title="", nrow = 1, byrow = TRUE)) +
                     theme_bw() +
-                    scale_fill_viridis_d(labels = unname(TeX(c("RMSE$(\\hat{B} - B^{*})$", "RMSE$(\\hat{\\Sigma} - \\Sigma^{*})$")))) +
+                    # scale_fill_viridis_d(labels = unname(TeX(c("RMSE$(\\hat{B} - B^{*})$", "RMSE$(\\hat{\\Sigma} - \\Sigma^{*})$")))) +
+                    scale_fill_manual(labels = unname(TeX(c("RMSE$(\\hat{B} - B^{*})$", "RMSE$(\\hat{\\Sigma} - \\Sigma^{*})$"))), values = viridis_colors) +
                     facet_grid(nb_cov ~ p, scales = "free", labeller = label_equal) +
                     ylab("RMSE") +
                     xlab(TeX("Number of samples $n$")) +

@@ -3,6 +3,7 @@ library(ggtext)
 library(reshape2)
 library(dplyr)
 library(latex2exp)
+library(viridis)
 
 get_ks_p_value <- function(vector) {
   ks_result <- ks.test(vector, "pnorm", mean=0, sd=1)
@@ -36,10 +37,15 @@ levels(df$p) <- c("50"= TeX("$p = 50$"), "100"= TeX("$p = 100$"), "200"= TeX("$p
 levels(df$nb_cov) <- c("1"= TeX("$m = 1$"), "2"= TeX("$m = 2$"), "3" = TeX("$m = 3$"), "4" = TeX("$m = 4$"))
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
+
+
+viridis_colors <- viridis(4)  # Change the number to the number of colors you need
+
 myqqplot <- ggplot(df, aes(x = n_samples, y = ks,  fill = variable)) +
     geom_boxplot(lwd = 0.1, outlier.shape= NA, alpha = 0.5) +
     facet_grid(nb_cov ~ p, labeller = label_parsed) +
-    scale_fill_viridis_d() +
+    # scale_fill_viridis_d() +
+    scale_fill_manual(values = viridis_colors) +
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     geom_hline(yintercept = 0.05, linetype = "dashed", color = "red", linewidth = 0.3) +

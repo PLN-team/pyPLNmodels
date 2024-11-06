@@ -3,6 +3,7 @@ library(ggtext)
 library(reshape2)
 library(dplyr)
 library(latex2exp)
+library(viridis)
 
 pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/coverage.pdf")
 
@@ -26,6 +27,7 @@ df$seed_param = as.factor(df$seed_param)
 df$nb_cov = as.factor(df$nb_cov)
 
 
+viridis_colors <- viridis(4)  # Change the number to the number of colors you need
 
 df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "seed_count", "seed_param", "RMSE_B", "RMSE_Sigma"), value.name = "N01" )
 
@@ -41,7 +43,8 @@ levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher 
 myqqplot <- ggplot(df, aes(x = n_samples, y = cover,  fill = variable)) +
     geom_violin(alpha = 0.5) +
     facet_grid(nb_cov ~ p, labeller = label_parsed) +
-    scale_fill_viridis_d() +
+    # scale_fill_viridis_d() +
+    scale_fill_manual(values = viridis_colors) +
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     geom_hline(yintercept = 0.95, linetype = "dashed", color = "red", linewidth = 0.3) +

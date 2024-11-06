@@ -3,6 +3,7 @@ library(ggtext)
 library(reshape2)
 library(dplyr)
 library(latex2exp)
+library(viridis)
 
 # filename = "csvs/res_nb_seed_count100_nb_seed_param_1_diagonal.csv"
 filename = "csvs/res_nb_seed_count100_diagonal.csv"
@@ -71,6 +72,7 @@ print('head')
 print(head(df))
 df <- droplevels(df)
 
+viridis_colors <- viridis(4)  # Change the number to the number of colors you need
 
 df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "seed_count", "seed_param", "RMSE_B", "RMSE_Sigma"), value.name = "N01" )
 
@@ -82,11 +84,13 @@ levels(df$n_samples) <- c("500"= TeX("$n = 500 $"), "1000"= TeX("$n = 1000$"), "
 
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
-myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable)) + geom_point(size = 0.8) +
+myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable, color = variable)) + geom_point(size = 0.8, alpha = 0.5) +
     facet_grid(dim_number ~ n_samples, labeller = label_parsed) + geom_abline(slope = 1, intercept = 0, linewidth = 0.05) +
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     xlab(element_blank()) +
+    # scale_color_viridis_d() +
+    scale_color_manual(values = viridis_colors) +
     # geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed") +
     # geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed") +
     ylab(element_blank())
