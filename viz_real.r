@@ -14,8 +14,8 @@ df$cell_label[df$group == 2] <- "Mac"
 df$label <- paste(as.character(df$cell_label), as.character(df$dimensions), sep = ":")
 
 
-df <- df[df$coef < 0.25,]
-df <- df[df$coef > -0.25,]
+df <- df[df$coef < 0.3,]
+df <- df[df$coef > -0.3,]
 
 
 # df$label <- paste(as.character(df$groups),as.character(df$dimensions), sep = ":")

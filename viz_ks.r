@@ -11,7 +11,7 @@ get_ks_p_value <- function(vector) {
 
 pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/ks.pdf")
 
-filename = "csvs/res_nb_seed_count30_diagonal.csv"
+filename = "csvs/res_nb_seed_count100_diagonal.csv"
 # filename = "csvs/res_nb_seed_count100_nb_seed_param_1_diagonal.csv"
 
 df = read.csv(filename)

@@ -5,7 +5,7 @@ library(dplyr)
 library(latex2exp)
 
 # filename = "csvs/res_nb_seed_count100_nb_seed_param_1_diagonal.csv"
-filename = "csvs/res_nb_seed_count30_diagonal.csv"
+filename = "csvs/res_nb_seed_count100_diagonal.csv"
 p_wanted = 200
 wanted_dims = c(1,2,3)
 nb_cov_wanted = 3
