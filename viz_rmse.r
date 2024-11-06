@@ -12,6 +12,11 @@ filename = "csvs/res_nb_seed_count100_diagonal.csv"
 
 df = read.csv(filename)
 df <- subset(df, select = -c(X,Sandwich.based.Information,Variational.Fisher.Information))
+
+# head(df)
+# df <- df[df$RMSE_B < 0.13,]
+# df <- df[df$RMSE_Sigma < 0.13,]
+
 df$n_samples = as.factor(df$n_samples)
 df$p = as.factor(df$p)
 df$nb_cov = as.factor(df$nb_cov)
@@ -51,7 +56,7 @@ plot_ns_d_p_facet <- function() {
                     ylab("RMSE") +
                     xlab(TeX("Number of samples $n$")) +
                     theme(legend.position="bottom", legend.title = element_blank())+
-                    scale_y_continuous(limits = c(0.025,0.21))
+                    scale_y_continuous(limits = c(0.025,0.13))
     return(current_plot)
 }
 
