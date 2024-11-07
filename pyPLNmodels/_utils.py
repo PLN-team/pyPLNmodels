@@ -1014,8 +1014,8 @@ def plot_correlation_circle(X, variables_names, indices_of_variables, title=""):
     # Draw the unit circle, for clarity
     circle = Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
     axs.add_patch(circle)
-    axs.set_xlabel(f"PCA 1 ({(np.round(explained_ratio[0]*100, 3))}%)")
-    axs.set_ylabel(f"PCA 2 ({(np.round(explained_ratio[1]*100, 3))}%)")
+    axs.set_xlabel(f"PCA 1 ({(np.round(explained_ratio[0]*100, 3))}%)", fontsize=30)
+    axs.set_ylabel(f"PCA 2 ({(np.round(explained_ratio[1]*100, 3))}%)", fontsize=30)
     axs.set_title(f"Correlation circle on the transformed variables{title}")
     # plt.ion()
 
