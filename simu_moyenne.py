@@ -25,8 +25,8 @@ n = 500
 dim = 150
 nb_points_proba = 8
 nb_points_poisson = 7
-viz = "poisson"
-# viz = "proba"
+# viz = "poisson"
+viz = "proba"
 _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
 _moyennes_proba = np.linspace(0.2, 0.9, nb_points_proba)
 nb_max_iteration = 1000
@@ -385,7 +385,7 @@ class one_plot:
             + str(self.nb_bootstrap)
             + self.viz
             + self.inflation_formula
-            + f"n_{n}_dim_{dim}"
+            + f"n_{n}_dim_{dim}_rightsimu"
         )
 
     @property

@@ -343,7 +343,9 @@ class PlnParameters:
         return self._exog
 
     def _set_gaussian_mean(self, mean_gaussian: float):
-        self._coef += -torch.mean(self._coef) + mean_gaussian
+        self._coef[0, :] += -torch.mean(self._coef) + mean_gaussian
+        print("mean gaussian", torch.mean(self.gaussian_mean))
+        print("var gaussian", torch.var(self.gaussian_mean))
 
     def _set_mean_proba(self, mean_proba: float):
         if mean_proba > 1 or mean_proba < 0:
