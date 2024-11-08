@@ -144,4 +144,4 @@ for dim in tqdm(dims):
         tmp_df = get_each_gaussian(ns, nb_cov, dim)
         df_n01 = pd.concat([df_n01, tmp_df], axis=0)
 
-df_n01.to_csv(f"csvs/res_nb_seed_count{nb_seed_count}_diagonal.csv")
+df_n01.to_csv(f"csvs/res_nb_seed_count{nb_seed_count}_dims_{dims}diagonal.csv")

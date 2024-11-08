@@ -8,9 +8,11 @@ library(viridis)
 
 
 
-
-filename = "csvs/res_nb_seed_count100_diagonal.csv"
-
+if (loglog == TRUE){
+    filename = "csvs/res_nb_seed_count5_diagonal.csv"
+}else{
+    filename = "csvs/res_nb_seed_count100_diagonal.csv"
+}
 df = read.csv(filename)
 df <- subset(df, select = -c(X,Sandwich.based.Information,Variational.Fisher.Information))
 
