@@ -9,9 +9,9 @@ library(glue)
 options(error=traceback)
 # traceback()
 
-viz = "dims"
-perf = "computation"
-viz = "samples"
+# viz = "dims"
+# perf = "computation"
+viz = "poisson"
 perf = "stat"
 
 pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
@@ -32,9 +32,9 @@ if (viz =="samples" || viz == "dims"){
     name_doss_2 <- get_name_computation(viz,"column-wise")
     name_doss_3 <- get_name_computation(viz,"row-wise")
 } else{
-    name_doss_1 = paste(viz,"_viz_global.csv", sep = "")
-    name_doss_2 = paste(viz,"_viz_column-wise.csv", sep = "")
-    name_doss_3 = paste(viz,"_viz_row-wise.csv", sep = "")
+    name_doss_1 = paste(viz,"_viz_global_right_simu.csv", sep = "")
+    name_doss_2 = paste(viz,"_viz_column-wise_right_simu.csv", sep = "")
+    name_doss_3 = paste(viz,"_viz_row-wise_right_simu.csv", sep = "")
 }
 name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
 

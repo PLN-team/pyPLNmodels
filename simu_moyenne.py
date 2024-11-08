@@ -25,8 +25,8 @@ n = 500
 dim = 150
 nb_points_proba = 8
 nb_points_poisson = 7
-# viz = "poisson"
-viz = "proba"
+viz = "poisson"
+# viz = "proba"
 _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
 _moyennes_proba = np.linspace(0.2, 0.9, nb_points_proba)
 nb_max_iteration = 1000
@@ -439,7 +439,7 @@ class one_plot:
             else:
                 pass
         data = self.data
-        data.to_csv(f"{self.doss_viz}_{self.inflation_formula}.csv")
+        data.to_csv(f"{self.doss_viz}_{self.inflation_formula}_right_simu.csv")
         for crit_key in CRITERION_KEYS:
             palette = {
                 LABEL_DICT[model_key]: COLORS[model_key] for model_key in KEY_MODELS
