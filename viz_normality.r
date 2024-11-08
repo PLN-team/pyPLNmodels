@@ -79,13 +79,13 @@ df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "se
 df <- df %>% group_by(variable, n_samples, nb_cov, dim_number) %>% do(make_qq(., "N01")) %>% ungroup()
 
 levels(df$dim_number) <- c("1"= TeX("$ B_{1,1}$", bold = TRUE), "2"= TeX("$B_{1,2}$", bold = TRUE), "3"= TeX("$B_{1,3}$", bold = TRUE))
-levels(df$n_samples) <- c("500"= TeX("$n = 500 $"), "1000"= TeX("$n = 1000$"), "2000"= TeX("$n = 2000$"))
+levels(df$n_samples) <- c("1000"= TeX("$n = 1000 $"), "2000"= TeX("$n = 2000$"), "2000"= TeX("$n = 3000$"))
 # levels(df$dim_number) <- c("3"= "31", "4"= "32", "5"= "33")
 
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
-myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable, color = variable)) + geom_point(size = 0.8, alpha = 0.5) +
-    facet_grid(dim_number ~ n_samples, labeller = label_parsed) + geom_abline(slope = 1, intercept = 0, linewidth = 0.05) +
+myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable, color = variable)) + geom_point(size = 1.3, alpha = 0.5) +
+    facet_grid(dim_number ~ n_samples, labeller = label_parsed) + geom_abline(slope = 1, intercept = 0, linewidth = 0.4) +
     theme_bw() +
     theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     xlab(element_blank()) +

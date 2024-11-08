@@ -59,7 +59,7 @@ plot_ns_d_p_facet <- function() {
                     facet_grid(nb_cov ~ p, scales = "free", labeller = label_equal) +
                     ylab("RMSE") +
                     xlab(TeX("Number of samples $n$")) +
-                    theme(legend.position="bottom", legend.title = element_blank())+
+                    theme(legend.position="bottom", legend.title = element_blank(), legend.text = element_text(size = rel(4.5)), text = element_text(size = rel(4.5)))+
                     scale_y_continuous(limits = c(0.025,0.13))
     return(current_plot)
 }
