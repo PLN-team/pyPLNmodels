@@ -39,7 +39,8 @@ levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher 
 
 
 
-viridis_colors <- viridis(4)  # Change the number to the number of colors you need
+viridis_colors <- viridis(8)  # Change the number to the number of colors you need
+viridis_colors <- viridis_colors[c(2,6)]
 
 myqqplot <- ggplot(df, aes(x = n_samples, y = ks,  fill = variable)) +
     geom_boxplot(lwd = 0.1, outlier.shape= NA, alpha = 0.5) +
@@ -47,10 +48,10 @@ myqqplot <- ggplot(df, aes(x = n_samples, y = ks,  fill = variable)) +
     # scale_fill_viridis_d() +
     scale_fill_manual(values = viridis_colors) +
     theme_bw() +
-    theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
+    theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank(), text = element_text(size = rel(3.5)), legend.text = element_text(size = rel(4.5)), strip.text.x = element_text(size = rel(3.5)), strip.text.y = element_text(size = rel(3.5))) +
     geom_hline(yintercept = 0.05, linetype = "dashed", color = "red", linewidth = 0.3) +
-    xlab(element_text("n")) +
-    ylab(element_text("p-value"))
+    xlab(TeX("Number of samples $n$")) +
+    ylab(TeX("$p$-value"))
 
 myqqplot
 

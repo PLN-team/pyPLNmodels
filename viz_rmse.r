@@ -47,7 +47,8 @@ df <- df %>% group_by(n_samples, nb_cov ,variable, p, dim_number, seed_count, se
 print('head')
 print(head(df))
 
-viridis_colors <- viridis(4)  # Change the number to the number of colors you need
+viridis_colors <- viridis(8)  # Change the number to the number of colors you need
+viridis_colors <- viridis_colors[c(2,6)]
 
 plot_ns_d_p_facet <- function() {
     current_plot <- ggplot(df, aes(x = n_samples, y  = RMSE, fill = variable)) +
@@ -59,7 +60,7 @@ plot_ns_d_p_facet <- function() {
                     facet_grid(nb_cov ~ p, scales = "free", labeller = label_equal) +
                     ylab("RMSE") +
                     xlab(TeX("Number of samples $n$")) +
-                    theme(legend.position="bottom", legend.title = element_blank(), legend.text = element_text(size = rel(4.5)), text = element_text(size = rel(4.5)))+
+                    theme(legend.position="bottom", legend.title = element_blank(), legend.text = element_text(size = rel(4.5)), text = element_text(size = rel(4.5)), strip.text.x = element_text(size = rel(3.5)))+
                     scale_y_continuous(limits = c(0.025,0.13))
     return(current_plot)
 }

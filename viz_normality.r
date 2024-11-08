@@ -11,7 +11,7 @@ p_wanted = 200
 wanted_dims = c(1,2,3)
 nb_cov_wanted = 3
 
-pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/qqplots.pdf", width = 10, height = 8)
+pdf("/home/bastien/These/manuscript-sandwich-estimators/figures/qqplots.pdf", width = 12, height = 12)
 
 get_df_bound <- function(n_samples) {
   # Set parameters for bounds
@@ -72,7 +72,8 @@ print('head')
 print(head(df))
 df <- droplevels(df)
 
-viridis_colors <- viridis(4)  # Change the number to the number of colors you need
+viridis_colors <- viridis(8)  # Change the number to the number of colors you need
+viridis_colors <- viridis_colors[c(2,6)]
 
 df = reshape2::melt(df, id.vars = c("n_samples","p", "dim_number", "nb_cov", "seed_count", "seed_param", "RMSE_B", "RMSE_Sigma"), value.name = "N01" )
 
@@ -84,15 +85,17 @@ levels(df$n_samples) <- c("1000"= TeX("$n = 1000 $"), "2000"= TeX("$n = 2000$"),
 
 levels(df$variable) <- c("Variational.Fisher.Information" = "Variational Fisher Information", "Sandwich.based.Information" = "Sandwich-based variance")
 
-myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable, color = variable)) + geom_point(size = 1.3, alpha = 0.5) +
+myqqplot <- ggplot(df, aes(x = qq, y = N01, shape = variable, color = variable)) + geom_point(size = 1.9, alpha = 0.8) +
     facet_grid(dim_number ~ n_samples, labeller = label_parsed) + geom_abline(slope = 1, intercept = 0, linewidth = 0.4) +
     theme_bw() +
-    theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank()) +
     xlab(element_blank()) +
+    coord_equal(xlim = c(-3, 3), ylim = c(-3, 3)) +
+    theme(legend.position="bottom", legend.direction = "horizontal", legend.box = "horizontal", legend.title = element_blank(), text = element_text(size = rel(4.5)), legend.text = element_text(size = rel(6.5)), strip.text.x = element_text(size = rel(4.5)), strip.text.y = element_text(size = rel(5.5)), axis.text.x = element_text(size = rel(6.5)),axis.text.y = element_text(size = rel(6.5)) ) +
     # scale_color_viridis_d() +
     scale_color_manual(values = viridis_colors) +
-    # geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed") +
-    # geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed") +
+    guides(color = guide_legend(override.aes = list(size = 6))) +
+    geom_line(aes(y = lower_bound), color = 'red', linetype = "dashed") +
+    geom_line(aes(y = upper_bound), color = 'red', linetype = "dashed") +
     ylab(element_blank())
 
 myqqplot
