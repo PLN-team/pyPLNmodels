@@ -34,7 +34,7 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
     return Y, GT, list(GT_name.values.__array__()), genes
 
 
-n = 5000
+n = 500
 p = 300
 nb_max_iter = 8
 max_class = 3
@@ -42,7 +42,11 @@ Y, GT, GT_name, genes_name = get_sc_mark_data(
     max_class=max_class, max_n=n, dim=p, seed=0
 )
 ohe = OneHotEncoder()
+print("GT", GT_name)
 GT_onehot = ohe.fit_transform(GT[:, None]).toarray()
+print("onehot", GT_onehot)
+groups = np.array([[i] * p for i in range(max_class)])
+print("groups", groups)
 
 pln = Pln(Y, exog=GT_onehot, add_const=False)
 pln.fit(nb_max_epoch=nb_max_iter)
