@@ -8,8 +8,8 @@ import pandas as pd
 
 
 def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
-    # data = scanpy.read_h5ad("/home/bastien/code/data/2k_cell_per_study_10studies.h5ad")
-    data = scanpy.read_h5ad("/home/bastien/Downloads/2k_cell_per_study_10studies.h5ad")
+    data = scanpy.read_h5ad("/home/bastien/code/data/2k_cell_per_study_10studies.h5ad")
+    # data = scanpy.read_h5ad("/home/bastien/Downloads/2k_cell_per_study_10studies.h5ad")
     genes = data.var["gene"]
     Y = data.X.toarray()
     GT_name = data.obs["standard_true_celltype_v5"]
@@ -36,7 +36,7 @@ def get_sc_mark_data(max_class=28, max_n=200, dim=100, seed=0):
 
 n = 500
 p = 300
-nb_max_iter = 8
+nb_max_iter = 800
 max_class = 3
 Y, GT, GT_name, genes_name = get_sc_mark_data(
     max_class=max_class, max_n=n, dim=p, seed=0
@@ -68,8 +68,10 @@ print("coef", pln._coef)
 print("flatten", pln._coef.flatten())
 groups = np.array([[i] * p for i in range(max_class)])
 dimensions = [i for i in range(p)] * max_class
-genes_name_repeat = genes_name * max_class
-
+print("dimensions", len(dimensions))
+genes_name_repeat = []
+for _ in range(max_class):
+    genes_name_repeat = genes_name_repeat + genes_name.tolist()
 var_theta = fisher_pln.get_var_theta(pln._coef) * 1.96
 
 df = pd.DataFrame(
