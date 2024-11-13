@@ -7,6 +7,19 @@ library(naniar)
 library(latex2exp)
 library(viridis)
 
+french = TRUE
+
+if (french == FALSE){
+    nb_var_text = TeX("Number of variables $p$")
+    yabs = "Running time (seconds)"
+    ours_text = " (ours)"
+    name_file = "benchmark.pdf"
+}else{
+    nb_var_text = TeX("Nombre de variables $p$")
+    yabs = "Temps (secondes)"
+    ours_text = " (nous)"
+    name_file = "benchmark_fr.pdf"
+}
 
 
 
@@ -18,8 +31,9 @@ file_pln_r = "df_pln_r.csv"
 file_plnpca_r = "df_plnpca_r.csv"
 file_gllvm = "df_gllvm.csv"
 filenames = c(file_pln_python, file_plnpca_python, file_pln_python_GPU, file_plnpca_python_GPU, file_gllvm, file_pln_r, file_plnpca_r)
-modelnames = c("py-PLN-CPU (ours)", "py-PLN-PCA-CPU (ours)", "py-PLN-GPU (ours)", "py-PLN-PCA-GPU (ours)", "GLLVM", "R-PLN", "R-PLN-PCA")
+modelnames = c(paste("py-PLN-CPU", ours_text, sep = ""), paste("py-PLN-PCA-CPU", ours_text, sep = ""), paste("py-PLN-GPU", ours_text, sep = ""), paste("py-PLN-PCA-GPU", ours_text, sep = ""), "GLLVM", "R-PLN", "R-PLN-PCA")
 ###            GLLVM          pyplncpu         pyplngpu       pyplnpcaCPU      pyPLNPCAGPU  RPLN    RPLNPCA
+
 
 
 col_viridis = viridis(10)
@@ -53,17 +67,16 @@ remove_legend <- function(myplot){
     return(myplot + theme(legend.position="none"))
 }
 
-
 get_plot_i <- function(i){
     current_plot <- ggplot(df) + geom_line(aes(x =dim, y = df[,colnames(df)[i]], group = Model, col = Model, linetype = Model), shape = 23, size = 0.6)
-    current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = "Running time (seconds)", x = TeX("Number of variables $p$"))
+    current_plot <- current_plot + ggtitle(paste("n = ", colnames(df)[i])) + labs(y = yabs, x = nb_var_text)
     current_plot <- current_plot + scale_y_log10()
     current_plot <- current_plot + scale_color_manual(values=colors, limits = modelnames) + scale_linetype_manual(values=linestyles, limits = modelnames)
     current_plot <- current_plot + theme_bw()+ theme(legend.key.width = unit(1.2,"cm"), plot.title = element_text(hjust = 0.5),legend.text = element_text(size=7)) + guides(col = guide_legend(nrow = 2, byrow = TRUE, title = ""), linetype =  guide_legend(nrow = 1, byrow = FALSE, title = ""), linetype = guide_legend(override.aes = list(size = 4)) )
     # current_plot <- current_plot + guides()
 }
 
-pdf("../paper/figures/plots_benchmark.pdf")
+pdf(paste("../paper/figures/", name_file, sep = ""))
 plots <- list()
 for (i in c(1:nb_N)){
     tmp_plot <- get_plot_i(i)
