@@ -13,7 +13,7 @@ if (french == FALSE){
     nb_var_text = TeX("Number of variables $p$")
     yabs = "Running time (seconds)"
     ours_text = " (ours)"
-    name_file = "benchmark.pdf"
+    name_file = "plots_benchmark.pdf"
 }else{
     nb_var_text = TeX("Nombre de variables $p$")
     yabs = "Temps (secondes)"
