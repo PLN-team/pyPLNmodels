@@ -119,7 +119,7 @@ thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
 The `statsmodels` [@statsmodels] is a Python library providing classes and
 functions for the estimation of many different statistical
 models, as well as for conducting statistical tests and statistical data
-exploration. Notably, It handles count data
+exploration. Notably, it handles count data
 through the Generalized Linear Models `PoissonBayesMixedGLM` and
 `BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
 between features and performing Principal Component Analysis suitable to count data.
