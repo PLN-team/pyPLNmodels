@@ -73,7 +73,7 @@ One of the challenges with scRNA-seq data is managing the high
 dimensionality, necessitating dimension reduction techniques suitable to count data.
 \end{itemize}
 The PLN and PLN-PCA variants are implemented in the ```pyPLNmodels``` package
-introduced here, whose main functionalities are
+introduced here, whose main functionalities are:
 \begin{itemize}
 \item Normalize count data to obtain more valuable data,
 \item Analyze the significance of each variable and their correlation,
