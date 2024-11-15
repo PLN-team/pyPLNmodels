@@ -324,6 +324,7 @@ class _model(ABC):
             palette=dict_colors,
             markers=markers,
             style=colors,
+            s=50,
         )
         if show_cov is True:
             sk_components = torch.from_numpy(pca.components_)

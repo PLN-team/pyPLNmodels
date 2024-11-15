@@ -75,8 +75,11 @@ get_plot_i <- function(i){
     current_plot <- current_plot + theme_bw()+ theme(legend.key.width = unit(1.2,"cm"), plot.title = element_text(hjust = 0.5),legend.text = element_text(size=7)) + guides(col = guide_legend(nrow = 2, byrow = TRUE, title = ""), linetype =  guide_legend(nrow = 1, byrow = FALSE, title = ""), linetype = guide_legend(override.aes = list(size = 4)) )
     # current_plot <- current_plot + guides()
 }
-
-pdf(paste("../paper/figures/", name_file, sep = ""))
+if (french == TRUE){
+    pdf("/home/bastien/These/manuscript/soutenance/figures/backup/benchmark_fr.pdf", width = 10, height = 8)
+} else{
+    pdf(paste("../paper/figures/", name_file, sep = ""))
+}
 plots <- list()
 for (i in c(1:nb_N)){
     tmp_plot <- get_plot_i(i)
