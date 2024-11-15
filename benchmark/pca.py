@@ -6,10 +6,11 @@ import seaborn as sns
 import numpy as np
 import time
 
-tol = 0.0001
+tol = 1
+# tol = 0.0001
 n = 1000
-# p = 1000
-p = 15000
+p = 1000
+# p = 15000
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
 viridis = sns.color_palette("viridis", n_colors=15)
 print("length")
@@ -48,7 +49,7 @@ print("time took pca", time.time() - t)
 x = y_pca[:, 0]
 y = y_pca[:, 1]
 sns.scatterplot(
-    x=x, y=y, ax=axes[1], hue=GT, markers=markers, palette=dict_colors, style=GT, s=50
+    x=x, y=y, ax=axes[1], hue=GT, markers=markers, palette=dict_colors, style=GT, s=150
 )
 
 
@@ -71,6 +72,7 @@ fig.legend(
     legend,
     ncol=3,
     loc="lower center",
+    markerscale=3,
     fontsize=fontsize,
     bbox_to_anchor=[0, axbox.y0 - 0.28, 1, 1],
     bbox_transform=fig.transFigure,
