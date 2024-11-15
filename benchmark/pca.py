@@ -72,7 +72,7 @@ fig.legend(
     legend,
     ncol=3,
     loc="lower center",
-    markerscale=3,
+    markerscale=2,
     fontsize=fontsize,
     bbox_to_anchor=[0, axbox.y0 - 0.28, 1, 1],
     bbox_transform=fig.transFigure,
