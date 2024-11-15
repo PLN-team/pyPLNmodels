@@ -25,8 +25,8 @@ n = 500
 dim = 150
 nb_points_proba = 8
 nb_points_poisson = 7
-# viz = "poisson"
-viz = "proba"
+viz = "poisson"
+# viz = "proba"
 _moyennes_XB = np.linspace(0, 3, nb_points_poisson)
 _moyennes_proba = np.linspace(0.2, 0.9, nb_points_proba)
 nb_max_iteration = 1000
@@ -35,7 +35,8 @@ good_fit = True
 _mean_infla = 0.30
 _mean_xb = 2
 _nb_bootstrap = 30
-nb_cov_inflation = 3
+nb_cov_inflation = 4
+nb_cov = 3
 
 # n = 120
 # dim = 50
@@ -156,6 +157,7 @@ def get_dict_models(
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
             use_closed_form_prob=False,
+            add_const=False,
         ),
         ENH_CLOSED_KEY: ZIPln(
             endog,
@@ -165,6 +167,7 @@ def get_dict_models(
             add_const_inflation=False,
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
+            add_const=False,
         ),
         STD_FREE_KEY: Brute_ZIPln(
             endog,
@@ -174,6 +177,7 @@ def get_dict_models(
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
             use_closed_form_prob=False,
+            add_const=False,
         ),
         STD_CLOSED_KEY: Brute_ZIPln(
             endog,
@@ -183,9 +187,10 @@ def get_dict_models(
             add_const_inflation=False,
             exog_inflation=exog_inflation,
             zero_inflation_formula=inflation_formula,
+            add_const=False,
         ),
-        PLN: Pln(endog, exog=exog, offsets=offsets),
-        FAIRPLN: Pln(fair_endog, exog=exog, offsets=offsets),
+        PLN: Pln(endog, exog=exog, offsets=offsets, add_const=False),
+        FAIRPLN: Pln(fair_endog, exog=exog, offsets=offsets, add_const=False),
     }
     return sim_models
 
@@ -196,16 +201,20 @@ def get_plnparam(inflation_formula):
         add_const_inflation = False
     else:
         nb_cov_infla = nb_cov_inflation
-        add_const_inflation = True
+        add_const_inflation = False
     plnparam = get_simulation_parameters(
-        nb_cov=1,
-        add_const=True,
+        nb_cov=nb_cov,
+        add_const=False,
         nb_cov_inflation=nb_cov_infla,
         zero_inflation_formula=inflation_formula,
         n_samples=n,
         add_const_inflation=add_const_inflation,
         dim=dim,
     )
+    plnparam._exog = torch.from_numpy(
+        np.random.multinomial(1, [1 / nb_cov] * nb_cov, size=plnparam.n_samples)
+    ).double()
+    plnparam._coef = torch.randn(nb_cov, plnparam.dim).double()
     plnparam._offsets *= 0
     return plnparam
 
@@ -385,7 +394,7 @@ class one_plot:
             + str(self.nb_bootstrap)
             + self.viz
             + self.inflation_formula
-            + f"n_{n}_dim_{dim}_rightsimu"
+            + f"n_{n}_dim_{dim}_rightsimu_multin"
         )
 
     @property
