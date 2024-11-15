@@ -6,11 +6,11 @@ import seaborn as sns
 import numpy as np
 import time
 
-tol = 1
-# tol = 0.0001
+# tol = 1
+tol = 0.0001
 n = 1000
-p = 1000
-# p = 15000
+# p = 1000
+p = 15000
 Y, _, GT = get_sc_mark_data(max_n=n, dim=p)
 viridis = sns.color_palette("viridis", n_colors=15)
 print("length")
