@@ -103,7 +103,7 @@ get_df = function(namedoss, perf, viz){
     return(df)
 }
 
-plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, perf){
+plot_csv = function(namedoss,viz,inflation, perf){
     df = get_df(namedoss,perf,viz)
     df$is_standard <- grepl("Standard", df$model_name)
     df$is_analytic <- grepl("Analytique", df$model_name)
@@ -115,8 +115,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
     xlab = TeX('$\\pi')
     plot_data_column = function(i){
         column = criterions[i]
-        y_moins = list_ylim_moins[[i]]
-        y_plus = list_ylim_plus[[i]]
         first_col = "moyenne"
         current_plot <- ggplot(df, aes(x = df[,first_col], y = df[,column])) + geom_boxplot(
     lwd = 0.03,
@@ -133,11 +131,6 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
 
         if (perf != "computation"){
             current_plot = current_plot +  scale_y_log10()
-        }
-        if (column != "RMSE_B0" & column != "RMSE_PI"){
-            if (perf != "computation"){
-                current_plot = current_plot +  scale_y_log10(limits = c(y_moins,y_plus))
-            }
         }
         current_plot = current_plot + ggtitle(h[[column]]) + theme(plot.title = element_text(hjust = 0.5, size = 40, face = "bold"))
         if (column == "RMSE_B"){
@@ -177,19 +170,10 @@ get_y_lims = function(name_doss,perf,viz){
 }
 
 plot_all <- function (name_dosses,viz, perf){
-    ylim_pluss <- c(0,0,0)
-    ylim_moinss <- c(1000000000,1000000000,1000000000)
-    for (name_doss in name_dosses){
-        current_y_lims <- get_y_lims(name_doss,perf,viz)
-        current_ylim_moins <- current_y_lims[[1]]
-        current_ylim_plus <- current_y_lims[[2]]
-        ylim_moinss = pmin(ylim_moinss,current_ylim_moins)
-        ylim_pluss = pmax(ylim_pluss,current_ylim_plus)
-    }
     model = "Column-dependent (3b)"
     plots = list()
     for (name_doss in name_dosses){
-        plots_and_legend <-  plot_csv(name_doss, viz,model,ylim_moinss, ylim_pluss,perf)
+        plots_and_legend <-  plot_csv(name_doss, viz,model, perf)
         current_plots = plots_and_legend[[1]]
         legend_all = plots_and_legend[[2]]
         plots = append(current_plots, plots)
