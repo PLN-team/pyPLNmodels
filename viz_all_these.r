@@ -105,6 +105,8 @@ get_df = function(namedoss, perf, viz){
 
 plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, perf){
     df = get_df(namedoss,perf,viz)
+    df$is_standard <- grepl("Standard", df$model_name)
+    df$is_analytic <- grepl("Analytique", df$model_name)
     criterions <- c("RMSE_SIGMA", "RMSE_B", "RMSE_PI")
     xlab = TeX('$\\pi')
     plot_data_column = function(i){
@@ -112,17 +114,26 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         y_moins = list_ylim_moins[[i]]
         y_plus = list_ylim_plus[[i]]
         first_col = "moyenne"
-        current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
-                                        as.factor(model_name)) )
+        current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column]) )
                          # + geom_point(position = position_jitterdodge(), aes(color =
                          #                                             model_name,group
                          #                                         = model_name,
                          #                                         ),
                          #            size = 0.05, alpha = 0.2)
-                         + geom_boxplot(lwd = 0.03, outlier.shape = NA)
-                         + scale_fill_viridis_d(name = "")
-                         + scale_colour_viridis_d(name = "")
+                         + geom_boxplot(lwd = 0.03, outlier.shape = NA, aes( fill = is_standard, color = is_analytic ))
+                         # + scale_fill_viridis_d(name = "")
+                         # + scale_colour_viridis_d(name = "")
                         + scale_x_discrete(labels=scaleFUN)
+        # current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column]) )
+        #                  # + geom_point(position = position_jitterdodge(), aes(color =
+        #                  #                                             model_name,group
+        #                  #                                         = model_name,
+        #                  #                                         ),
+        #                  #            size = 0.05, alpha = 0.2)
+        #                  + geom_boxplot(lwd = 0.03, outlier.shape = NA, aes( fill = is_standard, color = is_analytic ))
+        #                  # + scale_fill_viridis_d(name = "")
+        #                  # + scale_colour_viridis_d(name = "")
+        #                 + scale_x_discrete(labels=scaleFUN)
         +guides(fill=guide_legend(nrow=1,byrow=TRUE)) ) + theme_bw()+
          theme(legend.key.size = unit(1,"cm"),legend.text = element_text(size=50) )
 

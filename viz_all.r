@@ -258,16 +258,5 @@ three_plots_and_legend <- plot_all(name_dosses, viz, perf)
 three_plots <- three_plots_and_legend[[1]]
 legend_all <- three_plots_and_legend[[2]]
 
-# first_plots = plot_csv(name_doss_1,viz,"Non-dependent (3a)", ylim_moins, ylim_plus)
-# second_plots = plot_csv(name_doss_2,viz,"Column-dependent (3b)", ylim_moins, ylim_plus)
-# third_plots = plot_csv(name_doss_3,viz,"Row-dependent (3c)", ylim_moins, ylim_plus)
-
-# if (viz == "proba"){
-#     title = textGrob(TeX(glue("$n=350,p=100,d=1,XB=2,${inflation}")),gp=gpar(fontsize=20,font=3))
-# }
-# else{
-#     title = textGrob(TeX(glue("$n=350,p=100,d=1,\\pi=0.3,${inflation}")),gp=gpar(fontsize=20,font=3))
-# }
-# three_plots = c(first_plots,second_plots,third_plots)
 grid.arrange(grobs = three_plots, as.table = FALSE, align = c("v"),bottom = legend_all,  ncol = 3,top = title, common.legend = TRUE)
 dev.off()
