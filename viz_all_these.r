@@ -6,6 +6,7 @@ library(hash)
 library(latex2exp)
 library(grid)
 library(glue)
+library(viridis)
 
 options(error=traceback)
 
@@ -23,6 +24,12 @@ get_name_computation <- function(viz,formula){
     }
 }
 
+base_colors <- viridis(4)
+base_colors <- c(base_colors[[3]], base_colors[[1]])
+lighter_colors <- sapply(base_colors, function(col) adjustcolor(col, alpha.f = 0.4))
+all_colors <- c(base_colors, lighter_colors)
+print('all colors')
+print(all_colors)
 name_doss_1 = paste(viz,"_viz_global_right_simu_multin.csv", sep = "")
 name_doss_2 = paste(viz,"_viz_column-wise_right_simu_multin.csv", sep = "")
 name_doss_3 = paste(viz,"_viz_row-wise_right_simu_multin.csv", sep = "")
@@ -103,34 +110,41 @@ get_df = function(namedoss, perf, viz){
     return(df)
 }
 
-plot_csv = function(namedoss,viz,inflation, perf){
+plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, perf){
     df = get_df(namedoss,perf,viz)
-    df$is_standard <- grepl("Standard", df$model_name)
-    df$is_analytic <- grepl("Analytique", df$model_name)
+    model_levels <- unique(df$model_name)
+    names(all_colors) <- model_levels
+
     criterions <- c("RMSE_SIGMA", "RMSE_B", "RMSE_PI")
-    print('levels std')
-    print(unique(as.factor(df$is_standard)))
-    print('levels ana')
-    print(unique(ifelse(df$is_analytic, NA, df$is_standard)))
     xlab = TeX('$\\pi')
     plot_data_column = function(i){
         column = criterions[i]
+        y_moins = list_ylim_moins[[i]]
+        y_plus = list_ylim_plus[[i]]
         first_col = "moyenne"
-        current_plot <- ggplot(df, aes(x = df[,first_col], y = df[,column])) + geom_boxplot(
-    lwd = 0.03,
-    outlier.shape = NA,
-    aes(
-        # group = interaction(df[,first_col], is_standard), # specify grouping
-       fill = ifelse(is_analytic, "NA", is_standard), # filled if is_analytic is FALSE
-      color = as.factor(is_standard) # color based on is_standard
-    )) +
-        scale_fill_manual(values = c("TRUE" = "blue", "FALSE" = "red", "NA" = "white")) +
-        scale_color_manual(values = c("TRUE" = "blue", "FALSE" = "red")) +
-        guides(fill=guide_legend(nrow=1,byrow=TRUE)) + theme_bw()+
-        theme(legend.key.size = unit(1,"cm"),legend.text = element_text(size=50) )
+        current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
+                                        as.factor(model_name)) )
+                         # + geom_point(position = position_jitterdodge(), aes(color =
+                         #                                             model_name,group
+                         #                                         = model_name,
+                         #                                         ),
+                         #            size = 0.05, alpha = 0.2)
+                         + geom_boxplot(lwd = 0.03, outlier.shape = NA)
+                        + scale_fill_manual(values = all_colors, name = "")
+                        + scale_colour_manual(values = all_colors, name = "")
+                         # + scale_fill_manual(values = all_colors, name = "")
+                         # + scale_colour_manual(values = all_colors, name = "")
+                        + scale_x_discrete(labels=scaleFUN)
+        +guides(fill=guide_legend(nrow=1,byrow=TRUE)) ) + theme_bw()+
+         theme(legend.key.size = unit(1,"cm"),legend.text = element_text(size=50) )
 
         if (perf != "computation"){
             current_plot = current_plot +  scale_y_log10()
+        }
+        if (column != "RMSE_B0" & column != "RMSE_PI"){
+            if (perf != "computation"){
+                current_plot = current_plot +  scale_y_log10(limits = c(y_moins,y_plus))
+            }
         }
         current_plot = current_plot + ggtitle(h[[column]]) + theme(plot.title = element_text(hjust = 0.5, size = 40, face = "bold"))
         if (column == "RMSE_B"){
@@ -170,10 +184,19 @@ get_y_lims = function(name_doss,perf,viz){
 }
 
 plot_all <- function (name_dosses,viz, perf){
+    ylim_pluss <- c(0,0,0)
+    ylim_moinss <- c(1000000000,1000000000,1000000000)
+    for (name_doss in name_dosses){
+        current_y_lims <- get_y_lims(name_doss,perf,viz)
+        current_ylim_moins <- current_y_lims[[1]]
+        current_ylim_plus <- current_y_lims[[2]]
+        ylim_moinss = pmin(ylim_moinss,current_ylim_moins)
+        ylim_pluss = pmax(ylim_pluss,current_ylim_plus)
+    }
     model = "Column-dependent (3b)"
     plots = list()
     for (name_doss in name_dosses){
-        plots_and_legend <-  plot_csv(name_doss, viz,model, perf)
+        plots_and_legend <-  plot_csv(name_doss, viz,model,ylim_moinss, ylim_pluss,perf)
         current_plots = plots_and_legend[[1]]
         legend_all = plots_and_legend[[2]]
         plots = append(current_plots, plots)
