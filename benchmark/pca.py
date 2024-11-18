@@ -49,7 +49,14 @@ print("time took pca", time.time() - t)
 x = y_pca[:, 0]
 y = y_pca[:, 1]
 sns.scatterplot(
-    x=x, y=y, ax=axes[1], hue=GT, markers=markers, palette=dict_colors, style=GT, s=150
+    x=x,
+    y=y,
+    ax=axes[1],
+    hue=GT,
+    markers=dict_markers,
+    palette=dict_colors,
+    style=GT,
+    s=150,
 )
 
 
