@@ -13,7 +13,7 @@ options(error=traceback)
 viz = "proba"
 perf = "stat"
 
-pdf(paste("figures/",viz,"_",perf,"_column_dependent.pdf",sep=""), height = 10, width = 30)
+pdf(paste("/home/bastien/These/manuscript/soutenance/figures/",viz,"_",perf,"_column_dependent.pdf",sep=""), height = 20, width = 30)
 
 get_name_computation <- function(viz,formula){
     if (viz == "dims"){
@@ -26,7 +26,7 @@ get_name_computation <- function(viz,formula){
 
 base_colors <- viridis(4)
 base_colors <- c(base_colors[[3]], base_colors[[1]])
-lighter_colors <- sapply(base_colors, function(col) adjustcolor(col, alpha.f = 0.4))
+lighter_colors <- sapply(base_colors, function(col) adjustcolor(col, alpha.f = 0.5))
 all_colors <- c(base_colors, lighter_colors)
 print('all colors')
 print(all_colors)
@@ -129,7 +129,7 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                          #                                         = model_name,
                          #                                         ),
                          #            size = 0.05, alpha = 0.2)
-                         + geom_boxplot(lwd = 0.03, outlier.shape = NA)
+                         + geom_boxplot(lwd = 1.2, outlier.shape = NA)
                         + scale_fill_manual(values = all_colors, name = "")
                         + scale_colour_manual(values = all_colors, name = "")
                          # + scale_fill_manual(values = all_colors, name = "")
