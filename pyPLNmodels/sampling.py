@@ -149,25 +149,31 @@ def _get_simulation_coef_cov_offsets_coefzi(
     if zero_inflation_formula is not None:
         if zero_inflation_formula in ["column-wise", "row-wise"]:
             if nb_cov_inflation > 0:
-                exog_inflation = torch.randint(
-                    low=0,
-                    high=2,
-                    size=(n_samples, nb_cov_inflation),
-                    dtype=torch.float64,
-                )
-                exog_inflation -= (exog_inflation == 0) * torch.ones(
-                    exog_inflation.shape
-                )
-                if add_const_inflation is True:
-                    exog_inflation = torch.cat(
-                        (exog_inflation, torch.ones(n_samples, 1)), axis=1
+                # exog_inflation = torch.randint(
+                #     low=0,
+                #     high=2,
+                #     size=(n_samples, nb_cov_inflation),
+                #     dtype=torch.float64,
+                # )
+                # exog_inflation -= (exog_inflation == 0) * torch.ones(
+                #     exog_inflation.shape
+                # )
+                # if add_const_inflation is True:
+                #     exog_inflation = torch.cat(
+                #         (exog_inflation, torch.ones(n_samples, 1)), axis=1
+                #     )
+                exog_inflation = torch.from_numpy(
+                    np.random.multinomial(
+                        1, [1 / nb_cov_inflation] * nb_cov_inflation, size=n_samples
                     )
+                ).double()
             else:
                 exog_inflation = torch.ones(n_samples, 1)
 
-            coef_inflation = torch.randn(exog_inflation.shape[1], dim) / np.sqrt(
-                nb_cov_inflation + 1
-            )
+            # coef_inflation = torch.randn(exog_inflation.shape[1], dim) / np.sqrt(
+            #     nb_cov_inflation + 1
+            # )
+            coef_inflation = torch.randn(exog_inflation.shape[1], dim)
             coef_inflation += -torch.mean(coef_inflation) + torch.logit(
                 torch.tensor([mean_infla])
             )
@@ -344,6 +350,8 @@ class PlnParameters:
 
     def _set_gaussian_mean(self, mean_gaussian: float):
         self._coef += -torch.mean(self._coef) + mean_gaussian
+        print("mean gaussian", torch.mean(self.gaussian_mean))
+        print("var gaussian", torch.var(self.gaussian_mean))
 
     def _set_mean_proba(self, mean_proba: float):
         if mean_proba > 1 or mean_proba < 0:
