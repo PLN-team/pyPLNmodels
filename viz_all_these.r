@@ -26,10 +26,16 @@ get_name_computation <- function(viz,formula){
 
 base_colors <- viridis(4)
 base_colors <- c(base_colors[[3]], base_colors[[1]])
+print('base colors')
+print(base_colors)
 lighter_colors <- sapply(base_colors, function(col) adjustcolor(col, alpha.f = 0.5))
-all_colors <- c(base_colors, lighter_colors)
-print('all colors')
-print(all_colors)
+print('lighter colors')
+print(lighter_colors[2])
+all_colors <- c(base_colors, lighter_colors[1][1], lighter_colors[2][1])
+all_colors <- c(all_colors[3], all_colors[1], all_colors[2], all_colors[4])
+all_colors <- c(all_colors[3], all_colors[1], all_colors[2], all_colors[4])
+all_colors <- c(all_colors[2], all_colors[1], all_colors[3], all_colors[4])
+
 name_doss_1 = paste(viz,"_viz_global_right_simu_multin.csv", sep = "")
 name_doss_2 = paste(viz,"_viz_column-wise_right_simu_multin.csv", sep = "")
 name_doss_3 = paste(viz,"_viz_row-wise_right_simu_multin.csv", sep = "")
@@ -94,6 +100,8 @@ get_df = function(namedoss, perf, viz){
 
 
     df[,"model_name"] = as.factor(df[,"model_name"])
+    print('levels')
+    print(levels(df$model_name))
     if ("moyenne" %in% columns){
         df[,"moyenne"] = as.factor(df[,"moyenne"])
     }
@@ -114,6 +122,7 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
     df = get_df(namedoss,perf,viz)
     model_levels <- unique(df$model_name)
     names(all_colors) <- model_levels
+
 
     criterions <- c("RMSE_SIGMA", "RMSE_B", "RMSE_PI")
     xlab = TeX('$\\pi')
