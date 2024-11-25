@@ -13,8 +13,13 @@ options(error=traceback)
 # perf = "computation"
 viz = "proba"
 perf = "stat"
+# viz = "samples"
+# perf = "stat"
+unwanted_models = c("Oracle PLN", "PLN")
+# ?theme_bw
 
-pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
+# pdf(paste("figures/",viz,"_",perf,".pdf",sep=""), height = 10, width = 10)
+pdf(paste("../slideshow/talks/20240527_jds_zi/figures/",viz,"_",perf,".pdf",sep=""), height = 11, width = 14)
 
 get_name_computation <- function(viz,formula){
     if (viz == "dims"){
@@ -36,7 +41,8 @@ if (viz =="samples" || viz == "dims"){
     name_doss_2 = paste(viz,"_viz_column-wise_right_simu_multin.csv", sep = "")
     name_doss_3 = paste(viz,"_viz_row-wise_right_simu_multin.csv", sep = "")
 }
-name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
+# name_dosses = c(name_doss_1,name_doss_2,name_doss_3)
+name_dosses = c(name_doss_2)
 
 
 
@@ -54,7 +60,8 @@ h[["NBITER"]] = "Number of iterations"
 
 # if (!(perf == "stat" & viz == "samples") & perf != "computation"){
 # # if (perf != "stat" || viz != "samples"){
-#    colors =  c("skyblue","blue","yellow","orange")
+colors =  c("blue","steelblue1","red","pink")
+# colors =  c("blue","red","pink","green")
 # } else{
     # colors = c("skyblue","blue","black","gray","yellow","orange","green")
 # }
@@ -102,6 +109,7 @@ get_df = function(namedoss, perf, viz){
     else{
         df[df$model_name == "Fair Pln",]$model_name <- "Oracle PLN"
     }
+    df <- df[!(df$model_name %in% unwanted_models),]
 
     df[,"model_name"] = as.factor(df[,"model_name"])
     if ("moyenne" %in% columns){
@@ -156,19 +164,20 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         }
         current_plot <- (ggplot(df, aes(x = df[,first_col], y = df[,column], fill =
                                         as.factor(model_name)) )
-                         + geom_point(position = position_jitterdodge(), aes(color =
-                                                                     model_name,group
-                                                                 = model_name,
-                                                                 ),
-                                    size = 0.05, alpha = 0.2)
+                         # + geom_point(position = position_jitterdodge(), aes(color =
+                         #                                             model_name,group
+                         #                                         = model_name,
+                         #                                         ),
+                         #            size = 0.05, alpha = 0.2)
                          + geom_boxplot(lwd = 0.03, outlier.shape = NA)
-                         + scale_fill_viridis_d(name = "")
+                         # + scale_fill_viridis_d(name = "")
                          # + scale_fill_viridis(name = "")
-                         + scale_colour_viridis_d(name = "")
+                         # + scale_colour_viridis_d(name = "")
                         # + scale_color_manual(values = colors,name ="")
+                         + scale_fill_manual(values = colors, name = "")
                         + scale_x_discrete(labels=scaleFUN)
-        +guides(fill=guide_legend(nrow=1,byrow=TRUE)) ) + theme_bw()+
-         theme(legend.key.size = unit(0.5,"cm"),legend.text = element_text(size=16) )
+        +guides(fill=guide_legend(nrow=1,byrow=TRUE)) ) + theme_bw(base_size = 17)+
+         theme(legend.key.size = unit(1.9,"cm"),legend.text = element_text(size=25), axis.title = element_text(size = 20))
 
         if (viz != "dims" & perf != "computation"){
             current_plot = current_plot +  scale_y_log10()
@@ -187,7 +196,11 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
         if (column == third_column || column == "RMSE_B0"){
             current_plot = current_plot + ggtitle(inflation)+ theme(plot.title = element_text(hjust = 0.5))
         }
-        if (column == last_column || column == "RMSE_B"){
+        print('h:')
+        print(h[[column]])
+
+        if(TRUE){
+        # if (column == last_column || column == "RMSE_B"){
             current_plot = current_plot + labs(y = h[[column]],x = xlab)
         }
         else{
@@ -200,9 +213,9 @@ plot_csv = function(namedoss,viz,inflation, list_ylim_moins, list_ylim_plus, per
                 current_plot = current_plot + labs(y= NULL,x = NULL)
             }
         }
-        if(column == last_column && inflation != "Non-dependent (3a)"){
-            current_plot = current_plot + labs(y=NULL, x = xlab)
-        }
+        # if(column == last_column && inflation != "Non-dependent (3a)"){
+        #     current_plot = current_plot + labs(y=NULL, x = xlab)
+        # }
         return(current_plot)
          #+
     }
@@ -241,7 +254,8 @@ plot_all <- function (name_dosses,viz, perf){
         ylim_moinss = pmin(ylim_moinss,current_ylim_moins)
         ylim_pluss = pmax(ylim_pluss,current_ylim_plus)
     }
-    models = c("Non-dependent (3a)","Column-dependent (3b)","Row-dependent (3c)")
+    # models = c("Non-dependent (3a)","Column-dependent (3b)","Row-dependent (3c)")
+    models = c("Column-dependent (3b)")
     plots = list()
     for (i in rev(c(1:(length(models))))){
         name_doss = name_dosses[i]
