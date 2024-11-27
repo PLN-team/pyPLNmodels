@@ -26,7 +26,7 @@ bibliography: paper.bib
 # Summary
 High dimensional count data are complex to analyze as is, and normalization must
 be performed, but standard normalization does not fit the characteristics of
-count data. The Poisson LogNormal(PLN) [@PLN] and its Principal Component
+count data. The Poisson-Log Normal (PLN) [@PLN] and its Principal Component
 Analysis variant PLN-PCA [@PLNPCA] are two-sided latent variable models allowing both
 suitable normalization and analysis of multivariate count data, implemented in this package.
 
@@ -37,7 +37,7 @@ $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \boldsymbol{\Sigma}),$$
 where $\mathbf x_i \in \mathbb R^d$ and $\mathbf o_i \in \mathbb R^p$ are
 user-specified covariates and offsets (with default values if not available). The
-$\mathcal P$ (resp. $\mathcal N$) denotes a Poisson (resp. Normal)
+$\mathcal P$ (respectively $\mathcal N$) denotes a Poisson (respectively Normal)
 distribution. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\boldsymbol{\Sigma}$ is a $p\times p$ covariance matrix. The variables $\mathbf Z_i$, known as *latent variables*,
 are not directly observable. However, from a statistical perspective,
@@ -107,7 +107,7 @@ so.](figures/plnpca_vs_pca_last.png)
 # Statement of need
 While the R-package ```PLNmodels``` [@plnmodels_package] implements PLN models
 including some variants [@PLNmodels], the Python package
-```pyPLNmodels``` based on Pytorch [@Pytorch] has been built to handle
+```pyPLNmodels``` based on `PyTorch` [@Pytorch] has been built to handle
 large datasets of count data, such as scRNA-seq data. Real-world scRNA-seq
 datasets typically involve thousands of cells ($n \approx 20000$) with
 thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
@@ -180,7 +180,7 @@ Builder (TMB) library [@tmb] with a `C++` backend.
 <!-- Negative Binomial (NB) Generalized Linear Model(GLM) and two penalized NB GLM -->
 <!-- coupled with a fixed-point algorithm, -->
 ```PLNmodels``` uses C++ backend along with ```nlopt```[@nlopt] optimization library,
- while ```pyPLNmodels``` leverages the automatic differentiation from Pytorch
+ while ```pyPLNmodels``` leverages the automatic differentiation from `PyTorch`
      to compute the gradients of the ELBO. Each PLN-PCA model is estimated using comparable variational inference methods.
 However, the variational approximation for the PLN model in the
 ```pyPLNmodels``` version is more efficient than its counterpart in
