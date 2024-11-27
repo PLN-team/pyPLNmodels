@@ -28,6 +28,11 @@ base_colors <- viridis(4)
 base_colors <- c(base_colors[[3]], base_colors[[1]])
 print('base colors')
 print(base_colors)
+
+# Adjust the purple color to be lighter
+lighter_purple <- adjustcolor(base_colors[2], alpha.f = 0.8)
+base_colors[2] <- lighter_purple
+
 lighter_colors <- sapply(base_colors, function(col) adjustcolor(col, alpha.f = 0.5))
 print('lighter colors')
 print(lighter_colors[2])
@@ -94,9 +99,10 @@ get_df = function(namedoss, perf, viz){
         df[df$model_name == "Fair Pln",]$model_name <- "Oracle PLN"
     }
     df <- df[df$model_name %in% c("Enhanced Analytic", "Enhanced", "Standard", "Standard Analytic"),]
-    df[df$model_name == "Enhanced Analytic",]$model_name <- "Amélioré (Analytique)"
-    df[df$model_name == "Enhanced",]$model_name <- "Amélioré"
-    df[df$model_name == "Standard Analytic",]$model_name <- "Standard (Analytique)"
+    df[df$model_name == "Enhanced Analytic",]$model_name <- "Dépendant (Analytique)"
+    df[df$model_name == "Enhanced",]$model_name <- "Dépendant"
+    df[df$model_name == "Standard Analytic",]$model_name <- "Indépendant (Analytique)"
+    df[df$model_name == "Standard",]$model_name <- "Indépendant"
 
 
     df[,"model_name"] = as.factor(df[,"model_name"])
@@ -218,4 +224,4 @@ three_plots <- three_plots_and_legend[[1]]
 legend_all <- three_plots_and_legend[[2]]
 
 grid.arrange(grobs = three_plots, as.table = FALSE, align = c("v"),bottom = legend_all,  ncol = 3,top = title, common.legend = TRUE)
-dev.off()
+d
