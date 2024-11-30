@@ -99,10 +99,10 @@ get_df = function(namedoss, perf, viz){
         df[df$model_name == "Fair Pln",]$model_name <- "Oracle PLN"
     }
     df <- df[df$model_name %in% c("Enhanced Analytic", "Enhanced", "Standard", "Standard Analytic"),]
-    df[df$model_name == "Enhanced Analytic",]$model_name <- "Dépendant (Analytique)"
-    df[df$model_name == "Enhanced",]$model_name <- "Dépendant"
-    df[df$model_name == "Standard Analytic",]$model_name <- "Indépendant (Analytique)"
-    df[df$model_name == "Standard",]$model_name <- "Indépendant"
+    df[df$model_name == "Enhanced Analytic",]$model_name <- "Dépendante (Analytique)"
+    df[df$model_name == "Enhanced",]$model_name <- "Dépendante"
+    df[df$model_name == "Standard Analytic",]$model_name <- "Indépendante (Analytique)"
+    df[df$model_name == "Standard",]$model_name <- "Indépendante"
 
 
     df[,"model_name"] = as.factor(df[,"model_name"])
