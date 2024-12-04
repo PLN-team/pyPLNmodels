@@ -116,12 +116,12 @@ thousands of genes ($\approx 20000$), resulting in a matrix of size $\approx
 
 
 
-The `statsmodels` [@statsmodels] is a Python library providing classes and
+The `statsmodels` [@statsmodels] Python package  provides classes and
 functions for the estimation of many different statistical
 models, as well as for conducting statistical tests and statistical data
 exploration. Notably, it handles count data
-through the Generalized Linear Models `PoissonBayesMixedGLM` and
-`BinomialBayesMixedGLM` classes. We stand out from this package by allowing covariance
+through the Generalized Linear Model class implementations `PoissonBayesMixedGLM`
+and `BinomialBayesMixedGLM`. We stand out from this package by allowing covariance
 between features and performing Principal Component Analysis suitable to count data.
 
 
@@ -169,17 +169,17 @@ $n=19998$ and $p\geq13000$ as it exceeded the GPU memory capacity.
 ![Running time analysis on the scMARK benchmark.](figures/plots_benchmark.pdf)
 
  Each package uses variational inference
-[@blei2017variational] to maximize an Evidence Lower Bound(ELBO), which serves
+[@blei2017variational] to maximize an Evidence Lower Bound (ELBO), which serves
 as an approximation to the model's log-likelihood.
 Variational inference aims to approximate the posterior distribution of the
 latent variables by minimizing the divergence between the posterior and a
-variational distribution. To maximize the ELBO,  all the methods uses gradient
+variational distribution. To maximize the ELBO, all of the methods use gradient
 ascent. The ```GLLVM``` uses the automatic differentiation of Template Model
 Builder (TMB) library [@tmb] with a `C++` backend.
 <!-- an alternate-optimization scheme, fitting alternatively a -->
 <!-- Negative Binomial (NB) Generalized Linear Model(GLM) and two penalized NB GLM -->
 <!-- coupled with a fixed-point algorithm, -->
-```PLNmodels``` uses C++ backend along with ```nlopt```[@nlopt] optimization library,
+```PLNmodels``` uses C++ backend along with ```nlopt``` [@nlopt] optimization library,
  while ```pyPLNmodels``` leverages the automatic differentiation from `PyTorch`
      to compute the gradients of the ELBO. Each PLN-PCA model is estimated using comparable variational inference methods.
 However, the variational approximation for the PLN model in the
