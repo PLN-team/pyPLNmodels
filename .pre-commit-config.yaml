@@ -8,20 +8,17 @@ repos:
     rev: 24.2.0
     hooks:
       - id: black
-  # - repo: local
-  #   hooks:
-  #     - id: pylint
-  #       name: pylint
-  #       entry: pylint
-  #       language: system
-  #       types: [python]
-  #       args:
-  #         [
-  #           "-rn",
-  #           "-sn",
-  #           "--load-plugins=pylint.extensions.docparams",
-  #           "--accept-no-yields-doc=no",
-  #           "--accept-no-return-doc=no",
-  #           "--accept-no-raise-doc=no",
-  #           "--accept-no-param-doc=no",
-  #         ]
+  - repo: local
+    hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      args:
+        [
+          "-rn",
+          "-sn",
+          "--load-plugins=pylint.extensions.docparams",
+          "--disable=import-error,missing-module-docstring,invalid-name"
+        ]
