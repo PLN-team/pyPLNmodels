@@ -168,12 +168,14 @@ def _format_data(
     """
     if data is None:
         return None
-    if isinstance(data, (pd.DataFrame, pd.Series)):
+    if isinstance(data, pd.DataFrame):
         return torch.from_numpy(data.values).to(DEVICE)
     if isinstance(data, np.ndarray):
         return torch.from_numpy(data).to(DEVICE)
     if isinstance(data, torch.Tensor):
         return data.to(DEVICE)
+    if isinstance(data, pd.Series):
+        return torch.from_numpy(data.values).to(DEVICE).unsqueeze(1)
     raise AttributeError(
         "Please insert either a numpy.ndarray, pandas.DataFrame, pandas.Series or torch.Tensor"
     )
@@ -182,7 +184,8 @@ def _format_data(
 def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
     if length != exog.shape[0]:
         raise ValueError("The length of the exog should be the same as the length.")
-    ones = torch.ones(length, 1)
+    ones = torch.ones(length, 1).to(DEVICE)
+    print("eoxg shpae", exog.shape, ones.shape)
     return torch.cat((exog, ones), dim=1)
 
 
