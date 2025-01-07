@@ -1,0 +1,108 @@
+import os
+
+DIR_DOCSTRINGS = "docstrings_examples"
+DIR_README = "readme_examples"
+DIR_GETTING_STARTED = "getting_started"
+
+
+def _get_lines(path_to_file, filename, filetype=".py"):
+    with open(f"{path_to_file}{filename}{filetype}", encoding="utf-8") as file:
+        lines = []
+        for file_line in file:
+            rstrip_line = file_line.rstrip()
+            if len(rstrip_line) > 4:
+                if rstrip_line[0:3] != "pip":
+                    lines.append(rstrip_line)
+            else:
+                lines.append(rstrip_line)
+    return lines
+
+
+def _get_examples_docstring(lines):
+    examples = []
+    in_example = False
+    example = []
+    for doc_line in lines:
+        doc_line = doc_line.lstrip()
+        if len(doc_line) > 3:
+            if doc_line[0:3] == ">>>":
+                in_example = True
+                example.append(doc_line[4:])
+            else:
+                if in_example is True:
+                    examples.append(example)
+                    example = []
+                in_example = False
+    return examples
+
+
+def _get_example_readme(lines):
+    example = []
+    in_example = False
+    for readme_line in lines:
+        readme_line = readme_line.lstrip()
+        if len(readme_line) > 2:
+            if readme_line[0:3] == "```":
+                if in_example is False:
+                    if "not run" in readme_line:
+                        in_example = False
+                    else:
+                        in_example = True
+                else:
+                    in_example = False
+            elif in_example is True:
+                print("line:", readme_line)
+                example.append(readme_line)
+    example.pop()
+    return [example]
+
+
+def _write_file(examples, filename, string_definer, directory):
+    for i, example in enumerate(examples):
+        nb_example = str(i + 1)
+        example_filename = (
+            f"{directory}/test_{filename}_{string_definer}_{nb_example}.py"
+        )
+        try:
+            os.remove(example_filename)
+        except FileNotFoundError:
+            pass
+        with open(example_filename, "a", encoding="utf-8") as the_file:
+            for example_line in example:
+                the_file.write(example_line + "\n")
+
+
+def _filename_to_docstring_example_file(filename, dirname):
+    lines = _get_lines("../pyPLNmodels/", filename)
+    examples = _get_examples_docstring(lines)
+    _write_file(examples, filename, "example", directory=dirname)
+
+
+def _filename_to_readme_example_file():
+    lines = _get_lines("../", "README", filetype=".md")
+    examples = _get_example_readme(lines)
+    _write_file(examples, "readme", "example", directory=DIR_README)
+
+
+lines_getting_started = _get_lines("./", "test_getting_started")
+new_lines = []
+for line in lines_getting_started:
+    if len(line) > 20:
+        if line[0:11] != "get_ipython":
+            new_lines.append(line)
+    else:
+        new_lines.append(line)
+
+
+os.makedirs(DIR_README, exist_ok=True)
+os.makedirs(DIR_DOCSTRINGS, exist_ok=True)
+os.makedirs(DIR_GETTING_STARTED, exist_ok=True)
+
+_write_file([new_lines], "getting_started", "", DIR_GETTING_STARTED)
+
+_filename_to_readme_example_file()
+
+_filename_to_docstring_example_file("_utils", DIR_DOCSTRINGS)
+_filename_to_docstring_example_file("models", DIR_DOCSTRINGS)
+_filename_to_docstring_example_file("elbos", DIR_DOCSTRINGS)
+_filename_to_docstring_example_file("load", DIR_DOCSTRINGS)
