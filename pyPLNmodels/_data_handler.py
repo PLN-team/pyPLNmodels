@@ -10,7 +10,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 def _handle_data(
     endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
-    exog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+    exog: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series],
     offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     compute_offsets_method: str,
     add_const: bool,
@@ -23,7 +23,7 @@ def _handle_data(
     endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
         The endog data. If a pandas.DataFrame is provided,
         the column names are stored for later use.
-    exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
         The exog data.
     offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
         The offsets data.
@@ -36,17 +36,19 @@ def _handle_data(
 
     Returns
     -------
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[pd.Index]]
-        A tuple containing the processed endog, exog, offsets, and column endog (if available).
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[pd.Index], Op]
+        A tuple containing the processed endog, exog, offsets,
+        and column names of endog and exog  (if available).
 
     Raises
     ------
     ValueError
         If the shapes of endog, exog, and offsets do not match or
-        if any of endog, exog, and offsets are different from torch.Tensor,
-        np.ndarray, or pd.DataFrame.
+        if any of `endog`, `exog`, and `offsets` are different from torch.Tensor,
+        np.ndarray, or pd.DataFrame. `exog` may be a pd.Series without launching errors.
     """
     column_names_endog = endog.columns if isinstance(endog, pd.DataFrame) else None
+    column_names_exog = exog.columns if isinstance(exog, pd.DataFrame) else None
 
     endog, exog, offsets = _format_model_params(
         endog, exog, offsets, compute_offsets_method, add_const
@@ -57,7 +59,7 @@ def _handle_data(
         endog, offsets, column_names_endog
     )
 
-    return endog, exog, offsets, column_names_endog
+    return endog, exog, offsets, column_names_endog, column_names_exog
 
 
 def _format_model_params(
@@ -74,7 +76,7 @@ def _format_model_params(
     ----------
     endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
         The endog data.
-    exog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
         The exog data.
     offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
         The offsets data.
@@ -112,14 +114,46 @@ def _format_model_params(
     return endog, exog, offsets
 
 
-def _format_data(data: Union[torch.Tensor, np.ndarray, pd.DataFrame]) -> torch.Tensor:
+def _check_data_shapes(
+    endog: torch.Tensor, exog: torch.Tensor, offsets: torch.Tensor
+) -> None:
+    """
+    Check if the shape of the input data is valid.
+
+    Parameters
+    ----------
+    endog : torch.Tensor, shape (n, p)
+        Count data.
+    exog : torch.Tensor or None, shape (n, d) or None
+        Covariate data.
+    offsets : torch.Tensor or None, shape (n, p) or None
+        Offset data.
+    """
+    n_endog, p_endog = endog.shape
+    n_offsets, p_offsets = offsets.shape
+    _check_dimensions_equal("endog", "offsets", n_endog, n_offsets, 0, 0)
+    _check_dimensions_equal("endog", "offsets", p_endog, p_offsets, 1, 1)
+
+    if exog is not None:
+        n_cov, d_cov = exog.shape
+        if n_cov < d_cov:
+            raise ValueError(
+                f"The number of samples ({n_cov}) should be greater "
+                f"than the number of covariates ({d_cov})."
+            )
+        _check_dimensions_equal("endog", "exog", n_endog, n_cov, 0, 0)
+
+
+def _format_data(
+    data: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
+) -> torch.Tensor:
     """
     Transforms the data into a torch.Tensor if the input is an array, and None if the input is None.
     Raises an error if the input is not an np.ndarray, torch.Tensor, pandas.DataFrame or None.
 
     Parameters
     ----------
-    data : pd.DataFrame, np.ndarray, torch.Tensor or None
+    data : pd.DataFrame, np.ndarray, torch.Tensor, pd.Series or None
         Input data.
 
     Returns
@@ -130,18 +164,18 @@ def _format_data(data: Union[torch.Tensor, np.ndarray, pd.DataFrame]) -> torch.T
     Raises
     ------
     AttributeError
-        If the value is not an np.ndarray, torch.Tensor, pandas.DataFrame or None.
+        If the value is not an np.ndarray, torch.Tensor, pandas.DataFrame, pd.Series or None.
     """
     if data is None:
         return None
-    if isinstance(data, pd.DataFrame):
+    if isinstance(data, (pd.DataFrame, pd.Series)):
         return torch.from_numpy(data.values).to(DEVICE)
     if isinstance(data, np.ndarray):
         return torch.from_numpy(data).to(DEVICE)
     if isinstance(data, torch.Tensor):
         return data.to(DEVICE)
     raise AttributeError(
-        "Please insert either a numpy.ndarray, pandas.DataFrame or torch.Tensor"
+        "Please insert either a numpy.ndarray, pandas.DataFrame, pandas.Series or torch.Tensor"
     )
 
 
@@ -186,36 +220,6 @@ def _compute_or_format_offsets(
         )
 
     return _format_data(offsets)
-
-
-def _check_data_shapes(
-    endog: torch.Tensor, exog: torch.Tensor, offsets: torch.Tensor
-) -> None:
-    """
-    Check if the shape of the input data is valid.
-
-    Parameters
-    ----------
-    endog : torch.Tensor, shape (n, p)
-        Count data.
-    exog : torch.Tensor or None, shape (n, d) or None
-        Covariate data.
-    offsets : torch.Tensor or None, shape (n, p) or None
-        Offset data.
-    """
-    n_endog, p_endog = endog.shape
-    n_offsets, p_offsets = offsets.shape
-    _check_dimensions_equal("endog", "offsets", n_endog, n_offsets, 0, 0)
-    _check_dimensions_equal("endog", "offsets", p_endog, p_offsets, 1, 1)
-
-    if exog is not None:
-        n_cov, d_cov = exog.shape
-        if n_cov < d_cov:
-            raise ValueError(
-                f"The number of samples ({n_cov}) should be greater "
-                f"than the number of covariates ({d_cov})."
-            )
-        _check_dimensions_equal("endog", "exog", n_endog, n_cov, 0, 0)
 
 
 def _check_dimensions_equal(  # pylint: disable=too-many-arguments
