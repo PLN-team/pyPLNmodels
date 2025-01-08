@@ -21,6 +21,9 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
     optim: torch.optim.Optimizer
     _dict_list_mse: dict
 
+    _latent_mean: torch.Tensor
+    _latent_sqrt_variance: torch.Tensor
+
     def __init__(
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
@@ -159,7 +162,6 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
             raise ValueError("The ELBO contains nan values.")
         (-elbo).backward()
         self.optim.step()
-        self._update_closed_forms()
         self._project_parameters()
         return elbo
 
@@ -209,6 +211,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         for parameter in self.list_of_parameters_needing_gradient:
             parameter.requires_grad_(True)
 
+    @property
     @abstractmethod
     def list_of_parameters_needing_gradient(
         self,
@@ -234,10 +237,6 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
     def compute_elbo(self):
         """Compute the elbo of the current parameters."""
 
-    def _update_closed_forms(self):
-        """Update the closed forms, such as covariance or coef, when closed forms are available."""
-        self._update_closed_forms()
-
     def _project_parameters(self):
         """Project some parameters such as probabilities."""
 
@@ -258,3 +257,49 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         msg_criterion += ". Stop if lower than " + str(tol)
         print(msg_criterion)
         print("ELBO:", np.round(self._elbo_criterion_monitor.elbo_list[-1], 6))
+
+    @property
+    def n_samples(self):
+        """Number of samples in the dataset."""
+        return self._endog.shape[0]
+
+    @property
+    def dim(self):
+        """Number of dimensions (i.e. variables) of the dataset."""
+        return self._endog.shape[1]
+
+    @property
+    def endog(self):
+        """
+        Property representing the endogenous variables (counts).
+
+        Returns
+        -------
+        torch.Tensor
+            The endogenous variables.
+        """
+        return self._endog
+
+    @property
+    def exog(self):
+        """
+        Property representing the exogenous variables (covariates).
+
+        Returns
+        -------
+        torch.Tensor or None
+            The exogenous variables or None if no covariates are given in the model.
+        """
+        return self._exog
+
+    @property
+    def offsets(self):
+        """
+        Property representing the offsets.
+
+        Returns
+        -------
+        torch.Tensor
+            The offsets.
+        """
+        return self._offsets
