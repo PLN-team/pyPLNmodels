@@ -1,4 +1,7 @@
+import math
+
 import time
+import numpy as np
 
 import torch
 
@@ -31,3 +34,23 @@ class _TimeRecorder:  # pylint: disable=too-few-public-methods
 
     def _track_running_time(self):
         self._running_times.append(time.time() - self._beginning_time)
+
+
+def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
+    """
+    Compute log(n!) using the Stirling formula.
+
+    Parameters
+    ----------
+    integer : torch.Tensor
+        Input tensor
+
+    Returns
+    -------
+    torch.Tensor
+        Approximation of log(n!) element-wise.
+    """
+    integer_ = integer + (integer == 0)  # Replace 0 with 1 since 0! = 1!
+    return torch.log(torch.sqrt(2 * np.pi * integer_)) + integer_ * torch.log(
+        integer_ / math.exp(1)
+    )

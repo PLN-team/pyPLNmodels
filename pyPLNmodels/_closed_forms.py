@@ -1,0 +1,55 @@
+import torch
+
+
+def _closed_formula_coef(exog: torch.Tensor, latent_mean: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the closed-form coef for the M step of the Pln model.
+
+    Parameters:
+    ----------
+    exog : torch.Tensor
+        Covariates with size (n_samples, nb_cov).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n_samples, dim).
+
+    Returns:
+    -------
+    Optional[torch.Tensor]
+        The closed-form coef with size (nb_cov, dim) or None if exog is None.
+    """
+    if exog is None:
+        return None
+    return torch.inverse(exog.T @ exog) @ exog.T @ latent_mean
+
+
+def _closed_formula_covariance(
+    marginal_mean: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_var: torch.Tensor,
+    n_samples: int,
+) -> torch.Tensor:
+    """
+    Compute the closed-form covariance for the M step of the Pln model.
+
+    Parameters:
+    ----------
+    marginal_mean: torch.Tensor
+        The marginal mean of the latent variables, given by X@B, where
+        X is the `exog` (or covariates) and B is the `coef` (or regression parameter).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n_samples, dim).
+    latent_sqrt_var : torch.Tensor
+        Variational parameter with size (n_samples, dim).
+    n_samples : int
+        Number of samples.
+
+    Returns:
+    -------
+    torch.Tensor
+        The closed-form covariance with size (dim, dim).
+    """
+    residuals = latent_mean - marginal_mean
+    closed = residuals.T @ residuals + torch.diag(
+        torch.sum(torch.square(latent_sqrt_var), dim=0)
+    )
+    return closed / n_samples
