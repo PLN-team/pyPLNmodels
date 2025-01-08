@@ -186,9 +186,11 @@ def _format_data(
 
 
 def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
+    ones = torch.ones(length, 1).to(DEVICE)
+    if exog is None:
+        return ones
     if length != exog.shape[0]:
         raise ValueError("The length of the exog should be the same as the length.")
-    ones = torch.ones(length, 1).to(DEVICE)
     return torch.cat((exog, ones), dim=1)
 
 
