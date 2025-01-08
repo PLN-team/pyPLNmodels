@@ -1,3 +1,5 @@
+import time
+
 import torch
 
 
@@ -17,3 +19,15 @@ def _get_log_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
     """
     sum_of_endog = torch.sum(endog, axis=1)
     return torch.log(sum_of_endog.repeat((endog.shape[1], 1))).T
+
+
+class _TimeRecorder:  # pylint: disable=too-few-public-methods
+    def __init__(self, time_to_remove_from_beginning):
+        self._running_times = []
+        self._beginning_time = time.time() - time_to_remove_from_beginning
+
+    def _has_been_launched(self):
+        return len(self._running_times) > 0
+
+    def _track_running_time(self):
+        self._running_times.append(time.time() - self._beginning_time)
