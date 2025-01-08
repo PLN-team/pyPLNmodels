@@ -35,7 +35,7 @@ BETA = 0.03
 class _CriterionArgs:
     def __init__(self):
         """
-        Initialize the PlotArgs class.
+        Initialize the CriterionArgs class.
 
         Parameters
         ----------
