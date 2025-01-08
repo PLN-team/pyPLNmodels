@@ -14,8 +14,10 @@ class _ElboCriterionMonitor:
         Initialize the LossCriterionMonitor class.
         """
         self.elbo_list = []
+        self.cumulative_elbo_list = [0]
+        self.normalized_elbo_list = []
         self.new_derivative = 0
-        self.criterion = 1
+        self.criterion_list = [1]
         self.current_hessian = 0
 
     def update_criterion(self, elbo):
@@ -23,15 +25,16 @@ class _ElboCriterionMonitor:
         Update the moving average hessian criterion based on the elbo.
         """
         self.elbo_list.append(elbo)
-        if self._iteration_number > 1:
+        self.cumulative_elbo_list.append(elbo + self._cumulative_elbo)
+        self.normalized_elbo_list.append(elbo / self._cumulative_elbo)
+        if self.iteration_number > 1:
             self._update_derivative()
             self._update_criterion()
 
     def _update_derivative(self):
-        normalized_elbo_list = [
-            -elbo / self._cumulative_elbo for elbo in self.elbo_list
-        ]
-        current_derivative = np.abs(normalized_elbo_list[-2] - normalized_elbo_list[-1])
+        current_derivative = np.abs(
+            self.normalized_elbo_list[-2] - self.normalized_elbo_list[-1]
+        )
         old_derivative = self.new_derivative
         self.new_derivative = (
             self.new_derivative * (1 - BETA) + current_derivative * BETA
@@ -39,7 +42,8 @@ class _ElboCriterionMonitor:
         self.current_hessian = np.abs(self.new_derivative - old_derivative)
 
     def _update_criterion(self):
-        self.criterion = self.criterion * (1 - BETA) + self.current_hessian * BETA
+        new_criterion = self.criterion * (1 - BETA) + self.current_hessian * BETA
+        self.criterion_list.append(new_criterion)
 
     @property
     def iteration_number(self) -> int:
@@ -55,4 +59,9 @@ class _ElboCriterionMonitor:
 
     @property
     def _cumulative_elbo(self):
-        return sum(self.elbo_list)
+        return self.cumulative_elbo_list[-1]
+
+    @property
+    def criterion(self):
+        """The current criterion of the associated model."""
+        return self.criterion_list[-1]

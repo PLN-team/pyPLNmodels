@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
 from typing import Union, Optional
 
-
 import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from sklearn.decomposition import PCA
 
 from pyPLNmodels._data_handler import _handle_data, _extract_data_from_formula
 from pyPLNmodels._criterion import _ElboCriterionMonitor
 from pyPLNmodels._utils import _TimeRecorder
+from pyPLNmodels._viz import _viz_variables
 
 
 class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
@@ -58,6 +59,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
             self._exog,
             self._offsets,
             self._column_names_endog,
+            self._column_names_exog,
         ) = _handle_data(
             endog,
             exog,
@@ -132,7 +134,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         self._fitting_initialization(lr, maxiter)
         iterdone = 0
         stop_condition = False
-        pbar = tqdm(desc="Fitting time will not exceed:", total=maxiter)
+        pbar = tqdm(desc="Upper bound on the fitting time:", total=maxiter)
         while iterdone < maxiter and not stop_condition:
             elbo = self._trainstep()
             self._elbo_criterion_monitor.update_criterion(elbo)
@@ -163,7 +165,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         (-elbo).backward()
         self.optim.step()
         self._project_parameters()
-        return elbo
+        return elbo.detach()
 
     def _initialize_timing(self):
         self._print_beginning_message()
@@ -176,14 +178,23 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
     def _init_parameters(self):
         pass
 
-    def viz(self):
-        """
-        Visualizes the latent variables.
-        """
-        print("Visualizing...")
-
     def _print_beginning_message(self):
         print(f"Fitting a {type(self).__name__} model with {self._description}")
+
+    def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
+        if stop_condition is True:
+            print(
+                f"Tolerance {tol} reached "
+                f"in {self._elbo_criterion_monitor.iteration_number} iterations"
+            )
+        else:
+            print(
+                "Maximum number of iterations reached : ",
+                self._elbo_criterion_monitor.iteration_number,
+                ".\nLast criterion = ",
+                np.round(self._elbo_criterion_monitor.criterion.item(), 8),
+                f". Required tolerance = {tol}",
+            )
 
     def _init_parameters(self):
         print("Intializing parameters ...")
@@ -218,8 +229,31 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=missing-function-docstring
         pass
 
+    @property
+    @abstractmethod
+    def dict_model_parameters(self):
+        """The parameters of the model."""
+
+    @property
+    def _default_dict_model_parameters(self):
+        return {"coef": self.coef, "covaraince": self.covariance}
+
+    @property
+    @abstractmethod
+    def dict_latent_parameters(self):
+        """The latent parameters of the model."""
+
+    @property
+    def _default_dict_latent_parameters(self):
+        return {
+            "latent_mean": self.latent_mean,
+            "latent_sqrt_variance": self.latent_sqrt_variance,
+        }
+
     def _handle_optimizer(self, lr):
-        self.optim = torch.optim.Rprop(self._list_of_parameters_needing_gradient, lr=lr)
+        self.optim = torch.optim.Rprop(
+            self.list_of_parameters_needing_gradient, lr=lr, step_sizes=(1e-10, 50)
+        )
 
     def _fitting_initialization(self, lr, maxiter):
         if not isinstance(maxiter, int):
@@ -228,7 +262,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         if self._fitted is False:
             self._init_parameters()
             self._dict_list_mse = {
-                name_model: [] for name_model in self.model_parameters.keys()
+                name_model: [] for name_model in self.dict_model_parameters.keys()
             }
         self._set_requiring_grad_true()
         self._handle_optimizer(lr)
@@ -241,8 +275,8 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         """Project some parameters such as probabilities."""
 
     def _track_mse(self):
-        for name_param, param in self.model_parameters.items():
-            mse_param = torch.mean(param**2).detach().item()
+        for name_param, param in self.dict_model_parameters.items():
+            mse_param = torch.mean(param**2).item() if param is not None else 0
             self._dict_list_mse[name_param].append(mse_param)
 
     def _print_stats(self, iterdone, maxiter, tol):
@@ -252,11 +286,11 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         print("-------UPDATE-------")
         print("Iteration ", iterdone, "out of ", maxiter, "iterations.")
         msg_criterion = "Current criterion: " + str(
-            np.round(self._elbo_criterion_monitor.criterion, 5)
+            np.round(self._elbo_criterion_monitor.criterion, 8)
         )
         msg_criterion += ". Stop if lower than " + str(tol)
         print(msg_criterion)
-        print("ELBO:", np.round(self._elbo_criterion_monitor.elbo_list[-1], 6))
+        print("ELBO:", np.round(self._elbo_criterion_monitor.elbo_list[-1], 8))
 
     @property
     def n_samples(self):
@@ -303,3 +337,133 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
             The offsets.
         """
         return self._offsets
+
+    @property
+    def latent_mean(self):
+        """
+        Property representing the latent mean.
+
+        Returns
+        -------
+        torch.Tensor
+            The latent mean.
+        """
+        return self._latent_mean.detach()
+
+    @property
+    def latent_sqrt_variance(self):
+        """
+        Property representing the square root of the latent variables variance.
+
+        Returns
+        -------
+        torch.Tensor
+            The square root of the latent variance.
+        """
+        return self._latent_sqrt_variance.detach()
+
+    @property
+    def coef(self):
+        """
+        Property representing the regression coefficients of size (nb_cov, dim).
+        If no exogenous (`exog`) is available, returns None.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or None if no coefficients are given in the model.
+        """
+        return self._coef.detach() if self._coef is not None else None
+
+    @property
+    def covariance(self):
+        """
+        Property representing the covariance of the model.
+
+        Returns
+        -------
+        torch.Tensor
+            The covariance.
+        """
+        return self._covariance.detach()
+
+    @property
+    def _marginal_mean(self):
+        if self._exog is None:
+            return 0
+        return self._exog @ self._coef
+
+    def pca_projected_latent_variables_with_covariances(self, rank=2):
+        """
+        Perform PCA on latent variables and return the
+        projected variables along with their covariances in the two dimensional space.
+
+        Parameters
+        ----------
+        rank : int, optional
+            The number of principal components to compute, by default 2.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the projected variables and their covariances.
+        """
+        variables = self.transform()
+        pca = PCA(n_components=rank)
+        proj_variables = pca.fit_transform(variables)
+        sk_components = pca.components_
+        covariances = self._get_two_dim_covariances(sk_components)
+        return proj_variables, covariances
+
+    def pca_projected_latent_variables(self, rank=2):
+        """
+        Perform PCA on latent variables and return the projected variables.
+
+        Parameters
+        ----------
+        rank : int, optional
+            The number of principal components to compute, by default 2.
+
+        Returns
+        -------
+        numpy.ndarray
+            The projected variables.
+        """
+        variables = self.transform()
+        pca = PCA(n_components=rank)
+        proj_variables = pca.fit_transform(variables)
+        return proj_variables
+
+    def transform(self):
+        """
+        Returns the latent variables. Can be seen as a
+        normalization of the counts given.
+
+        Returns
+        -------
+        torch.Tensor
+            The mean of the latent variables.
+        """
+        return self.latent_mean
+
+    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
+        """
+        Visualize the latent variables.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes on which to plot, by default None.
+        colors : list, optional
+            The colors to use for the plot, by default None.
+        show_cov : bool, optional
+            Whether to show covariances, by default False.
+        """
+        if show_cov is True:
+            variables, covariances = (
+                self.pca_projected_latent_variables_with_covariances()
+            )
+        else:
+            variables = self.pca_projected_latent_variables()
+            covariances = None
+        _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
