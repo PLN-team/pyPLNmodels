@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels._data_handler import _handle_data
+from pyPLNmodels._data_handler import _handle_data, _extract_data_from_formula
 from pyPLNmodels._criterion import _LossCriterionMonitor
 
 
@@ -39,6 +39,7 @@ class BaseModel(ABC):
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
+            Overriden (useless) if `offsets` is not None.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the `exog`. Defaults to `True`.
         """
@@ -57,6 +58,40 @@ class BaseModel(ABC):
         )
 
         self._criterion_monitor = _LossCriterionMonitor()
+        self._fitted = False
+
+    @classmethod
+    def from_formula(
+        cls,
+        formula: str,
+        data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
+        *,
+        compute_offsets_method: {"zero", "logsum"} = "zero",
+    ):
+        """
+        Create a model instance from a formula and data.
+
+        Parameters
+        ----------
+        formula : str
+            The formula.
+        data : dict
+            The data dictionary. Each value can be either a torch.Tensor,
+            a np.ndarray or pd.DataFrame
+        compute_offsets_method : str, optional(keyword-only)
+            Method to compute offsets if not provided. Options are:
+                - "zero" that will set the offsets to zero.
+                - "logsum" that will take the logarithm of the sum (per line) of the counts.
+            Overriden (useless) if data["offsets"] is not None.
+        """
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            compute_offsets_method=compute_offsets_method,
+            add_const=False,
+        )
 
     def fit(self, nb_epoch: int):
         """
