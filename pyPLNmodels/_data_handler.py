@@ -169,13 +169,13 @@ def _format_data(
     if data is None:
         return None
     if isinstance(data, pd.DataFrame):
-        return torch.from_numpy(data.values).to(DEVICE)
+        return torch.from_numpy(data.values).to(DEVICE).float()
     if isinstance(data, np.ndarray):
-        return torch.from_numpy(data).to(DEVICE)
+        return torch.from_numpy(data).to(DEVICE).float()
     if isinstance(data, torch.Tensor):
-        return data.to(DEVICE)
+        return data.to(DEVICE).float()
     if isinstance(data, pd.Series):
-        return torch.from_numpy(data.values).to(DEVICE).unsqueeze(1)
+        return torch.from_numpy(data.values).to(DEVICE).unsqueeze(1).float()
     raise AttributeError(
         "Please insert either a numpy.ndarray, pandas.DataFrame, pandas.Series or torch.Tensor"
     )
@@ -185,7 +185,6 @@ def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
     if length != exog.shape[0]:
         raise ValueError("The length of the exog should be the same as the length.")
     ones = torch.ones(length, 1).to(DEVICE)
-    print("eoxg shpae", exog.shape, ones.shape)
     return torch.cat((exog, ones), dim=1)
 
 
@@ -225,7 +224,7 @@ def _compute_or_format_offsets(
     return _format_data(offsets)
 
 
-def _check_dimensions_equal(  # pylint: disable=too-many-arguments
+def _check_dimensions_equal(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     str_first_array: str,
     str_second_array: str,
     dim_first_array: int,
@@ -267,7 +266,7 @@ def _check_dimensions_equal(  # pylint: disable=too-many-arguments
         )
 
 
-def _raise_dimension_error(  # pylint: disable=too-many-arguments
+def _raise_dimension_error(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     str_first_array: str,
     str_second_array: str,
     dim_first_array: int,
