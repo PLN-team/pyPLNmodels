@@ -3,7 +3,7 @@ import numpy as np
 BETA = 0.03
 
 
-class _LossCriterionMonitor:
+class _ElboCriterionMonitor:
     """
     Class that deals with the criterion of PLN models, based on a
     moving average of the hessian of the slope of the cumulative elbo.
@@ -13,24 +13,19 @@ class _LossCriterionMonitor:
         """
         Initialize the LossCriterionMonitor class.
         """
-        self.running_times = []
         self.elbo_list = []
         self.new_derivative = 0
         self.criterion = 1
         self.current_hessian = 0
 
-    def update_criterion(self, elbo, running_time):
+    def update_criterion(self, elbo):
         """
         Update the moving average hessian criterion based on the elbo.
         """
-        self._update_lists(elbo, running_time)
+        self.elbo_list.append(elbo)
         if self._iteration_number > 1:
             self._update_derivative()
             self._update_criterion()
-
-    def _update_lists(self, elbo, running_time):
-        self.elbo_list.append(elbo)
-        self.running_times.append(running_time)
 
     def _update_derivative(self):
         normalized_elbo_list = [
