@@ -1,9 +1,13 @@
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, Dict
 import warnings
 import torch
 import numpy as np
 import pandas as pd
+from patsy import dmatrices  # pylint: disable=no-name-in-module
+
+
 from pyPLNmodels._utils import _get_log_sum_of_endog
+
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -339,3 +343,39 @@ def _remove_zero_columns(
             column_names_endog = column_names_endog[~zero_columns]
         print(f"Now dataset of size {endog.shape}.")
     return endog, offsets, column_names_endog
+
+
+def _extract_data_from_formula(
+    formula: str,
+    data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
+) -> Tuple:
+    """
+    Extract data from the given formula and data dictionary.
+
+    Parameters
+    ----------
+    formula : str
+        The formula specifying the data to extract.
+    data : Dict[str, Any]
+        A dictionary containing the data.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing the extracted endog, exog, and offsets.
+
+    """
+    variables = dmatrices(formula, data=data)
+    endog = variables[0]
+    exog = variables[1]
+    non_zero_exog = (exog**2).sum(axis=0) > 0
+    exog = exog[:, non_zero_exog]
+
+    if exog.size == 0:
+        exog = None
+    if "offsets" in data.keys():
+        offsets = data["offsets"]
+        print("Taking the offsets from the data given.")
+    else:
+        offsets = None
+    return endog, exog, offsets
