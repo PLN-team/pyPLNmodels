@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from pyPLNmodels._data_handler import _handle_data
+from pyPLNmodels._criterion import _LossCriterionMonitor
 
 
 class BaseModel(ABC):
@@ -54,6 +55,8 @@ class BaseModel(ABC):
             compute_offsets_method,
             add_const,
         )
+
+        self._criterion_monitor = _LossCriterionMonitor()
 
     def fit(self, nb_epoch: int):
         """
