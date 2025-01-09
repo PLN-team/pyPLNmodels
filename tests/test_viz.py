@@ -1,0 +1,62 @@
+# pylint: skip-file
+import pytest
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from pyPLNmodels._viz import _viz_variables, _plot_ellipse
+
+
+@pytest.fixture
+def pca_projected_variables():
+    return torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+
+
+@pytest.fixture
+def covariances():
+    return torch.tensor(
+        [[[0.5, 0.2], [0.2, 0.5]], [[0.3, 0.1], [0.1, 0.3]], [[0.4, 0.2], [0.2, 0.4]]]
+    )
+
+
+@pytest.fixture
+def colors():
+    return np.array(["red", "green", "blue"])
+
+
+def test_viz_variables_no_covariances(pca_projected_variables):
+    fig, ax = plt.subplots()
+    result_ax = _viz_variables(pca_projected_variables, ax=ax)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+
+
+def test_viz_variables_with_covariances(pca_projected_variables, covariances):
+    fig, ax = plt.subplots()
+    result_ax = _viz_variables(pca_projected_variables, ax=ax, covariances=covariances)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+    assert len(result_ax.patches) == len(covariances)  # Check if ellipses are created
+
+
+def test_viz_variables_with_colors(pca_projected_variables, colors):
+    fig, ax = plt.subplots()
+    result_ax = _viz_variables(pca_projected_variables, ax=ax, colors=colors)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+    assert len(result_ax.collections[0].get_facecolors()) == len(
+        colors
+    )  # Check if colors are applied
+
+
+def test_viz_variables_without_axis(pca_projected_variables):
+    result_ax = _viz_variables(pca_projected_variables)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+
+
+def test_plot_ellipse():
+    fig, ax = plt.subplots()
+    mean_x, mean_y = 1.0, 2.0
+    cov = np.array([[0.5, 0.2], [0.2, 0.5]])
+    _plot_ellipse(mean_x, mean_y, cov=cov, ax=ax)
+    assert len(ax.patches) == 1  # Check if ellipse is created
