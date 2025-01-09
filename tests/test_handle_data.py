@@ -10,6 +10,7 @@ from pyPLNmodels._data_handler import (
 )
 from pyPLNmodels import load_oaks
 
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 oaks = load_oaks()
 
@@ -45,7 +46,8 @@ def test_handle_data_logsum():
 
 def test_add_constant_to_exog_valid():
     exog_with_const = _add_constant_to_exog(
-        torch.tensor(oaks["dist2ground"].values).unsqueeze(1), len(oaks["dist2ground"])
+        torch.tensor(oaks["dist2ground"].values).unsqueeze(1).to(DEVICE),
+        len(oaks["dist2ground"]),
     )
     assert exog_with_const.shape[1] == 2
 
