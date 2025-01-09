@@ -6,6 +6,9 @@ from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_cova
 from pyPLNmodels.elbos import profiled_elbo_pln
 
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 class Pln(BaseModel):
     """Simplest model, that is the original PLN model from
     Aitchison, J., and C. H. Ho. “The Multivariate Poisson-Log Normal Distribution.” Biometrika.
@@ -15,8 +18,10 @@ class Pln(BaseModel):
         """The model parameters are profiled in the ELBO, no need to intialize them."""
 
     def _init_latent_parameters(self):
-        self._latent_mean = torch.log(self._endog + (self._endog == 0))
-        self._latent_sqrt_variance = 1 / 2 * torch.ones((self.n_samples, self.dim))
+        self._latent_mean = torch.log(self._endog + (self._endog == 0)).to(DEVICE)
+        self._latent_sqrt_variance = (
+            1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+        )
 
     @property
     def _description(self):

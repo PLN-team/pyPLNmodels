@@ -8,8 +8,11 @@ from patsy import dmatrices  # pylint: disable=no-name-in-module
 
 from pyPLNmodels._utils import _get_log_sum_of_endog
 
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+    print("Using GPU.")
+else:
+    DEVICE = "cpu"
 
 
 def _handle_data(
@@ -197,7 +200,7 @@ def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
 def _check_full_rank_exog(exog: torch.Tensor, inflation: bool = False) -> None:
     mat = exog.T @ exog
     d = mat.shape[1]
-    rank = torch.linalg.matrix_rank(mat)  # pylint: disable=not-callable
+    rank = torch.linalg.matrix_rank(mat)
     if rank != d:
         name_mat = "exog_inflation" if inflation else "exog"
         add_const_name = "add_const_inflation" if inflation else "add_const"
@@ -221,7 +224,7 @@ def _compute_or_format_offsets(
             return _get_log_sum_of_endog(endog)
         if compute_offsets_method == "zero":
             print("Setting the offsets to zero.")
-            return torch.zeros(endog.shape)
+            return torch.zeros(endog.shape).to(DEVICE)
         raise ValueError(
             f'Wrong method to compute offsets. Expected either "zero" or "logsum", '
             f"got {compute_offsets_method}."

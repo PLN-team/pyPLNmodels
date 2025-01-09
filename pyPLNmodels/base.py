@@ -134,7 +134,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         self._fitting_initialization(lr, maxiter)
         iterdone = 0
         stop_condition = False
-        pbar = tqdm(desc="Upper bound on the fitting time:", total=maxiter)
+        pbar = tqdm(desc="Upper bound on the fitting time", total=maxiter)
         while iterdone < maxiter and not stop_condition:
             elbo = self._trainstep()
             self._elbo_criterion_monitor.update_criterion(elbo)
@@ -165,7 +165,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         (-elbo).backward()
         self.optim.step()
         self._project_parameters()
-        return elbo.detach()
+        return elbo.detach().cpu()
 
     def _initialize_timing(self):
         self._print_beginning_message()
@@ -312,7 +312,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor
             The endogenous variables.
         """
-        return self._endog
+        return self._endog.cpu()
 
     @property
     def exog(self):
@@ -360,7 +360,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor
             The square root of the latent variance.
         """
-        return self._latent_sqrt_variance.detach()
+        return self._latent_sqrt_variance.detach().cpu()
 
     @property
     def coef(self):
@@ -373,7 +373,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor or None
             The coefficients or None if no coefficients are given in the model.
         """
-        return self._coef.detach() if self._coef is not None else None
+        return self._coef.detach().cpu() if self._coef is not None else None
 
     @property
     def covariance(self):
@@ -385,7 +385,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor
             The covariance.
         """
-        return self._covariance.detach()
+        return self._covariance.detach().cpu()
 
     @property
     def _marginal_mean(self):
