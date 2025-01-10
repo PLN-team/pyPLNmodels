@@ -25,6 +25,9 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
     _latent_mean: torch.Tensor
     _latent_sqrt_variance: torch.Tensor
 
+    _coef: torch.Tensor
+    _covariance: torch.Tensor
+
     def __init__(
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
@@ -341,7 +344,8 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def latent_mean(self):
         """
-        Property representing the latent mean.
+        Property representing the latent mean conditionally on the observed counts, i.e. the
+        conditional mean of the latent variable of each sample.
 
         Returns
         -------
@@ -351,9 +355,19 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         return self._latent_mean.detach()
 
     @property
+    def latent_variance(self):
+        """
+        Property representing the latent variance conditionally on the observed counts, i.e.
+        the conditional variance of the latent variable of each sample.
+        """
+        return self.latent_sqrt_variance**2
+
+    @property
     def latent_sqrt_variance(self):
         """
-        Property representing the square root of the latent variables variance.
+        Property representing the latent square root variance conditionally on
+        the observed counts, i.e. the square root variance of the
+        latent variable of each sample.
 
         Returns
         -------
@@ -393,7 +407,16 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
             return 0
         return self._exog @ self._coef
 
-    def pca_projected_latent_variables_with_covariances(self, rank=2):
+    @property
+    def marginal_mean(self):
+        """
+        The marginal mean of the model, i.e. the mean of the gaussian latent variable.
+        """
+        if self._exog is None:
+            return 0
+        return self.exog @ self.coef
+
+    def _pca_projected_latent_variables_with_covariances(self, rank=2):
         """
         Perform PCA on latent variables and return the
         projected variables along with their covariances in the two dimensional space.
@@ -415,7 +438,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         covariances = self._get_two_dim_covariances(sk_components)
         return proj_variables, covariances
 
-    def pca_projected_latent_variables(self, rank=2):
+    def _pca_projected_latent_variables(self, rank=2):
         """
         Perform PCA on latent variables and return the projected variables.
 
@@ -438,13 +461,16 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         """
         Returns the latent variables. Can be seen as a
         normalization of the counts given.
-
-        Returns
-        -------
-        torch.Tensor
-            The mean of the latent variables.
         """
-        return self.latent_mean
+        return self.latent_variables
+
+    @property
+    @abstractmethod
+    def latent_variables(self):
+        """
+        The (conditional) mean of the latent variables is
+        the best approximation of latent variables.
+        """
 
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
@@ -461,9 +487,21 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         """
         if show_cov is True:
             variables, covariances = (
-                self.pca_projected_latent_variables_with_covariances()
+                self._pca_projected_latent_variables_with_covariances()
             )
         else:
             variables = self.pca_projected_latent_variables()
             covariances = None
         _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
+
+    @abstractmethod
+    def _get_two_dim_covariances(self, sklearn_components):
+        """
+        Computes the covariance when the latent variables are
+        embedded in a lower dimensional space (often 2) with the compoents.
+
+        Parameters
+        ----------
+        components : np.ndarray
+            The components of the PCA.
+        """
