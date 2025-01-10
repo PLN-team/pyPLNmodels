@@ -191,13 +191,13 @@ def compute_log_posterior(  # pylint: disable=too-many-arguments
         marginal_mean = torch.matmul(exog, coef)
 
     log_lambda = offsets + components_latent_mean + marginal_mean
-    first_term = (
+    prior_term = (
         -rank / 2 * math.log(2 * math.pi) - 1 / 2 * torch.norm(latent_mean, dim=-1) ** 2
     )
-    second_term = torch.sum(
+    likelihood_term = torch.sum(
         -torch.exp(log_lambda) + log_lambda * endog - log_stirling_endog, axis=-1
     )
-    return first_term + second_term
+    return prior_term + likelihood_term
 
 
 def _init_latent_mean(  # pylint: disable=too-many-arguments
