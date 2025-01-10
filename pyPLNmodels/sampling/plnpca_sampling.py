@@ -37,3 +37,13 @@ class PlnPCASampler(PlnSampler):
     def rank(self):
         """Rank of the covariance matrix."""
         return self._rank
+
+    @property
+    def _dim_latent(self):
+        return self._rank
+
+    @property
+    def covariance(self) -> torch.Tensor:
+        """Covariance matrix."""
+        components = self._get_components()
+        return (components @ components.T).cpu()
