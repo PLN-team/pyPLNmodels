@@ -38,7 +38,9 @@ class _BasePlnSampler(_BaseSampler):
         )
 
     def _get_gaussians(self):
-        centered_unit_gaussian = torch.randn(self._n_samples, self._dim).to(DEVICE)
+        centered_unit_gaussian = torch.randn(self._n_samples, self._dim_latent).to(
+            DEVICE
+        )
         components = self._get_components()
         mean = torch.matmul(self._exog, self._params["coef"]) + self._offsets
         return torch.matmul(centered_unit_gaussian, components.T) + mean
@@ -72,3 +74,7 @@ class PlnSampler(_BasePlnSampler):
             coef=coef,
             covariance=covariance,
         )
+
+    @property
+    def _dim_latent(self):
+        return self._dim
