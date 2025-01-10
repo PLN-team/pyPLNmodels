@@ -239,7 +239,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
 
     @property
     def _default_dict_model_parameters(self):
-        return {"coef": self.coef, "covaraince": self.covariance}
+        return {"coef": self.coef, "covariance": self.covariance}
 
     @property
     @abstractmethod

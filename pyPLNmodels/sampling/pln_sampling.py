@@ -42,11 +42,22 @@ class _BasePlnSampler(_BaseSampler):
             DEVICE
         )
         components = self._get_components()
-        mean = torch.matmul(self._exog, self._params["coef"]) + self._offsets
+        mean = self._marginal_mean + self._offsets
         return torch.matmul(centered_unit_gaussian, components.T) + mean
 
     def _get_components(self):
         return torch.linalg.cholesky(self._params["covariance"])
+
+    @property
+    def _marginal_mean(self):
+        if self._exog is None:
+            return 0
+        return torch.matmul(self._exog, self._params["coef"])
+
+    @property
+    def dict_model_parameters(self):
+        """Alias for the parameters."""
+        return self._params
 
 
 class PlnSampler(_BasePlnSampler):

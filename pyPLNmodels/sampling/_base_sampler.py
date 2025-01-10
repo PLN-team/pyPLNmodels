@@ -85,6 +85,8 @@ class _BaseSampler(ABC):
     @property
     def exog(self) -> torch.Tensor:
         """Covariates."""
+        if self._exog is None:
+            return None
         return self._exog.cpu()
 
     @property
@@ -100,4 +102,7 @@ class _BaseSampler(ABC):
     @property
     def coef(self) -> torch.Tensor:
         """Coefficient matrix."""
-        return self._params["coef"].cpu()
+        coef = self._params.get("coef")
+        if coef is None:
+            return None
+        return coef.cpu()

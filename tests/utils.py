@@ -1,5 +1,7 @@
 import functools
 
+import torch
+
 
 def filter_models(models_name):
     """
@@ -28,3 +30,14 @@ def filter_models(models_name):
         return new_test
 
     return decorator
+
+
+def _get_formula(nb_cov):
+    if nb_cov == 0:
+        return "endog ~ 0"
+    return "endog ~ 0 + exog"
+
+
+def mse(t):
+    """Mean squared error of a torch.Tensor."""
+    return torch.mean(t**2)
