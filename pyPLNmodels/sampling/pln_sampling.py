@@ -1,5 +1,6 @@
 import torch
 
+from pyPLNmodels._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
 from ._utils import _get_exog, _get_coef, _get_covariance, _get_offsets
@@ -38,14 +39,19 @@ class _BasePlnSampler(_BaseSampler):
 
     def _get_gaussians(self):
         centered_unit_gaussian = torch.randn(self._n_samples, self._dim).to(DEVICE)
-        components = torch.linalg.cholesky(self._params["covariance"])
+        components = self._get_components()
         mean = torch.matmul(self._exog, self._params["coef"]) + self._offsets
         return torch.matmul(centered_unit_gaussian, components.T) + mean
 
+    def _get_components(self):
+        return torch.linalg.cholesky(self._params["covariance"])
+
 
 class PlnSampler(_BasePlnSampler):
-    """Sampler for Poisson Log-Normal model. The parameters of the model are generated randomly."""
+    """Sampler for Poisson Log-Normal model.
+    The parameters of the model are generated randomly but have a specific structure."""
 
+    @_add_doc(_BasePlnSampler)
     def __init__(
         self,
         n_samples: int = 100,
@@ -53,11 +59,11 @@ class PlnSampler(_BasePlnSampler):
         *,
         nb_cov: int = 1,
         use_offsets: bool = False,
-        mean_gaussian: int = 2,
+        marginal_mean: int = 2,
     ):  # pylint: disable=too-many-arguments, too-many-positional-arguments
         exog = _get_exog(n_samples, nb_cov)
         offsets = _get_offsets(n_samples, dim, use_offsets)
-        coef = _get_coef(nb_cov, dim, mean_gaussian)
+        coef = _get_coef(nb_cov, dim, marginal_mean)
         covariance = _get_covariance(dim)
         super().__init__(
             n_samples=n_samples,

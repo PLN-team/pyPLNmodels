@@ -44,3 +44,22 @@ def _get_offsets(n_samples, dim, use_offsets):
     if use_offsets is False:
         return torch.zeros(n_samples, dim).to(DEVICE)
     return torch.rand(n_samples, dim).to(DEVICE)
+
+
+def _components_from_covariance(covariance, rank):
+    """
+    Compute the closest low-rank approximation of a covariance matrix
+    i.e. reduces norm(covariance-components@components.T)
+
+    Parameters
+    ----------
+    covariance: torch.tensor of size (dim,dim).
+        Should be positive definite and symmetric.
+    rank: int. The number of components.
+
+    Returns:
+        torch.tensor of size (dim,rank)
+    """
+    eigvalues, eigvectors = torch.linalg.eigh(covariance)
+    components = eigvectors[:, -rank:] @ torch.diag(torch.sqrt(eigvalues[-rank:]))
+    return components
