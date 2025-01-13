@@ -20,7 +20,9 @@
 ##  Getting started
 [A notebook to get started can be found
 here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
-If you need just a quick view of the package, see the quickstart next.
+If you need just a quick view of the package, see the quickstart next. Note
+that an ```R``` version of the package is available
+[here](https://pln-team.github.io/PLNmodels/).
 
 ## 🛠 Installation
 

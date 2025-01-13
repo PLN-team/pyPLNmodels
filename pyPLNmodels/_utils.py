@@ -81,3 +81,25 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
         return fun
 
     return wrapper
+
+
+def _nice_string_of_dict(dictionnary: dict) -> str:
+    """
+    Create a nicely formatted string representation of a dictionary.
+
+    Parameters
+    ----------
+    dictionnary : dict
+        Dictionary to format.
+
+    Returns
+    -------
+    str
+        Nicely formatted string representation of the dictionary.
+    """
+    return_string = ""
+    for each_row in zip(*([i] + [j] for i, j in dictionnary.items())):
+        for element in list(each_row):
+            return_string += f"{str(element):>12}"
+        return_string += "\n"
+    return return_string

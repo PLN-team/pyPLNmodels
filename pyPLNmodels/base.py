@@ -9,11 +9,13 @@ from sklearn.decomposition import PCA
 
 from pyPLNmodels._data_handler import _handle_data, _extract_data_from_formula
 from pyPLNmodels._criterion import _ElboCriterionMonitor
-from pyPLNmodels._utils import _TimeRecorder
+from pyPLNmodels._utils import _TimeRecorder, _nice_string_of_dict
 from pyPLNmodels._viz import _viz_variables
 
 
-class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
+class BaseModel(
+    ABC
+):  # pylint: disable=too-many-instance-attributes, too-many-public-methods
     """
     Abstract base class for all the PLN based models that will be derived.
     """
@@ -182,7 +184,10 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         pass
 
     def _print_beginning_message(self):
-        print(f"Fitting a {type(self).__name__} model with {self._description}")
+        print(f"Fitting a {self._name} model with {self._description}")
+
+    def _name(self):
+        return type(self).__name__
 
     def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
         if stop_condition is True:
@@ -327,7 +332,16 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor or None
             The exogenous variables or None if no covariates are given in the model.
         """
-        return self._exog
+        return self._exog.cpu()
+
+    @property
+    def nb_cov(self) -> int:
+        """
+        The number of exogenous variables.
+        """
+        if self.exog is None:
+            return 0
+        return self.exog.shape[1]
 
     @property
     def offsets(self):
@@ -339,7 +353,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor
             The offsets.
         """
-        return self._offsets
+        return self._offsets.cpu()
 
     @property
     def latent_mean(self):
@@ -352,7 +366,7 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         torch.Tensor
             The latent mean.
         """
-        return self._latent_mean.detach()
+        return self._latent_mean.detach().cpu()
 
     @property
     def latent_variance(self):
@@ -504,4 +518,124 @@ class BaseModel(ABC):  # pylint: disable=too-many-instance-attributes
         ----------
         components : np.ndarray
             The components of the PCA.
+        """
+
+    def __repr__(self):
+        """
+        Generate the string representation of the model.
+
+        Returns
+        -------
+        str
+            The string representation of the object.
+        Raises
+        ------
+        RuntimeError
+            If the model is not fitted.
+        """
+        if not self._fitted:
+            raise RuntimeError("Please fit the model before printing it.")
+
+        delimiter = "=" * 70
+        parts = [
+            f"A multivariate Poisson Lognormal with {self._description}",
+            delimiter,
+            _nice_string_of_dict(self._dict_for_printing),
+            delimiter,
+            "* Useful properties",
+            f"    {self._useful_properties_string}",
+            "* Useful methods",
+            f"    {self._useful_methods_strings}",
+            f"* Additional properties for {self._name} are:",
+            f"    {self._additional_properties_string}",
+            f"* Additional methods for {self._name} are:",
+            f"    {self._additional_methods_string}",
+        ]
+        return "\n".join(parts)
+
+    @property
+    def _useful_methods_strings(self):
+        """
+        Useful methods of the model.
+        """
+        return (
+            ".show(), "
+            ".transform(), "
+            ".sigma(), "
+            ".predict(), "
+            ".pca_projected_latent_variables(), "
+            ".plot_pca_correlation_circle(), "
+            ".viz(), "
+            ".pca_pairplot(), "
+            ".plot_expected_vs_true()"
+        )
+
+    @property
+    def _useful_properties_string(self):
+        """
+        Useful properties of the model.
+        """
+        return ".latent_variables, .model_parameters, .latent_parameters, .optim_parameters"
+
+    @property
+    @abstractmethod
+    def _additional_properties_string(self):
+        """The properties that are specific to this model."""
+
+    @property
+    @abstractmethod
+    def _additional_methods_string(self):
+        """The methods that are specific to this model."""
+
+    @property
+    def _dict_for_printing(self):
+        """
+        Property representing the dictionary for printing.
+
+        Returns
+        -------
+        dict
+            The dictionary for printing.
+        """
+        return {
+            "Loglike": np.round(self.loglike, 2),
+            "Dimension": self.dim,
+            "Nb param": int(self.number_of_parameters),
+            "BIC": np.round(self.BIC, 4),
+            "AIC": np.round(self.AIC, 4),
+        }
+
+    @property
+    def elbo(self):
+        """
+        Returns the last elbo computed.
+        """
+        return self._elbo_criterion_monitor.elbo_list[-1]
+
+    @property
+    def loglike(self):
+        """
+        Returns the log likelihood of the model, that is n_samples*elbo.
+        """
+        return self.n_samples * self.elbo
+
+    @property
+    def BIC(self):
+        """
+        Bayesian Information Criterion (BIC) of the model.
+        """
+        return -self.loglike + self.number_of_parameters / 2 * np.log(self.n_samples)
+
+    @property
+    def AIC(self):
+        """
+        Akaike Information Criterion (AIC).
+        """
+        return -self.loglike + self.number_of_parameters
+
+    @property
+    @abstractmethod
+    def number_of_parameters(self):
+        """
+        Returns the number of parameters of the model.
         """
