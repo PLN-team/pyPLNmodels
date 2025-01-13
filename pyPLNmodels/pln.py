@@ -179,3 +179,16 @@ class Pln(BaseModel):
     )
     def latent_variables(self):
         return self.latent_mean
+
+    @property
+    @_add_doc(BaseModel)
+    def number_of_parameters(self):
+        return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2
+
+    @property
+    def _additional_properties_string(self):
+        return ""
+
+    @property
+    def _additional_methods_string(self):
+        return ""
