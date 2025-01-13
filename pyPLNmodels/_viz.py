@@ -1,8 +1,11 @@
+import warnings
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib import transforms
+import matplotlib
 import seaborn as sns
 
 
@@ -84,3 +87,43 @@ def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float
     )
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
+
+
+class ModelViz:
+    """Class that visualize the parameters of a model and the optimization process."""
+
+    def __init__(self, model):
+        self.model = model
+        covariance = model.covariance
+        self.dim = covariance.shape[0]
+
+    def display_covariance(self, *, ax: matplotlib.axes.Axes):
+        """
+        Display an heatmap of the model covariance.
+        """
+        if self.dim > 400:
+            cov_to_show = self.covariance[:400, :400]
+            warnings.warn("Only displaying the first 400 variables.")
+        else:
+            cov_to_show = self.covariance
+        sns.heatmap(cov_to_show, ax=ax)
+        ax.set_title("Covariance matrix")
+
+    def show(self, *, axes, savefig, name_file):
+        """
+        Display the model parameters and the norm of the parameters.
+        """
+        if axes is None:
+            _, axes = plt.subplots(1, 4, figsize=(23, 5))
+        elif len(axes) != 4:
+            raise ValueError("The axes should be of length 4.")
+
+        self._display_covariance(ax=axes[0])
+        self._display_coef(ax=axes[1])
+        self._display_norm_parameters(ax=axes[2])
+        self._display_criterion(ax=axes[3])
+
+        if savefig is True:
+            plt.savefig(name_file + self._name + ".pdf", format="pdf")
+
+        plt.legend()

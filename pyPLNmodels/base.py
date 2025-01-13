@@ -243,6 +243,10 @@ class BaseModel(
     def dict_model_parameters(self):
         """The parameters of the model."""
 
+    def model_parameters(self):
+        """Alias for dict_model_parameters."""
+        return self.dict_model_parameters
+
     @property
     def _default_dict_model_parameters(self):
         return {"coef": self.coef, "covariance": self.covariance}
@@ -543,12 +547,12 @@ class BaseModel(
             delimiter,
             _nice_string_of_dict(self._dict_for_printing),
             delimiter,
-            "* Useful properties",
+            "* Useful properties/attributes",
             f"    {''.join(self._useful_properties_list)}",
             "* Useful methods",
             f"    {''.join(self._useful_methods_list)}",
-            f"* Additional properties for {self._name} are:",
-            f"    {''.join(self._additional_properties_string)}",
+            f"* Additional properties/properties for {self._name} are:",
+            f"    {''.join(self._additional_properties_list)}",
             f"* Additional methods for {self._name} are:",
             f"    {''.join(self._additional_methods_list)}",
         ]
@@ -560,8 +564,8 @@ class BaseModel(
         Useful methods of the model.
         """
         return [
-            ".show()",
             ".transform()",
+            ".show()",
             ".sigma()",
             ".predict()",
             ".pca_projected_latent_variables()",
