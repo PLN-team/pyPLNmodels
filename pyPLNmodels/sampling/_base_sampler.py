@@ -61,7 +61,7 @@ class _BaseSampler(ABC):
         gaussians = self._get_gaussians()
         endog = torch.poisson(torch.exp(gaussians))
         torch.random.set_rng_state(prev_state)
-        return endog
+        return endog.cpu()
 
     @abstractmethod
     def _get_gaussians(self) -> torch.Tensor:
@@ -80,7 +80,10 @@ class _BaseSampler(ABC):
     @property
     def params(self) -> Dict[str, torch.Tensor]:
         """Method for the parameters of the model."""
-        return self._params.cpu()
+        return {
+            key: param.cpu() if param is not None else None
+            for key, param in self._params.items()
+        }
 
     @property
     def exog(self) -> torch.Tensor:

@@ -259,9 +259,9 @@ class PlnPCA(BaseModel):
         return self.dim * (self.nb_cov + self.rank) - self.rank * (self.rank - 1) / 2
 
     @property
-    def _additional_properties_string(self):
+    def _additional_properties_list(self):
         return ""
 
     @property
-    def _additional_methods_string(self):
+    def _additional_methods_list(self):
         return ""
