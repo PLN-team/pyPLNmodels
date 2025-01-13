@@ -55,9 +55,9 @@ class _BasePlnSampler(_BaseSampler):
         return torch.matmul(self._exog, self._params["coef"])
 
     @property
-    def dict_model_parameters(self):
+    def dict_model_true_parameters(self):
         """Alias for the parameters."""
-        return self._params
+        return self.params
 
 
 class PlnSampler(_BasePlnSampler):

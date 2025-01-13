@@ -186,8 +186,9 @@ class BaseModel(
     def _print_beginning_message(self):
         print(f"Fitting a {self._name} model with {self._description}")
 
+    @property
     def _name(self):
-        return type(self).__name__
+        return str(type(self).__name__)
 
     def _print_end_of_fitting_message(self, stop_condition: bool, tol: float):
         if stop_condition is True:
@@ -543,48 +544,53 @@ class BaseModel(
             _nice_string_of_dict(self._dict_for_printing),
             delimiter,
             "* Useful properties",
-            f"    {self._useful_properties_string}",
+            f"    {''.join(self._useful_properties_list)}",
             "* Useful methods",
-            f"    {self._useful_methods_strings}",
+            f"    {''.join(self._useful_methods_list)}",
             f"* Additional properties for {self._name} are:",
-            f"    {self._additional_properties_string}",
+            f"    {''.join(self._additional_properties_string)}",
             f"* Additional methods for {self._name} are:",
-            f"    {self._additional_methods_string}",
+            f"    {''.join(self._additional_methods_list)}",
         ]
         return "\n".join(parts)
 
     @property
-    def _useful_methods_strings(self):
+    def _useful_methods_list(self):
         """
         Useful methods of the model.
         """
-        return (
-            ".show(), "
-            ".transform(), "
-            ".sigma(), "
-            ".predict(), "
-            ".pca_projected_latent_variables(), "
-            ".plot_pca_correlation_circle(), "
-            ".viz(), "
-            ".pca_pairplot(), "
-            ".plot_expected_vs_true()"
-        )
+        return [
+            ".show()",
+            ".transform()",
+            ".sigma()",
+            ".predict()",
+            ".pca_projected_latent_variables()",
+            ".plot_pca_correlation_circle()",
+            ".viz()",
+            ".pca_pairplot()",
+            ".plot_expected_vs_true()",
+        ]
 
     @property
-    def _useful_properties_string(self):
+    def _useful_properties_list(self):
         """
         Useful properties of the model.
         """
-        return ".latent_variables, .model_parameters, .latent_parameters, .optim_parameters"
+        return [
+            ".latent_variables",
+            ".model_parameters",
+            ".latent_parameters",
+            ".optim_parameters",
+        ]
 
     @property
     @abstractmethod
-    def _additional_properties_string(self):
+    def _additional_properties_list(self):
         """The properties that are specific to this model."""
 
     @property
     @abstractmethod
-    def _additional_methods_string(self):
+    def _additional_methods_list(self):
         """The methods that are specific to this model."""
 
     @property

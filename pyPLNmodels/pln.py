@@ -186,9 +186,9 @@ class Pln(BaseModel):
         return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2
 
     @property
-    def _additional_properties_string(self):
+    def _additional_properties_list(self):
         return ""
 
     @property
-    def _additional_methods_string(self):
+    def _additional_methods_list(self):
         return ""
