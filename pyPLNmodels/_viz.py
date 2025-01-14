@@ -150,6 +150,10 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     pca_transformed_data, explained_variance_ratio = _perform_pca(standardized_data, 2)
 
     pca_projected_variables = torch.tensor(pca_transformed_data)
+    xs, ys = pca_projected_variables[:, 0], pca_projected_variables[:, 1]
+    scalex, scaley = 1.0 / (xs.max() - xs.min()), 1.0 / (ys.max() - ys.min())
+    pca_projected_variables[:, 0] *= scalex
+    pca_projected_variables[:, 1] *= scaley
 
     _, ax = plt.subplots(figsize=(10, 10))
     _viz_variables(pca_projected_variables, ax=ax, colors=colors)
@@ -160,10 +164,9 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
 
     plot_correlation_arrows(ax, correlation_circle, variable_names)
 
-    unit_circle = Circle(
-        (0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5
+    ax.add_patch(
+        Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
     )
-    ax.add_patch(unit_circle)
 
     ax.set_xlabel(f"PCA 1 ({np.round(explained_variance_ratio[0] * 100, 3)}%)")
     ax.set_ylabel(f"PCA 2 ({np.round(explained_variance_ratio[1] * 100, 3)}%)")
