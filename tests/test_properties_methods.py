@@ -1,15 +1,30 @@
 # pylint: skip-file
-from pyPLNmodels import Pln
+from tests.generate_models import get_dict_models_fitted
 
-from tests.generate_models import get_dict_models_fitted, get_model, get_fitted_model
+dict_models = get_dict_models_fitted()
 
 
 def test_method_properties():
-    pln = get_fitted_model("Pln", 2, "explicit")
-    for method, attribute in zip(
-        pln._useful_methods_list, pln._useful_properties_list
-    ):  # pylint: disable=protected-access
-        method = method[1:-2]
-        attribute = attribute[1:]
-        assert hasattr(pln, attribute)
-        assert hasattr(pln, method)
+    for nb_cov in dict_models.keys():
+        for model in dict_models[nb_cov]["formula"]:
+            for (
+                attribute
+            ) in model._useful_properties_list:  # pylint: disable=protected-access
+                attribute = attribute[1:]
+                assert hasattr(model, attribute)
+            for (
+                method
+            ) in model._useful_methods_list:  # pylint: disable=protected-access
+                method = method[1:-2]
+                assert hasattr(model, method)
+        for model in dict_models[nb_cov]["explicit"]:
+            for (
+                attribute
+            ) in model._useful_properties_list:  # pylint: disable=protected-access
+                attribute = attribute[1:]
+                assert hasattr(model, attribute)
+            for (
+                method
+            ) in model._useful_methods_list:  # pylint: disable=protected-access
+                method = method[1:-2]
+                assert hasattr(model, method)
