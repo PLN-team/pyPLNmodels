@@ -104,7 +104,7 @@ def _log_transform(endog: torch.Tensor) -> torch.Tensor:
     return torch.log(endog + (endog == 0) * math.exp(-2))
 
 
-def _perform_pca(log_y: torch.Tensor, max_dim: int) -> np.ndarray:
+def _perform_pca_logy(log_y: torch.Tensor, max_dim: int) -> np.ndarray:
     pca = PCA(n_components=max_dim)
     pca.fit(log_y.cpu().detach())
     return pca.components_.T * np.sqrt(pca.explained_variance_)
@@ -138,7 +138,7 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     """
     log_y = _log_transform(endog)
     max_dim = min(rank, endog.shape[0])
-    pca_components = _perform_pca(log_y, max_dim)
+    pca_components = _perform_pca_logy(log_y, max_dim)
     pca_components = _add_random_components(
         pca_components=pca_components, endog=endog, rank=rank, max_dim=max_dim
     )

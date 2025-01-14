@@ -192,3 +192,42 @@ class Pln(BaseModel):
     @property
     def _additional_methods_list(self):
         return ""
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula("endog ~ 1", data = data)
+        >>> pln.fit()
+        >>> pln.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
+        >>> should add some plot with pd.DataFrame here.
+        """,
+    )
+    def plot_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
+        super().plot_correlation_circle(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            title=title,
+        )
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula("endog ~ 1", data = data)
+        >>> pln.fit()
+        >>> pln.pca_pairplot(n_components = 5)
+        """,
+    )
+    def pca_pairplot(self, n_components=None, colors=None):
+        super().pca_pairplot(n_components=n_components, colors=colors)
+
+    @property
+    def _endog_predictions(self):
+        return torch.exp(
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_variance**2
+        )

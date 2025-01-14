@@ -239,21 +239,6 @@ class PlnPCA(BaseModel):
         return torch.matmul(self.latent_mean, self.components.T) + self.marginal_mean
 
     @property
-    def projected_latent_variables(self):
-        """
-        Latent variables projected on a space of dimension `rank`.
-
-        Examples
-        --------
-        from pyPLNmodels import PlnPCA, load_scrna
-        data = load_scrna()
-        pca = PlnPCA.from_formula("endog ~ 1", data)
-        pca.fit()
-        print(pca.projected_latent_variables.shape)
-        """
-        return self._pca_projected_latent_variables(rank=self.rank)
-
-    @property
     @_add_doc(BaseModel)
     def number_of_parameters(self):
         return self.dim * (self.nb_cov + self.rank) - self.rank * (self.rank - 1) / 2
@@ -265,3 +250,50 @@ class PlnPCA(BaseModel):
     @property
     def _additional_methods_list(self):
         return ""
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> data = load_scrna()
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> plnpca.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
+        >>> should add some plot with pd.DataFrame.
+        """,
+    )
+    def plot_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
+        super().plot_correlation_circle(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            title=title,
+        )
+
+    def _get_max_n_components(self):
+        return self.rank
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> data = load_scrna()
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
+        >>> plnpca.fit()
+        >>> plnpca.pca_pairplot(n_components = 5)
+        """,
+    )
+    def pca_pairplot(self, n_components=None, colors=None):
+        super().pca_pairplot(n_components=n_components, colors=colors)
+
+    @property
+    def _endog_predictions(self):
+        covariance_a_posteriori = torch.sum(
+            (self.components**2).unsqueeze(0)
+            * (self.latent_sqrt_variance**2).unsqueeze(1),
+            axis=2,
+        )
+        return torch.exp(
+            self.offsets + self.latent_variables + 1 / 2 * covariance_a_posteriori
+        )

@@ -337,15 +337,15 @@ def _remove_zero_columns(
     """
     zero_columns = torch.sum(endog, axis=0) == 0
     if torch.sum(zero_columns) > 0:
-        dims = torch.arange(endog.shape[1])[zero_columns]
+        dims = torch.arange(endog.shape[1]).to(DEVICE)[zero_columns]
         warnings.warn(
             f"The ({len(dims)}) following (index) variables contain "
-            f"only zeros and are removed: {dims.numpy()}."
+            f"only zeros and are removed: {dims.cpu().numpy()}."
         )
         endog = endog[:, ~zero_columns]
         offsets = offsets[:, ~zero_columns]
         if column_names_endog is not None:
-            column_names_endog = column_names_endog[~zero_columns]
+            column_names_endog = column_names_endog[~(zero_columns.cpu())]
         print(f"Now dataset of size {endog.shape}.")
     return endog, offsets, column_names_endog
 

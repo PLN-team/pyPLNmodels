@@ -27,14 +27,12 @@ def _get_log_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
 
 class _TimeRecorder:  # pylint: disable=too-few-public-methods
     def __init__(self, time_to_remove_from_beginning):
-        self._running_times = []
+        self.running_times = []
         self._beginning_time = time.time() - time_to_remove_from_beginning
 
-    def _has_been_launched(self):
-        return len(self._running_times) > 0
-
-    def _track_running_time(self):
-        self._running_times.append(time.time() - self._beginning_time)
+    def track_running_time(self):
+        """Track the running time since the fitting of the model has been launched."""
+        self.running_times.append(time.time() - self._beginning_time)
 
 
 def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
@@ -103,3 +101,27 @@ def _nice_string_of_dict(dictionnary: dict) -> str:
             return_string += f"{str(element):>12}"
         return_string += "\n"
     return return_string
+
+
+def calculate_correlation(data, transformed_data):
+    """
+    Calculate correlations between each variable in data and the first two principal components.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Input data matrix with shape (n_samples, n_features).
+    transformed_data : np.ndarray
+        Data matrix after PCA transformation.
+
+    Returns
+    -------
+    ccircle : list of tuples
+        List of tuples containing correlations with the first and second principal components.
+    """
+    ccircle = []
+    for j in data.T:
+        corr1 = np.corrcoef(j, transformed_data[:, 0])[0, 1]
+        corr2 = np.corrcoef(j, transformed_data[:, 1])[0, 1]
+        ccircle.append((corr1, corr2))
+    return ccircle

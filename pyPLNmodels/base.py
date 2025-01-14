@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Union, Optional
+import warnings
 
 import torch
 import numpy as np
@@ -7,10 +8,24 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 
-from pyPLNmodels._data_handler import _handle_data, _extract_data_from_formula
+from pyPLNmodels._data_handler import (
+    _handle_data,
+    _extract_data_from_formula,
+    _format_data,
+)
 from pyPLNmodels._criterion import _ElboCriterionMonitor
 from pyPLNmodels._utils import _TimeRecorder, _nice_string_of_dict
-from pyPLNmodels._viz import _viz_variables
+from pyPLNmodels._viz import (
+    _viz_variables,
+    ModelViz,
+    plot_correlation_circle,
+    _pca_pairplot,
+    _plot_expected_vs_true,
+    _biplot,
+)
+
+
+DEFAULT_TOL = 1e-6
 
 
 class BaseModel(
@@ -63,8 +78,8 @@ class BaseModel(
             self._endog,
             self._exog,
             self._offsets,
-            self._column_names_endog,
-            self._column_names_exog,
+            self.column_names_endog,
+            self.column_names_exog,
         ) = _handle_data(
             endog,
             exog,
@@ -114,7 +129,7 @@ class BaseModel(
         *,
         maxiter: int = 400,
         lr: float = 0.01,
-        tol: float = 1e-6,
+        tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
         """
@@ -149,10 +164,136 @@ class BaseModel(
                 self._track_mse()
                 if verbose is True:
                     self._print_stats(iterdone, maxiter, tol)
+            self._time_recorder.track_running_time()
             pbar.update(1)
             iterdone += 1
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
+
+    def show(self, axes=None, savefig=False, name_file=""):
+        """
+        Display the model parameters, norm evolution of the parameters and the criterion.
+        """
+        model_viz = ModelViz(
+            params=self.dict_model_parameters,
+            dict_mse=self._dict_list_mse,
+            running_times=self._time_recorder.running_times,
+            criterion_list=self._elbo_criterion_monitor.criterion_list,
+            name=self._name,
+            tol=DEFAULT_TOL,
+        )
+        model_viz.show(axes=axes, savefig=savefig, name_file=name_file)
+
+    @abstractmethod
+    def plot_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
+        """
+        Visualizes variables using PCA and plots a correlation circle. If the `endog`
+        has been given as a pd.DataFrame, the `column_names` have been stored and may be
+        indicated with the `variables_names` argument. Else, one should provide the indices of
+        variables.
+
+        Parameters
+        ----------
+            variables_names : List[str]
+                A list of variable names to visualize.
+                If `indices_of_variables` is `None`, the variables plotted are the
+                ones in `variables_names`. If `indices_of_variables` is not `None`,
+                this only serves as a legend.
+            indices_of_variables : Optional[List[int]], optional
+                A list of indices corresponding to the variables that should be plotted.
+                If `None`, the indices are determined based on `column_names_endog`
+                given the `variables_names`, by default None.
+                If not None, should have the same length as `variables_names`.
+            title : str
+                An additional title for the plot.
+
+        Raises
+        ------
+        ValueError
+            If `indices_of_variables` is None and `column_names_endog` is not set,
+            that has been set if the model has been initialized with a pd.DataFrame as `endog`.
+        ValueError
+            If the length of `indices_of_variables` is different from the length
+            of `variables_names`.
+
+        Returns
+        -------
+            None
+        """
+        if indices_of_variables is None:
+            if self.column_names_endog is None:
+                raise ValueError(
+                    "No names have been given to the columns of endog. "
+                    "Please set the column_names_endog attribute to the needed names "
+                    "or instantiate a new model with a pd.DataFrame for `endog`"
+                    "with appropriate column names."
+                )
+            indices_of_variables = [
+                self.column_names_endog.get_loc(name) for name in variables_names
+            ]
+        else:
+            if len(indices_of_variables) != len(variables_names):
+                raise ValueError(
+                    f"Number of indices ({len(indices_of_variables)}) should be "
+                    f"the same as the number of variable names ({len(variables_names)})."
+                )
+        plot_correlation_circle(
+            self.transform(), variables_names, indices_of_variables, title=title
+        )
+
+    def biplot(
+        self,
+        variables_names,
+        *,
+        indices_of_variables: np.ndarray = None,
+        colors: np.ndarray = None,
+        title: str = "",
+    ):
+        """
+        Visualizes variables using the correlation circle along with the pca
+        transformed samples. If the `endog` has been given as a pd.DataFrame,
+        the `column_names` have been stored and may be indicated with the
+        `variables_names` argument. Else, one should provide the indices of variables.
+
+        Parameters
+        ----------
+        variables_names : List[str]
+            A list of variable names to visualize.
+            If `indices_of_variables` is `None`, the variables plotted
+            are the ones in `variables_names`. If `indices_of_variables`
+            is not `None`, this only serves as a legend.
+        indices_of_variables : Optional[List[int]], optional keyword-only
+            A list of indices corresponding to the variables that should be plotted.
+            If `None`, the indices are determined based on `column_names_endog`
+            given the `variables_names`, by default None.
+            If not None, should have the same length as `variables_names`.
+        title : str optional, keyword-only
+            An additional title for the plot.
+        colors : list, optional, keyword-only
+            The colors to use for the plot, by default None.
+
+        Raises
+        ------
+        ValueError
+            If `indices_of_variables` is None and `column_names_endog` is not set,
+            that has been set if the model has been initialized with a pd.DataFrame as `endog`.
+        ValueError
+            If the length of `indices_of_variables` is different
+            from the length of `variables_names`.
+
+        Returns
+        -------
+            None
+        """
+        return _biplot(
+            self.transform(),
+            variables_names,
+            indices_of_variables=indices_of_variables,
+            colors=colors,
+            title=title,
+        )
 
     def _trainstep(self):
         """
@@ -175,7 +316,7 @@ class BaseModel(
     def _initialize_timing(self):
         self._print_beginning_message()
         if self._fitted is True:
-            time_to_remove_from_beginning = self.running_times[-1]
+            time_to_remove_from_beginning = self._time_recorder.running_times[-1]
         else:
             time_to_remove_from_beginning = 0
         self._time_recorder = _TimeRecorder(time_to_remove_from_beginning)
@@ -255,6 +396,11 @@ class BaseModel(
     @abstractmethod
     def dict_latent_parameters(self):
         """The latent parameters of the model."""
+
+    @property
+    def latent_parameters(self):
+        """Alias for dict_latent_parameters."""
+        return self.dict_latent_parameters
 
     @property
     def _default_dict_latent_parameters(self):
@@ -457,7 +603,7 @@ class BaseModel(
         covariances = self._get_two_dim_covariances(sk_components)
         return proj_variables, covariances
 
-    def _pca_projected_latent_variables(self, rank=2):
+    def projected_latent_variables(self, rank=2):
         """
         Perform PCA on latent variables and return the projected variables.
 
@@ -509,9 +655,9 @@ class BaseModel(
                 self._pca_projected_latent_variables_with_covariances()
             )
         else:
-            variables = self.pca_projected_latent_variables()
+            variables = self.projected_latent_variables()
             covariances = None
-        _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
+        return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @abstractmethod
     def _get_two_dim_covariances(self, sklearn_components):
@@ -566,10 +712,11 @@ class BaseModel(
         return [
             ".transform()",
             ".show()",
-            ".sigma()",
             ".predict()",
-            ".pca_projected_latent_variables()",
-            ".plot_pca_correlation_circle()",
+            ".sigma()",
+            ".projected_latent_variables()",
+            ".plot_correlation_circle()",
+            ".biplot()",
             ".viz()",
             ".pca_pairplot()",
             ".plot_expected_vs_true()",
@@ -584,7 +731,7 @@ class BaseModel(
             ".latent_variables",
             ".model_parameters",
             ".latent_parameters",
-            ".optim_parameters",
+            ".optim_details",
         ]
 
     @property
@@ -649,3 +796,146 @@ class BaseModel(
         """
         Returns the number of parameters of the model.
         """
+
+    def predict(self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None):
+        """
+        Method for making predictions.
+
+        Parameters
+        ----------
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series], optional
+            The exog, by default None.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The predicted values or None.
+
+        Raises
+        ------
+        AttributeError
+            If there are no exog in the model but some are provided.
+        RuntimeError
+            If the shape of the exog is incorrect.
+
+        Notes
+        -----
+        - If `exog` is not provided and there are no exog in the model, None is returned.
+            If there are exog in the model, then the mean exog @ coef is returned.
+        - If `exog` is provided, it should have the shape `(_, nb_cov)`,
+            where `nb_cov` is the number of exog.
+        - The predicted values are obtained by multiplying the exog by the coefficients.
+        """
+        exog = _format_data(exog)
+        if exog is not None and self.nb_cov == 0:
+            msg = "No exog in the model, can't predict with exog"
+            raise AttributeError(msg)
+        if exog is None:
+            if self.exog is None:
+                warning_string = (
+                    "No exog in the model, can't predict without exog. Returning None."
+                )
+                warnings.warn(warning_string)
+                return None
+            return self.exog @ self.coef
+        if exog.shape[-1] != self.nb_cov:
+            error_string = f"X has wrong shape ({exog.shape}). Should"
+            error_string += f" be ({self.n_samples, self.nb_cov})."
+            raise RuntimeError(error_string)
+        return exog @ self.coef
+
+    @property
+    def optim_details(self):
+        """
+        Property representing the optimization details.
+
+        Returns
+        -------
+        dict
+            The dictionary of optimization details.
+        """
+        return {
+            "Number of iterations done": len(self._elbo_criterion_monitor.elbo_list),
+            "Last criterion:": self._elbo_criterion_monitor.criterion,
+        }
+
+    def sigma(self):
+        """
+        Covariance of the model.
+        """
+        return self.covariance
+
+    @abstractmethod
+    def pca_pairplot(self, n_components: int = None, colors: np.ndarray = None):
+        """
+        Generates a scatter matrix plot based on Principal
+        Component Analysis (PCA) on the latent variables.
+
+        Parameters
+        ----------
+            n_components (int, optional): The number of components to consider for plotting.
+                If not specified, the maximum number of components (10) will be used.
+                Defaults to None.
+
+            colors (np.ndarray): An array with one label for each
+                sample in the endog property of the object.
+                Defaults to None.
+        Raises
+        ------
+            ValueError: If the number of components requested is greater
+                than the number of variables in the dataset.
+        """
+        model_max_n_components = self._get_max_n_components()
+        if n_components is not None:
+            if model_max_n_components < n_components:
+                raise ValueError(
+                    f"The number of components requested ({n_components}) is greater"
+                    f"than the number of variables in the dataset ({model_max_n_components})."
+                )
+        else:
+            n_components = model_max_n_components
+        min_n_components = min(10, n_components)
+        n_components = max(min_n_components, n_components)
+
+        array = self.transform().numpy()
+        _pca_pairplot(array, n_components, colors)
+
+    def _get_max_n_components(self):
+        return self.dim
+
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        """
+        Plot the predicted value of the endog against the endog.
+
+        Parameters
+        ----------
+        ax : Optional[matplotlib.axes.Axes], optional
+            The matplotlib axis to use. If None, the current axis is used, by default None.
+
+        colors : Optional[Any], optional
+            The colors to use for plotting, by default None.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The matplotlib axis.
+        See also
+        --------
+        :func:`pyPLNmodels.Pln.pca_pairplot`
+        :func:`pyPLNmodels.PlnPCA.pca_pairplot`
+        :func:`pyPLNmodels.Pln.biplot`
+        :func:`pyPLNmodels.PlnPCA.biplot`
+        --------
+        """
+        if self._fitted is None:
+            raise RuntimeError("Please fit the model before.")
+        endog_predictions = self._endog_predictions
+        reconstruction_error = torch.mean((self.endog - endog_predictions) ** 2)
+        return _plot_expected_vs_true(
+            self.endog, endog_predictions, reconstruction_error, ax=ax, colors=colors
+        )
+
+    @property
+    @abstractmethod
+    def _endog_predictions(self):
+        pass
