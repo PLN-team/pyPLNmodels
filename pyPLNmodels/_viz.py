@@ -92,22 +92,59 @@ def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float
 class ModelViz:
     """Class that visualize the parameters of a model and the optimization process."""
 
-    def __init__(self, model):
-        self.model = model
-        covariance = model.covariance
-        self.dim = covariance.shape[0]
+    def __init__(self, params, dict_mse):
+        self._params = params
+        self._dict_mse = dict_mse
 
     def display_covariance(self, *, ax: matplotlib.axes.Axes):
         """
         Display an heatmap of the model covariance.
         """
-        if self.dim > 400:
-            cov_to_show = self.covariance[:400, :400]
+        covariance = self._params["covariance"]
+        dim = covariance.shape[0]
+        if dim > 400:
+            cov_to_show = covariance[:400, :400]
             warnings.warn("Only displaying the first 400 variables.")
         else:
-            cov_to_show = self.covariance
+            cov_to_show = covariance
         sns.heatmap(cov_to_show, ax=ax)
         ax.set_title("Covariance matrix")
+
+    def display_coef(self, *, ax: matplotlib.axes.Axes):
+        """
+        Display an heatmap of the coefficient.
+        """
+        coef = self._params["coef"]
+        if coef is not None:
+            sns.heatmap(coef, ax=ax)
+        else:
+            ax.text(
+                0.5,
+                0.5,
+                "No coef given in the initialization.",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=ax.transAxes,
+            )
+
+        ax.set_title("Regression coefficient Matrix")
+        plt.legend()
+
+    def display_norm(self, *, ax: matplotlib.axes.Axes):
+        """
+        Display the evolution of the norm of each parameter.
+        """
+        if ax is None:
+            _, ax = plt.subplots(1)
+        absc = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        absc = absc * len(self._running_times) / len(absc)
+        absc = np.array(self._running_times)[absc.astype(int)]
+        for key, value in self._dict_mse.items():
+            ax.plot(absc, value, label=key)
+        ax.set_xlabel("Seconds", fontsize=15)
+        ax.set_yscale("log")
+        ax.legend()
+        ax.set_title("Norm of each parameter.")
 
     def show(self, *, axes, savefig, name_file):
         """
@@ -125,5 +162,4 @@ class ModelViz:
 
         if savefig is True:
             plt.savefig(name_file + self._name + ".pdf", format="pdf")
-
         plt.legend()
