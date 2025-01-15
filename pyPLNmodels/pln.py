@@ -223,11 +223,65 @@ class Pln(BaseModel):
         >>> pln.pca_pairplot(n_components = 5)
         """,
     )
-    def pca_pairplot(self, n_components=None, colors=None):
+    def pca_pairplot(self, n_components: bool = 3, colors=None):
         super().pca_pairplot(n_components=n_components, colors=colors)
+
+    @_add_doc(
+        BaseModel,
+        returns="""
+        torch.Tensor
+            The transformed endogenous variables (latent variables of the model).
+        """,
+        example="""
+              >>> from pyPLNmodels import Pln, load_scrna
+              >>> data = load_scrna()
+              >>> pln = Pln.from_formula("endog ~ 1", data = data)
+              >>> pln.fit()
+              >>> transformed_endog = pln.transform()
+              >>> print(transformed_endog.shape)
+              """,
+    )
+    def transform(self):
+        return super().transform()
 
     @property
     def _endog_predictions(self):
         return torch.exp(
             self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_variance**2
         )
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> data = load_scrna()
+            >>> pln = Pln(data["endog"])
+            >>> pln.fit()
+            >>> pln.plot_expected_vs_true()
+            >>> plt.show()
+            >>> pln.plot_expected_vs_true(colors = data["labels"])
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import Pln, load_scrna
+            >>> data = load_scrna()
+            >>> pln = Pln.from_formula("endog ~ 1", data = data)
+            >>> pln.fit()
+            >>> pln.viz()
+            >>> plt.show()
+            >>> pln.viz(colors = data["labels"])
+            >>> plt.show()
+            >>> pln.viz(show_cov = True)
+            >>> plt.show()
+            """,
+    )
+    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)

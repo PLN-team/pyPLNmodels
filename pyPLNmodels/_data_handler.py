@@ -384,3 +384,11 @@ def _extract_data_from_formula(
     else:
         offsets = None
     return endog, exog, offsets
+
+
+def _array2tensor(func):
+    def setter(self, array_like):
+        array_like = _format_data(array_like)
+        func(self, array_like)
+
+    return setter

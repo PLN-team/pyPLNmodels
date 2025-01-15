@@ -51,7 +51,7 @@ def profiled_elbo_pln(
     )
     elbo -= torch.sum(_log_stirling(endog))
 
-    return elbo / n_samples
+    return elbo
 
 
 def elbo_plnpca(  # pylint: disable=too-many-arguments,too-many-positional-arguments
@@ -101,4 +101,4 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments,too-many-positional-argum
     elbo -= torch.sum(_log_stirling(endog))
     elbo += 0.5 * n_samples * rank
 
-    return elbo / n_samples
+    return elbo

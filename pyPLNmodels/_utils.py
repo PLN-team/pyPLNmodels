@@ -81,14 +81,17 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
     return wrapper
 
 
-def _nice_string_of_dict(dictionnary: dict) -> str:
+def _nice_string_of_dict(dictionnary: dict, best_rank: int = None) -> str:
     """
-    Create a nicely formatted string representation of a dictionary.
+    Create a nicely formatted string representation of a dictionary,
+    optionally highlighting the best model.
 
     Parameters
     ----------
     dictionnary : dict
         Dictionary to format.
+    best_rank : int, optional
+        The rank of the best model to highlight, by default None.
 
     Returns
     -------
@@ -98,7 +101,10 @@ def _nice_string_of_dict(dictionnary: dict) -> str:
     return_string = ""
     for each_row in zip(*([i] + [j] for i, j in dictionnary.items())):
         for element in list(each_row):
-            return_string += f"{str(element):>12}"
+            if best_rank is not None and element == best_rank:
+                return_string += f"{str(element):>12}**"
+            else:
+                return_string += f"{str(element):>12}"
         return_string += "\n"
     return return_string
 
