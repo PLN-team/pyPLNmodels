@@ -114,6 +114,12 @@ def _viz_variables(
         to_show = True
     else:
         to_show = False
+    if colors is not None:
+        try:
+            colors = np.squeeze(colors)
+        except ValueError:
+            pass
+
     sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80)
     if covariances is not None:
         for i in range(covariances.shape[0]):
