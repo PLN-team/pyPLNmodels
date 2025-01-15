@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from pyPLNmodels._viz import _viz_variables, _plot_ellipse
+from .conftest import dict_fitted_models, dict_unfit_models
 
 
 @pytest.fixture
@@ -60,3 +61,30 @@ def test_plot_ellipse():
     cov = np.array([[0.5, 0.2], [0.2, 0.5]])
     _plot_ellipse(mean_x, mean_y, cov=cov, ax=ax)
     assert len(ax.patches) == 1  # Check if ellipse is created
+
+
+def test_viz():
+    for nb_cov in dict_fitted_models.keys():
+        for init_method in ["formula", "explicit"]:
+            for model in dict_fitted_models[nb_cov][init_method]:
+                colors = torch.randn(model.n_samples)
+                model.viz(colors=colors)
+                model.viz(colors=colors, show_cov=True)
+                model.viz(show_cov=True)
+                model.viz()
+
+                model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 4])
+                model.biplot(
+                    variables_names=["A", "B"],
+                    indices_of_variables=[3, 4],
+                    colors=colors,
+                )
+                model.biplot(
+                    variables_names=["A", "B"],
+                    indices_of_variables=[3, 4],
+                    colors=colors,
+                    title="Test",
+                )
+                model.pca_pairplot(n_components=2)
+                model.pca_pairplot()
+                model.pca_pairplot(n_components=2, colors=colors)
