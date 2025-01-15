@@ -321,9 +321,6 @@ class BaseModel(
             time_to_remove_from_beginning = 0
         self._time_recorder = _TimeRecorder(time_to_remove_from_beginning)
 
-    def _init_parameters(self):
-        pass
-
     def _print_beginning_message(self):
         print(f"Fitting a {self._name} model with {self._description}")
 
@@ -767,14 +764,14 @@ class BaseModel(
         """
         Returns the last elbo computed.
         """
-        return self._elbo_criterion_monitor.elbo_list[-1]
+        return (self._elbo_criterion_monitor.elbo_list[-1]).item()
 
     @property
     def loglike(self):
         """
-        Returns the log likelihood of the model, that is n_samples*elbo.
+        Alias for elbo.
         """
-        return self.n_samples * self.elbo
+        return self.elbo
 
     @property
     def BIC(self):
@@ -874,8 +871,7 @@ class BaseModel(
         Parameters
         ----------
             n_components (int, optional): The number of components to consider for plotting.
-                If not specified, the maximum number of components (10) will be used.
-                Defaults to None.
+                Defaults to 3. Cannot be greater than 10.
 
             colors (np.ndarray): An array with one label for each
                 sample in the endog property of the object.

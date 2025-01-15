@@ -473,3 +473,32 @@ def _plot_expected_vs_true(
     if to_show:
         plt.show()
     return ax
+
+
+def _show_information_criterion(*, bic, aic, loglikes):
+    colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
+
+    best_bic_rank = list(bic.keys())[np.argmin(list(bic.values()))]
+    best_aic_rank = list(aic.keys())[np.argmin(list(aic.values()))]
+
+    criteria = ["BIC", "AIC", "Negative log likelihood"]
+    values_list = [bic, aic, loglikes]
+
+    for criterion, values in zip(criteria, values_list):
+        plt.scatter(
+            values.keys(),
+            values.values(),
+            label=f"{criterion} criterion",
+            c=colors[criterion],
+        )
+        plt.plot(values.keys(), values.values(), c=colors[criterion])
+
+        if criterion == "BIC":
+            plt.axvline(best_bic_rank, c=colors[criterion], linestyle="dotted")
+        elif criterion == "AIC":
+            plt.axvline(best_aic_rank, c=colors[criterion], linestyle="dotted")
+
+        plt.xticks(list(values.keys()))
+
+    plt.legend()
+    plt.show()

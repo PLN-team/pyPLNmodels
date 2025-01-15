@@ -6,7 +6,7 @@ import pandas as pd
 from pyPLNmodels.base import BaseModel
 from pyPLNmodels.elbos import elbo_plnpca
 from pyPLNmodels._initialization import _init_coef, _init_components, _init_latent_mean
-from pyPLNmodels._data_handler import _extract_data_from_formula
+from pyPLNmodels._data_handler import _extract_data_from_formula, _array2tensor
 from pyPLNmodels._utils import _add_doc
 
 
@@ -123,11 +123,14 @@ class PlnPCA(BaseModel):
 
     def _init_model_parameters(self):
         coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)
-        if coef is not None:
-            self._coef = coef.detach().to(DEVICE)
-        else:
-            self._coef = None
-        self._components = _init_components(self._endog, self.rank).to(DEVICE)
+        if not hasattr(self, "_coef"):
+            if coef is not None:
+                self._coef = coef.detach().to(DEVICE)
+            else:
+                self._coef = None
+
+        if not hasattr(self, "_components"):
+            self._components = _init_components(self._endog, self.rank).to(DEVICE)
 
     def _init_latent_parameters(self):
         self._latent_mean = _init_latent_mean(
@@ -202,6 +205,55 @@ class PlnPCA(BaseModel):
         """
         return self._components.detach().cpu()
 
+    @components.setter
+    @_array2tensor
+    def components(self, components: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the components.
+
+        Parameters
+        ----------
+        components : torch.Tensor
+            The components to set.
+
+        Raises
+        ------
+        ValueError
+            If the components have an invalid shape.
+        """
+        if components.shape != (self.dim, self.rank):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.dim, self.rank}), got {components.shape}"
+            )
+        self._components = components
+
+    @property
+    @_add_doc(BaseModel)
+    def coef(self):
+        return super().coef
+
+    @coef.setter
+    @_array2tensor
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the coef property.
+
+        Parameters
+        ----------
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (nb_cov, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the coef is incorrect.
+        """
+        if coef.shape != (self.nb_cov, self.dim):
+            raise ValueError(
+                f"Wrong shape for the coef. Expected ({(self.nb_cov, self.dim)}), got {coef.shape}"
+            )
+        self._coef = coef
+
     @property
     def _covariance(self):
         return self._components @ self._components.T
@@ -217,11 +269,33 @@ class PlnPCA(BaseModel):
         )
         return covariances
 
-    @_add_doc(BaseModel)
+    @_add_doc(
+        BaseModel,
+        params="""
+        Parameters
+        ----------
+        project : bool, optional
+            Whether to project the latent variables onto the `rank` first PCs, by default False.
+        """,
+        returns="""
+        torch.Tensor
+            The transformed endog (latent variables of the model).
+        """,
+        example="""
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> data = load_scrna()
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data)
+            >>> pca.fit()
+            >>> transformed_endog_low_dim = pca.transform()
+            >>> transformed_endog_high_dim = pca.transform(project = False)
+            >>> print(transformed_endog_low_dim.shape)
+            >>> print(transformed_endog_high_dim.shape)
+            """,
+    )
     def transform(self, project=False):
         """Transforms the data"""
         if project is True:
-            return self.projected_latent_variables
+            return self.projected_latent_variables(self.rank)
         return self.latent_variables
 
     @property
@@ -284,7 +358,7 @@ class PlnPCA(BaseModel):
         >>> plnpca.pca_pairplot(n_components = 5)
         """,
     )
-    def pca_pairplot(self, n_components=None, colors=None):
+    def pca_pairplot(self, n_components: bool = 3, colors=None):
         super().pca_pairplot(n_components=n_components, colors=colors)
 
     @property
@@ -297,3 +371,39 @@ class PlnPCA(BaseModel):
         return torch.exp(
             self.offsets + self.latent_variables + 1 / 2 * covariance_a_posteriori
         )
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> data = load_scrna()
+            >>> pca = PlnPCA(data["endog"])
+            >>> pca.fit()
+            >>> pca.plot_expected_vs_true()
+            >>> plt.show()
+            >>> pca.plot_expected_vs_true(colors = data["labels"])
+            >>> plt.show()
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import PlnPCA, load_scrna
+            >>> data = load_scrna()
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
+            >>> pca.fit()
+            >>> pca.viz()
+            >>> plt.show()
+            >>> pca.viz(colors = data["labels"])
+            >>> plt.show()
+            >>> pca.viz(show_cov = True)
+            >>> plt.show()
+            """,
+    )
+    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
