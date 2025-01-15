@@ -18,6 +18,15 @@ def load_microcosm(
         Number of samples, by default 300.
     dim : int, optional
         Dimension, by default 200.
+
+    Returns
+    -------
+    Dict:
+        Dictionary. The different key, values are:
+            `endog` that reprensents the counts
+            `site` and `site_1hot` that represent the site and the one hot encoded site.
+            `time` and `time_1hot` that represent the time and the one hot encoded time.
+            `lineage` and `lineage_1hot` that represent the lineage and the one hot lineage site.
     """
     max_samples = 921
     max_dim = 1209
@@ -38,8 +47,8 @@ def load_microcosm(
     cov_list = ["site", "lineage", "time"]
     for cov_name in cov_list:
         covariate = covariates[cov_name]
-        data[cov_name + "_value"] = covariate
-        data[cov_name] = pd.get_dummies(covariate)
+        data[cov_name + "_1hot"] = pd.get_dummies(covariate)
+        data[cov_name] = covariate
 
     data["affiliations"] = pd.read_csv(affil_stream, delimiter="\t").loc[1:dim, :]
 
