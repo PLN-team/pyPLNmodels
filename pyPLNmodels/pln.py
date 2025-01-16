@@ -155,11 +155,11 @@ class Pln(BaseModel):
     )
     def compute_elbo(self):
         return profiled_elbo_pln(
-            self._endog,
-            self._exog,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_variance,
+            endog=self._endog,
+            exog=self._exog,
+            offsets=self._offsets,
+            latent_mean=self._latent_mean,
+            latent_sqrt_variance=self._latent_sqrt_variance,
         )
 
     @property

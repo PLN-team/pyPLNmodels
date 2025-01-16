@@ -200,12 +200,12 @@ class PlnPCA(BaseModel):
     )
     def compute_elbo(self):
         return elbo_plnpca(
-            self._endog,
-            self._marginal_mean,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_variance,
-            self._components,
+            endog=self._endog,
+            marginal_mean=self._marginal_mean,
+            offsets=self._offsets,
+            latent_mean=self._latent_mean,
+            latent_sqrt_variance=self._latent_sqrt_variance,
+            components=self._components,
         )
 
     @property
