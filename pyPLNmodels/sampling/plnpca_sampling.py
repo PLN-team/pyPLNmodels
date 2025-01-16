@@ -20,7 +20,7 @@ class PlnPCASampler(PlnSampler):
         nb_cov: int = 1,
         use_offsets: bool = False,
         marginal_mean: int = 2,
-    ):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    ):  # pylint: disable=too-many-arguments
         self._rank = rank
         super().__init__(
             n_samples=n_samples,

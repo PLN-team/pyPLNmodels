@@ -18,7 +18,7 @@ class _BasePlnSampler(_BaseSampler):
         offsets: torch.Tensor,
         coef: torch.Tensor,
         covariance: torch.Tensor,
-    ):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    ):  # pylint: disable=too-many-arguments
         """
         Instantiate the model with the data given.
 
@@ -73,7 +73,7 @@ class PlnSampler(_BasePlnSampler):
         nb_cov: int = 1,
         use_offsets: bool = False,
         marginal_mean: int = 2,
-    ):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    ):  # pylint: disable=too-many-arguments
         exog = _get_exog(n_samples, nb_cov)
         offsets = _get_offsets(n_samples, dim, use_offsets)
         coef = _get_coef(nb_cov, dim, marginal_mean)

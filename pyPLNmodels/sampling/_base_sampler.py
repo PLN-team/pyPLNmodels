@@ -11,7 +11,7 @@ from ._utils import _format_dict_of_array
 class _BaseSampler(ABC):
     """An abstract class used to simulate data (endogenous variables) from a model."""
 
-    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
         n_samples: int,
