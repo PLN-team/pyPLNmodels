@@ -66,7 +66,7 @@ class ZIPln(BaseModel):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
         add_const_inflation: bool = True,
-    ):  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    ):  # pylint: disable=too-many-arguments
         """
         Initializes the ZIPln class, that is a Pln model with zero-inflation.
 
