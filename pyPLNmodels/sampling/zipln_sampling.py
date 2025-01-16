@@ -13,6 +13,8 @@ class ZIPlnSampler(PlnSampler):
     randomly but have a specific structure.
     """
 
+    bernoulli: torch.Tensor
+
     def __init__(
         self,
         n_samples: int = 100,
@@ -44,10 +46,15 @@ class ZIPlnSampler(PlnSampler):
     @_add_doc(_BaseSampler)
     def sample(self, seed: int = 0) -> torch.Tensor:
         endog_not_inflated = super().sample()
-        bernoulli = torch.bernoulli(torch.sigmoid(self._marginal_mean_inflation))
-        return endog_not_inflated * (1 - bernoulli)
+        self.bernoulli = torch.bernoulli(torch.sigmoid(self._marginal_mean_inflation))
+        return endog_not_inflated * (1 - self.bernoulli)
 
     @property
     def exog_inflation(self):
         """Exogenous variables (i.e. covariates) of the zero inflation part ."""
         return self._exog_inflation.cpu()
+
+    @property
+    def coef_inflation(self) -> torch.Tensor:
+        """Coefficient matrix for the zero inflation part."""
+        return self._params.get("coef_inflation")
