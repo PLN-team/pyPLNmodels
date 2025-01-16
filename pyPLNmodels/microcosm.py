@@ -7,8 +7,6 @@ from patsy import dmatrix
 
 from pyPLNmodels._utils import threshold_samples_and_dim
 
-pd.set_option("display.max_columns", None)
-
 
 def load_microcosm(
     n_samples: int = 300,
