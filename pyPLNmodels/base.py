@@ -172,8 +172,23 @@ class BaseModel(
     def show(self, axes=None, savefig=False, name_file=""):
         """
         Display the model parameters, norm evolution of the parameters and the criterion.
+
+        Parameters
+        ----------
+        axes : matplotlib.axes.Axes, optional
+            The axes on which to plot the visualizations. If None, a new
+            figure and axes will be created.
+        savefig : bool, optional
+            If True, the figure will be saved to a file. Default is False.
+        name_file : str, optional
+            The name of the file to save the figure. Only used if savefig is True.
+            Default is an empty string.
         """
-        model_viz = ModelViz(
+        model_viz = self._get_model_viz()
+        model_viz.show(axes=axes, savefig=savefig, name_file=name_file)
+
+    def _get_model_viz(self):
+        return ModelViz(
             params=self.dict_model_parameters,
             dict_mse=self._dict_list_mse,
             running_times=self._time_recorder.running_times,
@@ -181,7 +196,6 @@ class BaseModel(
             name=self._name,
             tol=DEFAULT_TOL,
         )
-        model_viz.show(axes=axes, savefig=savefig, name_file=name_file)
 
     @abstractmethod
     def plot_correlation_circle(

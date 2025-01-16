@@ -336,6 +336,46 @@ class ModelViz:
         if to_show is True:
             plt.show()
 
+    def show_zi(self, *, axes, savefig, name_file):
+        """
+        Show the model but adds a zero inflation graph for the associated
+        coefficient. Graphs are reordered so that `coef` and `coef_inflation`
+        can be directly compared (compared to `show`).
+        """
+        to_show = False
+        if axes is None:
+            fig = plt.figure(figsize=(23, 5))
+            gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax3 = fig.add_subplot(gs[0, 2])
+
+            ax4 = fig.add_subplot(gs[1, 0])
+            ax5 = fig.add_subplot(gs[1, 1:3])
+            to_show = True
+            # axes = [ax4,ax1,ax3,ax2]
+            axes = [ax2, ax5, ax3, ax1]
+        elif len(axes) != 5:
+            raise ValueError("The axes should be of length 5.")
+        else:
+            ax1, ax2, ax3, ax4, ax5 = axes[0], axes[1], axes[2], axes[3], axes[4]
+
+        self.show(axes=axes, savefig=False, name_file="")
+        self.display_coef_inflation(ax=ax4)
+        if savefig is True:
+            plt.savefig(name_file + self._name + ".pdf", format="pdf")
+
+        if to_show is True:
+            plt.show()
+
+    def display_coef_inflation(self, *, ax: matplotlib.axes.Axes):
+        """
+        Display an heatmap of the coefficient of the zero inflation.
+        """
+        coef_inflation = self._params["coef_inflation"]
+        sns.heatmap(coef_inflation, ax=ax)
+        ax.set_title("Zero inflation Regression coefficient Matrix")
+
 
 def _perform_pca(array, n_components):
     pca = PCA(n_components=n_components)
