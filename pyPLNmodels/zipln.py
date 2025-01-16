@@ -557,3 +557,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     @_add_doc(BaseModel)
     def latent_positions(self):
         return self.latent_variables - self.marginal_mean
+
+    @_add_doc(BaseModel)
+    def show(self, axes=None, savefig=False, name_file=""):
+        model_viz = self._get_model_viz()
+        model_viz.show_zi(axes=axes, savefig=savefig, name_file=name_file)
