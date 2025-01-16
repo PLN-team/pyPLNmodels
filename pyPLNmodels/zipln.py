@@ -239,15 +239,15 @@ class ZIPln(BaseModel):
 
     def compute_elbo(self):
         return elbo_zipln(
-            self._endog,
-            self._marginal_mean,
-            self._offsets,
-            self._latent_mean,
-            self._latent_sqrt_variance,
-            self._latent_prob,
-            self._covariance,
-            self._marginal_mean_inflation,
-            self._dirac,
+            endog=self._endog,
+            marginal_mean=self._marginal_mean,
+            offsets=self._offsets,
+            latent_mean=self._latent_mean,
+            latent_sqrt_variance=self._latent_sqrt_variance,
+            latent_prob=self._latent_prob,
+            covariance=self._covariance,
+            marginal_mean_inflation=self._marginal_mean_inflation,
+            dirac=self._dirac,
         )
 
     @property
