@@ -16,7 +16,7 @@ from pyPLNmodels._initialization import _init_coef_coef_inflation
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
 from pyPLNmodels.elbos import elbo_zipln
 from pyPLNmodels._utils import _add_doc
-from pyPLNmodels._viz import _viz_variables
+from pyPLNmodels._viz import _viz_variables, _pca_pairplot
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -25,7 +25,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 NULL_TENSOR = torch.tensor([0], device=DEVICE)
 
 
-class ZIPln(BaseModel):
+class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     """
     Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation
     Fitting such a model is slower than fitting a Pln.
@@ -355,6 +355,39 @@ class ZIPln(BaseModel):
     def pca_pairplot(self, n_components: bool = 3, colors=None):
         super().pca_pairplot(n_components=n_components, colors=colors)
 
+    def pca_pairplot_prob(self, n_components: int = None, colors: np.ndarray = None):
+        """
+        Generates a scatter matrix plot based on Principal
+        Component Analysis (PCA) on the latent variables associated
+        with the zero inflation (i.e. the Bernoulli variables).
+
+        Parameters
+        ----------
+            n_components (int, optional): The number of components to consider for plotting.
+                Defaults to 3. Cannot be greater than 10.
+
+            colors (np.ndarray): An array with one label for each
+                sample in the endog property of the object.
+                Defaults to None.
+        Raises
+        ------
+            ValueError: If the number of components requested is greater
+                than the number of variables in the dataset.
+        """
+        model_max_n_components = self._get_max_n_components()
+        if n_components is not None:
+            if model_max_n_components < n_components:
+                raise ValueError(
+                    f"The number of components requested ({n_components}) is greater"
+                    f"than the number of variables in the dataset ({model_max_n_components})."
+                )
+        else:
+            n_components = model_max_n_components
+        min_n_components = min(10, n_components)
+        n_components = max(min_n_components, n_components)
+        array = self.transform(return_latent_prob=True).numpy()
+        _pca_pairplot(array, n_components, colors)
+
     @_add_doc(
         BaseModel,
         example="""
@@ -381,7 +414,7 @@ class ZIPln(BaseModel):
 
     @property
     def _additional_methods_list(self):
-        return [".viz_prob()", ".predict_prob_inflation()"]
+        return [".viz_prob()", ".predict_prob_inflation()", ".pca_pairplot_prob()"]
 
     @property
     def _description(self):
