@@ -3,6 +3,8 @@ from typing import Optional
 import torch
 import numpy as np
 from sklearn.decomposition import PCA
+
+
 from pyPLNmodels._utils import _log_stirling
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -267,3 +269,68 @@ def _init_latent_mean(  # pylint: disable=too-many-arguments
         iteration += 1
 
     return latent_mean.detach()
+
+
+def _init_coef_coef_inflation(endog, exog, exog_inflation, offsets):
+    zip_model = ZIP(endog, exog, exog_inflation, offsets)
+    zip_model.fit()
+    return (zip_model.coef.detach(), zip_model.coef_inflation.detach())
+
+
+class ZIP:
+    """
+    Simple Zero Inflated Poisson model for initialization of the ZIPln model.
+    """
+
+    # pylint: disable=too-many-instance-attributes
+    def __init__(self, endog, exog, exog_inflation, offsets):
+        """
+        Simple initialization of the Zero Inflated Poisson model. Coefficients are
+        intialized randomly
+        """
+        self.endog = endog
+        self.exog = exog
+        self.exog_inflation = exog_inflation
+        self.offsets = offsets
+
+        self.r0 = torch.mean((endog == 0).double(), axis=0)
+        self.ybarre = torch.mean(endog, axis=0)
+
+        self.n_samples = endog.shape[0]
+        dim = self.endog.shape[1]
+        nb_cov = exog.shape[1]
+        nb_cov_infla = exog_inflation.shape[1]
+
+        self.coef_inflation = (
+            torch.randn(nb_cov_infla, dim).to(DEVICE).requires_grad_(True)
+        )
+        self.coef = torch.randn(nb_cov, dim).to(DEVICE).requires_grad_(True)
+
+    @property
+    def _mean_poisson(self):
+        return torch.exp(self.offsets + self.exog @ self.coef)
+
+    @property
+    def _mean_inflation(self):
+        mean = self.exog_inflation @ self.coef_inflation
+        return torch.sigmoid(mean)
+
+    def loglike(self, lam, pi):
+        """
+        Computes the loglikelihood of a Zero Inflated Poisson regression model.
+        """
+        first_term = (
+            self.n_samples * self.r0 * torch.log(pi + (1 - pi) * torch.exp(-lam))
+        )
+        second_term = self.n_samples * (1 - self.r0) * (
+            torch.log(1 - pi) - lam
+        ) + self.n_samples * self.ybarre * torch.log(lam)
+        return first_term + second_term
+
+    def fit(self, maxiter=150):  # pylint: disable=missing-function-docstring
+        optim = torch.optim.Rprop([self.coef, self.coef_inflation])
+        for _ in range(maxiter):
+            loss = -torch.mean(self.loglike(self._mean_poisson, self._mean_inflation))
+            loss.backward()
+            optim.step()
+            optim.zero_grad()

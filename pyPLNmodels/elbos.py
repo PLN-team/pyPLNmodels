@@ -1,7 +1,8 @@
+# pylint: skip-file
 import torch
 
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
-from pyPLNmodels._utils import _log_stirling
+from pyPLNmodels._utils import _log_stirling, _trunc_log, _log1pexp
 
 
 def profiled_elbo_pln(
@@ -101,4 +102,60 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments,too-many-positional-argum
     elbo -= torch.sum(_log_stirling(endog))
     elbo += 0.5 * n_samples * rank
 
+    return elbo
+
+
+def elbo_zipln(
+    endog,
+    marginal_mean,
+    offsets,
+    latent_mean,
+    latent_sqrt_var,
+    latent_prob,
+    covariance,
+    marginal_mean_inflation,
+    dirac,
+):
+    if torch.norm(latent_prob * dirac - latent_prob) > 1e-8:
+        raise RuntimeError("Latent probability error.")
+
+    n_samples, dim = endog.shape
+    latent_var = latent_sqrt_var**2
+    offsets_plus_latent_mean = offsets + latent_mean
+    mean_diff = latent_mean - marginal_mean
+
+    poisson_mean = torch.exp(offsets_plus_latent_mean + latent_var / 2)
+    poisson_term = torch.sum(
+        (1 - latent_prob)
+        * (endog * offsets_plus_latent_mean - poisson_mean - _log_stirling(endog))
+    )
+
+    Omega = torch.inverse(covariance)
+    mean_diff_outer = torch.mm(mean_diff.T, mean_diff)
+    quadratic_term = torch.sum(
+        -0.5 * Omega * (mean_diff_outer + torch.diag(torch.sum(latent_var, axis=0)))
+    )
+
+    inflation_term = torch.sum(
+        latent_prob * marginal_mean_inflation - _log1pexp(marginal_mean_inflation)
+    )
+
+    entropy_term = torch.sum(0.5 * torch.log(latent_var))
+
+    kl_divergence_term = torch.sum(
+        -latent_prob * _trunc_log(latent_prob)
+        - (1 - latent_prob) * _trunc_log(1 - latent_prob)
+    )
+
+    logdet_term = -0.5 * n_samples * torch.logdet(covariance)
+
+    elbo = (
+        poisson_term
+        + quadratic_term
+        + inflation_term
+        + entropy_term
+        + kl_divergence_term
+        + logdet_term
+        + 0.5 * n_samples * dim
+    )
     return elbo

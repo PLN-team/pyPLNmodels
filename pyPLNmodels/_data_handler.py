@@ -3,7 +3,7 @@ import warnings
 import torch
 import numpy as np
 import pandas as pd
-from patsy import dmatrices  # pylint: disable=no-name-in-module
+from patsy import dmatrices, dmatrix, PatsyError  # pylint: disable=no-name-in-module
 
 
 from pyPLNmodels._utils import _get_log_sum_of_endog
@@ -69,6 +69,27 @@ def _handle_data(
     return endog, exog, offsets, column_names_endog, column_names_exog
 
 
+def _handle_inflation_data(exog_inflation, add_const_inflation, endog):
+    """
+    Format only the zero inflation part. Raises a ValueError
+    if there is no zero inflation and no add_const_inflation.
+    """
+    column_names_exog_inflation = (
+        exog_inflation.columns if isinstance(exog_inflation, pd.DataFrame) else None
+    )
+    exog_inflation = _format_data(exog_inflation)
+    if add_const_inflation is True:
+        exog_inflation = _add_constant_to_exog(exog_inflation, endog.shape[0])
+    else:
+        if exog_inflation is None:
+            raise ValueError("Please fit a Pln model if there is no inflation.")
+    _check_dimensions_equal(
+        "endog", "exog_inflation", endog.shape[0], exog_inflation.shape[0], 0, 0
+    )
+    dirac = endog == 0
+    return exog_inflation, column_names_exog_inflation, dirac
+
+
 def _format_model_params(
     endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     exog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
@@ -117,7 +138,6 @@ def _format_model_params(
         _check_full_rank_exog(exog)
 
     offsets = _compute_or_format_offsets(offsets, endog, compute_offsets_method)
-
     return endog, exog, offsets
 
 
@@ -371,10 +391,7 @@ def _extract_data_from_formula(
 
     """
     variables = dmatrices(formula, data=data)
-    endog = variables[0]
-    exog = variables[1]
-    non_zero_exog = (exog**2).sum(axis=0) > 0
-    exog = exog[:, non_zero_exog]
+    endog, exog = variables[0], variables[1]
 
     if exog.size == 0:
         exog = None
@@ -384,6 +401,36 @@ def _extract_data_from_formula(
     else:
         offsets = None
     return endog, exog, offsets
+
+
+def _extract_exog_inflation_from_formula(
+    formula_inflation: str,
+    data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
+) -> Tuple:
+    """
+    Extract only the exog_inflation from the given formula and data dictionary.
+
+    Parameters
+    ----------
+    formula_inflation : str
+        The formula specifying the data to extract.
+    data : Dict[str, Any]
+        A dictionary containing the data.
+
+    Returns
+    -------
+    torch.Tensor
+        `exog_inflation` of size (n_samples, nb_cov_inflation).
+    """
+    try:
+        exog_inflation = dmatrix(formula_inflation, data=data)
+        _check_full_rank_exog(exog_inflation, inflation=True)
+        return exog_inflation
+    except PatsyError as err:
+        msg = f"Formula of ``exog_inflation` did not work: {formula_inflation}."
+        msg += " Error from Patsy:"
+        warnings.warn(msg)
+        raise err
 
 
 def _array2tensor(func):

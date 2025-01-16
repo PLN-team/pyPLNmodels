@@ -3,7 +3,7 @@ import torch
 import pandas as pd
 import numpy as np
 
-from pyPLNmodels.base import BaseModel
+from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
 from pyPLNmodels.elbos import profiled_elbo_pln
 from pyPLNmodels._utils import _add_doc
@@ -98,6 +98,32 @@ class Pln(BaseModel):
             compute_offsets_method=compute_offsets_method,
         )
 
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula("endog ~ 1", data)
+        >>> pln.fit()
+        >>> print(pln)
+
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula("endog ~ 1", data)
+        >>> pln.fit( maxiter = 500, verbose = True)
+        >>> print(pln)
+        """,
+    )
+    def fit(
+        self,
+        *,
+        maxiter: int = 400,
+        lr: float = 0.01,
+        tol: float = DEFAULT_TOL,
+        verbose: bool = False,
+    ):
+        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+
     def _init_model_parameters(self):
         """The model parameters are profiled in the ELBO, no need to intialize them."""
 
@@ -175,10 +201,32 @@ class Pln(BaseModel):
         >>> pln = Pln.from_formula("endog ~ 1", data)
         >>> pln.fit()
         >>> print(pln.latent_variables.shape)
+        >>> pln.viz() # Visualize the latent variables
+        """,
+        see_also="""
+        :func:`pyPLNmodels.Pln.latent_positions`
         """,
     )
     def latent_variables(self):
         return self.latent_mean
+
+    @property
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> data = load_scrna()
+        >>> pln = Pln.from_formula("endog ~ 1", data)
+        >>> pln.fit()
+        >>> print(pln.latent_positions.shape)
+        >>> pln.viz(remove_cov_effects = True) # Visualize the latent positions
+        """,
+        see_also="""
+        :func:`pyPLNmodels.Pln.latent_variables`
+        """,
+    )
+    def latent_positions(self):
+        return self.latent_mean - self.marginal_mean
 
     @property
     @_add_doc(BaseModel)
@@ -187,11 +235,11 @@ class Pln(BaseModel):
 
     @property
     def _additional_properties_list(self):
-        return ""
+        return []
 
     @property
     def _additional_methods_list(self):
-        return ""
+        return []
 
     @_add_doc(
         BaseModel,
@@ -259,9 +307,7 @@ class Pln(BaseModel):
             >>> pln = Pln(data["endog"])
             >>> pln.fit()
             >>> pln.plot_expected_vs_true()
-            >>> plt.show()
             >>> pln.plot_expected_vs_true(colors = data["labels"])
-            >>> plt.show()
             """,
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
@@ -276,11 +322,8 @@ class Pln(BaseModel):
             >>> pln = Pln.from_formula("endog ~ 1", data = data)
             >>> pln.fit()
             >>> pln.viz()
-            >>> plt.show()
             >>> pln.viz(colors = data["labels"])
-            >>> plt.show()
             >>> pln.viz(show_cov = True)
-            >>> plt.show()
             """,
     )
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):
