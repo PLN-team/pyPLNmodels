@@ -237,6 +237,7 @@ class ZIPln(BaseModel):
     def _coef(self):
         return _closed_formula_coef(self._exog, self._latent_mean)
 
+    @_add_doc(BaseModel)
     def compute_elbo(self):
         return elbo_zipln(
             endog=self._endog,
@@ -258,6 +259,7 @@ class ZIPln(BaseModel):
         ) * (1 - self.latent_prob)
 
     @property
+    @_add_doc(BaseModel)
     def list_of_parameters_needing_gradient(self):
         return [
             self._latent_mean,
@@ -281,11 +283,13 @@ class ZIPln(BaseModel):
             self._latent_prob *= self._dirac
 
     @property
+    @_add_doc(BaseModel)
     def dict_model_parameters(self):
         default = self._default_dict_model_parameters
         return {**default, **{"coef_inflation": self.coef_inflation}}
 
     @property
+    @_add_doc(BaseModel)
     def dict_latent_parameters(self):
         default = self._default_dict_latent_parameters
         return {**default, **{"latent_prob": self.latent_prob}}
