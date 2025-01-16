@@ -87,7 +87,7 @@ class _BaseSampler(ABC):
 
     @property
     def exog(self) -> torch.Tensor:
-        """Covariates."""
+        """Exogenous variables (i.e. covariates)."""
         if self._exog is None:
             return None
         return self._exog.cpu()

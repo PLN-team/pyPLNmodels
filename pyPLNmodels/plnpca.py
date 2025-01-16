@@ -316,13 +316,15 @@ class PlnPCA(BaseModel):
             >>> transformed_endog_high_dim = pca.transform(project = False)
             >>> print(transformed_endog_low_dim.shape)
             >>> print(transformed_endog_high_dim.shape)
+            >>> transformed_no_exog = pca.transform(remove_exog_effect = True, project = True)
             """,
     )
-    def transform(self, project=False):
-        """Transforms the data"""
+    def transform(self, remove_exog_effect: bool = False, project=False):
         if project is True:
-            return self.projected_latent_variables(self.rank)
-        return self.latent_variables
+            return self.projected_latent_variables(
+                rank=self.rank, remove_exog_effect=remove_exog_effect
+            )
+        return super().transform(remove_exog_effect=remove_exog_effect)
 
     @property
     @_add_doc(
@@ -337,7 +339,7 @@ class PlnPCA(BaseModel):
         """,
     )
     def latent_variables(self):
-        return torch.matmul(self.latent_mean, self.components.T)
+        return torch.matmul(self.latent_mean, self.components.T) + self.marginal_mean
 
     @property
     @_add_doc(
@@ -348,11 +350,11 @@ class PlnPCA(BaseModel):
         >>> pca = PlnPCA.from_formula("endog ~ 1", data)
         >>> pca.fit()
         >>> print(pca.latent_positions.shape)
-        >>> pca.viz(remove_cov_effects = True) # Visualize the latent positions
+        >>> pca.viz(remove_exog_effect = True) # Visualize the latent positions
         """,
     )
     def latent_positions(self):
-        return torch.matmul(self.latent_mean, self.components.T) + self.marginal_mean
+        return torch.matmul(self.latent_mean, self.components.T)
 
     @property
     @_add_doc(BaseModel)
@@ -435,12 +437,25 @@ class PlnPCA(BaseModel):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
-            >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
+            >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data = data)
             >>> pca.fit()
             >>> pca.viz()
             >>> pca.viz(colors = data["labels"])
             >>> pca.viz(show_cov = True)
+            >>> pca.viz(remove_exog_effect = True, colors = data["labels"])
             """,
     )
-    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
-        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        remove_exog_effect: bool = False,
+    ):
+        super().viz(
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            remove_exog_effect=remove_exog_effect,
+        )

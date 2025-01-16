@@ -19,7 +19,7 @@ class PlnPCASampler(PlnSampler):
         *,
         nb_cov: int = 1,
         use_offsets: bool = False,
-        marginal_mean: int = 2,
+        marginal_mean_mean: int = 2,
     ):  # pylint: disable=too-many-arguments
         self._rank = rank
         super().__init__(
@@ -27,7 +27,7 @@ class PlnPCASampler(PlnSampler):
             dim=dim,
             nb_cov=nb_cov,
             use_offsets=use_offsets,
-            marginal_mean=marginal_mean,
+            marginal_mean_mean=marginal_mean_mean,
         )
 
     def _get_components(self):

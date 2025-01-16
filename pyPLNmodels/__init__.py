@@ -7,7 +7,7 @@ from .plnpca import PlnPCA
 from .plnpcacollection import PlnPCAcollection
 from .zipln import ZIPln
 
-from .sampling import PlnSampler, PlnPCASampler
+from .sampling import PlnSampler, PlnPCASampler, ZIPlnSampler
 
 __version__ = importlib.metadata.version("pyplnmodels")
 
@@ -20,5 +20,6 @@ __all__ = [
     "PlnPCAcollection",
     "PlnSampler",
     "PlnPCASampler",
+    "ZIPlnSampler",
     "ZIPln",
 ]
