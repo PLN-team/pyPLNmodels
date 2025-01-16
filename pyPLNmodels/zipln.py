@@ -1,7 +1,28 @@
-# pylint: skip-file
-import torch
+from typing import Optional, Union
 
-from pyPLNmodels import BaseModel
+import torch
+import numpy as np
+import pandas as pd
+
+
+from pyPLNmodels.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels._data_handler import (
+    _handle_inflation_data,
+    _extract_data_from_formula,
+    _extract_exog_inflation_from_formula,
+    _array2tensor,
+)
+from pyPLNmodels._initialization import _init_coef_coef_inflation
+from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
+from pyPLNmodels.elbos import elbo_zipln
+from pyPLNmodels._utils import _add_doc
+from pyPLNmodels._viz import _viz_variables
+
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+NULL_TENSOR = torch.tensor([0], device=DEVICE)
 
 
 class ZIPln(BaseModel):
@@ -37,34 +58,37 @@ class ZIPln(BaseModel):
         self,
         endog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]],
         *,
-        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
-        exog_inflation: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]] = None,
+        exog_inflation: Optional[
+            Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
+        ] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
         add_const_inflation: bool = True,
-    ):
+    ):  # pylint: disable=too-many-arguments,too-many-positional-arguments
         """
-        Initializes the ZIPln class.
+        Initializes the ZIPln class, that is a Pln model with zero-inflation.
 
         Parameters
         ----------
         endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The count data.
-        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series], optional(keyword-only)
             The covariate data. Defaults to None.
         exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
-            The covariate data for the inflation part. Defaults to None. If None,
-            will automatically add a vector of one if zero_inflation_formula is
-            either "column-wise" or "row-wise".
+            The covariate data for the inflation part. Defaults to None.
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to None.
+        compute_offsets_method : str, optional(keyword-only)
+            Method to compute offsets if not provided. Options are:
+                - "zero" that will set the offsets to zero.
+                - "logsum" that will take the logarithm of the sum (per line) of the counts.
+            Overriden (useless) if `offsets` is not None.
         add_const : bool, optional(keyword-only)
             Whether to add a column of one in the exog. Defaults to True.
         add_const_inflation : bool, optional(keyword-only)
             Whether to add a column of one in the exog_inflation. Defaults to True.
-            If exog_inflation is None and zero_inflation_formula is not "global",
-            add_const_inflation is set to True anyway and a warnings
-            is launched.
         Returns
         -------
         A ZIPln object
@@ -79,28 +103,402 @@ class ZIPln(BaseModel):
         >>> zi.fit()
         >>> print(zi)
         """
-        (
+        super().__init__(
+            endog,
+            exog=exog,
+            offsets=offsets,
+            compute_offsets_method=compute_offsets_method,
+            add_const=add_const,
+        )
+        self._exog_inflation, self.column_names_exog_inflation, self._dirac = (
+            _handle_inflation_data(exog_inflation, add_const_inflation, self._endog)
+        )
+
+    @classmethod
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> from pyPLNmodels import ZIPln, load_microcosm
+            >>> data = load_microcosm()
+            >>> # same covariates for the zero inflation and the gaussian component
+            >>> zi_same = ZIPln.from_formula("endog ~ 1 + site", data = data)
+            >>> # different covariates
+            >>> zi_different = ZIPln.from_formula("endog ~ 1  + site| 1 + time", data = data)
+        """,
+        returns="""
+            ZIPln
+        """,
+        see_also="""
+        :class:`pyPLNmodels.ZIPln`
+        :func:`pyPLNmodels.ZIPln.__init__`
+    """,
+    )
+    def from_formula(
+        cls,
+        formula: str,
+        data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
+        *,
+        compute_offsets_method: {"zero", "logsum"} = "zero",
+    ):
+        if "|" not in formula:
+            msg = "`exog_inflation` and `exog` are set to the same array. "
+            msg += "If you need different `exog_inflation`, "
+            msg += "specify it with a pipe: '|' like in the following: endog ~ 1 + x | x + y "
+            print(msg)
+            endog, exog, offsets = _extract_data_from_formula(formula, data)
+            exog_inflation = exog
+        else:
+            split_formula = formula.split("|")
+            formula_exog = split_formula[0]
+            endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
+            formula_infla = split_formula[1]
+            exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
+
+        return cls(
+            endog,
+            exog=exog,
+            exog_inflation=exog_inflation,
+            offsets=offsets,
+            compute_offsets_method=compute_offsets_method,
+            add_const=False,
+            add_const_inflation=False,
+        )
+
+    def _init_model_parameters(self):
+        _, self._coef_inflation = _init_coef_coef_inflation(
             self._endog,
             self._exog,
             self._exog_inflation,
             self._offsets,
-            self.column_endog,
-            self._dirac,
-            self._batch_size,
-            self.samples_only_zeros,
-        ) = _handle_data_with_inflation(
-            endog,
-            exog,
-            exog_inflation,
-            offsets,
-            offsets_formula,
-            self._zero_inflation_formula,
-            take_log_offsets,
-            add_const,
-            add_const_inflation,
-            batch_size,
         )
-        self._fitted = False
-        self._criterion_args = _CriterionArgs()
-        if dict_initialization is not None:
-            self._set_init_parameters(dict_initialization)
+        # coef and covariance are not initialized as defined by closed forms.
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> data = load_scrna()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data)
+        >>> zi.fit()
+        >>> print(zi)
+
+        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> data = load_scrna()
+        >>> zi = ZIPln.from_formula("endog ~ 1 | 1 + labels", data)
+        >>> zi.fit(maxiter = 500, verbose = True)
+        >>> print(zi)
+        """,
+    )
+    def fit(
+        self,
+        *,
+        maxiter: int = 400,
+        lr: float = 0.01,
+        tol: float = DEFAULT_TOL,
+        verbose: bool = False,
+    ):
+        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+
+    def _init_latent_parameters(self):
+        self._latent_mean = torch.log(self._endog + (self._endog == 0)).to(DEVICE)
+        self._latent_sqrt_variance = (
+            1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
+        )
+        self._latent_prob = torch.sigmoid(self._marginal_mean_inflation) * self._dirac
+
+    @property
+    def _covariance(self):
+        return _closed_formula_covariance(
+            self._marginal_mean,
+            self._latent_mean,
+            self._latent_sqrt_variance,
+            self.n_samples,
+        )
+
+    @property
+    def _marginal_mean_inflation(self):
+        return self._exog_inflation @ self._coef_inflation
+
+    @property
+    def latent_prob(self):
+        """
+        The probabilities that the zero inflation variable is 0.
+        """
+        return self._latent_prob.detach().cpu()
+
+    def _get_two_dim_covariances(self, sklearn_components):
+        components_var = np.expand_dims(
+            self.latent_sqrt_variance**2, 1
+        ) * np.expand_dims(sklearn_components, 0)
+        covariances = np.matmul(components_var, np.expand_dims(sklearn_components.T, 0))
+        return covariances
+
+    @property
+    def _coef(self):
+        return _closed_formula_coef(self._exog, self._latent_mean)
+
+    def compute_elbo(self):
+        return elbo_zipln(
+            self._endog,
+            self._marginal_mean,
+            self._offsets,
+            self._latent_mean,
+            self._latent_sqrt_variance,
+            self._latent_prob,
+            self._covariance,
+            self._marginal_mean_inflation,
+            self._dirac,
+        )
+
+    @property
+    @_add_doc(BaseModel)
+    def _endog_predictions(self):
+        return torch.exp(
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_variance**2
+        ) * (1 - self.latent_prob)
+
+    @property
+    def list_of_parameters_needing_gradient(self):
+        return [
+            self._latent_mean,
+            self._latent_sqrt_variance,
+            self._coef_inflation,
+            self._latent_prob,
+        ]
+
+    def _project_parameters(self):
+        with torch.no_grad():
+            self._latent_prob = torch.maximum(
+                self._latent_prob,
+                NULL_TENSOR,
+                out=self._latent_prob,
+            )
+            self._latent_prob = torch.minimum(
+                self._latent_prob,
+                1 - NULL_TENSOR,
+                out=self._latent_prob,
+            )
+            self._latent_prob *= self._dirac
+
+    @property
+    def dict_model_parameters(self):
+        default = self._default_dict_model_parameters
+        return {**default, **{"coef_inflation": self.coef_inflation}}
+
+    @property
+    def dict_latent_parameters(self):
+        default = self._default_dict_latent_parameters
+        return {**default, **{"latent_prob": self.latent_prob}}
+
+    @property
+    @_add_doc(BaseModel)
+    def latent_variables(self):
+        return (
+            1 - self.latent_prob
+        ) * self.latent_mean + self.marginal_mean * self.latent_prob
+
+    @property
+    def latent_prob_variables(self):
+        """
+        The (conditional) probabilities of the latent probability variables.
+        """
+        return self.latent_prob
+
+    @_add_doc(
+        BaseModel,
+        params="""
+        return_latent_prob: bool, optional = False
+            Wheter to return latent probability variables of zero inflation
+            (`return_latent_prob = True`) or the latent mean of the gaussian component
+            (`return_latent_prob = False`). Default to False.
+
+        """,
+        returns="""
+        torch.Tensor
+            The transformed endogenous variables (latent variables of the model).
+            If `return_latent_prob` is True, will return the latent variables
+            of the zero-inflation component.
+        """,
+        example="""
+              >>> from pyPLNmodels import ZIPln, load_microcosm
+              >>> data = load_microcosm()
+              >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+              >>> zi.fit()
+              >>> transformed_endog = zi.transform()
+              >>> print(transformed_endog.shape)
+              >>> latent_prob = zi.transform(return_latent_prob = True)
+              """,
+    )
+    def transform(self, return_latent_prob=False):
+        if return_latent_prob is True:
+            return self.latent_prob
+        return self.latent_variables
+
+    @property
+    def number_of_parameters(self):
+        return self.dim * (self.nb_cov + (self.dim + 1) / 2 + self.nb_cov_inflation)
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import ZIPln, load_microcosm
+        >>> data = load_microcosm()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        >>> zi.fit()
+        >>> zi.pca_pairplot(n_components = 5)
+        """,
+    )
+    def pca_pairplot(self, n_components: bool = 3, colors=None):
+        super().pca_pairplot(n_components=n_components, colors=colors)
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import ZIPln, load_microcosm
+        >>> data = load_microcosm()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        >>> zi.fit()
+        >>> zi.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
+        >>> should add some plot with pd.DataFrame here.
+        """,
+    )
+    def plot_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
+        super().plot_correlation_circle(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            title=title,
+        )
+
+    @property
+    def _additional_properties_list(self):
+        return [".latent_prob"]
+
+    @property
+    def _additional_methods_list(self):
+        return [".viz_prob()", ".predict_prob_inflation()"]
+
+    @property
+    def _description(self):
+        msg = "full covariance."
+        return msg
+
+    @property
+    def nb_cov_inflation(self):
+        """Number of covariates associated with the zero inflation."""
+        return self._exog_inflation.shape[1]
+
+    @property
+    def exog_inflation(self):
+        """
+        Property representing the exogenous variables (covariates) associate
+        with the zero inflation.
+
+        Returns
+        -------
+        torch.Tensor
+            The exogenous variables of the zero inflation variable.
+        """
+        return self._exog_inflation.detach().cpu()
+
+    @_array2tensor
+    def predict_prob_inflation(
+        self, exog_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
+    ):
+        """
+        Method for estimating the probability of a zero coming from the zero inflated component.
+
+        Parameters
+        ----------
+        exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
+            The exogenous variables associated to the zero inflation.
+
+        Returns
+        -------
+        torch.Tensor
+            The predicted values sigmoid(exog_inflation @ coef_inflation).
+
+        Raises
+        ------
+        RuntimeError
+            If the shape of the exog is incorrect.
+
+        Notes
+        -----
+        - The mean sigmoid(exog_inflation @ coef_inflation) is returned.
+        - `exog_inflation` should have the shape `(_, nb_cov)`, where `nb_cov` is
+            the number of exog variables.
+        """
+        if exog_inflation.shape[-1] != self.nb_cov_inflation:
+            error_string = f"X has wrong shape:({exog_inflation.shape}). Should"
+            error_string += f" be (_, {self.nb_cov_inflation})."
+            raise RuntimeError(error_string)
+        return torch.sigmoid(exog_inflation @ self.coef_inflation)
+
+    @property
+    def coef_inflation(self):
+        """
+        Property representing the regression coefficients associated with the zero-inflation
+        component, of size (nb_cov_inflation, dim).
+
+        Returns
+        -------
+        torch.Tensor
+            The coefficients.
+        """
+        return self._coef_inflation.detach().cpu()
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import ZIPln, load_microcosm
+            >>> data = load_microcosm()
+            >>> zi = ZIPln.from_formula("endog ~ 1 + site", data = data)
+            >>> zi.fit()
+            >>> zi.viz()
+            >>> zi.viz(colors = data["site"])
+            >>> zi.viz(show_cov = True)
+            """,
+    )
+    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
+        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+
+    def viz_prob(self, *, ax=None, colors=None):
+        """
+        Visualize the latent variables.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes on which to plot, by default None.
+        colors : list, optional
+            The colors to color the probabilities for the plot, by default None.
+        Examples
+        --------
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import ZIPln, load_microcosm
+            >>> data = load_microcosm()
+            >>> zi = ZIPln.from_formula("endog ~ 1 + site", data = data)
+            >>> zi.fit()
+            >>> zi.viz_prob()
+            >>> zi.viz_prob(colors = data["site"])
+        """
+        prob = self.transform(return_latent_prob=True)
+        _viz_variables(prob, ax=ax, colors=colors, covariances=None)
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> import matplotlib.pyplot as plt
+            >>> from pyPLNmodels import ZIPln, load_scrna
+            >>> data = load_scrna()
+            >>> zi = ZIPln(data["endog"])
+            >>> zi.fit()
+            >>> zi.plot_expected_vs_true()
+            >>> zi.plot_expected_vs_true(colors = data["labels"])
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)

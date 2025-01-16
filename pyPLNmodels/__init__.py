@@ -5,6 +5,7 @@ from .load_data import load_oaks, load_scrna, load_microcosm
 from .pln import Pln
 from .plnpca import PlnPCA
 from .plnpcacollection import PlnPCAcollection
+from .zipln import ZIPln
 
 from .sampling import PlnSampler, PlnPCASampler
 
@@ -19,4 +20,5 @@ __all__ = [
     "PlnPCAcollection",
     "PlnSampler",
     "PlnPCASampler",
+    "ZIPln",
 ]

@@ -7,6 +7,9 @@ import numpy as np
 import torch
 
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def _get_log_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
     """
     Compute offsets from the sum of endog.
@@ -131,3 +134,20 @@ def calculate_correlation(data, transformed_data):
         corr2 = np.corrcoef(j, transformed_data[:, 1])[0, 1]
         ccircle.append((corr1, corr2))
     return ccircle
+
+
+def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
+    integer = torch.min(
+        torch.max(tens, torch.tensor([eps], device=DEVICE)),
+        torch.tensor([1 - eps], device=DEVICE),
+    )
+    return torch.log(integer)
+
+
+def _log1pexp(t):
+    mask = t > 10
+    return torch.where(
+        mask,
+        t,
+        torch.log(1 + torch.exp(t)),
+    )

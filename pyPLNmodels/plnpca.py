@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.base import BaseModel
+from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.elbos import elbo_plnpca
 from pyPLNmodels._initialization import _init_coef, _init_components, _init_latent_mean
 from pyPLNmodels._data_handler import _extract_data_from_formula, _array2tensor
@@ -121,6 +121,32 @@ class PlnPCA(BaseModel):
             rank=rank,
         )
 
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> data = load_scrna()
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data)
+        >>> plnpca.fit()
+        >>> print(plnpca)
+
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> data = load_scrna()
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data)
+        >>> plnpca.fit(maxiter = 500, verbose = True)
+        >>> print(plnpca)
+        """,
+    )
+    def fit(
+        self,
+        *,
+        maxiter: int = 400,
+        lr: float = 0.01,
+        tol: float = DEFAULT_TOL,
+        verbose: bool = False,
+    ):
+        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+
     def _init_model_parameters(self):
         coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)
         if not hasattr(self, "_coef"):
@@ -227,7 +253,7 @@ class PlnPCA(BaseModel):
             )
         self._components = components
 
-    @property
+    @property  # Here only to be able to define a setter.
     @_add_doc(BaseModel)
     def coef(self):
         return super().coef
@@ -307,9 +333,25 @@ class PlnPCA(BaseModel):
         >>> pca = PlnPCA.from_formula("endog ~ 1", data)
         >>> pca.fit()
         >>> print(pca.latent_variables.shape)
+        >>> pca.viz() # Visualize the latent variables
         """,
     )
     def latent_variables(self):
+        return torch.matmul(self.latent_mean, self.components.T)
+
+    @property
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> data = load_scrna()
+        >>> pca = PlnPCA.from_formula("endog ~ 1", data)
+        >>> pca.fit()
+        >>> print(pca.latent_positions.shape)
+        >>> pca.viz(remove_cov_effects = True) # Visualize the latent positions
+        """,
+    )
+    def latent_positions(self):
         return torch.matmul(self.latent_mean, self.components.T) + self.marginal_mean
 
     @property
@@ -319,11 +361,11 @@ class PlnPCA(BaseModel):
 
     @property
     def _additional_properties_list(self):
-        return ""
+        return []
 
     @property
     def _additional_methods_list(self):
-        return ""
+        return []
 
     @_add_doc(
         BaseModel,
@@ -381,9 +423,7 @@ class PlnPCA(BaseModel):
             >>> pca = PlnPCA(data["endog"])
             >>> pca.fit()
             >>> pca.plot_expected_vs_true()
-            >>> plt.show()
             >>> pca.plot_expected_vs_true(colors = data["labels"])
-            >>> plt.show()
             """,
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
@@ -398,11 +438,8 @@ class PlnPCA(BaseModel):
             >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
             >>> pca.fit()
             >>> pca.viz()
-            >>> plt.show()
             >>> pca.viz(colors = data["labels"])
-            >>> plt.show()
             >>> pca.viz(show_cov = True)
-            >>> plt.show()
             """,
     )
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):

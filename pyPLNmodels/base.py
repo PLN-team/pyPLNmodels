@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 from pyPLNmodels._data_handler import (
     _handle_data,
     _extract_data_from_formula,
-    _format_data,
+    _array2tensor,
 )
 from pyPLNmodels._criterion import _ElboCriterionMonitor
 from pyPLNmodels._utils import _TimeRecorder, _nice_string_of_dict
@@ -87,7 +87,6 @@ class BaseModel(
             compute_offsets_method,
             add_const,
         )
-
         self._elbo_criterion_monitor = _ElboCriterionMonitor()
         self._fitted = False
 
@@ -634,6 +633,14 @@ class BaseModel(
         the best approximation of latent variables.
         """
 
+    @property
+    @abstractmethod
+    def latent_positions(self):
+        """
+        The (conditional) mean of the latent variables with the
+        effect of covariates removed.
+        """
+
     def viz(self, *, ax=None, colors=None, show_cov: bool = False):
         """
         Visualize the latent variables.
@@ -643,7 +650,7 @@ class BaseModel(
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot, by default None.
         colors : list, optional
-            The colors to use for the plot, by default None.
+            The colors to color the latent variables for the plot, by default None.
         show_cov : bool, optional
             Whether to show covariances, by default False.
         """
@@ -686,7 +693,7 @@ class BaseModel(
 
         delimiter = "=" * 70
         parts = [
-            f"A multivariate Poisson Lognormal with {self._description}",
+            f"A multivariate {self._name} with {self._description}",
             delimiter,
             _nice_string_of_dict(self._dict_for_printing),
             delimiter,
@@ -726,6 +733,7 @@ class BaseModel(
         """
         return [
             ".latent_variables",
+            ".latent_positions",
             ".model_parameters",
             ".latent_parameters",
             ".optim_details",
@@ -794,6 +802,7 @@ class BaseModel(
         Returns the number of parameters of the model.
         """
 
+    @_array2tensor
     def predict(self, exog: Union[torch.Tensor, np.ndarray, pd.DataFrame] = None):
         """
         Method for making predictions.
@@ -823,7 +832,6 @@ class BaseModel(
             where `nb_cov` is the number of exog.
         - The predicted values are obtained by multiplying the exog by the coefficients.
         """
-        exog = _format_data(exog)
         if exog is not None and self.nb_cov == 0:
             msg = "No exog in the model, can't predict with exog"
             raise AttributeError(msg)
