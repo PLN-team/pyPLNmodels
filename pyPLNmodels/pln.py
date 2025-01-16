@@ -219,7 +219,7 @@ class Pln(BaseModel):
         >>> pln = Pln.from_formula("endog ~ 1", data)
         >>> pln.fit()
         >>> print(pln.latent_positions.shape)
-        >>> pln.viz(remove_cov_effects = True) # Visualize the latent positions
+        >>> pln.viz(remove_exog_effect = True) # Visualize the latent positions
         """,
         see_also="""
         :func:`pyPLNmodels.Pln.latent_variables`
@@ -287,10 +287,12 @@ class Pln(BaseModel):
               >>> pln.fit()
               >>> transformed_endog = pln.transform()
               >>> print(transformed_endog.shape)
+              >>> pln.viz()
+              >>> transformed_no_exog = pln.transform(remove_exog_effect = True)
               """,
     )
-    def transform(self):
-        return super().transform()
+    def transform(self, remove_exog_effect: bool = False):
+        return super().transform(remove_exog_effect=remove_exog_effect)
 
     @property
     def _endog_predictions(self):
@@ -319,12 +321,25 @@ class Pln(BaseModel):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, load_scrna
             >>> data = load_scrna()
-            >>> pln = Pln.from_formula("endog ~ 1", data = data)
+            >>> pln = Pln.from_formula("endog ~ 1 + labels", data = data)
             >>> pln.fit()
             >>> pln.viz()
             >>> pln.viz(colors = data["labels"])
             >>> pln.viz(show_cov = True)
+            >>> pln.viz(remove_exog_effect = True, colors = data["labels"])
             """,
     )
-    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
-        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        remove_exog_effect: bool = False,
+    ):
+        super().viz(
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            remove_exog_effect=remove_exog_effect,
+        )

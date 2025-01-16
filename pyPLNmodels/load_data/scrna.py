@@ -44,6 +44,6 @@ def load_scrna(
     cell_type = pd.read_csv(
         pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
     )
-    labels = pd.get_dummies(cell_type)
+    labels_1hot = pd.get_dummies(cell_type)
 
-    return {"endog": endog, "labels": labels, "labels_value": cell_type}
+    return {"endog": endog, "labels": cell_type, "labels_1hot": labels_1hot}

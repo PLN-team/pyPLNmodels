@@ -577,7 +577,9 @@ class BaseModel(
             return 0
         return self.exog @ self.coef
 
-    def _pca_projected_latent_variables_with_covariances(self, rank=2):
+    def _pca_projected_latent_variables_with_covariances(
+        self, rank=2, remove_exog_effect: bool = False
+    ):
         """
         Perform PCA on latent variables and return the
         projected variables along with their covariances in the two dimensional space.
@@ -592,14 +594,17 @@ class BaseModel(
         tuple
             A tuple containing the projected variables and their covariances.
         """
-        variables = self.transform()
+        if remove_exog_effect is True:
+            variables = self.latent_positions
+        else:
+            variables = self.latent_variables
         pca = PCA(n_components=rank)
         proj_variables = pca.fit_transform(variables)
         sk_components = pca.components_
         covariances = self._get_two_dim_covariances(sk_components)
         return proj_variables, covariances
 
-    def projected_latent_variables(self, rank=2):
+    def projected_latent_variables(self, rank=2, remove_exog_effect: bool = False):
         """
         Perform PCA on latent variables and return the projected variables.
 
@@ -607,22 +612,34 @@ class BaseModel(
         ----------
         rank : int, optional
             The number of principal components to compute, by default 2.
-
+        remove_exog_effect: bool, optional
+            Whether to remove or not the effect of exogenous variables. Default to False.
         Returns
         -------
         numpy.ndarray
             The projected variables.
         """
-        variables = self.transform()
+        if remove_exog_effect is True:
+            variables = self.latent_positions
+        else:
+            variables = self.latent_variables
         pca = PCA(n_components=rank)
         proj_variables = pca.fit_transform(variables)
         return proj_variables
 
-    def transform(self):
+    def transform(self, remove_exog_effect: bool = False):
         """
         Returns the latent variables. Can be seen as a
         normalization of the counts given.
+
+        Parameters
+        ----------
+        remove_exog_effect: bool (optional)
+            Whether to remove or not the mean induced by the exogenous variables.
+            Default is False.
         """
+        if remove_exog_effect is True:
+            return self.latent_positions
         return self.latent_variables
 
     @property
@@ -641,7 +658,14 @@ class BaseModel(
         effect of covariates removed.
         """
 
-    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        remove_exog_effect: bool = False,
+    ):
         """
         Visualize the latent variables.
 
@@ -653,13 +677,19 @@ class BaseModel(
             The colors to color the latent variables for the plot, by default None.
         show_cov : bool, optional
             Whether to show covariances, by default False.
+        remove_exog_effect: bool, optional
+            Whether to remove or not the effect of exogenous variables. Default to False.
         """
         if show_cov is True:
             variables, covariances = (
-                self._pca_projected_latent_variables_with_covariances()
+                self._pca_projected_latent_variables_with_covariances(
+                    remove_exog_effect=remove_exog_effect
+                )
             )
         else:
-            variables = self.projected_latent_variables()
+            variables = self.projected_latent_variables(
+                remove_exog_effect=remove_exog_effect
+            )
             covariances = None
         return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 

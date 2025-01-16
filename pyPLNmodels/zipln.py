@@ -333,10 +333,10 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
               >>> latent_prob = zi.transform(return_latent_prob = True)
               """,
     )
-    def transform(self, return_latent_prob=False):
+    def transform(self, remove_exog_effect: bool = True, return_latent_prob=False):
         if return_latent_prob is True:
             return self.latent_prob
-        return self.latent_variables
+        return super().transform(remove_exog_effect=remove_exog_effect)
 
     @property
     def number_of_parameters(self):
@@ -497,10 +497,23 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             >>> zi.viz()
             >>> zi.viz(colors = data["site"])
             >>> zi.viz(show_cov = True)
+            >>> zi.viz(remove_exog_effect = True, colors = data["site"])
             """,
     )
-    def viz(self, *, ax=None, colors=None, show_cov: bool = False):
-        super().viz(ax=ax, colors=colors, show_cov=show_cov)
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        remove_exog_effect: bool = False,
+    ):
+        super().viz(
+            ax=ax,
+            colors=colors,
+            show_cov=show_cov,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     def viz_prob(self, *, ax=None, colors=None):
         """
@@ -539,3 +552,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
         super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @property
+    @_add_doc(BaseModel)
+    def latent_positions(self):
+        return self.latent_variables - self.marginal_mean
