@@ -298,8 +298,6 @@ class PlnPCA(BaseModel):
     @_add_doc(
         BaseModel,
         params="""
-        Parameters
-        ----------
         project : bool, optional
             Whether to project the latent variables onto the `rank` first PCs, by default False.
         """,
