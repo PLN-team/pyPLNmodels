@@ -28,7 +28,9 @@ NULL_TENSOR = torch.tensor([0], device=DEVICE)
 class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     """
     Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation.
-    Fitting such a model is slower than fitting a Pln.
+    Fitting such a model is slower than fitting a Pln. For more details,
+    see Batardière, Chiquet, Gindraud, Mariadassou (2024) “Zero-inflation
+    in the Multivariate Poisson Lognormal Family.”
 
     Examples
     --------
@@ -85,24 +87,24 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
             The count data.
         exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series], optional(keyword-only)
-            The covariate data. Defaults to None.
+            The covariate data. Defaults to `None`.
         exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
-            The covariate data for the inflation part. Defaults to None.
+            The covariate data for the inflation part. Defaults to `None`.
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
-            The offsets data. Defaults to None.
+            The offsets data. Defaults to `None`.
         compute_offsets_method : str, optional(keyword-only)
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
-            Overriden (useless) if `offsets` is not None.
+            Overriden (useless) if `offsets` is not `None`.
         add_const : bool, optional(keyword-only)
-            Whether to add a column of one in the exog. Defaults to True.
+            Whether to add a column of one in the `exog`. Defaults to `True`.
         add_const_inflation : bool, optional(keyword-only)
-            Whether to add a column of one in the exog_inflation. Defaults to True.
+            Whether to add a column of one in the `exog_inflation`. Defaults to `True`.
 
         Returns
         -------
-        A ZIPln object
+        A `ZIPln` object
 
         See also
         --------
@@ -139,7 +141,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             >>> zi_different = ZIPln.from_formula("endog ~ 1  + site | 1 + time", data = data)
         """,
         returns="""
-            ZIPln
+            `ZIPln`
         """,
         see_also="""
         :class:`pyPLNmodels.ZIPln`
@@ -327,13 +329,13 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         return_latent_prob: bool, optional = False
             Wheter to return latent probability variables of zero inflation
             (`return_latent_prob = True`) or the latent mean of the gaussian component
-            (`return_latent_prob = False`). Default to False.
+            (`return_latent_prob = False`). Default to `False`.
 
         """,
         returns="""
         torch.Tensor
             The transformed endogenous variables (latent variables of the model).
-            If `return_latent_prob` is True, will return the latent variables
+            If `return_latent_prob` is `True`, will return the latent variables
             of the zero-inflation component.
         """,
         example="""
@@ -376,12 +378,12 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
         Parameters
         ----------
-            n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. Cannot be greater than 10.
-
-            colors (np.ndarray): An array with one label for each
-                sample in the endog property of the object.
-                Defaults to None.
+        n_components: int (optional)
+            The number of components to consider for plotting.
+            Defaults to 3. Cannot be greater than 10.
+        colors: np.ndarray (optional)
+            An array with one label for each
+            sample in the endog property of the object. Defaults to `None`.
 
         Raises
         ------
@@ -479,7 +481,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         -----
         - The mean sigmoid(exog_inflation @ coef_inflation) is returned.
         - `exog_inflation` should have the shape `(_, nb_cov)`, where `nb_cov` is
-            the number of exog variables.
+            the number of exogenous variables.
         """
         if exog_inflation.shape[-1] != self.nb_cov_inflation:
             error_string = f"X has wrong shape:({exog_inflation.shape}). Should"
@@ -491,7 +493,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     def coef_inflation(self):
         """
         Property representing the regression coefficients associated with the zero-inflation
-        component, of size (nb_cov_inflation, dim).
+        component, of size (`nb_cov_inflation`, `dim`).
 
         Returns
         -------
@@ -536,9 +538,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            The axes on which to plot, by default None.
+            The axes on which to plot, by default `None`.
         colors : list, optional
-            The colors to color the probabilities for the plot, by default None.
+            The colors to color the probabilities for the plot, by default `None`.
 
         Examples
         --------
