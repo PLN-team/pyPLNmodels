@@ -3,16 +3,50 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pyPLNmodels's documentation!
-=======================================
+.. title:: Welcome to pyPLNmodels's documentation!
+
+API documentation
+=================
 
 Here is the :doc:`API documentation <documentation>`.
+
+Getting started
+===============
 
 `A notebook to get started with pyPLNmodels is available here
 <https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__.
 Otherwise, the next section is an overview of the package.
 
+
+
+
 Overview
 ========
 
 .. include:: ./readme.rst
+
+
+
+.. toctree::
+   :hidden:
+   :caption: Models
+
+   pln
+   zipln
+   plnpca
+   plnpcacollection
+
+
+.. toctree::
+   :hidden:
+   :caption: Overview
+
+   readme
+
+
+.. toctree::
+   :hidden:
+   :caption: Links
+
+   ↪ PyPI <https://pypi.org/project/pyPLNmodels/>
+   ↪ GitHub <https://github.com/PLN-team/pyPLNmodels>
