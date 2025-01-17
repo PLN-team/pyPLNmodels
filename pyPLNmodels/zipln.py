@@ -27,7 +27,7 @@ NULL_TENSOR = torch.tensor([0], device=DEVICE)
 
 class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     """
-    Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation
+    Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation.
     Fitting such a model is slower than fitting a Pln.
 
     Examples
@@ -48,6 +48,16 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     >>> ## Or take all the covariates
     >>> zi_all = ZIPln.from_formula("endog ~ 1 + site*time | 1 + site*time", data)
     >>> zi_all.fit()
+
+    See also
+    --------
+    :func:`pyPLNmodels.ZIPln.from_formula`
+    :func:`pyPLNmodels.ZIPln.__init__`
+
+    Methods
+    -------
+    fit()
+
     """
 
     _latent_prob: torch.Tensor
@@ -89,12 +99,15 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             Whether to add a column of one in the exog. Defaults to True.
         add_const_inflation : bool, optional(keyword-only)
             Whether to add a column of one in the exog_inflation. Defaults to True.
+
         Returns
         -------
         A ZIPln object
+
         See also
         --------
         :func:`pyPLNmodels.ZIPln.from_formula`
+
         Examples
         --------
         >>> from pyPLNmodels import ZIPln, load_scrna
@@ -123,7 +136,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             >>> # same covariates for the zero inflation and the gaussian component
             >>> zi_same = ZIPln.from_formula("endog ~ 1 + site", data = data)
             >>> # different covariates
-            >>> zi_different = ZIPln.from_formula("endog ~ 1  + site| 1 + time", data = data)
+            >>> zi_different = ZIPln.from_formula("endog ~ 1  + site | 1 + time", data = data)
         """,
         returns="""
             ZIPln
@@ -369,6 +382,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             colors (np.ndarray): An array with one label for each
                 sample in the endog property of the object.
                 Defaults to None.
+
         Raises
         ------
             ValueError: If the number of components requested is greater
@@ -525,6 +539,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             The axes on which to plot, by default None.
         colors : list, optional
             The colors to color the probabilities for the plot, by default None.
+
         Examples
         --------
             >>> import matplotlib.pyplot as plt

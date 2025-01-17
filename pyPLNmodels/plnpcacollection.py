@@ -27,6 +27,7 @@ class PlnPCAcollection:
     >>> plnpcas.show()
     >>> print(plnpcas.best_model())
     >>> print(plnpcas[5])
+
     See also
     --------
     :class:`~pyPLNmodels.PlnPCA`
@@ -68,6 +69,7 @@ class PlnPCAcollection:
         Returns
         -------
         PlnPCAcollection
+
         See also
         --------
         :class:`~pyPLNmodels.PlnPCA`
