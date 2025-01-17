@@ -107,12 +107,13 @@ class BaseModel(
             The formula.
         data : dict
             The data dictionary. Each value can be either a torch.Tensor,
-            a np.ndarray or pd.DataFrame
+            `np.ndarray`, `pd.DataFrame` or `pd.Series`.
         compute_offsets_method : str, optional(keyword-only)
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
-            Overriden (useless) if data["offsets"] is not None.
+            Overriden (useless) if data["offsets"] is not `None`.
+
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -133,7 +134,7 @@ class BaseModel(
     ):
         """
         Fit the model using variational inference.
-        The lower the `tol`(erance), the more accurate the model.
+        The lower the `tol` (tolerance), the more accurate the model.
 
         Parameters
         ----------
@@ -144,11 +145,12 @@ class BaseModel(
         tol : float, optional(keyword-only)
             The tolerance for convergence. Defaults to 1e-6.
         verbose : bool, optional(keyword-only)
-            Whether to print training progress.  Defaults to False.
+            Whether to print training progress. Defaults to `False`.
+
         Raises
         ------
         ValueError
-            If 'maxiter' is not an int.
+            If 'maxiter' is not an `int`.
         """
         self._fitting_initialization(lr, maxiter)
         iterdone = 0
@@ -176,13 +178,14 @@ class BaseModel(
         Parameters
         ----------
         axes : matplotlib.axes.Axes, optional
-            The axes on which to plot the visualizations. If None, a new
+            The axes on which to plot the visualizations. If `None`, a new
             figure and axes will be created.
         savefig : bool, optional
-            If True, the figure will be saved to a file. Default is False.
+            If `True`, the figure will be saved to a file. Default is `False`.
         name_file : str, optional
-            The name of the file to save the figure. Only used if savefig is True.
+            The name of the file to save the figure. Only used if savefig is `True`.
             Default is an empty string.
+
         """
         model_viz = self._get_model_viz()
         model_viz.show(axes=axes, savefig=savefig, name_file=name_file)
@@ -209,18 +212,18 @@ class BaseModel(
 
         Parameters
         ----------
-            variables_names : List[str]
-                A list of variable names to visualize.
-                If `indices_of_variables` is `None`, the variables plotted are the
-                ones in `variables_names`. If `indices_of_variables` is not `None`,
-                this only serves as a legend.
-            indices_of_variables : Optional[List[int]], optional
-                A list of indices corresponding to the variables that should be plotted.
-                If `None`, the indices are determined based on `column_names_endog`
-                given the `variables_names`, by default None.
-                If not None, should have the same length as `variables_names`.
-            title : str
-                An additional title for the plot.
+        variables_names : List[str]
+            A list of variable names to visualize.
+            If `indices_of_variables` is `None`, the variables plotted are the
+            ones in `variables_names`. If `indices_of_variables` is not `None`,
+            this only serves as a legend.
+        indices_of_variables : Optional[List[int]], optional
+            A list of indices corresponding to the variables that should be plotted.
+            If `None`, the indices are determined based on `column_names_endog`
+            given the `variables_names`, by default None.
+            If not None, should have the same length as `variables_names`.
+        title : str
+            An additional title for the plot.
 
         Raises
         ------
@@ -231,9 +234,6 @@ class BaseModel(
             If the length of `indices_of_variables` is different from the length
             of `variables_names`.
 
-        Returns
-        -------
-            None
         """
         if indices_of_variables is None:
             if self.column_names_endog is None:
@@ -280,12 +280,12 @@ class BaseModel(
         indices_of_variables : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variables_names`, by default None.
+            given the `variables_names`, by default `None`.
             If not None, should have the same length as `variables_names`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
-            The colors to use for the plot, by default None.
+            The colors to use for the plot, by default `None`.
 
         Raises
         ------
@@ -296,9 +296,6 @@ class BaseModel(
             If the length of `indices_of_variables` is different
             from the length of `variables_names`.
 
-        Returns
-        -------
-            None
         """
         return _biplot(
             self.transform(),
@@ -491,7 +488,7 @@ class BaseModel(
         Returns
         -------
         torch.Tensor or None
-            The exogenous variables or None if no covariates are given in the model.
+            The exogenous variables or `None` if no covariates are given in the model.
         """
         return self._exog.cpu()
 
@@ -554,13 +551,13 @@ class BaseModel(
     @property
     def coef(self):
         """
-        Property representing the regression coefficients of size (nb_cov, dim).
-        If no exogenous (`exog`) is available, returns None.
+        Property representing the regression coefficients of size (`nb_cov`, `dim`).
+        If no exogenous (`exog`) is available, returns `None`.
 
         Returns
         -------
         torch.Tensor or None
-            The coefficients or None if no coefficients are given in the model.
+            The coefficients or `None` if no coefficients are given in the model.
         """
         return self._coef.detach().cpu() if self._coef is not None else None
 
@@ -627,7 +624,7 @@ class BaseModel(
         rank : int, optional
             The number of principal components to compute, by default 2.
         remove_exog_effect: bool, optional
-            Whether to remove or not the effect of exogenous variables. Default to False.
+            Whether to remove or not the effect of exogenous variables. Default to `False`.
         Returns
         -------
         numpy.ndarray
@@ -650,7 +647,8 @@ class BaseModel(
         ----------
         remove_exog_effect: bool (optional)
             Whether to remove or not the mean induced by the exogenous variables.
-            Default is False.
+            Default is `False`.
+
         """
         if remove_exog_effect is True:
             return self.latent_positions
@@ -681,18 +679,20 @@ class BaseModel(
         remove_exog_effect: bool = False,
     ):
         """
-        Visualize the latent variables.
+        Visualize the latent variables. One can remove the effect of exogenous variables
+        with the `remove_exog_effect` boolean variable.
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            The axes on which to plot, by default None.
+            The axes on which to plot, by default `None`.
         colors : list, optional
-            The colors to color the latent variables for the plot, by default None.
+            The colors to color the latent variables for the plot, by default `None`.
         show_cov : bool, optional
             Whether to show covariances, by default False.
         remove_exog_effect: bool, optional
-            Whether to remove or not the effect of exogenous variables. Default to False.
+            Whether to remove or not the effect of exogenous variables. Default to `False`.
+
         """
         if show_cov is True:
             variables, covariances = (
@@ -727,6 +727,7 @@ class BaseModel(
         -------
         str
             The string representation of the object.
+
         Raises
         ------
         RuntimeError
@@ -854,24 +855,24 @@ class BaseModel(
         Parameters
         ----------
         exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series], optional
-            The exog, by default None.
+            The `exog`, by default `None`.
 
         Returns
         -------
         torch.Tensor or None
-            The predicted values or None.
+            The predicted values or `None`.
 
         Raises
         ------
         AttributeError
-            If there are no exog in the model but some are provided.
+            If there are no `exog` in the model but some are provided.
         RuntimeError
-            If the shape of the exog is incorrect.
+            If the shape of the `exog` is incorrect.
 
         Notes
         -----
-        - If `exog` is not provided and there are no exog in the model, None is returned.
-            If there are exog in the model, then the mean exog @ coef is returned.
+        - If `exog` is not provided and there are no exog in the model, `None` is returned.
+            If there are `exog` in the model, then the mean `exog @ coef` is returned.
         - If `exog` is provided, it should have the shape `(_, nb_cov)`,
             where `nb_cov` is the number of exog.
         - The predicted values are obtained by multiplying the exog by the coefficients.
@@ -927,7 +928,8 @@ class BaseModel(
 
             colors (np.ndarray): An array with one label for each
                 sample in the endog property of the object.
-                Defaults to None.
+                Defaults to `None`.
+
         Raises
         ------
             ValueError: If the number of components requested is greater
@@ -953,27 +955,27 @@ class BaseModel(
 
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
-        Plot the predicted value of the endog against the endog.
+        Plot the predicted value of the `endog` against the `endog`.
 
         Parameters
         ----------
         ax : Optional[matplotlib.axes.Axes], optional
-            The matplotlib axis to use. If None, the current axis is used, by default None.
+            The matplotlib axis to use. If `None`, the current axis is used, by default `None`.
 
         colors : Optional[Any], optional
-            The colors to use for plotting, by default None.
+            The colors to use for plotting, by default `None`.
 
         Returns
         -------
         matplotlib.axes.Axes
             The matplotlib axis.
+
         See also
         --------
         :func:`pyPLNmodels.Pln.pca_pairplot`
         :func:`pyPLNmodels.PlnPCA.pca_pairplot`
         :func:`pyPLNmodels.Pln.biplot`
         :func:`pyPLNmodels.PlnPCA.biplot`
-        --------
         """
         if self._fitted is None:
             raise RuntimeError("Please fit the model before.")

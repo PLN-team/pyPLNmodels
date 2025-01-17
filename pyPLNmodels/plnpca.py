@@ -262,7 +262,7 @@ class PlnPCA(BaseModel):
     @_array2tensor
     def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
         """
-        Setter for the coef property.
+        Setter for the `coef` property.
 
         Parameters
         ----------
@@ -299,7 +299,7 @@ class PlnPCA(BaseModel):
         BaseModel,
         params="""
         project : bool, optional
-            Whether to project the latent variables onto the `rank` first PCs, by default False.
+            Whether to project the latent variables onto the `rank` first PCs, by default `False`.
         """,
         returns="""
         torch.Tensor

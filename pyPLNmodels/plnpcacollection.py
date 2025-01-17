@@ -17,6 +17,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 class PlnPCAcollection:
     """
     A collection of PlnPCA models, each with a different number of components.
+    For more details, see  Chiquet, J., Mariadassou, M., Robin, S.
+    “Variational inference for probabilistic Poisson PCA.” Annals of applied stats.
+
     Examples
     --------
     >>> from pyPLNmodels import PlnPCAcollection, load_scrna
@@ -31,6 +34,8 @@ class PlnPCAcollection:
     See also
     --------
     :class:`~pyPLNmodels.PlnPCA`
+    :func:`pyPLNmodels.PlnPCAcollection.from_formula`
+    :func:`pyPLNmodels.PlnPCAcollection.__init__`
     """
 
     @_add_doc(
