@@ -249,7 +249,6 @@ class Pln(BaseModel):
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
-        >>> should add some plot with pd.DataFrame here.
         """,
     )
     def plot_correlation_circle(

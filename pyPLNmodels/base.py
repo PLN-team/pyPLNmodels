@@ -150,7 +150,7 @@ class BaseModel(
         Raises
         ------
         ValueError
-            If 'maxiter' is not an `int`.
+            If `maxiter` is not an `int`.
         """
         self._fitting_initialization(lr, maxiter)
         iterdone = 0
@@ -383,8 +383,11 @@ class BaseModel(
     @abstractmethod
     def list_of_parameters_needing_gradient(
         self,
-    ):  # pylint: disable=missing-function-docstring
-        pass
+    ):
+        """
+        The list of all the parameters of the model that needs to be updated
+        at each iteration.
+        """
 
     @property
     @abstractmethod
@@ -658,8 +661,9 @@ class BaseModel(
     @abstractmethod
     def latent_variables(self):
         """
-        The (conditional) mean of the latent variables is
-        the best approximation of latent variables.
+        The (conditional) mean of the latent variables. This is
+        the best approximation of latent variables. This variable
+        is supposed to be more meaningful than the counts (`endog`).
         """
 
     @property
@@ -711,7 +715,7 @@ class BaseModel(
     def _get_two_dim_covariances(self, sklearn_components):
         """
         Computes the covariance when the latent variables are
-        embedded in a lower dimensional space (often 2) with the compoents.
+        embedded in a lower dimensional space (often 2) with `sklearn_components`.
 
         Parameters
         ----------

@@ -35,7 +35,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     Examples
     --------
     >>> from pyPLNmodels import ZIPln, Pln, load_microcosm
-    >>> data = load_microcosm() # microcosm are higly zero-inflated (96% of zeros)
+    >>> data = load_microcosm() # microcosm dataset is highly zero-inflated (96% of zeros)
     >>> zi = ZIPln.from_formula("endog ~ 1 + site", data)
     >>> zi.fit()
     >>> zi.viz(colors = data["site"])
@@ -117,6 +117,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> zi = ZIPln(rna["endog"], add_const = True)
         >>> zi.fit()
         >>> print(zi)
+
         """
         super().__init__(
             endog,
@@ -412,7 +413,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
         >>> zi.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
-        >>> should add some plot with pd.DataFrame here.
         """,
     )
     def plot_correlation_circle(
