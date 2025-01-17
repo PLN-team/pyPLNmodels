@@ -1,9 +1,14 @@
 PlnPCA
 ======
 
+PlnPCA Documentation
+--------------------
+
 .. autoclass:: pyPLNmodels.PlnPCA
    :members:
    :inherited-members:
    :special-members: __init__
-   :undoc-members:
-   :show-inheritance:
+
+List of methods and attributes
+------------------------------
+.. autoclasstoc:: pyPLNmodels.PlnPCA
