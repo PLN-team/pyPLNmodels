@@ -375,7 +375,6 @@ class PlnPCA(BaseModel):
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> plnpca.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
-        >>> should add some plot with pd.DataFrame.
         """,
     )
     def plot_correlation_circle(
