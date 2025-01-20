@@ -53,8 +53,8 @@ html_theme = "sphinx_rtd_theme"
 
 
 ## My config
-# autodoc_typehints = "description"
-# autodoc_member_order = "bysource"
+autodoc_typehints = "description"
+autodoc_member_order = "bysource"
 autodoc_default_options = {
     "members": True,
     "special-members": "__init__",
