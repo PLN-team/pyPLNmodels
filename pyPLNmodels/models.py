@@ -1905,6 +1905,7 @@ class Pln(_model):
         msg = "You can not set the coef in the Pln model."
         warnings.warn(msg)
 
+    @property
     def _endog_predictions(self):
         return torch.exp(
             self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_var**2
