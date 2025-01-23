@@ -64,4 +64,4 @@ class _ElboCriterionMonitor:
     @property
     def criterion(self):
         """The current criterion of the associated model."""
-        return self.criterion_list[-1].item()  # pylint: disable=no-member
+        return self.criterion_list[-1]
