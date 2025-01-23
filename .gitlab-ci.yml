@@ -27,7 +27,6 @@ pylint:
       xargs pylint
           --disable=import-error,missing-module-docstring,invalid-name,not-callable
           --load-plugins=pylint.extensions.docparams
-          --good-names=x,n
 
 
 tests:
