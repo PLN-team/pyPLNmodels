@@ -107,7 +107,8 @@ class BaseModel(
             The formula.
         data : dict
             The data dictionary. Each value can be either a torch.Tensor,
-            `np.ndarray`, `pd.DataFrame` or `pd.Series`.
+            `np.ndarray`, `pd.DataFrame` or `pd.Series`. The categorical exogenous
+            variables should be 1-dimensional.
         compute_offsets_method : str, optional(keyword-only)
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
@@ -741,6 +742,10 @@ class BaseModel(
             raise RuntimeError("Please fit the model before printing it.")
 
         delimiter = "=" * 70
+        add_properties = self._additional_properties_list
+        add_properties = ["None"] if len(add_properties) == 0 else add_properties
+        add_methods = self._additional_methods_list
+        add_methods = ["None"] if len(add_methods) == 0 else add_methods
         parts = [
             f"A multivariate {self._name} with {self._description}",
             delimiter,
@@ -751,9 +756,9 @@ class BaseModel(
             "* Useful methods",
             f"    {''.join(self._useful_methods_list)}",
             f"* Additional properties/properties for {self._name} are:",
-            f"    {''.join(self._additional_properties_list)}",
+            f"    {''.join(add_properties)}",
             f"* Additional methods for {self._name} are:",
-            f"    {''.join(self._additional_methods_list)}",
+            f"    {''.join(add_methods)}",
         ]
         return "\n".join(parts)
 

@@ -43,7 +43,7 @@ def load_scrna(
     print(f"Returning scRNA dataset of size {endog.shape}")
     cell_type = pd.read_csv(
         pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
-    )
+    ).squeeze()
     labels_1hot = pd.get_dummies(cell_type)
 
     return {"endog": endog, "labels": cell_type, "labels_1hot": labels_1hot}

@@ -366,6 +366,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
         >>> zi.pca_pairplot(n_components = 5)
+        >>> zi.pca_pairplot(n_components = 5, colors = data["time"])
         """,
     )
     def pca_pairplot(self, n_components: bool = 3, colors=None):
