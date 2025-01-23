@@ -69,9 +69,7 @@ by extracting the ```latent_variables``` $\mathbf Z_i$ once the parameters are l
 
 The package comes with an ecological data set to present the functionality:
 ```
-import pyPLNmodels
-from pyPLNmodels.models import PlnPCAcollection, Pln, ZIPln
-from pyPLNmodels.oaks import load_oaks
+from pyPLNmodels import PlnPCAcollection, Pln, ZIPln, load_oaks
 oaks = load_oaks()
 ```
 
@@ -130,7 +128,7 @@ print('Transformed data shape: ', transformed_data.shape)
 A correlation circle may be employed to graphically represent the relationship
 between the variables and the components:
 ```
-best_pca.plot_pca_correlation_circle(["var_1","var_2"], indices_of_variables = [0,1])
+best_pca.plot_correlation_circle(["var_1","var_2"], indices_of_variables = [0,1])
 ```
 
 
@@ -150,7 +148,8 @@ zi =  ZIPln.from_formula("endog ~ 1  + tree | 1 + tree", data = oaks)
 zi.fit()
 print(zi)
 print("Transformed data shape: ", zi.transform().shape)
-z_latent_variables, w_latent_variables = zi.transform(return_latent_prob = True)
+z_latent_variables = zi.transform()
+w_latent_variables = zi.latent_prob
 print(r'$Z$ latent variables shape', z_latent_variables.shape)
 print(r'$W$ latent variables shape', w_latent_variables.shape)
 ```
@@ -163,20 +162,20 @@ inflation, while $\mathbf Z$ accounts for the Poisson parameter.
 
 ### Visualization
 
-The package is equipped with a set of visualization functions designed to
-help the user interpret the data. The `viz` function conducts Principal
-Component Analysis (PCA) on the latent variables, while the `viz_positions` function
-carries out PCA on the latent variables, adjusted for covariates. Additionally,
-the `viz_prob` function provides a visual representation of the zero-inflation
-probability.
+The package is equipped with a set of visualization functions designed to help
+the user interpret the data. The `viz` function conducts Principal Component
+Analysis (PCA) on the latent variables. The `remove_exog_effect` keyword
+removes the covariates effect specified in the model when set to `True`.
+Additionally, the `viz_prob` function provides a visual representation of the
+zero-inflation probability but is not often meaningful.
 
 ```
 best_pca.viz(colors = oaks["tree"])
-best_pca.viz_positions(colors = oaks["dist2ground"])
+best_pca.viz(colors = oaks["dist2ground"], remove_exog_effect = True)
 pln.viz(colors = oaks["tree"])
-pln.viz_positions(colors = oaks["dist2ground"])
+pln.viz(colors = oaks["tree"], remove_exog_effect = True)
 zi.viz(colors = oaks["tree"])
-zi.viz_positions(colors = oaks["dist2ground"])
+zi.viz(colors = oaks["tree"], remove_exog_effect = True)
 zi.viz_prob(colors = oaks["tree"])
 ```
 

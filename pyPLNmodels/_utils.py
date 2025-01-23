@@ -60,9 +60,8 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
 
 def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
     def wrapper(fun):
-        # Check if the function is a classmethod
-        if isinstance(fun, classmethod):
-            fun = fun.__func__
+        # if isinstance(fun, classmethod):
+        #     fun = fun.__func__
 
         doc = getattr(parent_class, fun.__name__).__doc__
         if doc is None:

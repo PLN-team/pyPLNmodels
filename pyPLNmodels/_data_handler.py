@@ -62,6 +62,10 @@ def _handle_data(
     )
     _check_data_shapes(endog, exog, offsets)
 
+    if exog is not None:
+        exog = _remove_useless_exog(exog, column_names_exog, is_inflation=False)
+        _check_full_rank_exog(exog)
+
     endog, offsets, column_names_endog = _remove_zero_columns(
         endog, offsets, column_names_endog
     )
@@ -86,6 +90,10 @@ def _handle_inflation_data(exog_inflation, add_const_inflation, endog):
     _check_dimensions_equal(
         "endog", "exog_inflation", endog.shape[0], exog_inflation.shape[0], 0, 0
     )
+    exog_inflation = _remove_useless_exog(
+        exog_inflation, column_names_exog_inflation, is_inflation=True
+    )
+    _check_full_rank_exog(exog_inflation, inflation=True)
     dirac = endog == 0
     return exog_inflation, column_names_exog_inflation, dirac
 
@@ -133,10 +141,6 @@ def _format_model_params(
     exog = _format_data(exog)
     if add_const:
         exog = _add_constant_to_exog(exog, endog.shape[0])
-
-    if exog is not None:
-        exog = _remove_useless_exog(exog)
-        _check_full_rank_exog(exog)
 
     offsets = _compute_or_format_offsets(offsets, endog, compute_offsets_method)
     return endog, exog, offsets
@@ -223,6 +227,7 @@ def _check_full_rank_exog(exog: torch.Tensor, inflation: bool = False) -> None:
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
+        print("exog", exog)
         name_mat = "exog_inflation" if inflation else "exog"
         add_const_name = "add_const_inflation" if inflation else "add_const"
         msg = (
@@ -426,8 +431,6 @@ def _extract_exog_inflation_from_formula(
     try:
         exog_inflation = dmatrix(formula_inflation, data=data)
         exog_inflation = _format_data(exog_inflation)
-        exog_inflation = _remove_useless_exog(exog_inflation)
-        _check_full_rank_exog(exog_inflation, inflation=True)
         return exog_inflation
     except PatsyError as err:
         msg = f"Formula of ``exog_inflation` did not work: {formula_inflation}."
@@ -444,6 +447,18 @@ def _array2tensor(func):
     return setter
 
 
-def _remove_useless_exog(exog):
+def _remove_useless_exog(exog, column_names_exog, is_inflation):
     zero_columns = torch.sum(exog**2, axis=0) == 0
-    return exog[:, ~zero_columns]
+    if torch.sum(zero_columns) > 0:
+        if column_names_exog is not None:
+            msg = (
+                f"Removing column {column_names_exog[zero_columns]} as it is only zeros"
+            )
+        else:
+            msg = f"Removing column {zero_columns} as it is only zeros"
+        if is_inflation is True:
+            msg += " for the inflation part"
+        msg += "."
+        print(msg)
+        return exog[:, ~zero_columns]
+    return exog

@@ -95,12 +95,11 @@ class PlnPCAcollection:
             add_const,
         )
         self._fitted = False
-        self._init_models(ranks, add_const=add_const)
+        self._init_models(ranks)
 
     def _init_models(
         self,
         ranks: Iterable[int],
-        add_const: bool,
     ):
         """
         Method for initializing the models.
@@ -121,7 +120,7 @@ class PlnPCAcollection:
                         exog=self._exog,
                         offsets=self._offsets,
                         rank=rank,
-                        add_const=add_const,
+                        add_const=False,
                     )
                 else:
                     raise TypeError(
@@ -134,13 +133,14 @@ class PlnPCAcollection:
                 exog=self._exog,
                 offsets=self._offsets,
                 rank=ranks,
-                add_const=add_const,
+                add_const=False,
             )
         else:
             raise TypeError(
                 "Please instantiate with either a list of integers or an integer."
             )
 
+    @classmethod
     @_add_doc(
         BaseModel,
         params="""
@@ -162,7 +162,6 @@ class PlnPCAcollection:
         :func:`pyPLNmodels.PlnPCAcollection.__init__`
         """,
     )
-    @classmethod
     def from_formula(
         cls,
         formula: str,
