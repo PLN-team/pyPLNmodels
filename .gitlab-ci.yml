@@ -12,9 +12,6 @@ black:
     - echo "version"
     - echo black --version
     - black --check --verbose -- .
-  tags:
-    - docker
-    - redesign
 
 
 pylint:
