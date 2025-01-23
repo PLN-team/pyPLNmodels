@@ -44,8 +44,8 @@ def load_oaks():
     oaks = {
         "endog": endog,
         "offsets": np.log(offsets),
-        "tree": exog.tree,
-        "dist2ground": exog.distTOground,
-        "orientation": exog.orientation,
+        "tree": exog.tree.squeeze(),
+        "dist2ground": exog.distTOground.squeeze(),
+        "orientation": exog.orientation.squeeze(),
     }
     return oaks

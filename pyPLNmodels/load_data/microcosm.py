@@ -46,7 +46,7 @@ def load_microcosm(
     data = {"endog": endog}
     cov_list = ["site", "lineage", "time"]
     for cov_name in cov_list:
-        covariate = covariates[cov_name]
+        covariate = covariates[cov_name].squeeze()
         data[cov_name + "_1hot"] = pd.get_dummies(covariate)
         data[cov_name] = covariate
 

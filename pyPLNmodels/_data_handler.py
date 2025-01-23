@@ -135,6 +135,7 @@ def _format_model_params(
         exog = _add_constant_to_exog(exog, endog.shape[0])
 
     if exog is not None:
+        exog = _remove_useless_exog(exog)
         _check_full_rank_exog(exog)
 
     offsets = _compute_or_format_offsets(offsets, endog, compute_offsets_method)
@@ -424,6 +425,8 @@ def _extract_exog_inflation_from_formula(
     """
     try:
         exog_inflation = dmatrix(formula_inflation, data=data)
+        exog_inflation = _format_data(exog_inflation)
+        exog_inflation = _remove_useless_exog(exog_inflation)
         _check_full_rank_exog(exog_inflation, inflation=True)
         return exog_inflation
     except PatsyError as err:
@@ -439,3 +442,8 @@ def _array2tensor(func):
         func(self, array_like)
 
     return setter
+
+
+def _remove_useless_exog(exog):
+    zero_columns = torch.sum(exog**2, axis=0) == 0
+    return exog[:, ~zero_columns]

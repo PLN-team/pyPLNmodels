@@ -21,20 +21,20 @@ class PlnPCA(BaseModel):
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCA, load_scrna, get_simulation_parameters, sample_pln
-    >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
-    >>> data = {"endog": endog}
+    >>> from pyPLNmodels import PlnPCA, load_scrna
+    >>> data = load_scrna()
     >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
     >>> pca.fit()
     >>> print(pca)
-    >>> pca.viz(colors = labels)
+    >>> pca.viz(colors = data["labels"])
 
-    >>> plnparam = get_simulation_parameters(n_samples =100, dim = 60, nb_cov = 2, rank = 8)
-    >>> endog = sample_pln(plnparam)
-    >>> data = {"endog": endog, "cov": plnparam.exog, "offsets": plnparam.offsets}
-    >>> plnpca = PlnPCA.from_formula("endog ~ 0 + cov", data = data, rank = 5)
-    >>> plnpca.fit()
-    >>> print(plnpca)
+    >>> from pyPLNmodels import PlnPCA, load_scrna
+    >>> data = load_scrna()
+    >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data = data, rank = 5)
+    >>> pca.fit()
+    >>> print(pca)
+    >>> pca.viz(colors = data["labels"])
+
 
     See also
     --------
@@ -397,6 +397,7 @@ class PlnPCA(BaseModel):
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
         >>> plnpca.pca_pairplot(n_components = 5)
+        >>> plnpca.pca_pairplot(n_components = 5, colors = data["labels"])
         """,
     )
     def pca_pairplot(self, n_components: bool = 3, colors=None):

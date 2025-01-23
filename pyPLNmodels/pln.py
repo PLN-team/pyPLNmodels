@@ -19,19 +19,19 @@ class Pln(BaseModel):
     Examples
     --------
     >>> from pyPLNmodels import Pln, load_scrna
-    >>> endog, labels = load_scrna(return_labels = True, for_formula = False)
-    >>> pln = Pln(endog,add_const = True)
+    >>> data = load_scrna()
+    >>> pln = Pln(data["endog"],add_const = True)
     >>> pln.fit()
     >>> print(pln)
-    >>> pln.viz(colors = labels)
+    >>> pln.viz(colors = data["labels"])
 
-    >>> from pyPLNmodels import Pln, get_simulation_parameters, sample_pln
-    >>> param = get_simulation_parameters()
-    >>> endog = sample_pln(param)
-    >>> data = {"endog": endog}
-    >>> pln = Pln.from_formula("endog ~ 1", data)
+    >>> from pyPLNmodels import Pln, load_scrna
+    >>> data = load_scrna()
+    >>> pln = Pln.from_formula("endog ~ 1 + labels", data = data)
     >>> pln.fit()
     >>> print(pln)
+    >>> pln.viz(colors = data["labels"])
+
     """
 
     @_add_doc(
@@ -268,6 +268,7 @@ class Pln(BaseModel):
         >>> pln = Pln.from_formula("endog ~ 1", data = data)
         >>> pln.fit()
         >>> pln.pca_pairplot(n_components = 5)
+        >>> pln.pca_pairplot(n_components = 5, colors = data["labels"])
         """,
     )
     def pca_pairplot(self, n_components: bool = 3, colors=None):
