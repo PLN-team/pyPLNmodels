@@ -14,6 +14,20 @@ black:
     - black --check --verbose -- .
   tags:
     - docker
+    - redesign
+
+
+pylint:
+  stage: linting
+  before_script:
+    - pip install pylint
+  script:
+    - find . -type f -name "*.py" |
+      xargs pylint
+          --disable=import-error,missing-module-docstring,invalid-name,not-callable
+          --load-plugins=pylint.extensions.docparams
+          --good-names=x,n
+
 
 tests:
   stage: checks
@@ -29,6 +43,7 @@ tests:
     - pytest .
   only:
     - main
+    - redesign
     - dev
     - tags
 
