@@ -1,8 +1,9 @@
 import os
+import glob
 
-DIR_DOCSTRINGS = "docstrings_examples"
-DIR_README = "readme_examples"
-DIR_GETTING_STARTED = "getting_started"
+OUTPUT_DIR_DOCSTRINGS = "docstrings_examples"
+OUTPUT_DIR_README = "readme_examples"
+OUTPUT_DIR_GETTING_STARTED = "getting_started"
 
 
 def _get_lines(path_to_file, filename, filetype=".py"):
@@ -51,7 +52,6 @@ def _get_example_readme(lines):
                 else:
                     in_example = False
             elif in_example is True:
-                print("line:", readme_line)
                 example.append(readme_line)
     example.pop()
     return [example]
@@ -72,16 +72,10 @@ def _write_file(examples, filename, string_definer, directory):
                 the_file.write(example_line + "\n")
 
 
-def _filename_to_docstring_example_file(filename, dirname):
-    lines = _get_lines("../pyPLNmodels/", filename)
-    examples = _get_examples_docstring(lines)
-    _write_file(examples, filename, "example", directory=dirname)
-
-
 def _filename_to_readme_example_file():
     lines = _get_lines("../", "README", filetype=".md")
     examples = _get_example_readme(lines)
-    _write_file(examples, "readme", "example", directory=DIR_README)
+    _write_file(examples, "readme", "example", directory=OUTPUT_DIR_README)
 
 
 lines_getting_started = _get_lines("./", "test_getting_started")
@@ -94,15 +88,31 @@ for line in lines_getting_started:
         new_lines.append(line)
 
 
-os.makedirs(DIR_README, exist_ok=True)
-os.makedirs(DIR_DOCSTRINGS, exist_ok=True)
-os.makedirs(DIR_GETTING_STARTED, exist_ok=True)
+os.makedirs(OUTPUT_DIR_README, exist_ok=True)
+os.makedirs(OUTPUT_DIR_DOCSTRINGS, exist_ok=True)
+os.makedirs(OUTPUT_DIR_GETTING_STARTED, exist_ok=True)
 
-_write_file([new_lines], "getting_started", "", DIR_GETTING_STARTED)
+
+def _find_all_files(directory):
+    py_files = glob.glob(os.path.join(directory, "**", "*.py"), recursive=True)
+    py_files_relative = [
+        os.path.splitext(os.path.relpath(f, directory))[0] for f in py_files
+    ]
+    return py_files_relative
+
+
+def _filename_to_docstring_example_file(filename, dirname):
+    lines = _get_lines("../pyPLNmodels/", filename)
+    examples = _get_examples_docstring(lines)
+    _write_file(examples, filename, "example", directory=dirname)
+
+
+files = _find_all_files("../pyPLNmodels")
+
+for _file in files:
+    if os.path.isfile("../pyPLNmodels/" + _file + ".py"):
+        _filename_to_docstring_example_file(_file, OUTPUT_DIR_DOCSTRINGS)
+
+_write_file([new_lines], "getting_started", "", OUTPUT_DIR_GETTING_STARTED)
 
 _filename_to_readme_example_file()
-
-_filename_to_docstring_example_file("_utils", DIR_DOCSTRINGS)
-_filename_to_docstring_example_file("models", DIR_DOCSTRINGS)
-_filename_to_docstring_example_file("elbos", DIR_DOCSTRINGS)
-_filename_to_docstring_example_file("load", DIR_DOCSTRINGS)
