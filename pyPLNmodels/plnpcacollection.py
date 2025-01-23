@@ -150,7 +150,7 @@ class PlnPCAcollection:
         example="""
             >>> from pyPLNmodels import PlnPCAcollection, load_scrna
             >>> data = load_scrna()
-            >>> pcas = PlnPCAcollection.from_formula("endog ~ 1 + labels", ranks = [4,6,8])
+            >>> pcas = PlnPCAcollection.from_formula("endog ~ 1 + labels", data, ranks = [4,6,8])
             >>> pcas.fit()
             >>> print(pcas.best_model())
         """,
