@@ -350,7 +350,7 @@ class BaseModel(
                 "Maximum number of iterations reached : ",
                 self._elbo_criterion_monitor.iteration_number,
                 ".\nLast criterion = ",
-                np.round(self._elbo_criterion_monitor.criterion.item(), 8),
+                np.round(self._elbo_criterion_monitor.criterion, 8),
                 f". Required tolerance = {tol}",
             )
 
