@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import torch
 
 from pyPLNmodels._utils import _add_doc
@@ -44,6 +46,11 @@ class _BasePlnSampler(_BaseSampler):
         components = self._get_components()
         mean = self._marginal_mean + self._offsets
         return torch.matmul(centered_unit_gaussian, components.T) + mean
+
+    @property
+    @abstractmethod
+    def _dim_latent(self):
+        pass
 
     def _get_components(self):
         return torch.linalg.cholesky(self._params["covariance"])

@@ -43,7 +43,7 @@ class _ElboCriterionMonitor:
 
     def _update_criterion(self):
         new_criterion = self.criterion * (1 - BETA) + self.current_hessian * BETA
-        self.criterion_list.append(new_criterion)
+        self.criterion_list.append(new_criterion.item())
 
     @property
     def iteration_number(self) -> int:
