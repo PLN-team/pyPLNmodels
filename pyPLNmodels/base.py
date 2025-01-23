@@ -752,13 +752,13 @@ class BaseModel(
             _nice_string_of_dict(self._dict_for_printing),
             delimiter,
             "* Useful properties/attributes",
-            f"    {''.join(self._useful_properties_list)}",
+            f"    {' '.join(self._useful_properties_list)}",
             "* Useful methods",
-            f"    {''.join(self._useful_methods_list)}",
+            f"    {' '.join(self._useful_methods_list)}",
             f"* Additional properties/properties for {self._name} are:",
-            f"    {''.join(add_properties)}",
+            f"    {' '.join(add_properties)}",
             f"* Additional methods for {self._name} are:",
-            f"    {''.join(add_methods)}",
+            f"    {' '.join(add_methods)}",
         ]
         return "\n".join(parts)
 
