@@ -19,6 +19,7 @@ black:
 
 pylint:
   stage: checks
+  image: registry.gitlab.com/pipeline-components/black:latest
   before_script:
     - pip install pylint
   script:
