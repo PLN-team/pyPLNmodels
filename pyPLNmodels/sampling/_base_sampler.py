@@ -3,7 +3,7 @@ from typing import Dict
 
 import torch
 
-from pyPLNmodels._data_handler import _format_data
+from pyPLNmodels._data_handler import _format_data, _add_constant_to_exog
 
 from ._utils import _format_dict_of_array
 
@@ -17,6 +17,7 @@ class _BaseSampler(ABC):
         n_samples: int,
         dim: int,
         exog: torch.Tensor,
+        add_const: bool,
         offsets: torch.Tensor,
         params: Dict[str, torch.Tensor],
     ):
@@ -38,7 +39,12 @@ class _BaseSampler(ABC):
         """
         self._n_samples: int = n_samples
         self._dim: int = dim
-        self._exog: torch.Tensor = _format_data(exog)
+        self._exog_no_add: torch.Tensor = _format_data(exog)
+        if add_const is True:
+            self._exog = _add_constant_to_exog(self._exog_no_add, n_samples)
+        else:
+            self._exog = self._exog_no_add
+        self.add_const: bool = add_const
         self._offsets: torch.Tensor = _format_data(offsets)
         self._params: Dict[str, torch.Tensor] = _format_dict_of_array(params)
 
@@ -91,6 +97,13 @@ class _BaseSampler(ABC):
         if self._exog is None:
             return None
         return self._exog.cpu()
+
+    @property
+    def exog_no_add(self) -> torch.Tensor:
+        """Exogenous variables (i.e. covariates)."""
+        if self._exog_no_add is None:
+            return None
+        return self._exog_no_add.cpu()
 
     @property
     def offsets(self) -> torch.Tensor:

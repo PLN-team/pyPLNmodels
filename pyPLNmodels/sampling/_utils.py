@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from scipy.linalg import toeplitz
 
 from pyPLNmodels._data_handler import _format_data
@@ -14,25 +13,30 @@ def _format_dict_of_array(dict_array):
     return dict_array
 
 
-def _get_exog(n_samples, nb_cov):
+def _get_exog(n_samples, nb_cov, add_const, seed=0):
     if nb_cov == 0:
         return None
-    return (
-        torch.from_numpy(
-            np.random.multinomial(1, [1 / nb_cov] * nb_cov, size=n_samples)
-        )
-        .float()
-        .to(DEVICE)
-    )
+    torch.manual_seed(seed)
+    indices = torch.multinomial(torch.ones(nb_cov), n_samples, replacement=True)
+    exog = torch.nn.functional.one_hot(indices, num_classes=nb_cov).float().to(DEVICE)
+    if add_const is True:
+        exog[:, -1] *= torch.randn(n_samples).to(
+            DEVICE
+        )  # avoid rank error when adding const
+    return exog
 
 
-def _get_coef(nb_cov, dim, mean):
+def _get_coef(nb_cov, dim, mean, add_const, seed=0):
+    if add_const is True:
+        nb_cov += 1
     if nb_cov == 0:
         return None
+    torch.manual_seed(seed)
     return torch.randn(nb_cov, dim, device=DEVICE) + mean
 
 
-def _get_covariance(dim):
+def _get_covariance(dim, seed=0):
+    torch.manual_seed(seed)
     parameter_toeplitz = 0.1 * torch.rand(1).to(DEVICE) + 0.8
     to_toeplitz = parameter_toeplitz ** (torch.arange(dim, device=DEVICE))
     return (

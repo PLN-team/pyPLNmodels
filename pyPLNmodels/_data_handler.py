@@ -139,7 +139,7 @@ def _format_model_params(
         raise ValueError("Counts should be only non-negative values.")
 
     exog = _format_data(exog)
-    if add_const:
+    if add_const is True:
         exog = _add_constant_to_exog(exog, endog.shape[0])
 
     offsets = _compute_or_format_offsets(offsets, endog, compute_offsets_method)
@@ -219,7 +219,7 @@ def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
         return ones
     if length != exog.shape[0]:
         raise ValueError("The length of the exog should be the same as the length.")
-    return torch.cat((exog, ones), dim=1)
+    return torch.cat((ones, exog), dim=1)
 
 
 def _check_full_rank_exog(exog: torch.Tensor, inflation: bool = False) -> None:
