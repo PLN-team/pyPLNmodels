@@ -91,17 +91,16 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments
     """
     n_samples = endog.shape[0]
     rank = components.shape[1]
+    latent_variance = torch.square(latent_sqrt_variance)
+
     log_intensity = offsets + marginal_mean + latent_mean @ components.T
-    latent_var = torch.square(latent_sqrt_variance)
 
     elbo = torch.sum(endog * log_intensity)
     elbo += torch.sum(
-        -torch.exp(log_intensity + 0.5 * latent_var @ (components * components).T)
+        -torch.exp(log_intensity + 0.5 * latent_variance @ (components * components).T)
     )
-    elbo += 0.5 * torch.sum(torch.log(latent_var))
-    elbo -= 0.5 * torch.sum(
-        torch.square(latent_mean) + torch.square(latent_sqrt_variance)
-    )
+    elbo += 0.5 * torch.sum(torch.log(latent_variance))
+    elbo -= 0.5 * torch.sum(torch.square(latent_mean) + latent_variance)
     elbo -= torch.sum(_log_stirling(endog))
     elbo += 0.5 * n_samples * rank
 

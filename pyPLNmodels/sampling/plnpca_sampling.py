@@ -14,10 +14,11 @@ class PlnPCASampler(PlnSampler):
     def __init__(
         self,
         n_samples: int = 100,
-        dim: int = 50,
+        dim: int = 20,
         rank: int = 5,
         *,
         nb_cov: int = 1,
+        add_const: bool = True,
         use_offsets: bool = False,
         marginal_mean_mean: int = 2,
     ):  # pylint: disable=too-many-arguments
@@ -28,6 +29,7 @@ class PlnPCASampler(PlnSampler):
             nb_cov=nb_cov,
             use_offsets=use_offsets,
             marginal_mean_mean=marginal_mean_mean,
+            add_const=add_const,
         )
 
     def _get_components(self):

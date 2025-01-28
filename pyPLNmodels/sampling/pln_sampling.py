@@ -17,6 +17,7 @@ class _BasePlnSampler(_BaseSampler):
         *,
         n_samples: int,
         exog: torch.Tensor,
+        add_const: bool,
         offsets: torch.Tensor,
         coef: torch.Tensor,
         covariance: torch.Tensor,
@@ -36,7 +37,12 @@ class _BasePlnSampler(_BaseSampler):
         params = {"coef": coef, "covariance": covariance}
         dim = covariance.shape[0]
         super().__init__(
-            n_samples=n_samples, dim=dim, exog=exog, offsets=offsets, params=params
+            n_samples=n_samples,
+            dim=dim,
+            exog=exog,
+            add_const=add_const,
+            offsets=offsets,
+            params=params,
         )
 
     def _get_gaussians(self):
@@ -75,19 +81,21 @@ class PlnSampler(_BasePlnSampler):
     def __init__(
         self,
         n_samples: int = 100,
-        dim: int = 50,
+        dim: int = 20,
         *,
         nb_cov: int = 1,
+        add_const: bool = True,
         use_offsets: bool = False,
         marginal_mean_mean: int = 2,
     ):  # pylint: disable=too-many-arguments
-        exog = _get_exog(n_samples, nb_cov)
+        exog = _get_exog(n_samples, nb_cov, add_const)
         offsets = _get_offsets(n_samples, dim, use_offsets)
-        coef = _get_coef(nb_cov, dim, marginal_mean_mean)
+        coef = _get_coef(nb_cov, dim, marginal_mean_mean, add_const)
         covariance = _get_covariance(dim)
         super().__init__(
             n_samples=n_samples,
             exog=exog,
+            add_const=add_const,
             offsets=offsets,
             coef=coef,
             covariance=covariance,

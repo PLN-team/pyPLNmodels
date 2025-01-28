@@ -288,31 +288,40 @@ class ZIP:
         Simple initialization of the Zero Inflated Poisson model. Coefficients are
         intialized randomly
         """
-        self.endog = endog
-        self.exog = exog
-        self.exog_inflation = exog_inflation
-        self.offsets = offsets
+        self._endog = endog.to(DEVICE)
+        if exog is not None:
+            self._exog = exog.to(DEVICE)
+        else:
+            self._exog = None
+        self._exog_inflation = exog_inflation.to(DEVICE)
+        self._offsets = offsets.to(DEVICE)
 
-        self.r0 = torch.mean((endog == 0).double(), axis=0)
-        self.ybarre = torch.mean(endog, axis=0)
+        self._r0 = torch.mean((self._endog == 0).double(), axis=0)
+        self._ybarre = torch.mean(self._endog, axis=0)
 
-        self.n_samples = endog.shape[0]
-        dim = self.endog.shape[1]
-        nb_cov = exog.shape[1]
+        self._n_samples = self._endog.shape[0]
+        dim = self._endog.shape[1]
+        nb_cov = exog.shape[1] if exog is not None else 0
         nb_cov_infla = exog_inflation.shape[1]
 
-        self.coef_inflation = (
+        self._coef_inflation = (
             torch.randn(nb_cov_infla, dim).to(DEVICE).requires_grad_(True)
         )
-        self.coef = torch.randn(nb_cov, dim).to(DEVICE).requires_grad_(True)
+        self._coef = torch.randn(nb_cov, dim).to(DEVICE).requires_grad_(True)
+
+    @property
+    def _marginal_mean(self):
+        if self._exog is None:
+            return 0
+        return self._exog @ self._coef
 
     @property
     def _mean_poisson(self):
-        return torch.exp(self.offsets + self.exog @ self.coef)
+        return torch.exp(self._offsets + self._marginal_mean)
 
     @property
     def _mean_inflation(self):
-        mean = self.exog_inflation @ self.coef_inflation
+        mean = self._exog_inflation @ self._coef_inflation
         return torch.sigmoid(mean)
 
     def loglike(self, lam, pi):
@@ -320,17 +329,27 @@ class ZIP:
         Computes the loglikelihood of a Zero Inflated Poisson regression model.
         """
         first_term = (
-            self.n_samples * self.r0 * torch.log(pi + (1 - pi) * torch.exp(-lam))
+            self._n_samples * self._r0 * torch.log(pi + (1 - pi) * torch.exp(-lam))
         )
-        second_term = self.n_samples * (1 - self.r0) * (
+        second_term = self._n_samples * (1 - self._r0) * (
             torch.log(1 - pi) - lam
-        ) + self.n_samples * self.ybarre * torch.log(lam)
+        ) + self._n_samples * self._ybarre * torch.log(lam)
         return first_term + second_term
 
     def fit(self, maxiter=150):  # pylint: disable=missing-function-docstring
-        optim = torch.optim.Rprop([self.coef, self.coef_inflation])
+        optim = torch.optim.Rprop([self._coef, self._coef_inflation])
         for _ in range(maxiter):
             loss = -torch.mean(self.loglike(self._mean_poisson, self._mean_inflation))
             loss.backward()
             optim.step()
             optim.zero_grad()
+
+    @property
+    def coef(self):
+        """Coefficient of the mean for the ZI Poisson regression model."""
+        return self._coef.cpu()
+
+    @property
+    def coef_inflation(self):
+        """Coefficient for the inflation part of the ZI Poisson regression model."""
+        return self._coef.cpu()
