@@ -20,7 +20,7 @@ def _get_exog(n_samples, nb_cov, add_const, seed=0):
     indices = torch.multinomial(torch.ones(nb_cov), n_samples, replacement=True)
     exog = torch.nn.functional.one_hot(indices, num_classes=nb_cov).float().to(DEVICE)
     if add_const is True:
-        exog[:, -1] *= torch.randn(n_samples).to(
+        exog[:, -1] = 0.2 * torch.randn(n_samples).to(
             DEVICE
         )  # avoid rank error when adding const
     return exog
