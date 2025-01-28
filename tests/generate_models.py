@@ -1,10 +1,34 @@
-from pyPLNmodels import PlnSampler, PlnPCASampler, Pln, PlnPCA
+from pyPLNmodels import (
+    PlnSampler,
+    PlnPCASampler,
+    ZIPlnSampler,
+    Pln,
+    PlnPCA,
+    ZIPln,
+)
+
 
 from tests.utils import _get_formula
+from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init
 
-NB_COVS = [0, 1, 2]
-DICT_SAMPLERS = {"Pln": PlnSampler, "PlnPCA": PlnPCASampler}
-DICT_MODELS = {"Pln": Pln, "PlnPCA": PlnPCA}
+NB_COVS = [0, 2]
+NB_COVS_INFLATION = [1, 2]
+ADD_CONSTS = [True, False]
+RANKS = [3, 5]
+
+
+DICT_SAMPLERS = {"Pln": PlnSampler, "PlnPCA": PlnPCASampler, "ZIPln": ZIPlnSampler}
+DICT_MODELS = {"Pln": Pln, "PlnPCA": PlnPCA, "ZIPln": ZIPln}
+DICT_INIT_FUNCTIONS = {"Pln": _Pln_init, "PlnPCA": _PlnPCA_init, "ZIPln": _ZIPln_init}
+DICT_KWARGS = {
+    "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
+    "PlnPCA": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS, "rank": RANKS},
+    "ZIPln": {
+        "add_const": ADD_CONSTS,
+        "nb_cov": NB_COVS,
+        "nb_cov_inflation": NB_COVS_INFLATION,
+    },
+}
 
 
 def get_dict_models_unfit():
