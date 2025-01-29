@@ -2,8 +2,6 @@ from pyPLNmodels import Pln, PlnPCA, ZIPln
 
 
 def _Pln_init(init_method, **kwargs):
-    for key, value in kwargs.items():
-        print(key, value)
     if init_method == "explicit":
         endog = kwargs.get("endog", None)
         exog = kwargs.get("exog", None)
@@ -52,6 +50,7 @@ def _ZIPln_init(init_method, **kwargs):
             offsets=offsets,
             add_const=add_const,
             exog_inflation=exog_inflation,
+            add_const_inflation=False,
         )
     if init_method == "formula":
         data = kwargs.get("data", None)
