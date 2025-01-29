@@ -8,7 +8,7 @@ from pyPLNmodels._data_handler import (
     _check_full_rank_exog,
     _check_data_shapes,
 )
-from pyPLNmodels import load_oaks
+from pyPLNmodels import load_oaks, load_microcosm, Pln
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -83,3 +83,15 @@ def test_check_data_shapes_invalid():
             torch.tensor(oaks["dist2ground"].values),
             torch.tensor([[0.1], [0.2]]),
         )
+
+
+def test_remove_column_names():
+    data = load_microcosm()
+    data["endog"].iloc[:, 6] *= 0
+    pln = Pln(data["endog"], exog=data["site_1hot"], add_const=False)
+
+
+def test_remove_column_names_exog():
+    data = load_microcosm()
+    data["site_1hot"].iloc[:, 1] *= 0
+    pln = Pln(data["endog"], exog=data["site_1hot"], add_const=False)

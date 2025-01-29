@@ -5,8 +5,8 @@ dict_models = get_dict_models_fitted()
 
 
 def test_method_properties():
-    for nb_cov in dict_models.keys():
-        for model in dict_models[nb_cov]["formula"]:
+    for model_name in dict_models.keys():
+        for model in dict_models[model_name]["formula"]:
             for (
                 attribute
             ) in model._useful_properties_list:  # pylint: disable=protected-access
@@ -17,7 +17,7 @@ def test_method_properties():
             ) in model._useful_methods_list:  # pylint: disable=protected-access
                 method = method[1:-2]
                 assert hasattr(model, method)
-        for model in dict_models[nb_cov]["explicit"]:
+        for model in dict_models[model_name]["explicit"]:
             for (
                 attribute
             ) in model._useful_properties_list:  # pylint: disable=protected-access
