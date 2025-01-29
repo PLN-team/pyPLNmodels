@@ -271,8 +271,10 @@ def _init_latent_mean(  # pylint: disable=too-many-arguments
     return latent_mean.detach()
 
 
-def _init_coef_coef_inflation(endog, exog, exog_inflation, offsets):
-    zip_model = ZIP(endog, exog, exog_inflation, offsets)
+def _init_coef_coef_inflation(*, endog, exog, exog_inflation, offsets):
+    zip_model = ZIP(
+        endog=endog, exog=exog, exog_inflation=exog_inflation, offsets=offsets
+    )
     zip_model.fit()
     return (zip_model.coef.detach(), zip_model.coef_inflation.detach())
 
@@ -283,7 +285,7 @@ class ZIP:
     """
 
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, endog, exog, exog_inflation, offsets):
+    def __init__(self, *, endog, exog, exog_inflation, offsets):
         """
         Simple initialization of the Zero Inflated Poisson model. Coefficients are
         intialized randomly
@@ -352,4 +354,4 @@ class ZIP:
     @property
     def coef_inflation(self):
         """Coefficient for the inflation part of the ZI Poisson regression model."""
-        return self._coef.cpu()
+        return self._coef_inflation.cpu()
