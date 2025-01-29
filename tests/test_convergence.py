@@ -16,8 +16,8 @@ def test_mse():
                         err = mse(
                             param - model.sampler.dict_model_true_parameters[param_key]
                         )
-                        if i > 38:
-                            print("i:", i)
-                            assert False
                         if err < 0.3:
+                            print("param_key", param_key)
+                            print("model_name", model_name)
+                            print("init_method", init_method)
                             assert err < 0.3
