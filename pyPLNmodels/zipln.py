@@ -182,10 +182,10 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
     def _init_model_parameters(self):
         _, self._coef_inflation = _init_coef_coef_inflation(
-            self._endog,
-            self._exog,
-            self._exog_inflation,
-            self._offsets,
+            endog=self._endog,
+            exog=self._exog,
+            exog_inflation=self._exog_inflation,
+            offsets=self._offsets,
         )
         # coef and covariance are not initialized as defined by closed forms.
 
