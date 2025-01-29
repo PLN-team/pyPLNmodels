@@ -438,8 +438,9 @@ def _extract_exog_inflation_from_formula(
     """
     try:
         exog_inflation = dmatrix(formula_inflation, data=data)
+        column_names_exog_inflation = exog_inflation.design_info.column_names
         exog_inflation = _format_data(exog_inflation)
-        return exog_inflation, exog_inflation.design_info.column_names
+        return exog_inflation, column_names_exog_inflation
     except PatsyError as err:
         msg = f"Formula of ``exog_inflation` did not work: {formula_inflation}."
         msg += " Error from Patsy:"
