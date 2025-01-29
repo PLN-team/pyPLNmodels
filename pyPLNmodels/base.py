@@ -14,7 +14,11 @@ from pyPLNmodels._data_handler import (
     _array2tensor,
 )
 from pyPLNmodels._criterion import _ElboCriterionMonitor
-from pyPLNmodels._utils import _TimeRecorder, _nice_string_of_dict
+from pyPLNmodels._utils import (
+    _TimeRecorder,
+    _nice_string_of_dict,
+    _process_indices_of_variables,
+)
 from pyPLNmodels._viz import (
     _viz_variables,
     ModelViz,
@@ -44,6 +48,9 @@ class BaseModel(
 
     _coef: torch.Tensor
     _covariance: torch.Tensor
+
+    column_names_endog = None
+    column_names_exog = None
 
     def __init__(
         self,
@@ -78,8 +85,8 @@ class BaseModel(
             self._endog,
             self._exog,
             self._offsets,
-            self.column_names_endog,
-            self.column_names_exog,
+            column_names_endog,
+            column_names_exog,
         ) = _handle_data(
             endog,
             exog,
@@ -87,6 +94,10 @@ class BaseModel(
             compute_offsets_method,
             add_const,
         )
+        if column_names_endog is not None:
+            self.column_names_endog = column_names_endog
+        if column_names_exog is not None:
+            self.column_names_exog = column_names_exog
         self._elbo_criterion_monitor = _ElboCriterionMonitor()
         self._fitted = False
 
@@ -116,7 +127,9 @@ class BaseModel(
             Overriden (useless) if data["offsets"] is not `None`.
 
         """
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
+            _extract_data_from_formula(formula, data)
+        )
         return cls(
             endog,
             exog=exog,
@@ -236,23 +249,9 @@ class BaseModel(
             of `variables_names`.
 
         """
-        if indices_of_variables is None:
-            if self.column_names_endog is None:
-                raise ValueError(
-                    "No names have been given to the columns of endog. "
-                    "Please set the column_names_endog attribute to the needed names "
-                    "or instantiate a new model with a pd.DataFrame for `endog`"
-                    "with appropriate column names."
-                )
-            indices_of_variables = [
-                self.column_names_endog.get_loc(name) for name in variables_names
-            ]
-        else:
-            if len(indices_of_variables) != len(variables_names):
-                raise ValueError(
-                    f"Number of indices ({len(indices_of_variables)}) should be "
-                    f"the same as the number of variable names ({len(variables_names)})."
-                )
+        indices_of_variables = _process_indices_of_variables(
+            variables_names, indices_of_variables, self.column_names_endog
+        )
         plot_correlation_circle(
             self.transform(), variables_names, indices_of_variables, title=title
         )
@@ -298,6 +297,9 @@ class BaseModel(
             from the length of `variables_names`.
 
         """
+        indices_of_variables = _process_indices_of_variables(
+            variables_names, indices_of_variables, self.column_names_endog
+        )
         return _biplot(
             self.transform(),
             variables_names,
@@ -542,8 +544,7 @@ class BaseModel(
     def latent_sqrt_variance(self):
         """
         Property representing the latent square root variance conditionally on
-        the observed counts, i.e. the square root variance of the
-        latent variable of each sample.
+        the observed counts, i.e. the square root variance of the latent variable of each sample.
 
         Returns
         -------
@@ -644,8 +645,7 @@ class BaseModel(
 
     def transform(self, remove_exog_effect: bool = False):
         """
-        Returns the latent variables. Can be seen as a
-        normalization of the counts given.
+        Returns the latent variables. Can be seen as a normalization of the counts given.
 
         Parameters
         ----------

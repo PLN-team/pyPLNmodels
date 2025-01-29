@@ -90,14 +90,15 @@ def _init_coef(  # pylint: disable=too-many-arguments
         grad_norm = torch.norm(beta.grad)
         beta.grad.zero_()
         i += 1
-        if verbose:
+        if verbose is True:
             if i % 10 == 0:
                 print("log like : ", -loss)
                 print("grad_norm : ", grad_norm)
-            if i < itermax:
-                print(f"Tolerance reached in {i} iterations")
-            else:
-                print("Maximum number of iterations reached")
+    if verbose is True:
+        if i < itermax:
+            print(f"Tolerance reached in {i} iterations.")
+        else:
+            print("Maximum number of iterations reached.")
 
     return beta
 

@@ -111,7 +111,9 @@ class PlnPCA(BaseModel):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         rank: int = 5,
     ):
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
+            _extract_data_from_formula(formula, data)
+        )
         return cls(
             endog,
             exog=exog,
@@ -374,7 +376,8 @@ class PlnPCA(BaseModel):
         >>> data = load_scrna()
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> plnpca.fit()
-        >>> plnpca.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
+        >>> pca.plot_correlation_circle(variables_names = ["MALAT1", "ACTB"])
+        >>> pca.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,4])
         """,
     )
     def plot_correlation_circle(
@@ -383,6 +386,32 @@ class PlnPCA(BaseModel):
         super().plot_correlation_circle(
             variables_names=variables_names,
             indices_of_variables=indices_of_variables,
+            title=title,
+        )
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnPCA, load_scrna
+        >>> data = load_scrna()
+        >>> pca = PCA.from_formula("endog ~ 1", data = data)
+        >>> pca.fit()
+        >>> pca.biplot(variables_names = ["MALAT1", "ACTB"])
+        >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,4], colors = data["labels"])
+        """,
+    )
+    def biplot(
+        self,
+        variables_names,
+        *,
+        indices_of_variables: np.ndarray = None,
+        colors: np.ndarray = None,
+        title: str = "",
+    ):
+        super().biplot(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            colors=colors,
             title=title,
         )
 
