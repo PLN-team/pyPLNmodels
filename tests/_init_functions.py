@@ -44,13 +44,14 @@ def _ZIPln_init(init_method, **kwargs):
         exog_inflation = kwargs.get("exog_inflation", None)
         offsets = kwargs.get("offsets", None)
         add_const = kwargs.get("add_const", False)
+        add_const_inflation = kwargs.get("add_const_inflation", False)
         return ZIPln(
             endog=endog,
             exog=exog,
             offsets=offsets,
             add_const=add_const,
             exog_inflation=exog_inflation,
-            add_const_inflation=False,
+            add_const_inflation=add_const_inflation,
         )
     if init_method == "formula":
         data = kwargs.get("data", None)

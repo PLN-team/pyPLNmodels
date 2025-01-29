@@ -4,7 +4,10 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from pyPLNmodels._viz import _viz_variables, _plot_ellipse
+from pyPLNmodels import Pln, load_scrna, ZIPln, PlnPCASampler, PlnPCA
 from .conftest import dict_fitted_models, dict_unfit_models
+
+data = load_scrna()
 
 
 @pytest.fixture
@@ -64,9 +67,14 @@ def test_plot_ellipse():
 
 
 def test_viz():
-    for nb_cov in dict_fitted_models.keys():
+    for model_name in dict_fitted_models.keys():
         for init_method in ["formula", "explicit"]:
-            for model in dict_fitted_models[nb_cov][init_method]:
+            for model in dict_fitted_models[model_name][init_method]:
+                model.plot_correlation_circle(
+                    variables_names=None, indices_of_variables=None
+                )
+                _, ax = plt.subplots()
+                model.plot_expected_vs_true(ax=ax)
                 colors = torch.randn(model.n_samples)
                 model.viz(colors=colors)
                 model.viz(colors=colors, show_cov=True)
@@ -88,3 +96,51 @@ def test_viz():
                 model.pca_pairplot(n_components=2)
                 model.pca_pairplot()
                 model.pca_pairplot(n_components=2, colors=colors)
+                model.show()
+                with pytest.raises(ValueError):
+                    pca.plot_correlation_circle(
+                        variables_names=["A", "B"], indices_of_variables=[1, 2, 3]
+                    )
+
+
+def test_show_big_matrix():
+    sampler = PlnPCASampler(dim=500)
+    endog = sampler.sample()
+    pca = PlnPCA(endog)
+    pca.fit()
+    pca.show()
+
+
+def test_show_no_coef():
+    pln = Pln(data["endog"], exog=None, add_const=None)
+    pln.fit()
+    pln.show()
+
+
+def test_display_norm_no_ax():
+    pln = Pln(data["endog"])
+    pln.fit()
+    modviz = pln._get_model_viz()
+    _, axes_5 = plt.subplots(5, 1)
+    modviz.show(axes=axes_5, savefig=True, name_file="Test")
+    _, axes_3 = plt.subplots(3, 1)
+    with pytest.raises(IndexError):
+        modviz.show(axes=axes_3, savefig=False, name_file="Test")
+
+
+def test_display_norm_no_ax_zi():
+    pln = ZIPln(data["endog"])
+    pln.fit()
+    modviz = pln._get_model_viz()
+    _, axes_5 = plt.subplots(6, 1)
+    modviz.show(axes=axes_5, savefig=True, name_file="Test")
+    _, axes_3 = plt.subplots(3, 1)
+    with pytest.raises(IndexError):
+        modviz.show(axes=axes_3, savefig=False, name_file="Test")
+
+
+def test_plot_correlation_circle_pandas():
+    pca = PlnPCA(data["endog"])
+    pca.fit()
+    pca.show()
+    pca.plot_correlation_circle(variables_names=["RPL14", "ACTB"])
