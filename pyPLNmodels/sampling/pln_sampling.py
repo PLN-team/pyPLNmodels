@@ -88,9 +88,11 @@ class PlnSampler(_BasePlnSampler):
         use_offsets: bool = False,
         marginal_mean_mean: int = 2,
     ):  # pylint: disable=too-many-arguments
-        exog = _get_exog(n_samples, nb_cov, add_const)
-        offsets = _get_offsets(n_samples, dim, use_offsets)
-        coef = _get_coef(nb_cov, dim, marginal_mean_mean, add_const)
+        exog = _get_exog(n_samples=n_samples, nb_cov=nb_cov, will_add_const=add_const)
+        offsets = _get_offsets(n_samples=n_samples, dim=dim, use_offsets=use_offsets)
+        coef = _get_coef(
+            nb_cov=nb_cov, dim=dim, mean=marginal_mean_mean, add_const=add_const
+        )
         covariance = _get_covariance(dim)
         super().__init__(
             n_samples=n_samples,

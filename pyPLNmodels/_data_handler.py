@@ -61,14 +61,13 @@ def _handle_data(
         endog, exog, offsets, compute_offsets_method, add_const
     )
     _check_data_shapes(endog, exog, offsets)
+    endog, offsets, column_names_endog = _remove_zero_columns(
+        endog, offsets, column_names_endog
+    )
 
     if exog is not None:
         exog = _remove_useless_exog(exog, column_names_exog, is_inflation=False)
         _check_full_rank_exog(exog)
-
-    endog, offsets, column_names_endog = _remove_zero_columns(
-        endog, offsets, column_names_endog
-    )
 
     return endog, exog, offsets, column_names_endog, column_names_exog
 
@@ -218,7 +217,9 @@ def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
     if exog is None:
         return ones
     if length != exog.shape[0]:
-        raise ValueError("The length of the exog should be the same as the length.")
+        msg = f"The length of the exog ({exog.shape[0]}) "
+        msg += f"should be the same as the length of endog ({length})."
+        raise ValueError(msg)
     return torch.cat((ones, exog), dim=1)
 
 
@@ -396,8 +397,15 @@ def _extract_data_from_formula(
         A tuple containing the extracted endog, exog, and offsets.
 
     """
+    endog_name = formula.split("~")[0].strip()
+    if isinstance(data[endog_name], pd.DataFrame):
+        column_names_endog = data[endog_name].columns
+    else:
+        column_names_endog = None
+
     variables = dmatrices(formula, data=data)
     endog, exog = variables[0], variables[1]
+    column_names_exog = exog.design_info.column_names
 
     if exog.size == 0:
         exog = None
@@ -406,7 +414,7 @@ def _extract_data_from_formula(
         print("Taking the offsets from the data given.")
     else:
         offsets = None
-    return endog, exog, offsets
+    return endog, exog, offsets, column_names_endog, column_names_exog
 
 
 def _extract_exog_inflation_from_formula(
@@ -431,7 +439,7 @@ def _extract_exog_inflation_from_formula(
     try:
         exog_inflation = dmatrix(formula_inflation, data=data)
         exog_inflation = _format_data(exog_inflation)
-        return exog_inflation
+        return exog_inflation, exog_inflation.design_info.column_names
     except PatsyError as err:
         msg = f"Formula of ``exog_inflation` did not work: {formula_inflation}."
         msg += " Error from Patsy:"

@@ -170,7 +170,9 @@ class PlnPCAcollection:
         compute_offsets_method: {"zero", "logsum"} = "zero",
         ranks: Optional[Iterable[int]] = range(3, 5),
     ):  # pylint: disable=missing-function-docstring
-        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
+            _extract_data_from_formula(formula, data)
+        )
         return cls(
             endog=endog,
             exog=exog,

@@ -126,9 +126,11 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             compute_offsets_method=compute_offsets_method,
             add_const=add_const,
         )
-        self._exog_inflation, self.column_names_exog_inflation, self._dirac = (
+        self._exog_inflation, column_names_exog_inflation, self._dirac = (
             _handle_inflation_data(exog_inflation, add_const_inflation, self._endog)
         )
+        if column_names_exog_inflation is not None:
+            self.column_names_exog_inflation = column_names_exog_inflation
 
     @classmethod
     @_add_doc(
@@ -161,14 +163,21 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             msg += "If you need different `exog_inflation`, "
             msg += "specify it with a pipe: '|' like in the following: endog ~ 1 + x | x + y "
             print(msg)
-            endog, exog, offsets = _extract_data_from_formula(formula, data)
+            endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
+                _extract_data_from_formula(formula, data)
+            )
             exog_inflation = exog
+            cls.column_names_exog_inflation = cls.column_names_exog
         else:
             split_formula = formula.split("|")
             formula_exog = split_formula[0]
-            endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
+            endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
+                _extract_data_from_formula(formula_exog, data)
+            )
             formula_infla = split_formula[1]
-            exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
+            exog_inflation, cls.column_names_exog_inflation = (
+                _extract_exog_inflation_from_formula(formula_infla, data)
+            )
 
         return cls(
             endog,
@@ -413,7 +422,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.plot_correlation_circle(["A","B"], indices_of_variables = [4,8])
+        >>> zi.plot_correlation_circle(variables_names = ["MALAT1", "ACTB"])
+        >>> zi.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,4])
         """,
     )
     def plot_correlation_circle(
@@ -422,6 +432,32 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         super().plot_correlation_circle(
             variables_names=variables_names,
             indices_of_variables=indices_of_variables,
+            title=title,
+        )
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import ZIPln, load_microcosm
+        >>> data = load_microcosm()
+        >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
+        >>> zi.fit()
+        >>> zi.biplot(variables_names = ["MALAT1", "ACTB"])
+        >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,4], colors = data["labels"])
+        """,
+    )
+    def biplot(
+        self,
+        variables_names,
+        *,
+        indices_of_variables: np.ndarray = None,
+        colors: np.ndarray = None,
+        title: str = "",
+    ):
+        super().biplot(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            colors=colors,
             title=title,
         )
 

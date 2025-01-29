@@ -115,10 +115,8 @@ def _viz_variables(
     else:
         to_show = False
     if colors is not None:
-        try:
+        if isinstance(colors, np.ndarray):
             colors = np.squeeze(colors)
-        except ValueError:
-            pass
 
     sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80)
     if covariances is not None:
@@ -152,7 +150,6 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     None
     """
     standardized_data = StandardScaler().fit_transform(data_matrix)
-
     pca_transformed_data, explained_variance_ratio = _perform_pca(standardized_data, 2)
 
     pca_projected_variables = torch.tensor(pca_transformed_data)
@@ -260,7 +257,7 @@ class ModelViz:
             ax.text(
                 0.5,
                 0.5,
-                "No coef given in the initialization.",
+                "No coef given in the model.",
                 horizontalalignment="center",
                 verticalalignment="center",
                 transform=ax.transAxes,
@@ -272,8 +269,6 @@ class ModelViz:
         """
         Display the evolution of the norm of each parameter.
         """
-        if ax is None:
-            _, ax = plt.subplots(1)
         absc = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
         absc = absc * len(self._running_times) / len(absc)
         absc = np.array(self._running_times)[absc.astype(int)]
@@ -293,7 +288,6 @@ class ModelViz:
         ax : matplotlib.axes.Axes, optional
             The axes object to plot on. If not provided, will be created.
         """
-        ax = plt.gca() if ax is None else ax
         ax.plot(self._running_times, self._criterion_list, label="Criterion")
 
         # last_criterion = np.round(self._criterion_list[-1], 6)
@@ -320,10 +314,13 @@ class ModelViz:
 
             ax4 = fig.add_subplot(gs[1, :])
             to_show = True
-        elif len(axes) != 4:
-            raise ValueError("The axes should be of length 4.")
         else:
-            ax1, ax2, ax3, ax4 = axes[0], axes[1], axes[2], axes[3]
+            try:
+                ax1, ax2, ax3, ax4 = axes[0], axes[1], axes[2], axes[3]
+            except IndexError as err:
+                error_message = "You should be able to access the axes using axes[3]."
+                print(error_message)
+                raise IndexError(f"{error_message}: {err}") from err
 
         self.display_covariance(ax=ax1)
         self.display_norm_evolution(ax=ax2)
@@ -355,10 +352,13 @@ class ModelViz:
             to_show = True
             # axes = [ax4,ax1,ax3,ax2]
             axes = [ax2, ax5, ax3, ax1]
-        elif len(axes) != 5:
-            raise ValueError("The axes should be of length 5.")
         else:
-            ax1, ax2, ax3, ax4, ax5 = axes[0], axes[1], axes[2], axes[3], axes[4]
+            try:
+                ax1, ax2, ax3, ax4, ax5 = axes[0], axes[1], axes[2], axes[3], axes[4]
+            except IndexError as err:
+                error_message = "You should be able to access the axes using axes[4]."
+                print(error_message)
+                raise IndexError(f"{error_message}: {err}") from err
 
         self.show(axes=axes, savefig=False, name_file="")
         self.display_coef_inflation(ax=ax4)

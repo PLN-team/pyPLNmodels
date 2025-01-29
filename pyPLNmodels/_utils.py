@@ -154,3 +154,26 @@ def _log1pexp(t):
         t,
         torch.log(1 + torch.exp(t)),
     )
+
+
+def _process_indices_of_variables(
+    variables_names, indices_of_variables, column_names_endog
+):
+    if indices_of_variables is None:
+        if column_names_endog is None:
+            raise ValueError(
+                "No names have been given to the columns of endog. "
+                "Please set the column_names_endog attribute to the needed names "
+                "or instantiate a new model with a pd.DataFrame for `endog`"
+                "with appropriate column names."
+            )
+        indices_of_variables = [
+            column_names_endog.get_loc(name) for name in variables_names
+        ]
+    else:
+        if len(indices_of_variables) != len(variables_names):
+            raise ValueError(
+                f"Number of indices ({len(indices_of_variables)}) should be "
+                f"the same as the number of variable names ({len(variables_names)})."
+            )
+    return indices_of_variables

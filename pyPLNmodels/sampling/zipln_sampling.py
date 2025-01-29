@@ -1,6 +1,7 @@
 import torch
 
 from pyPLNmodels._utils import _add_doc
+from pyPLNmodels._data_handler import _add_constant_to_exog
 
 from ._base_sampler import _BaseSampler
 from .pln_sampling import PlnSampler
@@ -26,6 +27,7 @@ class ZIPlnSampler(PlnSampler):
         nb_cov: int = 1,
         nb_cov_inflation: int = 1,
         add_const: bool = True,
+        add_const_inflation: bool = True,
         use_offsets: bool = False,
         marginal_mean_mean: int = 2,
         marginal_mean_inflation_mean: int = 0.5,
@@ -38,11 +40,23 @@ class ZIPlnSampler(PlnSampler):
             use_offsets=use_offsets,
             marginal_mean_mean=marginal_mean_mean,
         )
-        if nb_cov_inflation == 0:
-            raise ValueError("Number of covariates should should be positive.")
-        self._exog_inflation = _get_exog(n_samples, nb_cov_inflation, add_const=False)
+        if nb_cov_inflation == 0 and add_const_inflation is False:
+            raise ValueError("Number of covariates should be positive.")
+        self._exog_inflation = _get_exog(
+            n_samples=n_samples,
+            nb_cov=nb_cov_inflation,
+            will_add_const=add_const_inflation,
+        )
+        if add_const_inflation is True:
+            self._exog_inflation = _add_constant_to_exog(
+                self._exog_inflation, self.n_samples
+            )
+
         coef_inflation = _get_coef(
-            nb_cov_inflation, dim, marginal_mean_inflation_mean, add_const=False
+            nb_cov_inflation,
+            dim,
+            marginal_mean_inflation_mean,
+            add_const=add_const_inflation,
         )
         self._params["coef_inflation"] = coef_inflation
 
