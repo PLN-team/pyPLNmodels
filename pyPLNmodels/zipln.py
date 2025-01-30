@@ -422,7 +422,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
         >>> zi.plot_correlation_circle(variables_names = ["ASV_315", "ASV_749"])
-        >>> zi.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,2], colors = data["site"])
+        >>> zi.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,2])
         """,
     )
     def plot_correlation_circle(
