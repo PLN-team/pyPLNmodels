@@ -66,13 +66,14 @@ def test_plot_ellipse():
     assert len(ax.patches) == 1  # Check if ellipse is created
 
 
-def test_viz():
+def test_viz_general():
     for model_name in dict_fitted_models:
         for init_method in ["formula", "explicit"]:
             for model in dict_fitted_models[model_name][init_method]:
-                model.plot_correlation_circle(
-                    variables_names=None, indices_of_variables=None
-                )
+                with pytest.raises(ValueError):
+                    model.plot_correlation_circle(
+                        variables_names=None, indices_of_variables=None
+                    )
                 _, ax = plt.subplots()
                 model.plot_expected_vs_true(ax=ax)
                 colors = torch.randn(model.n_samples)
@@ -100,7 +101,7 @@ def test_viz():
                 model.pca_pairplot(n_components=2, colors=colors)
                 model.show()
                 with pytest.raises(ValueError):
-                    pca.plot_correlation_circle(
+                    model.plot_correlation_circle(
                         variables_names=["A", "B"], indices_of_variables=[1, 2, 3]
                     )
 

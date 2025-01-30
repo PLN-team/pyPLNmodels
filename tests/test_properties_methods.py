@@ -6,7 +6,7 @@ from tests.generate_models import get_model
 from pyPLNmodels.sampling._utils import _get_exog
 
 
-def test_method_properties():
+def test_properties_method():
     for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["formula"]:
             attributes = model._useful_properties_list
