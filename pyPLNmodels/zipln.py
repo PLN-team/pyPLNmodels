@@ -401,15 +401,14 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             ValueError: If the number of components requested is greater
                 than the number of variables in the dataset.
         """
-        model_max_n_components = self._get_max_n_components()
         if n_components is not None:
-            if model_max_n_components < n_components:
+            if self.dim < n_components:
                 raise ValueError(
                     f"The number of components requested ({n_components}) is greater"
-                    f"than the number of variables in the dataset ({model_max_n_components})."
+                    f"than the number of variables in the dataset ({self.dim})."
                 )
         else:
-            n_components = model_max_n_components
+            n_components = self.dim
         min_n_components = min(10, n_components)
         n_components = max(min_n_components, n_components)
         array = self.transform(return_latent_prob=True).numpy()
@@ -422,8 +421,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.plot_correlation_circle(variables_names = ["MALAT1", "ACTB"])
-        >>> zi.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,4])
+        >>> zi.plot_correlation_circle(variables_names = ["ASV_315", "ASV_749"])
+        >>> zi.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,2], colors = data["site"])
         """,
     )
     def plot_correlation_circle(
@@ -442,8 +441,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.biplot(variables_names = ["MALAT1", "ACTB"])
-        >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,4], colors = data["labels"])
+        >>> zi.biplot(variables_names = ["ASV_315", "ASV_749"])
+        >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
         """,
     )
     def biplot(

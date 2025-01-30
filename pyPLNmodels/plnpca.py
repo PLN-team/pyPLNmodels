@@ -374,8 +374,8 @@ class PlnPCA(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
         >>> data = load_scrna()
-        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
-        >>> plnpca.fit()
+        >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
+        >>> pca.fit()
         >>> pca.plot_correlation_circle(variables_names = ["MALAT1", "ACTB"])
         >>> pca.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,4])
         """,
@@ -394,7 +394,7 @@ class PlnPCA(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
         >>> data = load_scrna()
-        >>> pca = PCA.from_formula("endog ~ 1", data = data)
+        >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
         >>> pca.fit()
         >>> pca.biplot(variables_names = ["MALAT1", "ACTB"])
         >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,4], colors = data["labels"])
