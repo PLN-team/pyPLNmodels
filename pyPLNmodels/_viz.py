@@ -270,6 +270,7 @@ class ModelViz:
         Display the evolution of the norm of each parameter.
         """
         absc = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        print("absc heeeere", absc)
         absc = absc * len(self._running_times) / len(absc)
         absc = np.array(self._running_times)[absc.astype(int)]
         for key, value in self._dict_mse.items():
