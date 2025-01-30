@@ -442,7 +442,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
         >>> zi.biplot(variables_names = ["ASV_315", "ASV_749"])
-        >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
+        >>> zi.biplot(variables_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
         """,
     )
     def biplot(
