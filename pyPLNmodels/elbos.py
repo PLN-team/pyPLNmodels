@@ -55,6 +55,56 @@ def profiled_elbo_pln(
     return elbo
 
 
+def elbo_pln(
+    *,  # pylint: disable=too-many-arguments
+    endog: torch.Tensor,
+    marginal_mean: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
+    covariance: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the Pln model.
+
+    Parameters:
+    ----------
+    endog : torch.Tensor
+        Counts with size (n, p).
+    marginal_mean : torch.Tensor
+        Marginal mean with size (n, p).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_variance : torch.Tensor
+        Variational parameter with size (n, p).
+    covariance : torch.Tensor
+        Model parameter with size (p, p).
+
+    Returns:
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound), of size one.
+    """
+    n_samples, _ = endog.shape
+    latent_var = torch.square(latent_sqrt_variance)
+    diag_s = torch.diag(torch.sum(latent_var, dim=0))
+    offsets_plus_mean = offsets + latent_mean
+    Omega = torch.inverse(covariance)
+    m_minus_xb = latent_mean - marginal_mean
+    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+    A = torch.exp(offsets_plus_mean + latent_var / 2)
+    elbo = torch.sum(
+        endog * offsets_plus_mean - A + 0.5 * torch.log(latent_var)
+    ) - 1 / 2 * torch.sum(Omega * m_moins_xb_outer)
+    elbo -= 0.5 * torch.trace(Omega @ diag_s)
+    elbo -= 0.5 * n_samples * torch.logdet(covariance)
+    elbo -= torch.sum(_log_stirling(endog))
+    elbo += n_samples * endog.shape[1] / 2
+    return elbo / n_samples
+
+
 def elbo_plnpca(  # pylint: disable=too-many-arguments
     *,
     endog: torch.Tensor,
