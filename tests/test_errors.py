@@ -54,8 +54,8 @@ def test_too_much_cov():
     data = load_microcosm()
     data["endog"] = data["endog"].iloc[:3, :]
     data["site_1hot"] = data["site_1hot"].iloc[:3, :]
-    # with pytest.raises(ValueError):
-    pln = Pln(data["endog"], exog=data["site_1hot"])
+    with pytest.raises(ValueError):
+        pln = Pln(data["endog"], exog=data["site_1hot"])
 
 
 def test_not_tensor():
