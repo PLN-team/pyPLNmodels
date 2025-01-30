@@ -937,7 +937,7 @@ class BaseModel(
         Parameters
         ----------
             n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. Cannot be greater than 10.
+                Defaults to 3. Cannot be greater than 6.
 
             colors (np.ndarray): An array with one label for each
                 sample in the endog property of the object.
@@ -956,7 +956,7 @@ class BaseModel(
                 )
         else:
             n_components = self.dim
-        min_n_components = min(10, n_components)
+        min_n_components = min(6, n_components)
         n_components = max(min_n_components, n_components)
 
         array = self.transform().numpy()
