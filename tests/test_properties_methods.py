@@ -47,8 +47,7 @@ def test_properties_method():
 
 
 def test_nb_cov_0():
-    pln = get_model("Pln", "formula", {"nb_cov": 0, "add_const": False})
-    pln.fit()
+    pln = get_fitted_model("Pln", "formula", {"nb_cov": 0, "add_const": False})
     assert pln.nb_cov == 0
 
 

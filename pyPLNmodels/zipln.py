@@ -521,9 +521,10 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         """
         if exog_inflation.shape[-1] != self.nb_cov_inflation:
             error_string = f"X has wrong shape:({exog_inflation.shape}). Should"
-            error_string += f" be (_, {self.nb_cov_inflation})."
+            error_string += f" be (integer, {self.nb_cov_inflation})."
             raise RuntimeError(error_string)
-        return torch.sigmoid(exog_inflation @ self.coef_inflation)
+        out = torch.sigmoid(exog_inflation @ self.coef_inflation)
+        return out
 
     @property
     def coef_inflation(self):
