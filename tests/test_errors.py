@@ -102,3 +102,15 @@ def test_not_fitted_viz():
     pca = PlnPCA(data["endog"])
     with pytest.raises(RuntimeError):
         pca.plot_expected_vs_true()
+
+
+def test_setter():
+    data = load_scrna()
+    pca = PlnPCA(data["endog"])
+    pca.fit()
+    pca.components = pca.components.numpy()
+    with pytest.raises(ValueError):
+        pca.components = pca.components[:, :3]
+    with pytest.raises(ValueError):
+        pca.coef = pca.coef[:, :4]
+    pca.coef = pca.coef.numpy()

@@ -39,6 +39,8 @@ class BaseModel(
     Abstract base class for all the PLN based models that will be derived.
     """
 
+    column_names_endog = None
+    column_names_exog = None
     _time_recorder: _TimeRecorder
     optim: torch.optim.Optimizer
     _dict_list_mse: dict
@@ -48,9 +50,6 @@ class BaseModel(
 
     _coef: torch.Tensor
     _covariance: torch.Tensor
-
-    column_names_endog = None
-    column_names_exog = None
 
     def __init__(
         self,
@@ -256,6 +255,7 @@ class BaseModel(
             self.transform(), variables_names, indices_of_variables, title=title
         )
 
+    @abstractmethod
     def biplot(
         self,
         variables_names,
