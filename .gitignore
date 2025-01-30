@@ -7,3 +7,6 @@ tests/getting_started/
 tests/readme_examples/
 tests/test_getting_started.py
 .ipynb_checkpoints/
+tests/TestPln.pdf
+tests/TestZIPln.pdf
+tests/.coverage

@@ -42,7 +42,7 @@ class PlnPCAcollection:
         BaseModel,
         params="""
             ranks : Iterable[int], optional(keyword-only)
-                The range of ranks, by default range(3, 5).
+                The range of ranks, by default (3, 5).
             """,
         example="""
             >>> from pyPLNmodels import PlnPCAcollection, load_scrna
@@ -66,7 +66,7 @@ class PlnPCAcollection:
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
-        ranks: Optional[Iterable[int]] = range(3, 5),
+        ranks: Optional[Iterable[int]] = (3, 5),
     ):  # pylint: disable=too-many-arguments
         """
         Constructor for PlnPCAcollection.
@@ -145,7 +145,7 @@ class PlnPCAcollection:
         BaseModel,
         params="""
             ranks : Iterable[int], optional(keyword-only)
-                The range of ranks, by default range(3, 5).
+                The range of ranks, by default (3, 5).
             """,
         example="""
             >>> from pyPLNmodels import PlnPCAcollection, load_scrna
@@ -168,7 +168,7 @@ class PlnPCAcollection:
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        ranks: Optional[Iterable[int]] = range(3, 5),
+        ranks: Optional[Iterable[int]] = (3, 5),
     ):  # pylint: disable=missing-function-docstring
         endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
             _extract_data_from_formula(formula, data)

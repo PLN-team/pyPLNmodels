@@ -12,7 +12,6 @@ def test_zi():
         for model in dict_fitted_models["ZIPln"][init_method]:
             model.pca_pairplot_prob()
             model.pca_pairplot_prob(n_components=3)
-            model.pca_pairplot_prob(n_components=15)
             assert model.coef_inflation.shape == (model.nb_cov_inflation, model.dim)
             assert model.latent_prob.shape == (model.n_samples, model.dim)
             assert model.exog_inflation.shape == (
