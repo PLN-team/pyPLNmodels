@@ -56,7 +56,7 @@ class _BasePlnSampler(_BaseSampler):
     @property
     @abstractmethod
     def _dim_latent(self):
-        pass
+        """Dimension that is sampling in the latent space."""
 
     def _get_components(self):
         return torch.linalg.cholesky(self._params["covariance"])

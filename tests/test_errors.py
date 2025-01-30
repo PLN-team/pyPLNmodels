@@ -4,8 +4,10 @@ import torch
 
 from pyPLNmodels import ZIPln, load_scrna, Pln, load_microcosm, PlnPCA
 
+
 from .generate_models import get_model
 from .conftest import dict_fitted_models, dict_unfit_models
+from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init
 
 
 def test_no_exog_inflation():
@@ -114,3 +116,12 @@ def test_setter():
     with pytest.raises(ValueError):
         pca.coef = pca.coef[:, :4]
     pca.coef = pca.coef.numpy()
+
+
+def test_wrong_init_models():
+    with pytest.raises(ValueError):
+        _Pln_init("wrong formula")
+    with pytest.raises(ValueError):
+        _PlnPCA_init("wrong formula")
+    with pytest.raises(ValueError):
+        _ZIPln_init("wrong formula")
