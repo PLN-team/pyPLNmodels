@@ -1,9 +1,9 @@
 # pylint: skip-file
-from .conftest import dict_fitted_models
-
-from tests.generate_models import get_model
-
+import pytest
 from pyPLNmodels.sampling._utils import _get_exog
+
+from .conftest import dict_fitted_models
+from tests.generate_models import get_fitted_model
 
 
 def test_properties_method():
