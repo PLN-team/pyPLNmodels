@@ -114,8 +114,6 @@ def get_model(model_name, init_method, kwargs):
     }
     if is_inflated is True:
         data["exog_inflation"] = sampler.exog_inflation
-    kwargs.pop("nb_cov", None)
-    kwargs.pop("nb_cov_inflation", None)
     init_model_function = DICT_INIT_FUNCTIONS[model_name]
 
     if init_method == "explicit":

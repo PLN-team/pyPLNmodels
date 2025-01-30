@@ -415,9 +415,6 @@ class PlnPCA(BaseModel):
             title=title,
         )
 
-    def _get_max_n_components(self):
-        return self.rank
-
     @_add_doc(
         BaseModel,
         example="""

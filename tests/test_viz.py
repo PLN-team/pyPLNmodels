@@ -67,7 +67,7 @@ def test_plot_ellipse():
 
 
 def test_viz():
-    for model_name in dict_fitted_models.keys():
+    for model_name in dict_fitted_models:
         for init_method in ["formula", "explicit"]:
             for model in dict_fitted_models[model_name][init_method]:
                 model.plot_correlation_circle(
@@ -79,6 +79,8 @@ def test_viz():
                 model.viz(colors=colors)
                 model.viz(colors=colors, show_cov=True)
                 model.viz(show_cov=True)
+                model.viz(show_cov=True, remove_exog_effect=True)
+                model.viz(remove_exog_effect=True)
                 model.viz()
 
                 model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 4])

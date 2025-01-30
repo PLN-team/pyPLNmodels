@@ -319,8 +319,10 @@ class BaseModel(
         """
         self.optim.zero_grad()
         elbo = self.compute_elbo()
-        if torch.sum(torch.isnan(elbo)):
-            raise ValueError("The ELBO contains nan values.")
+        if torch.isfinite(elbo).item() is False:
+            raise ValueError(
+                "The ELBO contains non-finite values. Please raise an issue on Github."
+            )
         (-elbo).backward()
         self.optim.step()
         self._project_parameters()
@@ -364,11 +366,11 @@ class BaseModel(
 
     @abstractmethod
     def _init_model_parameters(self):
-        pass
+        """Iniialization of model parameters."""
 
     @abstractmethod
     def _init_latent_parameters(self):
-        pass
+        """Initialization of latent parameters."""
 
     @property
     @abstractmethod
@@ -496,6 +498,8 @@ class BaseModel(
         torch.Tensor or None
             The exogenous variables or `None` if no covariates are given in the model.
         """
+        if self._exog is None:
+            return None
         return self._exog.cpu()
 
     @property
@@ -944,23 +948,19 @@ class BaseModel(
             ValueError: If the number of components requested is greater
                 than the number of variables in the dataset.
         """
-        model_max_n_components = self._get_max_n_components()
         if n_components is not None:
-            if model_max_n_components < n_components:
+            if self.dim < n_components:
                 raise ValueError(
-                    f"The number of components requested ({n_components}) is greater"
-                    f"than the number of variables in the dataset ({model_max_n_components})."
+                    f"The number of components requested ({n_components}) is greater "
+                    f"than the number of variables in the dataset ({self.dim})."
                 )
         else:
-            n_components = model_max_n_components
+            n_components = self.dim
         min_n_components = min(10, n_components)
         n_components = max(min_n_components, n_components)
 
         array = self.transform().numpy()
         _pca_pairplot(array, n_components, colors)
-
-    def _get_max_n_components(self):
-        return self.dim
 
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
@@ -986,7 +986,7 @@ class BaseModel(
         :func:`pyPLNmodels.Pln.biplot`
         :func:`pyPLNmodels.PlnPCA.biplot`
         """
-        if self._fitted is None:
+        if self._fitted is False:
             raise RuntimeError("Please fit the model before.")
         endog_predictions = self._endog_predictions
         reconstruction_error = torch.mean((self.endog - endog_predictions) ** 2)
@@ -997,4 +997,4 @@ class BaseModel(
     @property
     @abstractmethod
     def _endog_predictions(self):
-        pass
+        """Abstract method the predict the endog variables."""
