@@ -1,9 +1,11 @@
 # pylint: skip-file
 import pytest
+import torch
 
-from pyPLNmodels import ZIPln, load_scrna, Pln, load_microcosm
+from pyPLNmodels import ZIPln, load_scrna, Pln, load_microcosm, PlnPCA
 
 from .generate_models import get_model
+from .conftest import dict_fitted_models, dict_unfit_models
 
 
 def test_no_exog_inflation():
@@ -65,3 +67,38 @@ def test_wront_method_offsets():
     data = load_scrna()
     with pytest.raises(ValueError):
         pln = Pln(data["endog"], compute_offsets_method="nothing")
+
+
+def test_bad_elbo():
+    for model_name in dict_fitted_models:
+        for init_method in ["formula", "explicit"]:
+            for model in dict_fitted_models[model_name][init_method]:
+                with torch.no_grad():
+                    model._latent_sqrt_variance *= 0
+                with pytest.raises(ValueError):
+                    model.fit()
+
+
+def test_bad_fit():
+    for model_name in dict_unfit_models:
+        for init_method in ["formula", "explicit"]:
+            for model in dict_unfit_models[model_name][init_method]:
+                with pytest.raises(RuntimeError):
+                    print(model)
+                with pytest.raises(ValueError):
+                    model.fit(maxiter=0.4)
+
+
+def test_too_much_components_viz():
+    data = load_scrna()
+    pca = PlnPCA(data["endog"])
+    pca.fit()
+    with pytest.raises(ValueError):
+        pca.pca_pairplot(n_components=pca.dim + 10)
+
+
+def test_not_fitted_viz():
+    data = load_scrna()
+    pca = PlnPCA(data["endog"])
+    with pytest.raises(RuntimeError):
+        pca.plot_expected_vs_true()

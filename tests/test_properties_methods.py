@@ -1,30 +1,81 @@
 # pylint: skip-file
-from tests.generate_models import get_dict_models_fitted
+from .conftest import dict_fitted_models
 
-dict_models = get_dict_models_fitted()
+from tests.generate_models import get_model
+
+from pyPLNmodels.sampling._utils import _get_exog
 
 
 def test_method_properties():
-    for model_name in dict_models.keys():
-        for model in dict_models[model_name]["formula"]:
-            for (
-                attribute
-            ) in model._useful_properties_list:  # pylint: disable=protected-access
+    for model_name in dict_fitted_models.keys():
+        for model in dict_fitted_models[model_name]["formula"]:
+            attributes = model._useful_properties_list
+            for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)
-            for (
+                attribute_value = getattr(model, attribute)
+            methods = [
                 method
-            ) in model._useful_methods_list:  # pylint: disable=protected-access
+                for method in model._useful_methods_list
+                if method
+                not in [".predict()", ".plot_correlation_circle()", ".biplot()"]
+            ]
+            for method in methods:  # pylint: disable=protected-access
                 method = method[1:-2]
                 assert hasattr(model, method)
-        for model in dict_models[model_name]["explicit"]:
-            for (
-                attribute
-            ) in model._useful_properties_list:  # pylint: disable=protected-access
+                method_to_call = getattr(model, method)
+                if callable(method_to_call):
+                    result = method_to_call()
+        for model in dict_fitted_models[model_name]["explicit"]:
+            attributes = model._useful_properties_list
+            for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)
-            for (
+                attribute_value = getattr(model, attribute)
+            methods = [
                 method
-            ) in model._useful_methods_list:  # pylint: disable=protected-access
+                for method in model._useful_methods_list
+                if method
+                not in [".predict()", ".plot_correlation_circle()", ".biplot()"]
+            ]
+            for method in methods:  # pylint: disable=protected-access
                 method = method[1:-2]
                 assert hasattr(model, method)
+                method_to_call = getattr(model, method)
+                if callable(method_to_call):
+                    result = method_to_call()
+
+
+def test_nb_cov_0():
+    pln = get_model("Pln", "formula", {"nb_cov": 0, "add_const": False})
+    pln.fit()
+    assert pln.nb_cov == 0
+
+
+def test_other_properties():
+    for model_name in dict_fitted_models.keys():
+        for model in dict_fitted_models[model_name]["formula"]:
+            exog = _get_exog(
+                n_samples=model.n_samples,
+                nb_cov=model.nb_cov,
+                will_add_const=False,
+                seed=3,
+            )
+            model.predict(exog)
+            model.plot_correlation_circle(
+                variables_names=["A", "B"], indices_of_variables=[3, 6]
+            )
+            model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 6])
+            if model.nb_cov == 0:
+                exog = _get_exog(
+                    n_samples=model.n_samples, nb_cov=1, will_add_const=False, seed=3
+                )
+                with pytest.raises(AttributeError):
+                    pred = model.predict(exog)
+
+            if model.nb_cov == 1:
+                exog = _get_exog(
+                    n_samples=model.n_samples, nb_cov=2, will_add_const=False, seed=3
+                )
+                with pytest.raises(RuntimeError):
+                    pred = model.predict(exog)
