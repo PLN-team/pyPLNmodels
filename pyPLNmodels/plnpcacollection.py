@@ -128,7 +128,7 @@ class PlnPCAcollection:
                         "of integers or an integer."
                     )
         elif isinstance(ranks, (int, np.integer)):
-            self._dict_models[rank] = PlnPCA(
+            self._dict_models[ranks] = PlnPCA(
                 endog=self._endog,
                 exog=self._exog,
                 offsets=self._offsets,
@@ -193,6 +193,18 @@ class PlnPCAcollection:
             The exog.
         """
         return self[self.ranks[0]].exog
+
+    @property
+    def offsets(self) -> torch.Tensor:
+        """
+        Property representing the offsets.
+
+        Returns
+        -------
+        torch.Tensor
+            The offsets.
+        """
+        return self[self.ranks[0]].offsets
 
     @property
     def endog(self) -> torch.Tensor:
