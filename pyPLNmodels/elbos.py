@@ -102,7 +102,7 @@ def elbo_pln(
     elbo -= 0.5 * n_samples * torch.logdet(covariance)
     elbo -= torch.sum(_log_stirling(endog))
     elbo += n_samples * endog.shape[1] / 2
-    return elbo / n_samples
+    return elbo
 
 
 def elbo_plnpca(  # pylint: disable=too-many-arguments
@@ -202,7 +202,9 @@ def elbo_zipln(
         The ELBO (Evidence Lower Bound) with size 1, with a gradient.
     """
     if torch.norm(latent_prob * dirac - latent_prob) > 1e-8:
-        raise RuntimeError("Latent probability error.")
+        raise RuntimeError(
+            "Latent probability error. It has non zeros where it should be zeros."
+        )
 
     n_samples, dim = endog.shape
     latent_var = latent_sqrt_variance**2

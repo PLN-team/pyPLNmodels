@@ -36,7 +36,6 @@ DICT_KWARGS = {
 }
 for key, values in DICT_KWARGS.items():
     DICT_KWARGS[key] = _generate_combinations(values)
-    print("key:", key, "len", len(DICT_KWARGS[key]))
 
 
 def get_dict_models_unfit():
