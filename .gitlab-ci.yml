@@ -33,10 +33,10 @@ tests:
     pip install '.[tests]'
   script:
     - pip install .
-    # - jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
+    - jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
     - cd tests
-    # - python _create_readme_getting_started_and_docstrings_tests.py
-    # - rm test_getting_started.py # remove as it has been modified in a directory.
+    - python _create_readme_getting_started_and_docstrings_tests.py
+    - rm test_getting_started.py # remove as it has been modified in a directory.
     - pytest  test_formula.py test_aviz.py
   only:
     - main
