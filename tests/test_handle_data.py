@@ -87,13 +87,13 @@ def test_check_data_shapes_invalid():
 
 
 def test_remove_column_names():
-    data = load_microcosm()
-    data["endog"].iloc[:, 6] *= 0
-    pln = Pln(data["endog"], exog=data["site_1hot"], add_const=False)
+    micro = load_microcosm()
+    micro["endog"].iloc[:, 6] *= 0
+    pln = Pln(micro["endog"], exog=micro["site_1hot"], add_const=False)
 
 
 def test_remove_column_names_exog():
-    data = load_microcosm()
-    data["site_1hot"].iloc[:, 1] *= 0
-    data["site_1hot"] = data["site_1hot"].astype(np.float32)
-    pln = Pln(data["endog"], exog=data["site_1hot"], add_const=False)
+    micro = load_microcosm()
+    micro["site_1hot"].iloc[:, 1] *= 0
+    micro["site_1hot"] = micro["site_1hot"].astype(np.float32)
+    pln = Pln(micro["endog"], exog=micro["site_1hot"], add_const=False)
