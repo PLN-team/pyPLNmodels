@@ -391,7 +391,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         ----------
         n_components: int (optional)
             The number of components to consider for plotting.
-            Defaults to 3. Cannot be greater than 10.
+            Defaults to 3. Cannot be greater than 6.
         colors: np.ndarray (optional)
             An array with one label for each
             sample in the endog property of the object. Defaults to `None`.
@@ -409,7 +409,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
                 )
         else:
             n_components = self.dim
-        min_n_components = min(10, n_components)
+        min_n_components = min(6, n_components)
         n_components = max(min_n_components, n_components)
         array = self.transform(return_latent_prob=True).numpy()
         _pca_pairplot(array, n_components, colors)
