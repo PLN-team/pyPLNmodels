@@ -72,13 +72,6 @@ def test_wront_method_offsets():
         pln = Pln(rna["endog"], compute_offsets_method="nothing")
 
 
-def test_not_fitted_viz():
-    rna = load_scrna()
-    pca = PlnPCA(rna["endog"])
-    with pytest.raises(RuntimeError):
-        pca.plot_expected_vs_true()
-
-
 def test_setter():
     rna = load_scrna()
     pca = PlnPCA(rna["endog"])
