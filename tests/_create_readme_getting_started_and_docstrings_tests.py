@@ -5,7 +5,7 @@ OUTPUT_DIR_DOCSTRINGS = "docstrings_examples"
 OUTPUT_DIR_README = "readme_examples"
 OUTPUT_DIR_GETTING_STARTED = "getting_started"
 
-DIR_LOAD_DATA = "load_data"
+DIR_LOAD_DATA = "test_load_data"
 
 
 def _get_lines(path_to_file, filename, filetype=".py"):
@@ -93,7 +93,7 @@ for line in lines_getting_started:
 os.makedirs(OUTPUT_DIR_README, exist_ok=True)
 os.makedirs(OUTPUT_DIR_DOCSTRINGS, exist_ok=True)
 os.makedirs(OUTPUT_DIR_GETTING_STARTED, exist_ok=True)
-os.makedirs(OUTPUT_DIR_README + "/" + DIR_LOAD_DATA, exist_ok=True)
+os.makedirs(OUTPUT_DIR_DOCSTRINGS + "/" + DIR_LOAD_DATA, exist_ok=True)
 
 
 def _find_all_files(directory):
