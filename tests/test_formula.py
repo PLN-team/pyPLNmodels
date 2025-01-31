@@ -3,12 +3,11 @@
 # from patsy import PatsyError
 # import pytest
 
-# from pyPLNmodels import PlnPCA, ZIPln, load_microcosm
+from pyPLNmodels import PlnPCA, ZIPln, load_microcosm
 
 
 def test_wrong_formula():
-    assert True
-    # micro = load_microcosm()
+    micro = load_microcosm()
     # with pytest.raises(PatsyError):
     #     PlnPCA.from_formula("endog ~ 1 + exog**exog", data=micro)
 
