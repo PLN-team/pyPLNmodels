@@ -113,15 +113,15 @@ def test_show_big_matrix():
 
 
 def test_show_no_coef():
-    data = load_scrna()
-    pln = Pln(data["endog"], exog=None, add_const=None)
+    rna = load_scrna()
+    pln = Pln(rna["endog"], exog=None, add_const=None)
     pln.fit()
     pln.show()
 
 
 def test_display_norm_no_ax():
-    data = load_scrna()
-    pln = Pln(data["endog"])
+    rna = load_scrna()
+    pln = Pln(rna["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
     _, axes_5 = plt.subplots(5, 1)
@@ -132,8 +132,8 @@ def test_display_norm_no_ax():
 
 
 def test_display_norm_no_ax_zi():
-    data = load_scrna()
-    pln = ZIPln(data["endog"])
+    rna = load_scrna()
+    pln = ZIPln(rna["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
     _, axes_5 = plt.subplots(6, 1)
@@ -144,8 +144,8 @@ def test_display_norm_no_ax_zi():
 
 
 def test_plot_correlation_circle_pandas():
-    data = load_scrna()
-    pca = PlnPCA(data["endog"])
+    rna = load_scrna()
+    pca = PlnPCA(rna["endog"])
     pca.fit()
     pca.show()
     pca.plot_correlation_circle(variables_names=["RPL14", "ACTB"])

@@ -10,16 +10,16 @@ from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init
 
 
 def test_no_exog_inflation():
-    data = load_scrna()
+    rna = load_scrna()
     with pytest.raises(ValueError):
-        zi = ZIPln.from_formula("endog ~ 0", data)
+        zi = ZIPln.from_formula("endog ~ 0", rna)
 
     with pytest.raises(ValueError):
-        zi = ZIPln(data["endog"], exog=None, add_const=False, add_const_inflation=False)
+        zi = ZIPln(rna["endog"], exog=None, add_const=False, add_const_inflation=False)
 
     with pytest.raises(ValueError):
         zi = ZIPln(
-            data["endog"],
+            rna["endog"],
             exog=None,
             add_const=True,
             exog_inflation=None,
@@ -38,25 +38,25 @@ def test_no_exog_inflation():
 
 
 def test_endog_neg():
-    data = load_scrna()
-    data["endog"][3, 4] = -1
+    rna = load_scrna()
+    rna["endog"][3, 4] = -1
     with pytest.raises(ValueError):
-        pln = Pln(data["endog"])
+        pln = Pln(rna["endog"])
 
 
 def test_wrong_shape():
-    data = load_scrna()
-    data["endog"] = data["endog"].iloc[: data["endog"].shape[0] // 2, :]
+    rna = load_scrna()
+    rna["endog"] = rna["endog"].iloc[: rna["endog"].shape[0] // 2, :]
     with pytest.raises(ValueError):
-        pln = Pln(data["endog"], exog=data["labels_1hot"])
+        pln = Pln(rna["endog"], exog=rna["labels_1hot"])
 
 
 def test_too_much_cov():
-    data = load_microcosm()
-    data["endog"] = data["endog"].iloc[:3, :]
-    data["site_1hot"] = data["site_1hot"].iloc[:3, :]
+    micro = load_microcosm()
+    micro["endog"] = micro["endog"].iloc[:3, :]
+    micro["site_1hot"] = micro["site_1hot"].iloc[:3, :]
     with pytest.raises(ValueError):
-        pln = Pln(data["endog"], exog=data["site_1hot"])
+        pln = Pln(micro["endog"], exog=micro["site_1hot"])
 
 
 def test_not_tensor():
@@ -65,21 +65,21 @@ def test_not_tensor():
 
 
 def test_wront_method_offsets():
-    data = load_scrna()
+    rna = load_scrna()
     with pytest.raises(ValueError):
-        pln = Pln(data["endog"], compute_offsets_method="nothing")
+        pln = Pln(rna["endog"], compute_offsets_method="nothing")
 
 
 def test_not_fitted_viz():
-    data = load_scrna()
-    pca = PlnPCA(data["endog"])
+    rna = load_scrna()
+    pca = PlnPCA(rna["endog"])
     with pytest.raises(RuntimeError):
         pca.plot_expected_vs_true()
 
 
 def test_setter():
-    data = load_scrna()
-    pca = PlnPCA(data["endog"])
+    rna = load_scrna()
+    pca = PlnPCA(rna["endog"])
     pca.fit()
     pca.components = pca.components.numpy()
     with pytest.raises(ValueError):

@@ -5,17 +5,17 @@ from pyPLNmodels import PlnPCAcollection, load_scrna
 
 
 def test_ranks():
-    data = load_scrna()
+    rna = load_scrna()
     with pytest.raises(TypeError):
-        col = PlnPCAcollection(data["endog"], ranks=[3, 4.5])
+        col = PlnPCAcollection(rna["endog"], ranks=[3, 4.5])
     with pytest.raises(TypeError):
-        col = PlnPCAcollection(data["endog"], ranks=load_scrna)
-    col = PlnPCAcollection(data["endog"], ranks=4)
+        col = PlnPCAcollection(rna["endog"], ranks=load_scrna)
+    col = PlnPCAcollection(rna["endog"], ranks=4)
 
 
 def test_attributes():
-    data = load_scrna()
-    col = PlnPCAcollection(data["endog"])
+    rna = load_scrna()
+    col = PlnPCAcollection(rna["endog"])
     col.fit()
     col.exog
     col.endog
