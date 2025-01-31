@@ -445,7 +445,7 @@ class Pln(BaseModel):
         >>> rna_data = load_scrna()
         >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
         >>> pln.fit()
-        >>> interval_low, interval_high = pln.confidence_interval_coef()
+        >>> interval_low, interval_high = pln.get_confidence_interval_coef()
 
         >>> import torch
         >>> from pyPLNmodels import Pln, PlnSampler
