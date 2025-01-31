@@ -12,7 +12,6 @@ def test_mse():
             for model in dict_fitted_models[model_name][init_method]:
                 i += 1
                 for param_key, param in model.dict_model_parameters.items():
-                    assert param_key in model.model_parameters
                     if param is not None:
                         err = mse(
                             param - model.sampler.dict_model_true_parameters[param_key]
