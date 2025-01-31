@@ -23,9 +23,9 @@ def load_scrna(
     Parameters
     ----------
     n_samples : int, optional
-        Number of samples, by default 100. Can not be greater than 400.
+        Number of samples, by default 400. Can not be greater than 400.
     dim : int, optional
-        Dimension (i.e. number of variables), by default 100.
+        Dimension (i.e. number of variables, genes), by default 100.
         Can not be greater than 100.
 
     Returns
