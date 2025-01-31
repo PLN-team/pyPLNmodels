@@ -68,6 +68,8 @@ def test_viz_general():
     for model_name in dict_fitted_models:
         for init_method in ["formula", "explicit"]:
             for model in dict_fitted_models[model_name][init_method]:
+                print("model name", model_name)
+                print("init_method", init_method)
                 with pytest.raises(ValueError):
                     model.plot_correlation_circle(
                         variables_names=None, indices_of_variables=None
