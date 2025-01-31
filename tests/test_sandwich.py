@@ -10,6 +10,11 @@ def test_zi():
                 coef_shape = model.coef.shape
                 assert model.get_coef_p_values().shape == coef_shape
                 interval_low, interval_high = model.get_confidence_interval_coef()
+                true_coef = model.sampler.coef
+                inside_interval = (true_coef > interval_low) & (
+                    true_coef < interval_high
+                )
+                assert 0.99 > inside_interval.float().mean().item() > 0.8
                 assert interval_low.shape == coef_shape
                 assert interval_high.shape == coef_shape
                 assert model.get_variance_coef().shape == coef_shape
