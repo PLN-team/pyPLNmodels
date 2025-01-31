@@ -395,6 +395,21 @@ class Pln(BaseModel):
         ValueError
             If the number of samples is less than the product of the
             number of covariates and dimensions.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln.fit()
+        >>> variance = pln.get_variance_coef()
+        >>> print('variance', variance)
+
+        See also
+        --------
+        :func:`pyPLNmodels.Pln.summary`
+        :func:`pyPLNmodels.Pln.get_coef_p_values`
+        :func:`pyPLNmodels.Pln.get_confidence_interval_coef`
         """
         if self.nb_cov == 0:
             print("No exog in the model, so no coefficients. Returning None")
@@ -423,6 +438,32 @@ class Pln(BaseModel):
         -------
         interval_low, interval_high : Tuple(torch.Tensor, torch.Tensor)
             Lower and upper bounds of the confidence intervals for the coefficients.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln.fit()
+        >>> interval_low, interval_high = pln.confidence_interval_coef()
+
+        >>> import torch
+        >>> from pyPLNmodels import Pln, PlnSampler
+        >>>
+        >>> sampler = PlnSampler(n_samples = 1500, add_const = False, nb_cov = 4)
+        >>> endog = sampler.sample() # Sample Pln data.
+        >>>
+        >>> pln = Pln(endog, exog = sampler.exog, add_const = False)
+        >>> pln.fit()
+        >>> interval_low, interval_high = pln.get_confidence_interval_coef(alpha = 0.05)
+        >>> true_coef = sampler.coef
+        >>> inside_interval = (true_coef > interval_low) & (true_coef< interval_high)
+        >>> print('Should be around 0.95:', torch.mean(inside_interval.float()).item())
+
+        See also
+        --------
+        :func:`pyPLNmodels.Pln.summary`
+        :func:`pyPLNmodels.Pln.get_coef_p_values`
         """
         variance = self.get_variance_coef()
         quantile = norm.ppf(1 - alpha / 2)
@@ -443,6 +484,15 @@ class Pln(BaseModel):
         p_values : torch.Tensor
             P-values for the regression coefficients.
 
+        Examples
+        --------
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln.fit()
+        >>> p_values = pln.get_coef_p_values()
+        >>> print('P-values: ',p_values)
+
         See also
         --------
         :func:`pyPLNmodels.Pln.summary`
@@ -461,6 +511,18 @@ class Pln(BaseModel):
         """
         Print a summary of the regression coefficients and their p-values for each dimension.
         Returns None if there are no exogenous variabes in the model.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import Pln, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln.fit()
+        >>> pln.summary()
+
+        See also
+        --------
+        :func:`pyPLNmodels.Pln.get_confidence_interval_coef`
         """
         p_values = self.get_coef_p_values()
         print("Coefficients and p-values per dimension:")
@@ -470,4 +532,5 @@ class Pln(BaseModel):
             for coef, p_val, exog_name in zip(
                 self.coef[:, dim_index], p_values[:, dim_index], self.column_names_exog
             ):
-                print(f"{exog_name:<20} {coef.item():>15.6f} {p_val.item():>15.6f}")
+                p_val = p_val if p_val > 1e-16 else 1e-16
+                print(f"{exog_name:<20} {coef.item():>15.6f} {p_val:>15.2g}")
