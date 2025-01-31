@@ -1,3 +1,4 @@
+from functools import wraps
 import math
 import textwrap
 
@@ -187,6 +188,7 @@ def _shouldbefitted(func):
     Raises a RuntimeError if the model is not fitted.
     """
 
+    @wraps(func)
     def _func(self, *args, **kwargs):
         if self._fitted is False:  # pylint: disable=protected-access
             raise RuntimeError("Please fit the model before.")
