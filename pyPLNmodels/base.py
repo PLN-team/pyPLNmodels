@@ -18,6 +18,7 @@ from pyPLNmodels._utils import (
     _TimeRecorder,
     _nice_string_of_dict,
     _process_indices_of_variables,
+    _shouldbefitted,
 )
 from pyPLNmodels._viz import (
     _viz_variables,
@@ -219,10 +220,9 @@ class BaseModel(
         self, variables_names, indices_of_variables=None, title: str = ""
     ):
         """
-        Visualizes variables using PCA and plots a correlation circle. If the `endog`
-        has been given as a pd.DataFrame, the `column_names` have been stored and may be
-        indicated with the `variables_names` argument. Else, one should provide the indices of
-        variables.
+        Visualizes variables using PCA and plots a correlation circle. If the `endog` has been
+        given as a pd.DataFrame, the `column_names` have been stored and may be indicated with the
+        `variables_names` argument. Else, one should provide the indices of variables.
 
         Parameters
         ----------
@@ -266,10 +266,10 @@ class BaseModel(
         title: str = "",
     ):
         """
-        Visualizes variables using the correlation circle along with the pca
-        transformed samples. If the `endog` has been given as a pd.DataFrame,
-        the `column_names` have been stored and may be indicated with the
-        `variables_names` argument. Else, one should provide the indices of variables.
+        Visualizes variables using the correlation circle along with the pca transformed samples.
+        If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
+        may be indicated with the `variables_names` argument. Else, one should provide the
+        indices of variables.
 
         Parameters
         ----------
@@ -391,8 +391,7 @@ class BaseModel(
         self,
     ):
         """
-        The list of all the parameters of the model that needs to be updated
-        at each iteration.
+        The list of all the parameters of the model that needs to be updated at each iteration.
         """
 
     @property
@@ -526,6 +525,7 @@ class BaseModel(
         return self._offsets.cpu()
 
     @property
+    @_shouldbefitted
     def latent_mean(self):
         """
         Property representing the latent mean conditionally on the observed counts, i.e. the
@@ -539,6 +539,7 @@ class BaseModel(
         return self._latent_mean.detach().cpu()
 
     @property
+    @_shouldbefitted
     def latent_variance(self):
         """
         Property representing the latent variance conditionally on the observed counts, i.e.
@@ -591,6 +592,7 @@ class BaseModel(
         return self._exog @ self._coef
 
     @property
+    @_shouldbefitted
     def marginal_mean(self):
         """
         The marginal mean of the model, i.e. the mean of the gaussian latent variable.
@@ -730,6 +732,7 @@ class BaseModel(
             The components of the PCA.
         """
 
+    @_shouldbefitted
     def __repr__(self):
         """
         Generate the string representation of the model.
@@ -744,8 +747,6 @@ class BaseModel(
         RuntimeError
             If the model is not fitted.
         """
-        if not self._fitted:
-            raise RuntimeError("Please fit the model before printing it.")
 
         delimiter = "=" * 70
         add_properties = self._additional_properties_list
@@ -828,6 +829,7 @@ class BaseModel(
         }
 
     @property
+    @_shouldbefitted
     def elbo(self):
         """
         Returns the last elbo computed.
@@ -912,6 +914,7 @@ class BaseModel(
         return exog @ self.coef
 
     @property
+    @_shouldbefitted
     def optim_details(self):
         """
         Property representing the optimization details.
@@ -980,8 +983,6 @@ class BaseModel(
         :func:`pyPLNmodels.Pln.biplot`
         :func:`pyPLNmodels.PlnPCA.biplot`
         """
-        if self._fitted is False:
-            raise RuntimeError("Please fit the model before.")
         endog_predictions = self._endog_predictions
         reconstruction_error = torch.mean((self.endog - endog_predictions) ** 2)
         return _plot_expected_vs_true(
