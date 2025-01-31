@@ -13,11 +13,15 @@ def test_mse():
                 i += 1
                 for param_key, param in model.dict_model_parameters.items():
                     if param is not None:
-                        err = mse(
+                        err1 = mse(
                             param - model.sampler.dict_model_true_parameters[param_key]
                         )
-                        if err < 0.3:
+                        err2 = mse(
+                            param - model.sampler.model_true_parameters[param_key]
+                        )
+                        assert err1 == err2
+                        if err1 < 0.3:
                             print("param_key", param_key)
                             print("model_name", model_name)
                             print("init_method", init_method)
-                            assert err < 0.3
+                            assert err1 < 0.3

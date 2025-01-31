@@ -898,7 +898,9 @@ class BaseModel(
                 )
                 warnings.warn(warning_string)
                 return None
-            return self.exog @ self.coef
+            raise AttributeError(
+                "Exogenous variables are given in the model. Please provide exog."
+            )
         if exog.shape[-1] != self.nb_cov:
             error_string = f"X has wrong shape ({exog.shape}). Should"
             error_string += f" be ({self.n_samples, self.nb_cov})."

@@ -78,3 +78,5 @@ def test_other_properties():
                 )
                 with pytest.raises(RuntimeError):
                     pred = model.predict(exog)
+                with pytest.raises(AttributeError):
+                    model.predict()

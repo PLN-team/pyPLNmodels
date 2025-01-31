@@ -471,7 +471,8 @@ def _remove_useless_exog(exog, column_names_exog, is_inflation):
                 f"Removing column {column_names_exog[zero_columns]} as it is only zeros"
             )
         else:
-            msg = f"Removing column {zero_columns} as it is only zeros"
+            zero_column_indices = torch.nonzero(zero_columns).squeeze().tolist()
+            msg = f"Removing column {zero_column_indices} as it is only zeros"
         if is_inflation is True:
             msg += " for the inflation part"
         msg += "."
