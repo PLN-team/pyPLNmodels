@@ -929,7 +929,7 @@ class BaseModel(
         return self.covariance
 
     @abstractmethod
-    def pca_pairplot(self, n_components: int = None, colors: np.ndarray = None):
+    def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
         """
         Generates a scatter matrix plot based on Principal
         Component Analysis (PCA) on the latent variables.
@@ -948,19 +948,9 @@ class BaseModel(
             ValueError: If the number of components requested is greater
                 than the number of variables in the dataset.
         """
-        if n_components is not None:
-            if self.dim < n_components:
-                raise ValueError(
-                    f"The number of components requested ({n_components}) is greater "
-                    f"than the number of variables in the dataset ({self.dim})."
-                )
-        else:
-            n_components = self.dim
         min_n_components = min(6, n_components)
-        n_components = max(min_n_components, n_components)
-
         array = self.transform().numpy()
-        _pca_pairplot(array, n_components, colors)
+        _pca_pairplot(array, min_n_components, colors)
 
     def plot_expected_vs_true(self, ax=None, colors=None):
         """
