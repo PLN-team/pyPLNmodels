@@ -1,6 +1,7 @@
 # pylint: skip-file
 import pytest
 import torch
+import numpy as np
 
 from pyPLNmodels._data_handler import (
     _handle_data,
@@ -94,4 +95,5 @@ def test_remove_column_names():
 def test_remove_column_names_exog():
     data = load_microcosm()
     data["site_1hot"].iloc[:, 1] *= 0
+    data["site_1hot"] = data["site_1hot"].astype(np.float32)
     pln = Pln(data["endog"], exog=data["site_1hot"], add_const=False)
