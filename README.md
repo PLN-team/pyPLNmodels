@@ -1,4 +1,3 @@
-
 # PLNmodels: Poisson lognormal models
 
 > The Poisson lognormal model and variants can be used for analysis of mutivariate count data.
@@ -193,3 +192,6 @@ Please cite our work using the following references:
 
 -  B. Batardiere, J.Chiquet, M.Mariadassou: Zero-inflation in the Multivariate
    Poisson Lognormal Family. [pdf](https://arxiv.org/abs/2405.14711)
+
+-  B. Batardiere, J.Chiquet, M.Mariadassou: Evaluating Parameter Uncertainty in the Poisson
+    Lognormal Model with Corrected Variational Estimators. [pdf](https://arxiv.org/abs/2411.08524)
