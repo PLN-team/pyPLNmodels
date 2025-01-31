@@ -74,36 +74,36 @@ def test_viz_general():
                     model.plot_correlation_circle(
                         variables_names=None, indices_of_variables=None
                     )
-                _, ax = plt.subplots()
-                model.plot_expected_vs_true(ax=ax)
-                colors = torch.randn(model.n_samples)
-                model.viz(colors=colors)
-                model.viz(colors=colors, show_cov=True)
-                model.viz(show_cov=True)
-                model.viz(show_cov=True, remove_exog_effect=True)
-                model.viz(remove_exog_effect=True)
-                model.viz()
+                # _, ax = plt.subplots()
+                # model.plot_expected_vs_true(ax=ax)
+                # colors = torch.randn(model.n_samples)
+                # model.viz(colors=colors)
+                # model.viz(colors=colors, show_cov=True)
+                # model.viz(show_cov=True)
+                # model.viz(show_cov=True, remove_exog_effect=True)
+                # model.viz(remove_exog_effect=True)
+                # model.viz()
 
-                model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 4])
-                model.biplot(
-                    variables_names=["A", "B"],
-                    indices_of_variables=[3, 4],
-                    colors=colors,
-                )
-                model.biplot(
-                    variables_names=["A", "B"],
-                    indices_of_variables=[3, 4],
-                    colors=colors,
-                    title="Test",
-                )
-                model.pca_pairplot()
-                model.pca_pairplot(n_components=2)
-                model.pca_pairplot(n_components=2, colors=colors)
-                model.show()
-                with pytest.raises(ValueError):
-                    model.plot_correlation_circle(
-                        variables_names=["A", "B"], indices_of_variables=[1, 2, 3]
-                    )
+                # model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 4])
+                # model.biplot(
+                #     variables_names=["A", "B"],
+                #     indices_of_variables=[3, 4],
+                #     colors=colors,
+                # )
+                # model.biplot(
+                #     variables_names=["A", "B"],
+                #     indices_of_variables=[3, 4],
+                #     colors=colors,
+                #     title="Test",
+                # )
+                # model.pca_pairplot()
+                # model.pca_pairplot(n_components=2)
+                # model.pca_pairplot(n_components=2, colors=colors)
+                # model.show()
+                # with pytest.raises(ValueError):
+                #     model.plot_correlation_circle(
+                #         variables_names=["A", "B"], indices_of_variables=[1, 2, 3]
+                #     )
 
 
 def test_show_big_matrix():

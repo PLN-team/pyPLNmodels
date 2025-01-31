@@ -160,6 +160,7 @@ def _process_indices_of_variables(
     variables_names, indices_of_variables, column_names_endog
 ):
     if indices_of_variables is None:
+        print("column names endog", column_names_endog)
         if column_names_endog is None:
             raise ValueError(
                 "No names have been given to the columns of endog. "
@@ -167,6 +168,7 @@ def _process_indices_of_variables(
                 "or instantiate a new model with a pd.DataFrame for `endog`"
                 "with appropriate column names."
             )
+        print("variables_names", variables_names)
         indices_of_variables = [
             column_names_endog.get_loc(name) for name in variables_names
         ]
