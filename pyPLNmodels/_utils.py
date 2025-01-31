@@ -179,3 +179,17 @@ def _process_indices_of_variables(
                 f"the same as the number of variable names ({len(variables_names)})."
             )
     return indices_of_variables
+
+
+def _shouldbefitted(func):
+    """
+    Decorator to check if the model has been fitted before executing the function.
+    Raises a RuntimeError if the model is not fitted.
+    """
+
+    def _func(self, *args, **kwargs):
+        if self._fitted is False:  # pylint: disable=protected-access
+            raise RuntimeError("Please fit the model before.")
+        return func(self, *args, **kwargs)
+
+    return _func

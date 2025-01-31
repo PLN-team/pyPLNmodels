@@ -16,16 +16,16 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
         """
         self._endog = pln._endog
         self._exog = pln._exog
-        self.nb_cov = pln._nb_cov
-        self.dim = pln._dim
-        self.n_samples = pln._n_samples
+        self.nb_cov = pln.nb_cov
+        self.dim = pln.dim
+        self.n_samples = pln.n_samples
         self._latent_sqrt_variance = pln._latent_sqrt_variance
         self._latent_mean = pln._latent_mean
         self._offsets = pln._offsets
         self._covariance = pln._covariance
         self._inv_covariance = torch.inverse(self._covariance)
         self._pred_endog = torch.exp(
-            self._offsets + self._latent_mean + 0.5 * self._latent_sqrt_variance
+            self._offsets + self._latent_mean + 0.5 * self._latent_sqrt_variance**2
         )
 
     def get_mat_dn(self):
@@ -99,4 +99,4 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
         """
         sandwich = self.get_sandwich()
         diag_sandwich = torch.diag(sandwich)
-        return torch.sqrt(diag_sandwich / self.n_samples)
+        return (diag_sandwich / self.n_samples).reshape(self.nb_cov, self.dim)
