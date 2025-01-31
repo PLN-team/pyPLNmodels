@@ -7,7 +7,7 @@ from scipy.stats import norm, t
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
 from pyPLNmodels.elbos import profiled_elbo_pln
-from pyPLNmodels._utils import _add_doc, _shouldbefitted
+from pyPLNmodels._utils import _add_doc, _shouldbefitted, _none_if_no_exog
 from pyPLNmodels.sandwich import SandwichPln
 
 
@@ -378,10 +378,12 @@ class Pln(BaseModel):
             remove_exog_effect=remove_exog_effect,
         )
 
+    @_none_if_no_exog
     @_shouldbefitted
     def get_variance_coef(self):
         """
         Calculate the variance of the regression coefficients using the sandwich estimator.
+        Returns None if there are no exogenous variabes in the model.
 
         Returns
         -------
@@ -394,6 +396,9 @@ class Pln(BaseModel):
             If the number of samples is less than the product of the
             number of covariates and dimensions.
         """
+        if self.nb_cov == 0:
+            print("No exog in the model, so no coefficients. Returning None")
+            return None
         if self.nb_cov * self.dim > self.n_samples:
             msg = f"Not enough samples. The number of samples ({self.n_samples}) "
             msg += f"should be greater than nb_cov * dim ({self.nb_cov} *{self.dim}"
@@ -402,9 +407,12 @@ class Pln(BaseModel):
         sandwich_estimator = SandwichPln(self)
         return sandwich_estimator.get_variance_coef()
 
+    @_none_if_no_exog
+    @_shouldbefitted
     def get_confidence_interval_coef(self, alpha: float = 0.05):
         """
         Calculate the confidence intervals for the regression coefficients.
+        Returns None if there are no exogenous variabes in the model.
 
         Parameters
         ----------
@@ -423,9 +431,12 @@ class Pln(BaseModel):
         interval_high = self.coef + half_length
         return interval_low, interval_high
 
+    @_none_if_no_exog
+    @_shouldbefitted
     def get_coef_p_values(self):
         """
         Calculate the p-values for the regression coefficients.
+        Returns None if there are no exogenous variabes in the model.
 
         Returns
         -------
@@ -444,9 +455,12 @@ class Pln(BaseModel):
         )
         return p_values
 
+    @_none_if_no_exog
+    @_shouldbefitted
     def summary(self):
         """
         Print a summary of the regression coefficients and their p-values for each dimension.
+        Returns None if there are no exogenous variabes in the model.
         """
         p_values = self.get_coef_p_values()
         print("Coefficients and p-values per dimension:")

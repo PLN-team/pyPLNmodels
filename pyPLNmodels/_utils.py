@@ -195,3 +195,14 @@ def _shouldbefitted(func):
         return func(self, *args, **kwargs)
 
     return _func
+
+
+def _none_if_no_exog(func):
+    @wraps(func)
+    def _func(self, *args, **kwargs):
+        if self.nb_cov == 0:
+            print("No exog in the model, so no coefficients. Returning None.")
+            return None
+        return func(self, *args, **kwargs)
+
+    return _func
