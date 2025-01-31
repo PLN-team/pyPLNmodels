@@ -4,7 +4,6 @@ import torch
 import numpy as np
 from sklearn.decomposition import PCA
 
-
 from pyPLNmodels._utils import _log_stirling
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -49,7 +48,7 @@ def _init_coef(  # pylint: disable=too-many-arguments
     verbose: bool = False,
 ) -> Optional[torch.Tensor]:
     """
-    Initialize the coefficient for the Pln model using Poisson regression model.
+    Initialize the coefficient for the `Pln` model using the Poisson regression model.
 
     Parameters
     ----------
@@ -71,7 +70,7 @@ def _init_coef(  # pylint: disable=too-many-arguments
     Returns
     -------
     torch.Tensor or None
-        Coefficient of size (d, p) or None if exog is None.
+        Coefficient of size (d, p) or None if `exog` is None.
     """
     if exog is None:
         return None
@@ -125,7 +124,7 @@ def _add_random_components(
 
 def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     """
-    Initialize components for the PlnPCA model.
+    Initialize components for the `PlnPCA` model.
 
     Parameters
     ----------
@@ -159,7 +158,7 @@ def compute_log_posterior(  # pylint: disable=too-many-arguments
     log_stirling_endog: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the log posterior of the Poisson Log-Normal (Pln) model.
+    Compute the log posterior of the Poisson Log-Normal (`Pln`) model.
 
     Parameters
     ----------
@@ -282,14 +281,14 @@ def _init_coef_coef_inflation(*, endog, exog, exog_inflation, offsets):
 
 class ZIP:
     """
-    Simple Zero Inflated Poisson model for initialization of the ZIPln model.
+    Simple Zero Inflated Poisson model for initialization of the `ZIPln` model.
     """
 
     # pylint: disable=too-many-instance-attributes
     def __init__(self, *, endog, exog, exog_inflation, offsets):
         """
         Simple initialization of the Zero Inflated Poisson model. Coefficients are
-        intialized randomly
+        initialized randomly.
         """
         self._endog = endog.to(DEVICE)
         if exog is not None:
@@ -329,7 +328,7 @@ class ZIP:
 
     def loglike(self, lam, pi):
         """
-        Computes the loglikelihood of a Zero Inflated Poisson regression model.
+        Computes the log likelihood of a Zero Inflated Poisson regression model.
         """
         first_term = (
             self._n_samples * self._r0 * torch.log(pi + (1 - pi) * torch.exp(-lam))

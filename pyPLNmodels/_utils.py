@@ -13,7 +13,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 def _get_log_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
     """
-    Compute offsets from the sum of endog.
+    Compute offsets from the sum of `endog`.
 
     Parameters
     ----------
@@ -118,7 +118,7 @@ def _nice_string_of_dict(dictionnary: dict, best_rank: int = None) -> str:
 
 def calculate_correlation(data, transformed_data):
     """
-    Calculate correlations between each variable in data and the first two principal components.
+    Calculate correlations between each variable in `data` and the first two principal components.
 
     Parameters
     ----------
@@ -176,7 +176,7 @@ def _process_indices_of_variables(
 def _shouldbefitted(func):
     """
     Decorator to check if the model has been fitted before executing the function.
-    Raises a RuntimeError if the model is not fitted.
+    Raises a `RuntimeError` if the model is not fitted.
     """
 
     @wraps(func)

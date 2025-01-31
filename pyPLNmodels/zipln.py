@@ -4,7 +4,6 @@ import torch
 import numpy as np
 import pandas as pd
 
-
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._data_handler import (
     _handle_inflation_data,
@@ -18,9 +17,7 @@ from pyPLNmodels.elbos import profiled_elbo_zipln
 from pyPLNmodels._utils import _add_doc
 from pyPLNmodels._viz import _viz_variables, _pca_pairplot
 
-
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 NULL_TENSOR = torch.tensor([0], device=DEVICE)
 
@@ -80,7 +77,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         add_const_inflation: bool = True,
     ):  # pylint: disable=too-many-arguments
         """
-        Initializes the ZIPln class, that is a Pln model with zero-inflation.
+        Initializes the ZIPln class, which is a Pln model with zero-inflation.
 
         Parameters
         ----------
@@ -98,9 +95,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
             Overridden (useless) if `offsets` is not `None`.
         add_const : bool, optional(keyword-only)
-            Whether to add a column of one in the `exog`. Defaults to `True`.
+            Whether to add a column of ones in the `exog`. Defaults to `True`.
         add_const_inflation : bool, optional(keyword-only)
-            Whether to add a column of one in the `exog_inflation`. Defaults to `True`.
+            Whether to add a column of ones in the `exog_inflation`. Defaults to `True`.
 
         Returns
         -------
@@ -333,9 +330,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         BaseModel,
         params="""
         return_latent_prob: bool, optional = False
-            Wheter to return latent probability variables of zero inflation
+            Whether to return latent probability variables of zero inflation
             (`return_latent_prob = True`) or the latent mean of the gaussian component
-            (`return_latent_prob = False`). Default to `False`.
+            (`return_latent_prob = False`). Defaults to `False`.
 
         """,
         returns="""
@@ -464,7 +461,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     @property
     def exog_inflation(self):
         """
-        Property representing the exogenous variables (covariates) associate
+        Property representing the exogenous variables (covariates) associated
         with the zero inflation.
 
         Returns
@@ -479,28 +476,28 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         self, exog_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
     ):
         """
-        Method for estimating the probability of a zero coming from the zero inflated component.
+        Method for estimating the probability of a zero coming from the zero-inflated component.
 
         Parameters
         ----------
         exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
-            The exogenous variables associated to the zero inflation.
+            The exogenous variables associated with the zero inflation.
 
         Returns
         -------
         torch.Tensor
-            The predicted values sigmoid(exog_inflation @ coef_inflation).
+            The predicted values `sigmoid(exog_inflation @ coef_inflation)`.
 
         Raises
         ------
         RuntimeError
-            If the shape of the exog is incorrect.
+            If the shape of the `exog_inflation` is incorrect.
 
         Notes
         -----
-        - The mean sigmoid(exog_inflation @ coef_inflation) is returned.
+        - The mean `sigmoid(exog_inflation @ coef_inflation)` is returned.
         - `exog_inflation` should have the shape `(_, nb_cov)`, where `nb_cov` is
-            the number of exogenous variables.
+          the number of exogenous variables.
         """
         if exog_inflation.shape[-1] != self.nb_cov_inflation:
             error_string = f"X has wrong shape:({exog_inflation.shape}). Should"
@@ -596,6 +593,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         return self.latent_variables - self.marginal_mean
 
     @_add_doc(BaseModel)
-    def show(self, axes=None, savefig=False, name_file=""):
+    def show(self, axes=None, savefig: bool = False, name_file: str = ""):
         model_viz = self._get_model_viz()
         model_viz.show_zi(axes=axes, savefig=savefig, name_file=name_file)

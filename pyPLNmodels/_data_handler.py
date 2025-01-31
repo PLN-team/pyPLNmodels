@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from patsy import dmatrices, dmatrix, PatsyError  # pylint: disable=no-name-in-module
 
-
 from pyPLNmodels._utils import _get_log_sum_of_endog
 
 if torch.cuda.is_available():
@@ -28,31 +27,31 @@ def _handle_data(
     Parameters
     ----------
     endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-        The endog data. If a pandas.DataFrame is provided,
+        The `endog` data. If a `pandas.DataFrame` is provided,
         the column names are stored for later use.
     exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
-        The exog data.
+        The `exog` data.
     offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-        The offsets data.
+        The `offsets` data.
     compute_offsets_method: str
         Method to compute offsets if not provided. Options are:
             - "zero" that will set the offsets to zero.
             - "logsum" that will take the logarithm of the sum (per line) of the counts.
     add_const : bool
-        Indicates whether to add a constant column to the exog.
+        Indicates whether to add a constant column to the `exog`.
 
     Returns
     -------
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[pd.Index], Op]
-        A tuple containing the processed endog, exog, offsets,
-        and column names of endog and exog  (if available).
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[pd.Index]]
+        A tuple containing the processed `endog`, `exog`, `offsets`,
+        and column names of `endog` and `exog` (if available).
 
     Raises
     ------
     ValueError
-        If the shapes of endog, exog, and offsets do not match or
-        if any of `endog`, `exog`, and `offsets` are different from torch.Tensor,
-        np.ndarray, or pd.DataFrame. `exog` may be a pd.Series without launching errors.
+        If the shapes of `endog`, `exog`, and `offsets` do not match or
+        if any of `endog`, `exog`, and `offsets` are different from `torch.Tensor`,
+        `np.ndarray`, or `pd.DataFrame`. `exog` may be a `pd.Series` without launching errors.
     """
     column_names_endog = endog.columns if isinstance(endog, pd.DataFrame) else None
     column_names_exog = exog.columns if isinstance(exog, pd.DataFrame) else None
@@ -74,8 +73,8 @@ def _handle_data(
 
 def _handle_inflation_data(exog_inflation, add_const_inflation, endog):
     """
-    Format only the zero inflation part. Raises a ValueError
-    if there is no zero inflation and no add_const_inflation.
+    Format only the zero inflation part. Raises a `ValueError`
+    if there is no zero inflation and no `add_const_inflation`.
     """
     column_names_exog_inflation = (
         exog_inflation.columns if isinstance(exog_inflation, pd.DataFrame) else None
@@ -85,7 +84,7 @@ def _handle_inflation_data(exog_inflation, add_const_inflation, endog):
         exog_inflation = _add_constant_to_exog(exog_inflation, endog.shape[0])
     else:
         if exog_inflation is None:
-            raise ValueError("Please fit a Pln model if there is no inflation.")
+            raise ValueError("Please fit a PLN model if there is no inflation.")
     _check_dimensions_equal(
         "endog", "exog_inflation", endog.shape[0], exog_inflation.shape[0], 0, 0
     )
@@ -110,27 +109,27 @@ def _format_model_params(
     Parameters
     ----------
     endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-        The endog data.
+        The `endog` data.
     exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
-        The exog data.
+        The `exog` data.
     offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame]
-        The offsets data.
+        The `offsets` data.
     compute_offsets_method: str
         Method to compute offsets if not provided. Options are:
             - "zero" that will set the offsets to zero.
             - "logsum" that will take the logarithm of the sum (per line) of the counts.
     add_const : bool
-        Indicates whether to add a constant column to the exog.
+        Indicates whether to add a constant column to the `exog`.
 
     Returns
     -------
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-        Formatted model parameters as torch.Tensor.
+        Formatted model parameters as `torch.Tensor`.
 
     Raises
     ------
     ValueError
-        If endog has negative values or `compute_offsets_method` is none of
+        If `endog` has negative values or `compute_offsets_method` is none of
         None, "logsum" or "zero".
     """
     endog = _format_data(endog)
@@ -179,8 +178,9 @@ def _format_data(
     data: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
 ) -> torch.Tensor:
     """
-    Transforms the data into a torch.Tensor if the input is an array, and None if the input is None.
-    Raises an error if the input is not an np.ndarray, torch.Tensor, pandas.DataFrame or None.
+    Transforms the data into a `torch.Tensor` if the input is an array, and None if the input is
+    None. Raises an error if the input is not an `np.ndarray`, `torch.Tensor`, `pandas.DataFrame`
+    or None.
 
     Parameters
     ----------
@@ -195,7 +195,8 @@ def _format_data(
     Raises
     ------
     AttributeError
-        If the value is not an np.ndarray, torch.Tensor, pandas.DataFrame, pd.Series or None.
+        If the value is not an `np.ndarray`, `torch.Tensor`, `pandas.DataFrame`,
+        `pd.Series` or `None`.
     """
     if data is None:
         return None
@@ -207,9 +208,9 @@ def _format_data(
         return data.to(DEVICE).float()
     if isinstance(data, pd.Series):
         return torch.from_numpy(data.values).to(DEVICE).unsqueeze(1).float()
-    raise AttributeError(
-        "Please insert either a numpy.ndarray, pandas.DataFrame, pandas.Series or torch.Tensor"
-    )
+    msg = "Please insert either a `numpy.ndarray`, `pandas.DataFrame`, `pandas.Series` "
+    msg += "or `torch.Tensor`"
+    raise AttributeError(msg)
 
 
 def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
@@ -217,8 +218,8 @@ def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
     if exog is None:
         return ones
     if length != exog.shape[0]:
-        msg = f"The length of the exog ({exog.shape[0]}) "
-        msg += f"should be the same as the length of endog ({length})."
+        msg = f"The length of the `exog` ({exog.shape[0]}) "
+        msg += f"should be the same as the length of `endog` ({length})."
         raise ValueError(msg)
     return torch.cat((ones, exog), dim=1)
 
@@ -233,7 +234,7 @@ def _check_full_rank_exog(exog: torch.Tensor, inflation: bool = False) -> None:
         add_const_name = "add_const_inflation" if inflation else "add_const"
         msg = (
             f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank "
-            f"(rank = {rank}, expected = {d}). You may consider to remove one or more variables "
+            f"(rank = {rank}, expected = {d}). You may consider removing one or more variables "
             f"or set {add_const_name} to False if that is not already the case. "
             f"You can also set 0 + {name_mat} in the formula to avoid adding an intercept."
         )
@@ -247,7 +248,7 @@ def _compute_or_format_offsets(
 ) -> torch.Tensor:
     if offsets is None:
         if compute_offsets_method == "logsum":
-            print("Setting the offsets as the log of the sum of endog.")
+            print("Setting the offsets as the log of the sum of `endog`.")
             return _get_log_sum_of_endog(endog)
         if compute_offsets_method == "zero":
             print("Setting the offsets to zero.")
@@ -316,13 +317,13 @@ def _raise_dimension_error(  # pylint: disable=too-many-arguments,too-many-posit
     Parameters
     ----------
     str_first_array : str
-        Name of the first tensor
+        Name of the first tensor.
     str_second_array : str
-        Name of the second tensor
+        Name of the second tensor.
     dim_first_array : int
-        Dimension of the first tensor
+        Dimension of the first tensor.
     dim_second_array : int
-        Dimension of the second tensor
+        Dimension of the second tensor.
     dim_order_first : int
         Dimension causing the error for the first tensor.
     dim_order_second : int
@@ -346,21 +347,21 @@ def _remove_zero_columns(
     endog: torch.Tensor, offsets: torch.Tensor, column_names_endog: Optional[pd.Index]
 ) -> Tuple[torch.Tensor, torch.Tensor, Optional[pd.Index]]:
     """
-    Remove columns that contain only zeros from the endog and offsets tensors.
+    Remove columns that contain only zeros from the `endog` and `offsets` tensors.
 
     Parameters
     ----------
     endog : torch.Tensor
-        The endog data.
+        The `endog` data.
     offsets : torch.Tensor
-        The offsets data.
+        The `offsets` data.
     column_names_endog : Optional[pd.Index]
-        Column names of the endog data if available.
+        Column names of the `endog` data if available.
 
     Returns
     -------
     Tuple[torch.Tensor, torch.Tensor, Optional[pd.Index]]
-        The endog and offsets tensors with zero columns removed, and the updated column names.
+        The `endog` and `offsets` tensors with zero columns removed, and the updated column names.
     """
     zero_columns = torch.sum(endog, axis=0) == 0
     if torch.sum(zero_columns) > 0:
@@ -394,8 +395,7 @@ def _extract_data_from_formula(
     Returns
     -------
     Tuple
-        A tuple containing the extracted endog, exog, and offsets.
-
+        A tuple containing the extracted `endog`, `exog`, and `offsets`.
     """
     endog_name = formula.split("~")[0].strip()
     if isinstance(data[endog_name], pd.DataFrame):
@@ -428,7 +428,7 @@ def _extract_exog_inflation_from_formula(
     data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
 ) -> Tuple:
     """
-    Extract only the exog_inflation from the given formula and data dictionary.
+    Extract only the `exog_inflation` from the given formula and data dictionary.
 
     Parameters
     ----------

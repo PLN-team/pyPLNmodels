@@ -13,8 +13,8 @@ def profiled_elbo_pln(
     latent_sqrt_variance: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the Pln model with profiled
-    model parameters (i.e the model parameters are derived directly from the
+    Compute the ELBO (Evidence Lower Bound) for the `Pln` model with profiled
+    model parameters (i.e., the model parameters are derived directly from the
     latent parameters).
 
     Parameters:
@@ -65,7 +65,7 @@ def elbo_pln(
     covariance: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the Pln model.
+    Compute the ELBO (Evidence Lower Bound) for the `Pln` model.
 
     Parameters:
     ----------
@@ -115,7 +115,7 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments
     components: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Compute the ELBO (Evidence Lower Bound) for the Pln model
+    Compute the ELBO (Evidence Lower Bound) for the `Pln` model
     with PCA parametrization.
 
     Parameters:
@@ -123,13 +123,13 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments
     endog : torch.Tensor
         Counts with size (n_samples, dim).
     marginal_mean : torch.Tensor
-        The matrix product exog @ coef, of size (n_samples, dim)
+        The matrix product `exog @ coef`, of size (n_samples, dim).
     offsets : torch.Tensor
         Offset with size (n_samples, dim).
     latent_mean : torch.Tensor
         Variational parameter with size (n_samples, dim).
     latent_sqrt_variance : torch.Tensor
-        Variational parameter with size (n_samples, dim). More precisely it is the unsigned
+        Variational parameter with size (n_samples, dim). More precisely, it is the unsigned
         square root of the variational variance.
     components : torch.Tensor
         Model parameter with size (dim, rank).
@@ -170,29 +170,29 @@ def elbo_zipln(
     marginal_mean_inflation,
 ):
     """
-    Compute the ELBO (Evidence Lower Bound) for the ZIPln model.
+    Compute the ELBO (Evidence Lower Bound) for the `ZIPln` model.
 
     Parameters:
     ----------
     endog : torch.Tensor
         Counts with size (n_samples, dim).
     marginal_mean : torch.Tensor
-        The matrix product exog @ coef, of size (n_samples, dim)
+        The matrix product `exog @ coef`, of size (n_samples, dim).
     offsets : torch.Tensor
         Offset with size (n_samples, dim).
     latent_mean : torch.Tensor
         Variational parameter with size (n_samples, dim).
     latent_sqrt_variance : torch.Tensor
-        Variational parameter with size (n_samples, dim). More precisely it is the unsigned
+        Variational parameter with size (n_samples, dim). More precisely, it is the unsigned
         square root of the variational variance.
     latent_prob : torch.Tensor
         Variational parameter for the latent probability with size (n_samples, dim).
     covariance : torch.Tensor
-        The model covariance of size (dim,dim).
+        The model covariance of size (dim, dim).
     marginal_mean_inflation : torch.Tensor
-        The matrix product exog_inflation @ coef, of size (n_samples, dim)
+        The matrix product `exog_inflation @ coef`, of size (n_samples, dim).
     dirac : torch.Tensor
-        Vector with 0s and 1s only, indicating whether endog is null or not.
+        Vector with 0s and 1s only, indicating whether `endog` is null or not.
         Size is (n_samples, dim).
 
     Returns:
@@ -254,9 +254,8 @@ def profiled_elbo_zipln(
     dirac,
 ):
     """
-    Compute the ELBO (Evidence Lower Bound) for the ZIPln model in a profiled fashion,
+    Compute the ELBO (Evidence Lower Bound) for the `ZIPln` model in a profiled fashion,
     where closed forms are used to avoid matrix inversion.
-
 
     Parameters:
     ----------
@@ -269,14 +268,14 @@ def profiled_elbo_zipln(
     latent_mean : torch.Tensor
         Variational parameter with size (n_samples, dim).
     latent_sqrt_variance : torch.Tensor
-        Variational parameter with size (n_samples, dim). More precisely it is the unsigned
+        Variational parameter with size (n_samples, dim). More precisely, it is the unsigned
         square root of the variational variance.
     latent_prob : torch.Tensor
         Variational parameter for the latent probability with size (n_samples, dim).
     marginal_mean_inflation : torch.Tensor
-        The matrix product exog_inflation @ coef, of size (n_samples, dim)
+        The matrix product `exog_inflation @ coef`, of size (n_samples, dim).
     dirac : torch.Tensor
-        Vector with 0s and 1s only, indicating whether endog is null or not.
+        Vector with 0s and 1s only, indicating whether `endog` is null or not.
         Size is (n_samples, dim).
 
     Returns:
@@ -286,7 +285,7 @@ def profiled_elbo_zipln(
     """
     if torch.norm(latent_prob * dirac - latent_prob) > 1e-8:
         raise RuntimeError(
-            "Latent probability error. It has non zeros where it should be zeros."
+            "Latent probability error. It has non-zeros where it should be zeros."
         )
 
     n_samples, dim = endog.shape

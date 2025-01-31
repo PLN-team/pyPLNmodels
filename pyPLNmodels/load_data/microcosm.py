@@ -20,7 +20,6 @@ def load_microcosm(
         Frederic Launay, Olivier Sandra, Rachel Lefebvre, Yves Le Loir, Pierre Germon,
         Christine Citti & Sergine Even
 
-
     Parameters
     ----------
     n_samples : int, optional
@@ -32,10 +31,11 @@ def load_microcosm(
     -------
     data: Dict
         The different (key, values) are:
-            `endog` that reprensents the counts
-            `site` and `site_1hot` that represent the site and the one hot encoded site.
-            `time` and `time_1hot` that represent the time and the one hot encoded time.
-            `lineage` and `lineage_1hot` that represent the lineage and the one hot lineage site.
+            `endog` that represents the counts
+            `site` and `site_1hot` that represent the site and the one-hot encoded site.
+            `time` and `time_1hot` that represent the time and the one-hot encoded time.
+            `lineage` and `lineage_1hot` that represent the lineage and the one-hot encoded lineage.
+
     Examples
     --------
     >>> from pyPLNmodels import load_microcosm

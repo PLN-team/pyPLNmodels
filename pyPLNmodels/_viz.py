@@ -12,7 +12,6 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-
 from pyPLNmodels._utils import calculate_correlation
 
 
@@ -91,15 +90,15 @@ def _viz_variables(
     Parameters
     ----------
     pca_projected_variables: torch.Tensor
-        The variables that need to be visualize
+        The variables that need to be visualized.
     ax : Optional[matplotlib.axes.Axes], optional(keyword-only)
-        The matplotlib axis to use. If None, an axis is created, by default None.
+        The matplotlib axis to use. If `None`, an axis is created, by default `None`.
     colors : Optional[np.ndarray], optional(keyword-only)
-        The colors to use for plotting, by default None (no colors).
+        The colors to use for plotting, by default `None` (no colors).
     covariances : torch.Tensor
-        Covariance of each latent distribution, of size (n_samples, 2, 2)
-        If not None, will display ellipses with associated covariances,
-        that serves as a proxy for the latent distribution. Default is None.
+        Covariance of each latent distribution, of size (n_samples, 2, 2).
+        If not `None`, will display ellipses with associated covariances,
+        that serve as a proxy for the latent distribution. Default is `None`.
     Raises
     ------
     Returns
@@ -141,7 +140,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     indices_of_variables : list, keyword-only
         List of indices of the variables to be considered in the plot.
     colors : Optional[np.ndarray], optional, keyword-only
-        The colors to use for plotting, by default None (no colors).
+        The colors to use for plotting, by default `None` (no colors).
     title : str, keyword-only
         Additional title on the plot.
 
@@ -220,7 +219,7 @@ def plot_correlation_circle(
 
 
 class ModelViz:
-    """Class that visualize the parameters of a model and the optimization process."""
+    """Class that visualizes the parameters of a model and the optimization process."""
 
     def __init__(
         self, *, params, dict_mse, running_times, criterion_list, name, tol
@@ -234,7 +233,7 @@ class ModelViz:
 
     def display_covariance(self, *, ax: matplotlib.axes.Axes):
         """
-        Display an heatmap of the model covariance.
+        Display a heatmap of the model covariance.
         """
         covariance = self._params["covariance"]
         dim = covariance.shape[0]
@@ -248,7 +247,7 @@ class ModelViz:
 
     def display_coef(self, *, ax: matplotlib.axes.Axes):
         """
-        Display an heatmap of the coefficient.
+        Display a heatmap of the coefficients.
         """
         coef = self._params["coef"]
         if coef is not None:
@@ -257,13 +256,13 @@ class ModelViz:
             ax.text(
                 0.5,
                 0.5,
-                "No coef given in the model.",
+                "No coefficients given in the model.",
                 horizontalalignment="center",
                 verticalalignment="center",
                 transform=ax.transAxes,
             )
 
-        ax.set_title("Regression coefficient Matrix")
+        ax.set_title("Regression Coefficient Matrix")
 
     def display_norm_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -370,11 +369,11 @@ class ModelViz:
 
     def display_coef_inflation(self, *, ax: matplotlib.axes.Axes):
         """
-        Display an heatmap of the coefficient of the zero inflation.
+        Display a heatmap of the coefficients of the zero inflation.
         """
         coef_inflation = self._params["coef_inflation"]
         sns.heatmap(coef_inflation, ax=ax)
-        ax.set_title("Zero inflation Regression coefficient Matrix")
+        ax.set_title("Zero inflation Regression Coefficient Matrix")
 
 
 def _perform_pca(array, n_components):
@@ -414,7 +413,7 @@ def _pca_pairplot(array, n_components, colors):
 
     Parameters
     ----------
-    array: (np.ndarray): The array on which we will perform pca and then visualize.
+    array: (np.ndarray): The array on which we will perform PCA and then visualize.
 
     n_components (int, optional): The number of components to consider for plotting.
         If not specified, the maximum number of components will be used. Note that
@@ -479,7 +478,7 @@ def _plot_expected_vs_true(
     colors: np.ndarray,
 ):
     """
-    Plot the predicted value of the endog against the endog.
+    Plot the predicted value of the `endog` against the `endog`.
 
     Parameters
     ----------
@@ -490,7 +489,7 @@ def _plot_expected_vs_true(
     reconstruction_error : float
         The reconstruction error.
     ax : matplotlib.axes.Axes, optional
-        The matplotlib axis to use. If None, the current axis is used.
+        The matplotlib axis to use. If `None`, the current axis is used.
     colors : np.ndarray, optional
         The colors to use for plotting.
 
