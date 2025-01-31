@@ -5,8 +5,7 @@ import torch
 from pyPLNmodels import ZIPln, load_scrna, Pln, load_microcosm, PlnPCA
 
 
-from .generate_models import get_model
-from .conftest import dict_fitted_models, dict_unfit_models
+from .generate_models import get_model, get_dict_models_unfit
 from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init
 
 
@@ -108,9 +107,11 @@ def test_wrong_init_models():
 
 
 def test_bad_elbo():
-    for model_name in dict_fitted_models:
+    unfit_models = get_dict_models_unfit()
+    for model_name in unfit_models:
         for init_method in ["formula", "explicit"]:
-            for model in dict_fitted_models[model_name][init_method]:
+            for model in unfit_models[model_name][init_method]:
+                model.fit(maxiter=1)
                 with torch.no_grad():
                     model._latent_sqrt_variance *= 0
                 with pytest.raises(ValueError):
@@ -118,9 +119,10 @@ def test_bad_elbo():
 
 
 def test_bad_fit():
-    for model_name in dict_unfit_models:
+    unfit_models = get_dict_models_unfit()
+    for model_name in unfit_models:
         for init_method in ["formula", "explicit"]:
-            for model in dict_unfit_models[model_name][init_method]:
+            for model in unfit_models[model_name][init_method]:
                 with pytest.raises(RuntimeError):
                     print(model)
                 with pytest.raises(ValueError):
