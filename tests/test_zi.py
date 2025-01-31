@@ -18,7 +18,11 @@ def test_zi():
                 model.n_samples,
                 model.nb_cov_inflation,
             )
-            assert model.exog.shape == (model.n_samples, model.nb_cov)
+            if model.exog is not None:
+                assert model.exog.shape == (model.n_samples, model.nb_cov)
+            else:
+                if model.nb_cov > 0:
+                    assert False
             arr_infl = torch.randn(50, model.nb_cov_inflation)
 
             assert torch.allclose(

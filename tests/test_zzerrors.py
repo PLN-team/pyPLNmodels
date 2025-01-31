@@ -71,26 +71,6 @@ def test_wront_method_offsets():
         pln = Pln(data["endog"], compute_offsets_method="nothing")
 
 
-def test_bad_elbo():
-    for model_name in dict_fitted_models:
-        for init_method in ["formula", "explicit"]:
-            for model in dict_fitted_models[model_name][init_method]:
-                with torch.no_grad():
-                    model._latent_sqrt_variance *= 0
-                with pytest.raises(ValueError):
-                    model.fit()
-
-
-def test_bad_fit():
-    for model_name in dict_unfit_models:
-        for init_method in ["formula", "explicit"]:
-            for model in dict_unfit_models[model_name][init_method]:
-                with pytest.raises(RuntimeError):
-                    print(model)
-                with pytest.raises(ValueError):
-                    model.fit(maxiter=0.4)
-
-
 def test_too_much_components_viz():
     data = load_scrna()
     pca = PlnPCA(data["endog"])
@@ -125,3 +105,23 @@ def test_wrong_init_models():
         _PlnPCA_init("wrong formula")
     with pytest.raises(ValueError):
         _ZIPln_init("wrong formula")
+
+
+def test_bad_elbo():
+    for model_name in dict_fitted_models:
+        for init_method in ["formula", "explicit"]:
+            for model in dict_fitted_models[model_name][init_method]:
+                with torch.no_grad():
+                    model._latent_sqrt_variance *= 0
+                with pytest.raises(ValueError):
+                    model.fit()
+
+
+def test_bad_fit():
+    for model_name in dict_unfit_models:
+        for init_method in ["formula", "explicit"]:
+            for model in dict_unfit_models[model_name][init_method]:
+                with pytest.raises(RuntimeError):
+                    print(model)
+                with pytest.raises(ValueError):
+                    model.fit(maxiter=0.4)
