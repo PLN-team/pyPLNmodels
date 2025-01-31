@@ -2,11 +2,13 @@ from typing import Optional, Union
 import torch
 import pandas as pd
 import numpy as np
+from scipy.stats import norm, t
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
 from pyPLNmodels.elbos import profiled_elbo_pln
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels._utils import _add_doc, _shouldbefitted
+from pyPLNmodels.sandwich import SandwichPln
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -239,7 +241,12 @@ class Pln(BaseModel):
 
     @property
     def _additional_methods_list(self):
-        return []
+        return [
+            ".get_variance_coef()",
+            ".get_confidence_interval_coef()",
+            ".summary()",
+            ".get_coef_p_values()",
+        ]
 
     @_add_doc(
         BaseModel,
@@ -370,3 +377,83 @@ class Pln(BaseModel):
             show_cov=show_cov,
             remove_exog_effect=remove_exog_effect,
         )
+
+    @_shouldbefitted
+    def get_variance_coef(self):
+        """
+        Calculate the variance of the regression coefficients using the sandwich estimator.
+
+        Returns
+        -------
+        torch.Tensor
+            Variance of the regression coefficients.
+
+        Raises
+        ------
+        ValueError
+            If the number of samples is less than the product of the
+            number of covariates and dimensions.
+        """
+        if self.nb_cov * self.dim > self.n_samples:
+            msg = f"Not enough samples. The number of samples ({self.n_samples}) "
+            msg += f"should be greater than nb_cov * dim ({self.nb_cov} *{self.dim}"
+            msg += f"={self.nb_cov*self.dim})."
+            raise ValueError(msg)
+        sandwich_estimator = SandwichPln(self)
+        return sandwich_estimator.get_variance_coef()
+
+    def get_confidence_interval_coef(self, alpha: float = 0.05):
+        """
+        Calculate the confidence intervals for the regression coefficients.
+
+        Parameters
+        ----------
+        alpha : float (optional)
+            Significance level for the confidence intervals. Defaults to 0.05.
+
+        Returns
+        -------
+        interval_low, interval_high : Tuple(torch.Tensor, torch.Tensor)
+            Lower and upper bounds of the confidence intervals for the coefficients.
+        """
+        variance = self.get_variance_coef()
+        quantile = norm.ppf(1 - alpha / 2)
+        half_length = quantile * torch.sqrt(variance)
+        interval_low = self.coef - half_length
+        interval_high = self.coef + half_length
+        return interval_low, interval_high
+
+    def get_coef_p_values(self):
+        """
+        Calculate the p-values for the regression coefficients.
+
+        Returns
+        -------
+        p_values : torch.Tensor
+            P-values for the regression coefficients.
+
+        See also
+        --------
+        :func:`pyPLNmodels.Pln.summary`
+        :func:`pyPLNmodels.Pln.get_confidence_interval_coef`
+        """
+        variance = self.get_variance_coef()
+        t_stat = self.coef / torch.sqrt(variance.detach())
+        p_values = 2 * (
+            1 - t.cdf(torch.abs(t_stat), df=self.n_samples - self.nb_cov * self.dim)
+        )
+        return p_values
+
+    def summary(self):
+        """
+        Print a summary of the regression coefficients and their p-values for each dimension.
+        """
+        p_values = self.get_coef_p_values()
+        print("Coefficients and p-values per dimension:")
+        for dim_index, dim_name in enumerate(self.column_names_endog):
+            print(f"\nDimension: {dim_name}")
+            print(f"{'Exog Name':<20} {'Coefficient':>15} {'P-value':>15}")
+            for coef, p_val, exog_name in zip(
+                self.coef[:, dim_index], p_values[:, dim_index], self.column_names_exog
+            ):
+                print(f"{exog_name:<20} {coef.item():>15.6f} {p_val.item():>15.6f}")

@@ -91,12 +91,15 @@ class BaseModel(
             compute_offsets_method,
             add_const,
         )
-        self.column_names_endog = (
-            column_names_endog if column_names_endog is not None else None
-        )
-        self.column_names_exog = (
-            column_names_exog if column_names_exog is not None else None
-        )
+        if column_names_endog is not None:
+            self.column_names_endog = column_names_endog
+        else:
+            self.column_names_endog = [f"Dim_{i+1}" for i in range(self.dim)]
+        if column_names_exog is not None:
+            self.column_names_exog = column_names_exog
+        else:
+            self.column_names_exog = [f"Exog_{i+1}" for i in range(self.nb_cov)]
+
         self._elbo_criterion_monitor = _ElboCriterionMonitor()
         self._fitted = False
 
