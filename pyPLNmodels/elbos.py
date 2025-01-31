@@ -168,7 +168,6 @@ def elbo_zipln(
     latent_prob,
     covariance,
     marginal_mean_inflation,
-    dirac,
 ):
     """
     Compute the ELBO (Evidence Lower Bound) for the ZIPln model.
@@ -201,11 +200,6 @@ def elbo_zipln(
     torch.Tensor
         The ELBO (Evidence Lower Bound) with size 1, with a gradient.
     """
-    if torch.norm(latent_prob * dirac - latent_prob) > 1e-8:
-        raise RuntimeError(
-            "Latent probability error. It has non zeros where it should be zeros."
-        )
-
     n_samples, dim = endog.shape
     latent_var = latent_sqrt_variance**2
     offsets_plus_latent_mean = offsets + latent_mean
@@ -234,6 +228,93 @@ def elbo_zipln(
         - (1 - latent_prob) * _trunc_log(1 - latent_prob)
     )
 
+    logdet_term = -0.5 * n_samples * torch.logdet(covariance)
+
+    elbo = (
+        poisson_term
+        + quadratic_term
+        + inflation_term
+        + entropy_term
+        + kl_divergence_term
+        + logdet_term
+        + 0.5 * n_samples * dim
+    )
+    return elbo
+
+
+def profiled_elbo_zipln(
+    *,
+    endog,
+    exog,
+    offsets,
+    latent_mean,
+    latent_sqrt_variance,
+    latent_prob,
+    marginal_mean_inflation,
+    dirac,
+):
+    """
+    Compute the ELBO (Evidence Lower Bound) for the ZIPln model in a profiled fashion,
+    where closed forms are used to avoid matrix inversion.
+
+
+    Parameters:
+    ----------
+    endog : torch.Tensor
+        Counts with size (n_samples, dim).
+    exog : torch.Tensor
+        Covariates with size (n_samples, nb_cov).
+    offsets : torch.Tensor
+        Offset with size (n_samples, dim).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n_samples, dim).
+    latent_sqrt_variance : torch.Tensor
+        Variational parameter with size (n_samples, dim). More precisely it is the unsigned
+        square root of the variational variance.
+    latent_prob : torch.Tensor
+        Variational parameter for the latent probability with size (n_samples, dim).
+    marginal_mean_inflation : torch.Tensor
+        The matrix product exog_inflation @ coef, of size (n_samples, dim)
+    dirac : torch.Tensor
+        Vector with 0s and 1s only, indicating whether endog is null or not.
+        Size is (n_samples, dim).
+
+    Returns:
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
+    """
+    if torch.norm(latent_prob * dirac - latent_prob) > 1e-8:
+        raise RuntimeError(
+            "Latent probability error. It has non zeros where it should be zeros."
+        )
+
+    n_samples, dim = endog.shape
+    latent_var = latent_sqrt_variance**2
+    offsets_plus_latent_mean = offsets + latent_mean
+
+    poisson_mean = torch.exp(offsets_plus_latent_mean + latent_var / 2)
+    poisson_term = torch.sum(
+        (1 - latent_prob)
+        * (endog * offsets_plus_latent_mean - poisson_mean - _log_stirling(endog))
+    )
+
+    quadratic_term = -n_samples * dim / 2
+    inflation_term = torch.sum(
+        latent_prob * marginal_mean_inflation - _log1pexp(marginal_mean_inflation)
+    )
+
+    entropy_term = torch.sum(0.5 * torch.log(latent_var))
+
+    kl_divergence_term = torch.sum(
+        -latent_prob * _trunc_log(latent_prob)
+        - (1 - latent_prob) * _trunc_log(1 - latent_prob)
+    )
+    coef = _closed_formula_coef(exog, latent_mean)
+    marginal_mean = exog @ coef if exog is not None else 0
+    covariance = _closed_formula_covariance(
+        marginal_mean, latent_mean, latent_sqrt_variance, n_samples
+    )
     logdet_term = -0.5 * n_samples * torch.logdet(covariance)
 
     elbo = (

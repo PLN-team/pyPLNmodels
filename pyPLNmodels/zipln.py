@@ -14,7 +14,7 @@ from pyPLNmodels._data_handler import (
 )
 from pyPLNmodels._initialization import _init_coef_coef_inflation
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
-from pyPLNmodels.elbos import elbo_zipln
+from pyPLNmodels.elbos import profiled_elbo_zipln
 from pyPLNmodels._utils import _add_doc
 from pyPLNmodels._viz import _viz_variables, _pca_pairplot
 
@@ -261,14 +261,13 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
     @_add_doc(BaseModel)
     def compute_elbo(self):
-        return elbo_zipln(
+        return profiled_elbo_zipln(
             endog=self._endog,
-            marginal_mean=self._marginal_mean,
+            exog=self._exog,
             offsets=self._offsets,
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
             latent_prob=self._latent_prob,
-            covariance=self._covariance,
             marginal_mean_inflation=self._marginal_mean_inflation,
             dirac=self._dirac,
         )
