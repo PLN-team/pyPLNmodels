@@ -449,14 +449,14 @@ def _extract_exog_inflation_from_formula(
         exog_inflation.columns = column_names_exog_inflation
         return exog_inflation
     except PatsyError as err:
-        msg = f"Formula of ``exog_inflation` did not work: {formula_inflation}."
+        msg = f"Formula of `exog_inflation` did not work: {formula_inflation}."
         msg += " Error from Patsy:"
         warnings.warn(msg)
         raise err
 
 
 def _array2tensor(func):
-    def setter(self, array_like):
+    def setter(self, array_like=None):
         array_like = _format_data(array_like)
         return func(self, array_like)
 

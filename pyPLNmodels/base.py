@@ -397,6 +397,7 @@ class BaseModel(
     def dict_model_parameters(self):
         """The parameters of the model."""
 
+    @property
     def model_parameters(self):
         """Alias for dict_model_parameters."""
         return self.dict_model_parameters
