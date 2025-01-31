@@ -6,10 +6,10 @@ from pyPLNmodels import load_scrna, PlnPCA
 
 
 def test_verbose_init_coef():
-    data = load_scrna()
-    endog = torch.from_numpy(data["endog"].values).float()
-    exog = torch.from_numpy(data["labels_1hot"].values).float()
-    offsets = torch.from_numpy(0 * data["endog"].values).float()
+    scrna = load_scrna()
+    endog = torch.from_numpy(scrna["endog"].values).float()
+    exog = torch.from_numpy(scrna["labels_1hot"].values).float()
+    offsets = torch.from_numpy(0 * scrna["endog"].values).float()
     _init_coef(
         endog=endog, exog=exog, offsets=offsets, verbose=True, itermax=1000, tol=4
     )
@@ -17,7 +17,7 @@ def test_verbose_init_coef():
 
 
 def test_rank_bigger_than_nsamples():
-    data = load_scrna()
-    data["endog"] = data["endog"].iloc[:10, :]
-    pca = PlnPCA(data["endog"], rank=12)
+    scrna = load_scrna()
+    scrna["endog"] = scrna["endog"].iloc[:10, :]
+    pca = PlnPCA(scrna["endog"], rank=12)
     pca.fit()
