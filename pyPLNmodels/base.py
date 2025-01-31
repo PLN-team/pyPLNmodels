@@ -74,7 +74,7 @@ class BaseModel(
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
-            Overriden (useless) if `offsets` is not None.
+            Overridden (useless) if `offsets` is not None.
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the `exog`. Defaults to `True`.
         """
@@ -127,7 +127,7 @@ class BaseModel(
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
-            Overriden (useless) if data["offsets"] is not `None`.
+            Overridden (useless) if data["offsets"] is not `None`.
 
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
@@ -367,7 +367,7 @@ class BaseModel(
 
     @abstractmethod
     def _init_model_parameters(self):
-        """Iniialization of model parameters."""
+        """Initialization of model parameters."""
 
     @abstractmethod
     def _init_latent_parameters(self):
@@ -882,7 +882,7 @@ class BaseModel(
         Raises
         ------
         AttributeError
-            If there are no `exog` in the model but some are provided.
+            If there is no `exog` in the model but some are provided.
         RuntimeError
             If the shape of the `exog` is incorrect.
 
@@ -905,10 +905,10 @@ class BaseModel(
                 warnings.warn(warning_string)
                 return None
             raise AttributeError(
-                "Exogenous variables are given in the model. Please provide exog."
+                "Exogenous variables are given in the model. Please provide `exog`."
             )
         if exog.shape[-1] != self.nb_cov:
-            error_string = f"X has wrong shape ({exog.shape}). Should"
+            error_string = f"`exog` has th wrong shape ({exog.shape}). Should"
             error_string += f" be ({self.n_samples, self.nb_cov})."
             raise RuntimeError(error_string)
         return exog @ self.coef
@@ -944,7 +944,7 @@ class BaseModel(
         Parameters
         ----------
             n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. Cannot be greater than 6.
+                Defaults to 3. It Cannot be greater than 6.
 
             colors (np.ndarray): An array with one label for each
                 sample in the endog property of the object.
