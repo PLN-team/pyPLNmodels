@@ -9,7 +9,7 @@ from pyPLNmodels._data_handler import (
     _check_full_rank_exog,
     _check_data_shapes,
 )
-from pyPLNmodels import load_oaks, load_microcosm, Pln
+from pyPLNmodels import load_oaks, load_microcosm, Pln, PlnSampler
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -97,3 +97,8 @@ def test_remove_column_names_exog():
     micro["site_1hot"].iloc[:, 1] *= 0
     micro["site_1hot"] = micro["site_1hot"].astype(np.float32)
     pln = Pln(micro["endog"], exog=micro["site_1hot"], add_const=False)
+    sampler = PlnSampler()
+    endog = sampler.sample()
+    exog = sampler.exog
+    exog[:, 0] *= 0
+    pln = Pln(endog, exog=exog)

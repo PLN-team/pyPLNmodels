@@ -3,8 +3,10 @@ import pytest
 import torch
 import numpy as np
 from pyPLNmodels import ZIPln, load_microcosm
+import matplotlib.pyplot as plt
 
 from .conftest import dict_fitted_models
+from .generate_models import get_model
 
 
 def test_zi():
@@ -20,9 +22,6 @@ def test_zi():
             )
             if model.exog is not None:
                 assert model.exog.shape == (model.n_samples, model.nb_cov)
-            else:
-                if model.nb_cov > 0:
-                    assert False
             arr_infl = torch.randn(50, model.nb_cov_inflation)
 
             assert torch.allclose(
@@ -33,3 +32,10 @@ def test_zi():
                 model.predict_prob_inflation(
                     np.random.randn(10, model.nb_cov_inflation + 1)
                 )
+            _, axes = plt.subplots(5)
+            model.show(axes=axes)
+            _, axes = plt.subplots(5)
+            with pytest.raises(IndexError):
+                model.show(axes=axes[:4])
+            model.show(savefig=True)
+            assert torch.allclose(model.latent_prob_variables, model.latent_prob)
