@@ -401,9 +401,9 @@ def _create_dataframe(proj_variables, labels, colors):
 
 def _plot_pairplot(data, colors):
     if colors is not None:
-        sns.pairplot(data, hue="labels")
+        sns.pairplot(data, hue="labels", diag_kind="bins")
     else:
-        sns.pairplot(data)
+        sns.pairplot(data, diag_kind="kde")
     plt.show()
 
 

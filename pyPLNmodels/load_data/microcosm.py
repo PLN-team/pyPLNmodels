@@ -5,8 +5,8 @@ from .utils import _threshold_samples_and_dim
 
 
 def load_microcosm(
-    n_samples: int = 300,
-    dim=50,
+    n_samples: int = 400,
+    dim=100,
 ):
     """
     Get real count data from the microcosm
@@ -15,9 +15,9 @@ def load_microcosm(
     Parameters
     ----------
     n_samples : int, optional
-        Number of samples, by default 300.
+        Number of samples, by default 400.
     dim : int, optional
-        Dimension, by default 50.
+        Dimension, by default 100.
 
     Returns
     -------
