@@ -111,9 +111,9 @@ class PlnPCA(BaseModel):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         rank: int = 5,
     ):
-        endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
-            _extract_data_from_formula(formula, data)
-        )
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        # endog = pd.DataFrame(endog)
+        # endog.columns = column_names_endog
         return cls(
             endog,
             exog=exog,
