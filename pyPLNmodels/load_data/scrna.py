@@ -31,10 +31,20 @@ def load_scrna(
     Returns
     -------
     Dict
-        Dictionary with three keys: "endog", "labels" and "labels_value".
-        "endog" is a matrix of counts, "labels" is an array of cell types that
-        are one-hot encoded and "labels_value" gives the actual cell type,
-        either "T_cells_CD4+" or "T_cells_CD8+".
+        Dictionary with three keys: `endog`, `labels` and `labels_1hot`.
+            `endog` is a matrix of counts.
+            `labels` is an array giving cell types with two possibilities,
+                    either "T_cells_CD4+" or "T_cells_CD8+".
+            `labels_1hot` corresponds to a 2D array that is the
+                one hot encoding of the 'labels' array.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import load_scrna
+    >>> scrna = load_scrna()
+    >>> print('Keys: ', scrna.keys())
+    >>> print(scrna["endog"].head())
+    >>> print(scrna["endog"].describe())
     """
     max_samples = 400
     max_dim = 100
