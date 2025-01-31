@@ -22,17 +22,17 @@ class Pln(BaseModel):
     --------
     >>> from pyPLNmodels import Pln, load_scrna
     >>> data = load_scrna()
-    >>> pln = Pln(data["endog"],add_const = True)
+    >>> pln = Pln(data["endog"], add_const=True)
     >>> pln.fit()
     >>> print(pln)
-    >>> pln.viz(colors = data["labels"])
+    >>> pln.viz(colors=data["labels"])
 
     >>> from pyPLNmodels import Pln, load_scrna
     >>> data = load_scrna()
-    >>> pln = Pln.from_formula("endog ~ 1 + labels", data = data)
+    >>> pln = Pln.from_formula("endog ~ 1 + labels", data=data)
     >>> pln.fit()
     >>> print(pln)
-    >>> pln.viz(colors = data["labels"])
+    >>> pln.viz(colors=data["labels"])
 
     """
 
@@ -77,7 +77,7 @@ class Pln(BaseModel):
         example="""
             >>> from pyPLNmodels import Pln, load_scrna
             >>> data = load_scrna()
-            >>> pln = Pln.from_formula("endog ~ 1", data = data)
+            >>> pln = Pln.from_formula("endog ~ 1", data=data)
         """,
         returns="""
             Pln
@@ -112,7 +112,7 @@ class Pln(BaseModel):
         >>> from pyPLNmodels import Pln, load_scrna
         >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data)
-        >>> pln.fit( maxiter = 500, verbose = True)
+        >>> pln.fit(maxiter=500, verbose=True)
         >>> print(pln)
         """,
     )
@@ -127,7 +127,7 @@ class Pln(BaseModel):
         super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_model_parameters(self):
-        """The model parameters are profiled in the ELBO, no need to intialize them."""
+        """The model parameters are profiled in the ELBO, no need to initialize them."""
 
     def _init_latent_parameters(self):
         self._latent_mean = torch.log(self._endog + (self._endog == 0)).to(DEVICE)
@@ -221,7 +221,7 @@ class Pln(BaseModel):
         >>> pln = Pln.from_formula("endog ~ 1", data)
         >>> pln.fit()
         >>> print(pln.latent_positions.shape)
-        >>> pln.viz(remove_exog_effect = True) # Visualize the latent positions
+        >>> pln.viz(remove_exog_effect=True) # Visualize the latent positions
         """,
         see_also="""
         :func:`pyPLNmodels.Pln.latent_variables`
@@ -253,10 +253,10 @@ class Pln(BaseModel):
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
         >>> data = load_scrna()
-        >>> pln = Pln.from_formula("endog ~ 1", data = data)
+        >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.plot_correlation_circle(variables_names = ["MALAT1", "ACTB"])
-        >>> pln.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,4])
+        >>> pln.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
+        >>> pln.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
         """,
     )
     def plot_correlation_circle(
@@ -273,10 +273,10 @@ class Pln(BaseModel):
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
         >>> data = load_scrna()
-        >>> pln = Pln.from_formula("endog ~ 1", data = data)
+        >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.biplot(variables_names = ["MALAT1", "ACTB"])
-        >>> pln.biplot(variables_names = ["A", "B"], indices_of_variables = [0,4], colors = data["labels"])
+        >>> pln.biplot(variables_names=["MALAT1", "ACTB"])
+        >>> pln.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
@@ -299,10 +299,10 @@ class Pln(BaseModel):
         example="""
         >>> from pyPLNmodels import Pln, load_scrna
         >>> data = load_scrna()
-        >>> pln = Pln.from_formula("endog ~ 1", data = data)
+        >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.pca_pairplot(n_components = 5)
-        >>> pln.pca_pairplot(n_components = 5, colors = data["labels"])
+        >>> pln.pca_pairplot(n_components=5)
+        >>> pln.pca_pairplot(n_components=5, colors=data["labels"])
         """,
     )
     def pca_pairplot(self, n_components: bool = 3, colors=None):
@@ -317,12 +317,12 @@ class Pln(BaseModel):
         example="""
               >>> from pyPLNmodels import Pln, load_scrna
               >>> data = load_scrna()
-              >>> pln = Pln.from_formula("endog ~ 1", data = data)
+              >>> pln = Pln.from_formula("endog ~ 1", data=data)
               >>> pln.fit()
               >>> transformed_endog = pln.transform()
               >>> print(transformed_endog.shape)
               >>> pln.viz()
-              >>> transformed_no_exog = pln.transform(remove_exog_effect = True)
+              >>> transformed_no_exog = pln.transform(remove_exog_effect=True)
               """,
     )
     def transform(self, remove_exog_effect: bool = False):
@@ -343,7 +343,7 @@ class Pln(BaseModel):
             >>> pln = Pln(data["endog"])
             >>> pln.fit()
             >>> pln.plot_expected_vs_true()
-            >>> pln.plot_expected_vs_true(colors = data["labels"])
+            >>> pln.plot_expected_vs_true(colors=data["labels"])
             """,
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
@@ -355,12 +355,12 @@ class Pln(BaseModel):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, load_scrna
             >>> data = load_scrna()
-            >>> pln = Pln.from_formula("endog ~ 1 + labels", data = data)
+            >>> pln = Pln.from_formula("endog ~ 1 + labels", data=data)
             >>> pln.fit()
             >>> pln.viz()
-            >>> pln.viz(colors = data["labels"])
-            >>> pln.viz(show_cov = True)
-            >>> pln.viz(remove_exog_effect = True, colors = data["labels"])
+            >>> pln.viz(colors=data["labels"])
+            >>> pln.viz(show_cov=True)
+            >>> pln.viz(remove_exog_effect=True, colors=data["labels"])
             """,
     )
     def viz(
@@ -383,7 +383,7 @@ class Pln(BaseModel):
     def get_variance_coef(self):
         """
         Calculate the variance of the regression coefficients using the sandwich estimator.
-        Returns None if there are no exogenous variabes in the model.
+        Returns None if there are no exogenous variables in the model.
 
         Returns
         -------
@@ -400,7 +400,7 @@ class Pln(BaseModel):
         --------
         >>> from pyPLNmodels import Pln, load_scrna
         >>> rna_data = load_scrna()
-        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln = Pln(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
         >>> pln.fit()
         >>> variance = pln.get_variance_coef()
         >>> print('variance', variance)
@@ -427,7 +427,7 @@ class Pln(BaseModel):
     def get_confidence_interval_coef(self, alpha: float = 0.05):
         """
         Calculate the confidence intervals for the regression coefficients.
-        Returns None if there are no exogenous variabes in the model.
+        Returns None if there are no exogenous variables in the model.
 
         Parameters
         ----------
@@ -443,21 +443,21 @@ class Pln(BaseModel):
         --------
         >>> from pyPLNmodels import Pln, load_scrna
         >>> rna_data = load_scrna()
-        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln = Pln(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
         >>> pln.fit()
         >>> interval_low, interval_high = pln.get_confidence_interval_coef()
 
         >>> import torch
         >>> from pyPLNmodels import Pln, PlnSampler
         >>>
-        >>> sampler = PlnSampler(n_samples = 1500, add_const = False, nb_cov = 4)
+        >>> sampler = PlnSampler(n_samples=1500, add_const=False, nb_cov=4)
         >>> endog = sampler.sample() # Sample Pln data.
         >>>
-        >>> pln = Pln(endog, exog = sampler.exog, add_const = False)
+        >>> pln = Pln(endog, exog=sampler.exog, add_const=False)
         >>> pln.fit()
-        >>> interval_low, interval_high = pln.get_confidence_interval_coef(alpha = 0.05)
+        >>> interval_low, interval_high = pln.get_confidence_interval_coef(alpha=0.05)
         >>> true_coef = sampler.coef
-        >>> inside_interval = (true_coef > interval_low) & (true_coef< interval_high)
+        >>> inside_interval = (true_coef > interval_low) & (true_coef < interval_high)
         >>> print('Should be around 0.95:', torch.mean(inside_interval.float()).item())
 
         See also
@@ -477,7 +477,7 @@ class Pln(BaseModel):
     def get_coef_p_values(self):
         """
         Calculate the p-values for the regression coefficients.
-        Returns None if there are no exogenous variabes in the model.
+        Returns None if there are no exogenous variables in the model.
 
         Returns
         -------
@@ -488,10 +488,10 @@ class Pln(BaseModel):
         --------
         >>> from pyPLNmodels import Pln, load_scrna
         >>> rna_data = load_scrna()
-        >>> pln = Pln(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln = Pln(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
         >>> pln.fit()
         >>> p_values = pln.get_coef_p_values()
-        >>> print('P-values: ',p_values)
+        >>> print('P-values: ', p_values)
 
         See also
         --------

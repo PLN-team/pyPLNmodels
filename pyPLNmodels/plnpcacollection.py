@@ -16,8 +16,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PlnPCAcollection:
     """
-    A collection of PlnPCA models, each with a different number of components.
-    For more details, see  Chiquet, J., Mariadassou, M., Robin, S.
+    A collection of `PlnPCA` models, each with a different number of components.
+    For more details, see Chiquet, J., Mariadassou, M., Robin, S.
     “Variational inference for probabilistic Poisson PCA.” Annals of applied stats.
 
     Examples
@@ -42,7 +42,7 @@ class PlnPCAcollection:
         BaseModel,
         params="""
             ranks : Iterable[int], optional(keyword-only)
-                The range of ranks, by default (3, 5).
+                The range of ranks, by default `(3, 5)`.
             """,
         example="""
             >>> from pyPLNmodels import PlnPCAcollection, load_scrna
@@ -69,7 +69,7 @@ class PlnPCAcollection:
         ranks: Optional[Iterable[int]] = (3, 5),
     ):  # pylint: disable=too-many-arguments
         """
-        Constructor for PlnPCAcollection.
+        Constructor for `PlnPCAcollection`.
 
         Returns
         -------
@@ -145,7 +145,7 @@ class PlnPCAcollection:
         BaseModel,
         params="""
             ranks : Iterable[int], optional(keyword-only)
-                The range of ranks, by default (3, 5).
+                The range of ranks, by default `(3, 5)`.
             """,
         example="""
             >>> from pyPLNmodels import PlnPCAcollection, load_scrna
@@ -183,36 +183,36 @@ class PlnPCAcollection:
     @property
     def exog(self) -> torch.Tensor:
         """
-        Property representing the exog.
+        Property representing the `exog`.
 
         Returns
         -------
         torch.Tensor
-            The exog.
+            The `exog`.
         """
         return self[self.ranks[0]].exog
 
     @property
     def offsets(self) -> torch.Tensor:
         """
-        Property representing the offsets.
+        Property representing the `offsets`.
 
         Returns
         -------
         torch.Tensor
-            The offsets.
+            The `offsets`.
         """
         return self[self.ranks[0]].offsets
 
     @property
     def endog(self) -> torch.Tensor:
         """
-        Property representing the endog.
+        Property representing the `endog`.
 
         Returns
         -------
         torch.Tensor
-            The endog.
+            The `endog`.
         """
         return self[self.ranks[0]].endog
 
@@ -397,12 +397,12 @@ class PlnPCAcollection:
     @property
     def nb_cov(self) -> int:
         """
-        Property representing the number of exog.
+        Property representing the number of `exog`.
 
         Returns
         -------
         int
-            The number of exog.
+            The number of `exog`.
         """
         return self[self.ranks[0]].nb_cov
 
@@ -410,7 +410,7 @@ class PlnPCAcollection:
         self, next_model: PlnPCA, current_model: PlnPCA
     ):
         """
-        Initialize the next PlnPCA model with the parameters of the current PlnPCA model.
+        Initialize the next `PlnPCA` model with the parameters of the current `PlnPCA` model.
 
         Parameters
         ----------
@@ -432,7 +432,7 @@ class PlnPCAcollection:
         verbose: bool = False,
     ):
         """
-        Fit each model in the PlnPCAcollection.
+        Fit each model in the `PlnPCAcollection`.
 
         Parameters
         ----------
@@ -443,7 +443,7 @@ class PlnPCAcollection:
         tol : float, optional(keyword-only)
             The tolerance, by default 1e-6.
         verbose : bool, optional(keyword-only)
-            Whether to print verbose output, by default False.
+            Whether to print verbose output, by default `False`.
         """
         self._print_beginning_message()
         for i in range(len(self.values())):
@@ -562,12 +562,12 @@ class PlnPCAcollection:
 
     def __repr__(self) -> str:
         """
-        Return a string representation of the PlnPCAcollection object.
+        Return a string representation of the `PlnPCAcollection` object.
 
         Returns
         -------
         str
-            The string representation of the PlnPCAcollection object.
+            The string representation of the `PlnPCAcollection` object.
         """
         nb_models = len(self)
         delimiter = "\n" + "-" * 70 + "\n"

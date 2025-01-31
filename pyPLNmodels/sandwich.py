@@ -6,13 +6,13 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
     """
     Implements the variance estimation of the coefficients of a PLN model.
 
-    The computation are based on "Evaluating Parameter Uncertainty in the Poisson Lognormal
+    The computations are based on "Evaluating Parameter Uncertainty in the Poisson Lognormal
     Model with Corrected Variational Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
     """
 
     def __init__(self, pln):
         """
-        Instantiate all the relevant values
+        Instantiate all the relevant values.
         """
         self._endog = pln._endog
         self._exog = pln._exog
@@ -30,7 +30,7 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
 
     def get_mat_dn(self):
         """
-        Gets the D_n matrix of the sandwich estimator. For more details, see "Evaluating Parameter
+        Gets the `D_n` matrix of the sandwich estimator. For more details, see "Evaluating Parameter
         Uncertainty in the Poisson Lognormal Model with Corrected Variational
         Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
         """
@@ -54,7 +54,7 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
 
     def get_mat_cn(self):
         """
-        Gets the C_n matrix of the sandwich estimator. For more details, see "Evaluating Parameter
+        Gets the `C_n` matrix of the sandwich estimator. For more details, see "Evaluating Parameter
         Uncertainty in the Poisson Lognormal Model with Corrected Variational
         Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
         """
@@ -93,7 +93,7 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
 
     def get_variance_coef(self):
         """
-        Gets the variance of the estimator of the coef. For more details,
+        Gets the variance of the estimator of the coefficients. For more details,
         see "Evaluating Parameter Uncertainty in the Poisson Lognormal Model
         with Corrected Variational Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
         """

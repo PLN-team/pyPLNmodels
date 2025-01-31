@@ -13,30 +13,27 @@ def load_scrna(
     Get real count data from the scMARK (https://zenodo.org/records/5765804) dataset.
     Only a tiny subset of the dataset is available, for memory purposes.
 
-
     References:
      scMARK an ‘MNIST’ like benchmark to evaluate and optimize models for unifying scRNA data
      Swechha, Dylan Mendonca, Octavian Focsa, J. Javier Díaz-Mejía, Samuel Cooper
 
-
-
     Parameters
     ----------
     n_samples : int, optional
-        Number of samples, by default 400. Can not be greater than 400.
+        Number of samples, by default 400. Cannot be greater than 400.
     dim : int, optional
         Dimension (i.e. number of variables, genes), by default 100.
-        Can not be greater than 100.
+        Cannot be greater than 100.
 
     Returns
     -------
     Dict
-        Dictionary with three keys: `endog`, `labels` and `labels_1hot`.
+        Dictionary with three keys: `endog`, `labels`, and `labels_1hot`.
             `endog` is a matrix of counts.
             `labels` is an array giving cell types with two possibilities,
-                    either "T_cells_CD4+" or "T_cells_CD8+".
+                    either `T_cells_CD4+` or `T_cells_CD8+`.
             `labels_1hot` corresponds to a 2D array that is the
-                one hot encoding of the 'labels' array.
+                one-hot encoding of the `labels` array.
 
     Examples
     --------

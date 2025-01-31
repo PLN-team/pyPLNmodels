@@ -15,26 +15,25 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PlnPCA(BaseModel):
     """Principal Component Analysis on top of a PLN model, that is a PLN
-    model with low rank covariance, adapted to datasets with lots of features.
-    For more details, see  Chiquet, J., Mariadassou, M., Robin, S.
+    model with low-rank covariance, adapted to datasets with lots of features.
+    For more details, see Chiquet, J., Mariadassou, M., Robin, S.
     “Variational inference for probabilistic Poisson PCA.” Annals of applied stats.
 
     Examples
     --------
     >>> from pyPLNmodels import PlnPCA, load_scrna
     >>> data = load_scrna()
-    >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
+    >>> pca = PlnPCA.from_formula("endog ~ 1", data=data, rank=5)
     >>> pca.fit()
     >>> print(pca)
-    >>> pca.viz(colors = data["labels"])
+    >>> pca.viz(colors=data["labels"])
 
     >>> from pyPLNmodels import PlnPCA, load_scrna
     >>> data = load_scrna()
-    >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data = data, rank = 5)
+    >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data=data, rank=5)
     >>> pca.fit()
     >>> print(pca)
-    >>> pca.viz(colors = data["labels"])
-
+    >>> pca.viz(colors=data["labels"])
 
     See also
     --------
@@ -93,7 +92,7 @@ class PlnPCA(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
-            >>> pca = PlnPCA.from_formula("endog ~ 1", data = data, rank = 5)
+            >>> pca = PlnPCA.from_formula("endog ~ 1", data=data, rank=5)
         """,
         returns="""
             PlnPCA
@@ -112,8 +111,6 @@ class PlnPCA(BaseModel):
         rank: int = 5,
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
-        # endog = pd.DataFrame(endog)
-        # endog.columns = column_names_endog
         return cls(
             endog,
             exog=exog,
@@ -135,7 +132,7 @@ class PlnPCA(BaseModel):
         >>> from pyPLNmodels import PlnPCA, load_scrna
         >>> data = load_scrna()
         >>> plnpca = PlnPCA.from_formula("endog ~ 1", data)
-        >>> plnpca.fit(maxiter = 500, verbose = True)
+        >>> plnpca.fit(maxiter=500, verbose=True)
         >>> print(plnpca)
         """,
     )
@@ -174,7 +171,7 @@ class PlnPCA(BaseModel):
 
     @property
     def rank(self):
-        """Rank of the covariance of the gaussian latent variable."""
+        """Rank of the covariance of the Gaussian latent variable."""
         return self._rank
 
     @property
@@ -224,7 +221,7 @@ class PlnPCA(BaseModel):
     def components(self):
         """
         Returns the principal components of the PlnPCA model, i.e. the weights
-        of features that explains the most variance in the data.
+        of features that explain the most variance in the data.
 
         Returns
         -------
@@ -313,11 +310,11 @@ class PlnPCA(BaseModel):
             >>> pca = PlnPCA.from_formula("endog ~ 1", data)
             >>> pca.fit()
             >>> transformed_endog_low_dim = pca.transform()
-            >>> transformed_endog_high_dim = pca.transform(project = False)
+            >>> transformed_endog_high_dim = pca.transform(project=False)
             >>> print(transformed_endog_low_dim.shape)
             >>> print(transformed_endog_high_dim.shape)
-            >>> transformed_no_exog = pca.transform(remove_exog_effect = True, project = True)
-            """,
+            >>> transformed_no_exog = pca.transform(remove_exog_effect=True, project=True)
+        """,
     )
     def transform(self, remove_exog_effect: bool = False, project=False):
         if project is True:
@@ -350,7 +347,7 @@ class PlnPCA(BaseModel):
         >>> pca = PlnPCA.from_formula("endog ~ 1", data)
         >>> pca.fit()
         >>> print(pca.latent_positions.shape)
-        >>> pca.viz(remove_exog_effect = True) # Visualize the latent positions
+        >>> pca.viz(remove_exog_effect=True) # Visualize the latent positions
         """,
     )
     def latent_positions(self):
@@ -374,10 +371,10 @@ class PlnPCA(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
         >>> data = load_scrna()
-        >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
+        >>> pca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> pca.fit()
-        >>> pca.plot_correlation_circle(variables_names = ["MALAT1", "ACTB"])
-        >>> pca.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,4])
+        >>> pca.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
+        >>> pca.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
         """,
     )
     def plot_correlation_circle(
@@ -394,10 +391,10 @@ class PlnPCA(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
         >>> data = load_scrna()
-        >>> pca = PlnPCA.from_formula("endog ~ 1", data = data)
+        >>> pca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> pca.fit()
-        >>> pca.biplot(variables_names = ["MALAT1", "ACTB"])
-        >>> pca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,4], colors = data["labels"])
+        >>> pca.biplot(variables_names=["MALAT1", "ACTB"])
+        >>> pca.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
@@ -420,10 +417,10 @@ class PlnPCA(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnPCA, load_scrna
         >>> data = load_scrna()
-        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data = data)
+        >>> plnpca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> plnpca.fit()
-        >>> plnpca.pca_pairplot(n_components = 5)
-        >>> plnpca.pca_pairplot(n_components = 5, colors = data["labels"])
+        >>> plnpca.pca_pairplot(n_components=5)
+        >>> plnpca.pca_pairplot(n_components=5, colors=data["labels"])
         """,
     )
     def pca_pairplot(self, n_components: bool = 3, colors=None):
@@ -449,7 +446,7 @@ class PlnPCA(BaseModel):
             >>> pca = PlnPCA(data["endog"])
             >>> pca.fit()
             >>> pca.plot_expected_vs_true()
-            >>> pca.plot_expected_vs_true(colors = data["labels"])
+            >>> pca.plot_expected_vs_true(colors=data["labels"])
             """,
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
@@ -461,12 +458,12 @@ class PlnPCA(BaseModel):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
-            >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data = data)
+            >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data=data)
             >>> pca.fit()
             >>> pca.viz()
-            >>> pca.viz(colors = data["labels"])
-            >>> pca.viz(show_cov = True)
-            >>> pca.viz(remove_exog_effect = True, colors = data["labels"])
+            >>> pca.viz(colors=data["labels"])
+            >>> pca.viz(show_cov=True)
+            >>> pca.viz(remove_exog_effect=True, colors=data["labels"])
             """,
     )
     def viz(

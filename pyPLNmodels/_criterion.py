@@ -6,12 +6,12 @@ BETA = 0.03
 class _ElboCriterionMonitor:
     """
     Class that deals with the criterion of PLN models, based on a
-    moving average of the hessian of the slope of the cumulative elbo.
+    moving average of the Hessian of the slope of the cumulative ELBO.
     """
 
     def __init__(self):
         """
-        Initialize the LossCriterionMonitor class.
+        Initialize the `LossCriterionMonitor` class.
         """
         self.elbo_list = []
         self.cumulative_elbo_list = [0]
@@ -22,7 +22,7 @@ class _ElboCriterionMonitor:
 
     def update_criterion(self, elbo):
         """
-        Update the moving average hessian criterion based on the elbo.
+        Update the moving average Hessian criterion based on the ELBO.
         """
         self.elbo_list.append(elbo)
         self.cumulative_elbo_list.append(elbo + self._cumulative_elbo)
