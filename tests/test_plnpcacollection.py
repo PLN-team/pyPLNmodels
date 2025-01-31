@@ -4,10 +4,8 @@ import pytest
 from pyPLNmodels import PlnPCAcollection, load_scrna
 
 
-data = load_scrna()
-
-
 def test_ranks():
+    data = load_scrna()
     with pytest.raises(TypeError):
         col = PlnPCAcollection(data["endog"], ranks=[3, 4.5])
     with pytest.raises(TypeError):
@@ -16,6 +14,7 @@ def test_ranks():
 
 
 def test_attributes():
+    data = load_scrna()
     col = PlnPCAcollection(data["endog"])
     col.fit()
     col.exog

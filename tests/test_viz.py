@@ -7,8 +7,6 @@ from pyPLNmodels._viz import _viz_variables, _plot_ellipse
 from pyPLNmodels import Pln, load_scrna, ZIPln, PlnPCASampler, PlnPCA
 from .conftest import dict_fitted_models, dict_unfit_models
 
-data = load_scrna()
-
 
 @pytest.fixture
 def pca_projected_variables():
@@ -115,12 +113,14 @@ def test_show_big_matrix():
 
 
 def test_show_no_coef():
+    data = load_scrna()
     pln = Pln(data["endog"], exog=None, add_const=None)
     pln.fit()
     pln.show()
 
 
 def test_display_norm_no_ax():
+    data = load_scrna()
     pln = Pln(data["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
@@ -132,6 +132,7 @@ def test_display_norm_no_ax():
 
 
 def test_display_norm_no_ax_zi():
+    data = load_scrna()
     pln = ZIPln(data["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
@@ -143,6 +144,7 @@ def test_display_norm_no_ax_zi():
 
 
 def test_plot_correlation_circle_pandas():
+    data = load_scrna()
     pca = PlnPCA(data["endog"])
     pca.fit()
     pca.show()
