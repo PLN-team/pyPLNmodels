@@ -272,6 +272,8 @@ class ModelViz:
         absc = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
         print("absc heeeere", absc)
         absc = absc * len(self._running_times) / len(absc)
+        print("absc just_after", absc)
+        print("len", len(self._running_times))
         absc = np.array(self._running_times)[absc.astype(int)]
         for key, value in self._dict_mse.items():
             ax.plot(absc, value, label=key)
