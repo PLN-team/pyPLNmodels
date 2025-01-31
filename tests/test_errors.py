@@ -36,7 +36,7 @@ def test_no_exog_inflation():
             "ZIPln", "explicit", {"nb_cov_inflation": 0, "add_const_inflation": False}
         )
     with pytest.raises(ValueError):
-        zi = get_model("ZIPln", "wrong formula")
+        zi = get_model("ZIPln", "wrong formula", {"None": None})
 
 
 def test_endog_neg():
