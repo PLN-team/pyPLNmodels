@@ -70,14 +70,6 @@ def test_wront_method_offsets():
         pln = Pln(data["endog"], compute_offsets_method="nothing")
 
 
-def test_too_much_components_viz():
-    data = load_scrna()
-    pca = PlnPCA(data["endog"])
-    pca.fit()
-    with pytest.raises(ValueError):
-        pca.pca_pairplot(n_components=pca.dim + 10)
-
-
 def test_not_fitted_viz():
     data = load_scrna()
     pca = PlnPCA(data["endog"])

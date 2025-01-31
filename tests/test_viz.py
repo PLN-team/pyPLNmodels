@@ -96,8 +96,8 @@ def test_viz_general():
                     colors=colors,
                     title="Test",
                 )
-                model.pca_pairplot(n_components=2)
                 model.pca_pairplot()
+                model.pca_pairplot(n_components=2)
                 model.pca_pairplot(n_components=2, colors=colors)
                 model.show()
                 with pytest.raises(ValueError):
