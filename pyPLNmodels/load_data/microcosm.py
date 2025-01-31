@@ -12,6 +12,15 @@ def load_microcosm(
     Get real count data from the microcosm
     (https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059) dataset.
 
+    References:
+        "Microbiota members from body sites of dairy cows are largely shared within
+        individual hosts throughout lactation but sharing is limited in the herd" from
+        Mahendra Mariadassou, Laurent X. Nouvel, Fabienne Constant, Diego P. Morgavi,
+        Lucie Rault, Sarah Barbey, Emmanuelle Helloin, Olivier Rué, Sophie Schbath,
+        Frederic Launay, Olivier Sandra, Rachel Lefebvre, Yves Le Loir, Pierre Germon,
+        Christine Citti & Sergine Even
+
+
     Parameters
     ----------
     n_samples : int, optional
@@ -21,12 +30,19 @@ def load_microcosm(
 
     Returns
     -------
-    Dict:
-        Dictionary. The different key, values are:
+    data: Dict
+        The different (key, values) are:
             `endog` that reprensents the counts
             `site` and `site_1hot` that represent the site and the one hot encoded site.
             `time` and `time_1hot` that represent the time and the one hot encoded time.
             `lineage` and `lineage_1hot` that represent the lineage and the one hot lineage site.
+    Examples
+    --------
+    >>> from pyPLNmodels import load_microcosm
+    >>> micro = load_microcosm()
+    >>> print('Keys: ', micro.keys())
+    >>> print(micro["endog"].head())
+    >>> print(micro["endog"].describe())
     """
     max_samples = 921
     max_dim = 1209

@@ -33,6 +33,27 @@ def load_oaks():
      Pathobiome: Intra- and Interkingdom Interactions Involving the
      Pathogen Erysiphe alphitoides . Microb Ecol 72, 870–880 (2016).
      doi:10.1007/s00248-016-0777-x
+
+    Returns
+    -------
+    oaks: Dict
+        The different (key, values) are:
+            `endog` a 114 x 116 np.array of integer (endog)
+            `offsets` a 114 x 116 np.array of integer (offsets)
+            `tree` a 114 x 1 vector of character for the tree status
+                            with respect to the pathogen (susceptible, intermediate or resistant)
+            `dist2ground` a 114 x 1 vector encoding the distance of the sampled leaf
+                            to the base of the ground
+            `orientation` a 114 x 1 vector encoding the orientation of the
+                            branch (South-West SW or North-East NE)
+
+    Examples
+    --------
+    >>> from pyPLNmodels import load_oaks
+    >>> oaks = load_oaks()
+    >>> print('Keys: ', oaks.keys())
+    >>> print(oaks["endog"].head())
+    >>> print(oaks["endog"].describe())
     """
     endog = pd.read_csv(pkg_resources.resource_stream(__name__, "data/oaks/counts.csv"))
     offsets = pd.read_csv(
