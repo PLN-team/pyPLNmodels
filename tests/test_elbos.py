@@ -2,7 +2,7 @@
 import pytest
 
 from pyPLNmodels import Pln, load_scrna, ZIPln
-from pyPLNmodels.elbos import elbo_pln, elbo_zipln
+from pyPLNmodels.elbos import elbo_pln, elbo_zipln, profiled_elbo_zipln
 
 
 def test_right_pln_elbo():

@@ -96,7 +96,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
-            Overriden (useless) if `offsets` is not `None`.
+            Overridden (useless) if `offsets` is not `None`.
         add_const : bool, optional(keyword-only)
             Whether to add a column of one in the `exog`. Defaults to `True`.
         add_const_inflation : bool, optional(keyword-only)
