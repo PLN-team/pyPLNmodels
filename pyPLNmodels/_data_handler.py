@@ -409,12 +409,18 @@ def _extract_data_from_formula(
 
     if exog.size == 0:
         exog = None
+    else:
+        exog = pd.DataFrame(exog)
+        exog.columns = column_names_exog
     if "offsets" in data.keys():
         offsets = data["offsets"]
         print("Taking the offsets from the data given.")
     else:
         offsets = None
-    return endog, exog, offsets, column_names_endog, column_names_exog
+    if column_names_endog is not None:
+        endog = pd.DataFrame(endog)
+        endog.columns = column_names_endog
+    return endog, exog, offsets
 
 
 def _extract_exog_inflation_from_formula(
@@ -439,8 +445,9 @@ def _extract_exog_inflation_from_formula(
     try:
         exog_inflation = dmatrix(formula_inflation, data=data)
         column_names_exog_inflation = exog_inflation.design_info.column_names
-        exog_inflation = _format_data(exog_inflation)
-        return exog_inflation, column_names_exog_inflation
+        exog_inflation = pd.DataFrame(exog_inflation)
+        exog_inflation.columns = column_names_exog_inflation
+        return exog_inflation
     except PatsyError as err:
         msg = f"Formula of ``exog_inflation` did not work: {formula_inflation}."
         msg += " Error from Patsy:"

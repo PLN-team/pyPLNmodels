@@ -39,8 +39,6 @@ class BaseModel(
     Abstract base class for all the PLN based models that will be derived.
     """
 
-    column_names_endog = None
-    column_names_exog = None
     _time_recorder: _TimeRecorder
     optim: torch.optim.Optimizer
     _dict_list_mse: dict
@@ -93,10 +91,12 @@ class BaseModel(
             compute_offsets_method,
             add_const,
         )
-        if column_names_endog is not None:
-            self.column_names_endog = column_names_endog
-        if column_names_exog is not None:
-            self.column_names_exog = column_names_exog
+        self.column_names_endog = (
+            column_names_endog if column_names_endog is not None else None
+        )
+        self.column_names_exog = (
+            column_names_exog if column_names_exog is not None else None
+        )
         self._elbo_criterion_monitor = _ElboCriterionMonitor()
         self._fitted = False
 
@@ -126,9 +126,7 @@ class BaseModel(
             Overriden (useless) if data["offsets"] is not `None`.
 
         """
-        endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
-            _extract_data_from_formula(formula, data)
-        )
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
             exog=exog,

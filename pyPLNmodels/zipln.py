@@ -163,21 +163,14 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             msg += "If you need different `exog_inflation`, "
             msg += "specify it with a pipe: '|' like in the following: endog ~ 1 + x | x + y "
             print(msg)
-            endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
-                _extract_data_from_formula(formula, data)
-            )
+            endog, exog, offsets = _extract_data_from_formula(formula, data)
             exog_inflation = exog
-            cls.column_names_exog_inflation = cls.column_names_exog
         else:
             split_formula = formula.split("|")
             formula_exog = split_formula[0]
-            endog, exog, offsets, cls.column_names_endog, cls.column_names_exog = (
-                _extract_data_from_formula(formula_exog, data)
-            )
+            endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
             formula_infla = split_formula[1]
-            exog_inflation, cls.column_names_exog_inflation = (
-                _extract_exog_inflation_from_formula(formula_infla, data)
-            )
+            exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
 
         return cls(
             endog,
