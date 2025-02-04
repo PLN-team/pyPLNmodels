@@ -9,7 +9,20 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class PlnPCASampler(PlnSampler):
-    """Sampler for Poisson Log-Normal model. The parameters of the model are generated randomly."""
+    """Sampler for Poisson Log-Normal model. The parameters of the model are generated randomly.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnSampler, PlnPCA
+    >>> sampler = PlnPCASampler()
+    >>> endog = sampler.sample()
+    >>> pca = PlnPCA(endog, exog = sampler.exog, add_const = False)
+    >>> pca.fit()
+    >>> estimated_cov = pca.covariance
+    >>> true_covariance = sampler.covariance
+    >>> estimated_latent_var = pca.latent_variables
+    >>> true_latent_var = sampler.latent_variables
+    """
 
     def __init__(
         self,

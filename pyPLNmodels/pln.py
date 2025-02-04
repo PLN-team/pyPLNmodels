@@ -22,7 +22,7 @@ class Pln(BaseModel):
     --------
     >>> from pyPLNmodels import Pln, load_scrna
     >>> data = load_scrna()
-    >>> pln = Pln(data["endog"], add_const=True)
+    >>> pln = Pln(data["endog"])
     >>> pln.fit()
     >>> print(pln)
     >>> pln.viz(colors=data["labels"])
@@ -33,7 +33,6 @@ class Pln(BaseModel):
     >>> pln.fit()
     >>> print(pln)
     >>> pln.viz(colors=data["labels"])
-
     """
 
     @_add_doc(
@@ -58,7 +57,7 @@ class Pln(BaseModel):
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
         *,
-        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,

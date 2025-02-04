@@ -8,8 +8,10 @@ from pyPLNmodels._data_handler import _format_data, _add_constant_to_exog
 from ._utils import _format_dict_of_array
 
 
-class _BaseSampler(ABC):
+class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
     """An abstract class used to simulate data (endogenous variables) from a model."""
+
+    latent_variables: torch.Tensor
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
@@ -37,8 +39,8 @@ class _BaseSampler(ABC):
         params : dict[str, torch.Tensor]
             Model parameters. Each item should a torch.Tensor.
         """
-        self._n_samples: int = n_samples
-        self._dim: int = dim
+        self.n_samples = n_samples
+        self.dim = dim
         self._exog_no_add: torch.Tensor = _format_data(exog)
         if add_const is True:
             self._exog = _add_constant_to_exog(self._exog_no_add, n_samples)
@@ -65,6 +67,7 @@ class _BaseSampler(ABC):
         prev_state = torch.random.get_rng_state()
         torch.random.manual_seed(seed)
         gaussians = self._get_gaussians()
+        self.latent_variables = gaussians
         endog = torch.poisson(torch.exp(gaussians))
         torch.random.set_rng_state(prev_state)
         return endog.cpu()
@@ -72,16 +75,6 @@ class _BaseSampler(ABC):
     @abstractmethod
     def _get_gaussians(self) -> torch.Tensor:
         """Method to generate the Gaussian samples."""
-
-    @property
-    def n_samples(self) -> int:
-        """Number of samples."""
-        return self._n_samples
-
-    @property
-    def dim(self) -> int:
-        """Latent dimension."""
-        return self._dim
 
     @property
     def params(self) -> Dict[str, torch.Tensor]:

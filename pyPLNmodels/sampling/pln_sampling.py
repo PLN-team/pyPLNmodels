@@ -46,7 +46,7 @@ class _BasePlnSampler(_BaseSampler):
         )
 
     def _get_gaussians(self):
-        centered_unit_gaussian = torch.randn(self._n_samples, self._dim_latent).to(
+        centered_unit_gaussian = torch.randn(self.n_samples, self._dim_latent).to(
             DEVICE
         )
         components = self._get_components()
@@ -75,7 +75,21 @@ class _BasePlnSampler(_BaseSampler):
 
 class PlnSampler(_BasePlnSampler):
     """Sampler for Poisson Log-Normal model.
-    The parameters of the model are generated randomly but have a specific structure."""
+    The parameters of the model are generated randomly but have a specific structure.
+
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnSampler, Pln
+    >>> sampler = PlnSampler()
+    >>> endog = sampler.sample()
+    >>> pln = Pln(endog, exog = sampler.exog, add_const = False)
+    >>> pln.fit()
+    >>> estimated_cov = pln.covariance
+    >>> true_covariance = sampler.covariance
+    >>> estimated_latent_var = pln.latent_variables
+    >>> true_latent_var = sampler.latent_variables
+    """
 
     @_add_doc(_BasePlnSampler)
     def __init__(
@@ -105,4 +119,4 @@ class PlnSampler(_BasePlnSampler):
 
     @property
     def _dim_latent(self):
-        return self._dim
+        return self.dim

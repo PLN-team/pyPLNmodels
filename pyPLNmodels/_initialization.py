@@ -147,6 +147,17 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
     return torch.from_numpy(pca_components).float()
 
 
+def _init_components_prec(endog):
+    log_y = _log_transform(endog)
+    log_y = log_y - log_y.mean(dim=0)
+    covariance = torch.mm(log_y.T, log_y) / (log_y.shape[0] - 1)
+    eigvals, eigvecs = torch.linalg.eigh(covariance)
+    eigvals_inv = 1.0 / eigvals
+    precision = torch.mm(eigvecs, eigvals_inv.diag())
+    precision = torch.mm(precision, eigvecs.T)
+    return torch.linalg.cholesky(precision)
+
+
 def compute_log_posterior(  # pylint: disable=too-many-arguments
     *,
     endog: torch.Tensor,
