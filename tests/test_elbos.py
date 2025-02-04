@@ -1,6 +1,8 @@
 # pylint: skip-file
 import pytest
 
+import torch
+
 from pyPLNmodels import Pln, load_scrna, ZIPln
 from pyPLNmodels.elbos import elbo_pln, elbo_zipln, profiled_elbo_zipln
 
@@ -16,7 +18,7 @@ def test_right_pln_elbo():
         offsets=pln._offsets,
         latent_mean=pln._latent_mean,
         latent_sqrt_variance=pln._latent_sqrt_variance,
-        covariance=pln._covariance,
+        precision=torch.linalg.inv(pln._covariance),
     )
     assert elbo == profiled_elbo
 
@@ -33,7 +35,7 @@ def test_right_zipln_elbo():
         latent_mean=zi._latent_mean,
         latent_sqrt_variance=zi._latent_sqrt_variance,
         latent_prob=zi._latent_prob,
-        covariance=zi._covariance,
+        precision=torch.linalg.inv(zi._covariance),
         marginal_mean_inflation=zi._marginal_mean_inflation,
     )
     assert elbo == profiled_elbo

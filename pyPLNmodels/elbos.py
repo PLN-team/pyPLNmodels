@@ -62,7 +62,7 @@ def elbo_pln(
     offsets: torch.Tensor,
     latent_mean: torch.Tensor,
     latent_sqrt_variance: torch.Tensor,
-    covariance: torch.Tensor,
+    precision: torch.Tensor,
 ) -> torch.Tensor:
     """
     Compute the ELBO (Evidence Lower Bound) for the `Pln` model.
@@ -79,7 +79,7 @@ def elbo_pln(
         Variational parameter with size (n, p).
     latent_sqrt_variance : torch.Tensor
         Variational parameter with size (n, p).
-    covariance : torch.Tensor
+    precision : torch.Tensor
         Model parameter with size (p, p).
 
     Returns:
@@ -91,15 +91,12 @@ def elbo_pln(
     latent_var = torch.square(latent_sqrt_variance)
     diag_s = torch.diag(torch.sum(latent_var, dim=0))
     offsets_plus_mean = offsets + latent_mean
-    Omega = torch.inverse(covariance)
     m_minus_xb = latent_mean - marginal_mean
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
     A = torch.exp(offsets_plus_mean + latent_var / 2)
-    elbo = torch.sum(
-        endog * offsets_plus_mean - A + 0.5 * torch.log(latent_var)
-    ) - 1 / 2 * torch.sum(Omega * m_moins_xb_outer)
-    elbo -= 0.5 * torch.trace(Omega @ diag_s)
-    elbo -= 0.5 * n_samples * torch.logdet(covariance)
+    elbo = torch.sum(endog * offsets_plus_mean - A + 0.5 * torch.log(latent_var))
+    elbo += -0.5 * torch.trace(precision @ (diag_s + m_moins_xb_outer))
+    elbo += 0.5 * n_samples * torch.logdet(precision)
     elbo -= torch.sum(_log_stirling(endog))
     elbo += n_samples * endog.shape[1] / 2
     return elbo
@@ -166,7 +163,7 @@ def elbo_zipln(
     latent_mean,
     latent_sqrt_variance,
     latent_prob,
-    covariance,
+    precision,
     marginal_mean_inflation,
 ):
     """
@@ -187,8 +184,8 @@ def elbo_zipln(
         square root of the variational variance.
     latent_prob : torch.Tensor
         Variational parameter for the latent probability with size (n_samples, dim).
-    covariance : torch.Tensor
-        The model covariance of size (dim, dim).
+    precision : torch.Tensor
+        The model precision of size (dim, dim).
     marginal_mean_inflation : torch.Tensor
         The matrix product `exog_inflation @ coef`, of size (n_samples, dim).
     dirac : torch.Tensor
@@ -211,10 +208,9 @@ def elbo_zipln(
         * (endog * offsets_plus_latent_mean - poisson_mean - _log_stirling(endog))
     )
 
-    omega = torch.inverse(covariance)
     mean_diff_outer = torch.mm(mean_diff.T, mean_diff)
     quadratic_term = torch.sum(
-        -0.5 * omega * (mean_diff_outer + torch.diag(torch.sum(latent_var, axis=0)))
+        -0.5 * precision * (mean_diff_outer + torch.diag(torch.sum(latent_var, axis=0)))
     )
 
     inflation_term = torch.sum(
@@ -228,7 +224,7 @@ def elbo_zipln(
         - (1 - latent_prob) * _trunc_log(1 - latent_prob)
     )
 
-    logdet_term = -0.5 * n_samples * torch.logdet(covariance)
+    logdet_term = 0.5 * n_samples * torch.logdet(precision)
 
     elbo = (
         poisson_term

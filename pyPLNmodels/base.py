@@ -324,10 +324,15 @@ class BaseModel(
             raise ValueError(
                 "The ELBO contains non-finite values. Please raise an issue on Github."
             )
-        (-elbo).backward()
+
+        loss = self._compute_loss(elbo)
+        loss.backward()
         self.optim.step()
         self._project_parameters()
         return elbo.detach().cpu()
+
+    def _compute_loss(self, elbo):
+        return -elbo
 
     def _initialize_timing(self):
         self._print_beginning_message()

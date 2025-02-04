@@ -59,7 +59,9 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
     )
 
 
-def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=None):
+def _add_doc(
+    parent_class, *, params=None, example=None, returns=None, see_also=None, raises=None
+):  # pylint: disable=too-many-arguments
     def wrapper(fun):
         # if isinstance(fun, classmethod):
         #     fun = fun.__func__
@@ -82,6 +84,10 @@ def _add_doc(parent_class, *, params=None, example=None, returns=None, see_also=
             doc += "\n\nExamples"
             doc += "\n--------"
             doc += textwrap.dedent(example)
+        if raises is not None:
+            doc += "\n\nRaises"
+            doc += "\n--------"
+            doc += textwrap.dedent(raises)
         fun.__doc__ = doc
         return fun
 

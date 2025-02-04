@@ -67,3 +67,19 @@ def _components_from_covariance(covariance, rank):
     eigvalues, eigvectors = torch.linalg.eigh(covariance)
     components = eigvectors[:, -rank:] @ torch.diag(torch.sqrt(eigvalues[-rank:]))
     return components
+
+
+def _random_zero_off_diagonal(matrix, proba):
+    dim = matrix.shape[0]
+    mask = torch.ones(dim, dim, dtype=torch.bool)
+    mask.fill_diagonal_(0)
+
+    # Generate a random upper triangular matrix
+    random_matrix = torch.triu(torch.rand(dim, dim), diagonal=1)
+    # Mirror the upper triangular part to the lower triangular part to make it symmetric
+    random_matrix = random_matrix + random_matrix.T
+
+    zero_mask = (random_matrix < proba) & mask
+
+    matrix[zero_mask] = 0
+    return matrix

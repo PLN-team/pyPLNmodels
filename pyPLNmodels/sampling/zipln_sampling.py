@@ -13,8 +13,20 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class ZIPlnSampler(PlnSampler):
     """Sampler for Zero-Inflated Poisson Log-Normal model.
-    The parameters of the model are generated
-    randomly but have a specific structure.
+    The parameters of the model are generated randomly but have a specific structure.
+
+
+    Examples
+    --------
+    >>> from pyPLNmodels import ZIPlnSampler, ZIPln
+    >>> sampler = ZIPlnSampler()
+    >>> endog = sampler.sample()
+    >>> zi = ZIPln(endog, exog = sampler.exog, exog_inflation = sampler.exog_inflation, add)
+    >>> zi.fit()
+    >>> estimated_cov = zi.covariance
+    >>> true_covariance = sampler.covariance
+    >>> latent_probabilities = zi.latent_prob
+    >>> true_latent_probabilites = sampler.bernoulli
     """
 
     bernoulli: torch.Tensor
