@@ -71,11 +71,11 @@ def _components_from_covariance(covariance, rank):
 
 def _random_zero_off_diagonal(matrix, proba):
     dim = matrix.shape[0]
-    mask = torch.ones(dim, dim, dtype=torch.bool)
+    mask = torch.ones(dim, dim, dtype=torch.bool, device=DEVICE)
     mask.fill_diagonal_(0)
 
     # Generate a random upper triangular matrix
-    random_matrix = torch.triu(torch.rand(dim, dim), diagonal=1)
+    random_matrix = torch.triu(torch.rand(dim, dim).to(DEVICE), diagonal=1)
     # Mirror the upper triangular part to the lower triangular part to make it symmetric
     random_matrix = random_matrix + random_matrix.T
 

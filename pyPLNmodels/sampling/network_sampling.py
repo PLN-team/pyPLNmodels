@@ -11,6 +11,8 @@ from ._utils import (
     _get_offsets,
 )
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class PlnNetworkSampler(PlnSampler):
     """Sampling a Pln model with precision matrix containing lots of zeros.
@@ -60,7 +62,7 @@ class PlnNetworkSampler(PlnSampler):
         covariance = _get_covariance(dim)
         omega = torch.inverse(covariance)
         omega += 0.3
-        omega += 2 * torch.eye(dim)
+        omega += 2 * torch.eye(dim, device=DEVICE)
         omega = _random_zero_off_diagonal(omega, percentage_zeros)
         covariance = torch.inverse(omega)
 
