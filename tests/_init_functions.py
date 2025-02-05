@@ -20,6 +20,10 @@ def _Pln_init(init_method, **kwargs):
     raise ValueError('init_method must be "explicit" or "formula"')
 
 
+def _PlnDiag_init(init_method, **kwargs):
+    return _Pln_init(init_method, **kwargs)
+
+
 def _PlnPCA_init(init_method, **kwargs):
     rank = kwargs.get("rank", None)
     if init_method == "explicit":
