@@ -135,10 +135,10 @@ class PlnNetwork(Pln):
     @property
     def _precision(self):
         covariance = _closed_formula_covariance(
-            self._marginal_mean,
-            self._latent_mean,
-            self._latent_sqrt_variance,
-            self.n_samples,
+            marginal_mean=self._marginal_mean,
+            latent_mean=self._latent_mean,
+            latent_sqrt_variance=self._latent_sqrt_variance,
+            n_samples=self.n_samples,
         )
         _, precision = GL(covariance.detach().numpy(), alpha=self.penalty)
         precision = torch.from_numpy(precision)
