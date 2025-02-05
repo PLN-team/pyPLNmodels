@@ -41,7 +41,6 @@ class PlnDiagSampler(_BasePlnSampler):
         covariance = torch.diag(
             torch.diag(_get_covariance(dim) + torch.randn(dim) ** 2 / 4)
         )
-        print("covariance", covariance)
         super().__init__(
             n_samples=n_samples,
             exog=exog,
