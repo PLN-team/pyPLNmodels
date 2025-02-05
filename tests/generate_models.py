@@ -2,14 +2,16 @@ from pyPLNmodels import (
     PlnSampler,
     PlnPCASampler,
     ZIPlnSampler,
+    PlnDiagSampler,
     Pln,
     PlnPCA,
     ZIPln,
+    PlnDiag,
 )
 
 
 from tests.utils import _get_formula_from_kw, _generate_combinations
-from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init
+from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init, _PlnDiag_init
 
 NB_COVS = [0, 2]
 NB_COVS_INFLATION = [1, 2]
@@ -22,9 +24,19 @@ RANKS = [3, 5]
 # RANKS = [3]
 
 
-DICT_SAMPLERS = {"Pln": PlnSampler, "PlnPCA": PlnPCASampler, "ZIPln": ZIPlnSampler}
-DICT_MODELS = {"Pln": Pln, "PlnPCA": PlnPCA, "ZIPln": ZIPln}
-DICT_INIT_FUNCTIONS = {"Pln": _Pln_init, "PlnPCA": _PlnPCA_init, "ZIPln": _ZIPln_init}
+DICT_SAMPLERS = {
+    "Pln": PlnSampler,
+    "PlnPCA": PlnPCASampler,
+    "ZIPln": ZIPlnSampler,
+    "PlnDiag": PlnDiagSampler,
+}
+DICT_MODELS = {"Pln": Pln, "PlnPCA": PlnPCA, "ZIPln": ZIPln, "PlnDiag": PlnDiag}
+DICT_INIT_FUNCTIONS = {
+    "Pln": _Pln_init,
+    "PlnPCA": _PlnPCA_init,
+    "ZIPln": _ZIPln_init,
+    "PlnDiag": _PlnDiag_init,
+}
 DICT_KWARGS = {
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
     "PlnPCA": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS, "rank": RANKS},
@@ -33,6 +45,7 @@ DICT_KWARGS = {
         "nb_cov": NB_COVS,
         "nb_cov_inflation": NB_COVS_INFLATION,
     },
+    "PlnDiag": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
 }
 for key, values in DICT_KWARGS.items():
     DICT_KWARGS[key] = _generate_combinations(values)
