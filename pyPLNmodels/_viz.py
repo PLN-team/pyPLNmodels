@@ -237,11 +237,18 @@ class ModelViz:
         """
         covariance = self._params["covariance"]
         dim = covariance.shape[0]
+        is_diagonal = len(covariance.shape) == 1
         if dim > 400:
-            cov_to_show = covariance[:400, :400]
+            if is_diagonal is True:
+                cov_to_show = torch.diag(covariance[:400])  # Diagonal covariance
+            else:
+                cov_to_show = covariance[:400, :400]
             warnings.warn("Only displaying the first 400 variables.")
         else:
-            cov_to_show = covariance
+            if is_diagonal is True:
+                cov_to_show = torch.diag(covariance)
+            else:
+                cov_to_show = covariance
         sns.heatmap(cov_to_show, ax=ax)
         ax.set_title("Covariance matrix")
 
