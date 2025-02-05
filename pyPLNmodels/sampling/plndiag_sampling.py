@@ -4,6 +4,8 @@ from pyPLNmodels._utils import _add_doc
 from .pln_sampling import _BasePlnSampler
 from ._utils import _get_exog, _get_coef, _get_covariance, _get_offsets
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class PlnDiagSampler(_BasePlnSampler):
     """Sampler for Poisson Log-Normal model with diagonal covariance.
@@ -38,9 +40,7 @@ class PlnDiagSampler(_BasePlnSampler):
         coef = _get_coef(
             nb_cov=nb_cov, dim=dim, mean=marginal_mean_mean, add_const=add_const
         )
-        covariance = torch.diag(
-            torch.diag(_get_covariance(dim) + torch.randn(dim) ** 2 / 4)
-        )
+        covariance = torch.diag(_get_covariance(dim)) + torch.randn(dim) ** 2 / 4
         super().__init__(
             n_samples=n_samples,
             exog=exog,
@@ -53,3 +53,10 @@ class PlnDiagSampler(_BasePlnSampler):
     @property
     def _dim_latent(self):
         return self.dim
+
+    def _get_gaussians(self):
+        centered_unit_gaussian = torch.randn(self.n_samples, self._dim_latent).to(
+            DEVICE
+        )
+        mean = self._marginal_mean + self._offsets
+        return centered_unit_gaussian * torch.sqrt(self.covariance) + mean
