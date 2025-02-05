@@ -25,7 +25,7 @@ def _closed_formula_coef(exog: torch.Tensor, latent_mean: torch.Tensor) -> torch
 def _closed_formula_covariance(
     marginal_mean: torch.Tensor,
     latent_mean: torch.Tensor,
-    latent_sqrt_var: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
     n_samples: int,
 ) -> torch.Tensor:
     """
@@ -38,7 +38,7 @@ def _closed_formula_covariance(
         `X` is the `exog` (or covariates) and `B` is the `coef` (or regression parameter).
     latent_mean : torch.Tensor
         Variational parameter with size (`n_samples`, `dim`).
-    latent_sqrt_var : torch.Tensor
+    latent_sqrt_variance : torch.Tensor
         Variational parameter with size (`n_samples`, `dim`).
     n_samples : int
         Number of samples.
@@ -50,6 +50,19 @@ def _closed_formula_covariance(
     """
     residuals = latent_mean - marginal_mean
     closed = residuals.T @ residuals + torch.diag(
-        torch.sum(torch.square(latent_sqrt_var), dim=0)
+        torch.sum(torch.square(latent_sqrt_variance), dim=0)
+    )
+    return closed / n_samples
+
+
+def _closed_formula_diag_covariance(
+    marginal_mean: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
+    n_samples: int,
+):
+    residuals = latent_mean - marginal_mean
+    closed = torch.sum(residuals**2, dim=0) + torch.sum(
+        torch.square(latent_sqrt_variance), dim=0
     )
     return closed / n_samples
