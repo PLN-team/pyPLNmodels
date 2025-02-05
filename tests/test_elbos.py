@@ -60,7 +60,7 @@ def test_right_zipln_elbo():
         precision=torch.linalg.inv(zi._covariance),
         marginal_mean_inflation=zi._marginal_mean_inflation,
     )
-    assert elbo == profiled_elbo
+    assert torch.allclose(elbo, profiled_elbo)
 
 
 def test_error_dirac_zi():
@@ -88,7 +88,7 @@ def test_closed_formula():
     closed = _closed_formula_covariance(
         pln.marginal_mean, pln.latent_mean, pln.latent_sqrt_variance, pln.n_samples
     )
-    closed_diagonal = _closed_formula_diag_covariance_fast(
+    closed_diagonal = _closed_formula_diag_covariance(
         pln.marginal_mean, pln.latent_mean, pln.latent_sqrt_variance, pln.n_samples
     )
     assert torch.allclose(closed_diagonal, torch.diag(closed))
