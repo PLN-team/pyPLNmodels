@@ -1,5 +1,7 @@
 from pyPLNmodels import Pln, PlnPCA, ZIPln
 
+PENALTY = 1
+
 
 def _Pln_init(init_method, **kwargs):
     if init_method == "explicit":
@@ -21,6 +23,11 @@ def _Pln_init(init_method, **kwargs):
 
 
 def _PlnDiag_init(init_method, **kwargs):
+    return _Pln_init(init_method, **kwargs)
+
+
+def _PlnNetwork_init(init_method, **kwargs):
+    kwargs["penalty"] = PENALTY
     return _Pln_init(init_method, **kwargs)
 
 

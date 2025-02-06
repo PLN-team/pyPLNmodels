@@ -3,15 +3,23 @@ from pyPLNmodels import (
     PlnPCASampler,
     ZIPlnSampler,
     PlnDiagSampler,
+    PlnNetworkSampler,
     Pln,
     PlnPCA,
     ZIPln,
     PlnDiag,
+    PlnNetwork,
 )
 
 
 from tests.utils import _get_formula_from_kw, _generate_combinations
-from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init, _PlnDiag_init
+from tests._init_functions import (
+    _Pln_init,
+    _PlnPCA_init,
+    _ZIPln_init,
+    _PlnDiag_init,
+    _PlnNetwork_init,
+)
 
 NB_COVS = [0, 2]
 NB_COVS_INFLATION = [1, 2]
@@ -29,13 +37,21 @@ DICT_SAMPLERS = {
     "PlnPCA": PlnPCASampler,
     "ZIPln": ZIPlnSampler,
     "PlnDiag": PlnDiagSampler,
+    "PlnNetwork": PlnNetworkSampler,
 }
-DICT_MODELS = {"Pln": Pln, "PlnPCA": PlnPCA, "ZIPln": ZIPln, "PlnDiag": PlnDiag}
+DICT_MODELS = {
+    "Pln": Pln,
+    "PlnPCA": PlnPCA,
+    "ZIPln": ZIPln,
+    "PlnDiag": PlnDiag,
+    "PlnNetwork": PlnNetwork,
+}
 DICT_INIT_FUNCTIONS = {
     "Pln": _Pln_init,
     "PlnPCA": _PlnPCA_init,
     "ZIPln": _ZIPln_init,
     "PlnDiag": _PlnDiag_init,
+    "PlnNetwork": _PlnNetwork_init,
 }
 DICT_KWARGS = {
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
