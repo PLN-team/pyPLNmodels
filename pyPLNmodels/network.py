@@ -332,7 +332,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty=1)
         >>> net.fit()
         >>> net.biplot(variables_names=["MALAT1", "ACTB"])
         >>> net.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
@@ -358,7 +358,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 1)
         >>> net.fit()
         >>> net.pca_pairplot(n_components=5)
         >>> net.pca_pairplot(n_components=5, colors=data["labels"])
@@ -376,7 +376,7 @@ class PlnNetwork(BaseModel):
         example="""
               >>> from pyPLNmodels import PlnNetwork, load_scrna
               >>> data = load_scrna()
-              >>> net = PlnNetwork.from_formula("endog ~ 1", data=data)
+              >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 1)
               >>> net.fit()
               >>> transformed_endog = net.transform()
               >>> print(transformed_endog.shape)
@@ -399,7 +399,7 @@ class PlnNetwork(BaseModel):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnNetwork, load_scrna
             >>> data = load_scrna()
-            >>> net = PlnNetwork(data["endog"])
+            >>> net = PlnNetwork(data["endog"], penalty=1)
             >>> net.fit()
             >>> net.plot_expected_vs_true()
             >>> net.plot_expected_vs_true(colors=data["labels"])
@@ -414,7 +414,7 @@ class PlnNetwork(BaseModel):
             >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnNetwork, load_scrna
             >>> data = load_scrna()
-            >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data)
+            >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data, penalty=1)
             >>> net.fit()
             >>> net.viz()
             >>> net.viz(colors=data["labels"])
