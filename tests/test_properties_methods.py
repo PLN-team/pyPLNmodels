@@ -6,10 +6,10 @@ from .conftest import dict_fitted_models
 from tests.generate_models import get_fitted_model
 
 
-def test_properties_method():
+def test_attributes_method():
     for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["formula"]:
-            attributes = model._useful_properties_list
+            attributes = model._useful_attributes_list
             for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)
@@ -27,7 +27,7 @@ def test_properties_method():
                 if callable(method_to_call):
                     result = method_to_call()
         for model in dict_fitted_models[model_name]["explicit"]:
-            attributes = model._useful_properties_list
+            attributes = model._useful_attributes_list
             for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)
@@ -51,7 +51,7 @@ def test_nb_cov_0():
     assert pln.nb_cov == 0
 
 
-def test_other_properties():
+def test_other_attributes():
     for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["formula"]:
             exog = _get_exog(

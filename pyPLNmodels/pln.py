@@ -7,7 +7,12 @@ from scipy.stats import norm, t
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
 from pyPLNmodels.elbos import profiled_elbo_pln
-from pyPLNmodels._utils import _add_doc, _shouldbefitted, _none_if_no_exog
+from pyPLNmodels._utils import (
+    _add_doc,
+    _shouldbefitted,
+    _none_if_no_exog,
+    _two_dim_covariances,
+)
 from pyPLNmodels.sandwich import SandwichPln
 
 
@@ -187,11 +192,7 @@ class Pln(BaseModel):
         )
 
     def _get_two_dim_covariances(self, sklearn_components):
-        components_var = np.expand_dims(
-            self.latent_sqrt_variance**2, 1
-        ) * np.expand_dims(sklearn_components, 0)
-        covariances = np.matmul(components_var, np.expand_dims(sklearn_components.T, 0))
-        return covariances
+        _two_dim_covariances(sklearn_components, self.latent_sqrt_variance)
 
     @property
     @_add_doc(
@@ -235,7 +236,7 @@ class Pln(BaseModel):
         return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2
 
     @property
-    def _additional_properties_list(self):
+    def _additional_attributes_list(self):
         return []
 
     @property

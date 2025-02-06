@@ -11,6 +11,7 @@ from matplotlib.patches import Circle
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+import networkx as nx
 
 from pyPLNmodels._utils import calculate_correlation
 
@@ -465,7 +466,7 @@ def _plot_identity_line(ax, max_y):
     ax.plot(y, y, c="red")
 
 
-def _set_axis_properties(ax, reconstruction_error, max_y):
+def _set_axis_attributes(ax, reconstruction_error, max_y):
     ax.set_yscale("log")
     ax.set_xscale("log")
     ax.set_title(
@@ -514,7 +515,7 @@ def _plot_expected_vs_true(
 
     max_y = int(torch.max(endog_ravel).item())
     _plot_identity_line(ax, max_y)
-    _set_axis_properties(ax, reconstruction_error, max_y)
+    _set_axis_attributes(ax, reconstruction_error, max_y)
 
     if to_show:
         plt.show()
@@ -548,3 +549,40 @@ def _show_information_criterion(*, bic, aic, loglikes):
 
     plt.legend()
     plt.show()
+
+
+def _viz_network(precision, node_labels=None, ax=None, seed=0):
+    if ax is None:
+        ax = plt.gca()
+        to_show = True
+    else:
+        to_show = False
+    G = _build_graph(precision, node_labels)
+    pos = nx.spring_layout(G, seed=seed)
+    edges = G.edges(data=True)
+    nx.draw_networkx_nodes(G, pos, node_size=500, node_color="lightblue")
+    nx.draw_networkx_edges(G, pos, width=[d["weight"] * 2 for (u, v, d) in edges])
+    nx.draw_networkx_labels(
+        G,
+        pos,
+        labels=nx.get_node_attributes(G, "label"),
+        font_size=12,
+        font_color="black",
+    )
+    plt.title("Graph Representation of Precision Matrix")
+    if to_show:
+        plt.show()
+
+
+def _build_graph(precision, node_labels=None):
+    G = nx.Graph()
+    nb_variables = precision.shape[0]
+    G.add_nodes_from(range(nb_variables))
+    if node_labels is not None:
+        for i, label in enumerate(node_labels):
+            G.nodes[i]["label"] = label
+    for i in range(nb_variables):
+        for j in range(i + 1, nb_variables):
+            if precision[i, j] != 0:
+                G.add_edge(i, j, weight=precision[i, j])
+    return G

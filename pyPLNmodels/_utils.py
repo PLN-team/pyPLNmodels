@@ -203,3 +203,11 @@ def _none_if_no_exog(func):
         return func(self, *args, **kwargs)
 
     return _func
+
+
+def _two_dim_covariances(components, latent_sqrt_variance):
+    components_var = np.expand_dims(latent_sqrt_variance**2, 1) * np.expand_dims(
+        components, 0
+    )
+    covariances = np.matmul(components_var, np.expand_dims(components.T, 0))
+    return covariances

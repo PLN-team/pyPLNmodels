@@ -1,3 +1,4 @@
+# pylint:disable = too-many-lines
 from abc import ABC, abstractmethod
 from typing import Union, Optional
 import warnings
@@ -105,6 +106,7 @@ class BaseModel(
         self._fitted = False
 
     @classmethod
+    @abstractmethod
     def from_formula(
         cls,
         formula: str,
@@ -591,6 +593,22 @@ class BaseModel(
         return self._covariance.detach().cpu()
 
     @property
+    def precision(self):
+        """
+        Property representing the precision of the model, that is the inverse covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            The precision matrix of size (dim, dim).
+        """
+        return self._precision.detach().cpu()
+
+    @property
+    def _precision(self):
+        return torch.linalg.inv(self._covariance)
+
+    @property
     def _marginal_mean(self):
         if self._exog is None:
             return 0
@@ -754,8 +772,8 @@ class BaseModel(
         """
 
         delimiter = "=" * 70
-        add_properties = self._additional_properties_list
-        add_properties = ["None"] if len(add_properties) == 0 else add_properties
+        add_attributes = self._additional_attributes_list
+        add_attributes = ["None"] if len(add_attributes) == 0 else add_attributes
         add_methods = self._additional_methods_list
         add_methods = ["None"] if len(add_methods) == 0 else add_methods
         parts = [
@@ -763,12 +781,12 @@ class BaseModel(
             delimiter,
             _nice_string_of_dict(self._dict_for_printing),
             delimiter,
-            "* Useful properties/attributes",
-            f"    {' '.join(self._useful_properties_list)}",
+            "* Useful attributes",
+            f"    {' '.join(self._useful_attributes_list)}",
             "* Useful methods",
             f"    {' '.join(self._useful_methods_list)}",
-            f"* Additional properties/properties for {self._name} are:",
-            f"    {' '.join(add_properties)}",
+            f"* Additional attributes for {self._name} are:",
+            f"    {' '.join(add_attributes)}",
             f"* Additional methods for {self._name} are:",
             f"    {' '.join(add_methods)}",
         ]
@@ -793,9 +811,9 @@ class BaseModel(
         ]
 
     @property
-    def _useful_properties_list(self):
+    def _useful_attributes_list(self):
         """
-        Useful properties of the model.
+        Useful attributes of the model.
         """
         return [
             ".latent_variables",
@@ -807,8 +825,8 @@ class BaseModel(
 
     @property
     @abstractmethod
-    def _additional_properties_list(self):
-        """The properties that are specific to this model."""
+    def _additional_attributes_list(self):
+        """The attributes that are specific to this model."""
 
     @property
     @abstractmethod
