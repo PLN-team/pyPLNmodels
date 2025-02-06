@@ -53,6 +53,7 @@ dependencies = [
 "scikit-learn",
 "patsy",
 "tqdm",
+"networkx",
 ]
 [project.optional-dependencies]
 tests = ["pytest"]

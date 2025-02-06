@@ -40,7 +40,9 @@ class PlnDiagSampler(_BasePlnSampler):
         coef = _get_coef(
             nb_cov=nb_cov, dim=dim, mean=marginal_mean_mean, add_const=add_const
         )
-        covariance = torch.diag(_get_covariance(dim)) + torch.randn(dim) ** 2 / 4
+        covariance = (
+            torch.diag(_get_covariance(dim)) + torch.randn(dim, device=DEVICE) ** 2 / 4
+        )
         super().__init__(
             n_samples=n_samples,
             exog=exog,
@@ -59,4 +61,4 @@ class PlnDiagSampler(_BasePlnSampler):
             DEVICE
         )
         mean = self._marginal_mean + self._offsets
-        return centered_unit_gaussian * torch.sqrt(self.covariance) + mean
+        return centered_unit_gaussian * torch.sqrt(self._params["covariance"]) + mean

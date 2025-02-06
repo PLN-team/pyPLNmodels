@@ -46,11 +46,12 @@ def load_scrna(
     max_samples = 400
     max_dim = 100
     n_samples, dim = _threshold_samples_and_dim(max_samples, max_dim, n_samples, dim)
-    endog = pd.read_csv(pkg_resources.resource_stream(__name__, "data/scRT/counts.csv"))
+    endog = pd.read_csv(
+        pkg_resources.resource_stream(__name__, "data/scRT/counts.csv")
+    ).iloc[:n_samples, :dim]
     print(f"Returning scRNA dataset of size {endog.shape}")
     cell_type = pd.read_csv(
         pkg_resources.resource_stream(__name__, "data/scRT/labels.csv")
-    ).squeeze()
+    ).squeeze()[:n_samples]
     labels_1hot = pd.get_dummies(cell_type)
-
     return {"endog": endog, "labels": cell_type, "labels_1hot": labels_1hot}

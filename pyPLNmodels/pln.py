@@ -14,6 +14,7 @@ from pyPLNmodels._utils import (
     _two_dim_covariances,
 )
 from pyPLNmodels.sandwich import SandwichPln
+from pyPLNmodels._initialization import _init_latent_pln
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -134,10 +135,7 @@ class Pln(BaseModel):
         """The model parameters are profiled in the ELBO, no need to initialize them."""
 
     def _init_latent_parameters(self):
-        self._latent_mean = torch.log(self._endog + (self._endog == 0)).to(DEVICE)
-        self._latent_sqrt_variance = (
-            1 / 2 * torch.ones((self.n_samples, self.dim)).to(DEVICE)
-        )
+        self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(self._endog)
 
     @property
     def _description(self):
