@@ -145,3 +145,11 @@ def test_plot_correlation_circle_pandas():
     pca.fit()
     pca.show()
     pca.plot_correlation_circle(variables_names=["RPL14", "ACTB"])
+
+
+def test_viz_network():
+    for init_method in ["explicit", "formula"]:
+        for model in dict_fitted_models["PlnNetwork"][init_method]:
+            model.viz_network()
+            _, ax = plt.subplots()
+            model.viz_network(ax=ax)
