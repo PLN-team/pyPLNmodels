@@ -11,6 +11,7 @@ from ._utils import (
     _get_offsets,
 )
 
+
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -49,7 +50,7 @@ class PlnNetworkSampler(PlnSampler):
         add_const: bool = True,
         use_offsets: bool = False,
         marginal_mean_mean: int = 2,
-        percentage_zeros: float = 0.5,
+        percentage_zeros: float = 0.3,
     ):  # pylint: disable=too-many-arguments
         if percentage_zeros > 1 or percentage_zeros < 0:
             msg = f"percentage_zeros should be a probability (0<=p<=1), got {percentage_zeros}."
@@ -59,13 +60,14 @@ class PlnNetworkSampler(PlnSampler):
         coef = _get_coef(
             nb_cov=nb_cov, dim=dim, mean=marginal_mean_mean, add_const=add_const
         )
-        covariance = _get_covariance(dim)
+        covariance = 3 * _get_covariance(dim)
         omega = torch.inverse(covariance)
-        omega += 0.3
+        noise = (torch.rand(dim, dim) - 0.5) * 0.3
+        noise = (noise + noise.T) / 2
         omega += 2 * torch.eye(dim, device=DEVICE)
+        omega += noise.to(DEVICE)
         omega = _random_zero_off_diagonal(omega, percentage_zeros)
         covariance = torch.inverse(omega)
-
         super(PlnSampler, self).__init__(
             n_samples=n_samples,
             exog=exog,

@@ -549,14 +549,14 @@ class PlnPCAcollection:
         return ".show(), .best_model(), .keys(), .items(), .values()"
 
     @property
-    def _useful_properties_string(self) -> str:
+    def _useful_attributes_string(self) -> str:
         """
-        Property representing the useful properties.
+        Property representing the useful attributes.
 
         Returns
         -------
         str
-            The string representation of the useful properties.
+            The string representation of the useful attributes.
         """
         return ".BIC, .AIC, .loglikes"
 
@@ -601,8 +601,8 @@ class PlnPCAcollection:
         # Footer
         to_print += (
             f"{delimiter}"
-            f"* Useful properties\n"
-            f"    {self._useful_properties_string}\n"
+            f"* Useful attributes\n"
+            f"    {self._useful_attributes_string}\n"
             f"* Useful methods\n"
             f"    {self._useful_methods_strings}"
             f"{delimiter}"

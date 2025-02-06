@@ -441,7 +441,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         )
 
     @property
-    def _additional_properties_list(self):
+    def _additional_attributes_list(self):
         return [".latent_prob"]
 
     @property
