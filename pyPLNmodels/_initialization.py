@@ -360,9 +360,16 @@ class ZIP:
     @property
     def coef(self):
         """Coefficient of the mean for the ZI Poisson regression model."""
-        return self._coef.cpu()
+        return self._coef
 
     @property
     def coef_inflation(self):
         """Coefficient for the inflation part of the ZI Poisson regression model."""
-        return self._coef_inflation.cpu()
+        return self._coef_inflation
+
+
+def _init_latent_pln(endog):
+    n_samples, dim = endog.shape
+    latent_mean = torch.log(endog + (endog == 0)).to(DEVICE)
+    latent_sqrt_variance = 1 / 2 * torch.ones((n_samples, dim)).to(DEVICE)
+    return latent_mean, latent_sqrt_variance

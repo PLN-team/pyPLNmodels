@@ -190,6 +190,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             exog_inflation=self._exog_inflation,
             offsets=self._offsets,
         )
+        print("coef inflation ", self._coef_inflation.device)
         # coef and covariance are not initialized as defined by closed forms.
 
     @_add_doc(
@@ -236,6 +237,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
     @property
     def _marginal_mean_inflation(self):
+        print("exog inflation ", self._exog_inflation.device)
+        print("coef inflation ", self._coef_inflation.device)
         return self._exog_inflation @ self._coef_inflation
 
     @property

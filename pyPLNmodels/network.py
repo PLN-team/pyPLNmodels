@@ -9,7 +9,7 @@ from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.elbos import elbo_pln
 from pyPLNmodels._utils import _add_doc, _two_dim_covariances
 from pyPLNmodels._closed_forms import _closed_formula_coef
-from pyPLNmodels._initialization import _init_components_prec
+from pyPLNmodels._initialization import _init_components_prec, _init_latent_pln
 from pyPLNmodels._viz import _viz_network
 from pyPLNmodels._data_handler import _extract_data_from_formula
 
@@ -436,3 +436,17 @@ class PlnNetwork(BaseModel):
             show_cov=show_cov,
             remove_exog_effect=remove_exog_effect,
         )
+
+    @property
+    def _dict_for_printing(self):
+        orig_dict = super()._dict_for_printing
+        nb_non_zeros = self.dim * (self.dim - 1) / 2 - self.nb_zeros_precision
+        orig_dict["Nb edges"] = int(nb_non_zeros)
+        return orig_dict
+
+    @property
+    def _description(self):
+        return f"with penalty {self.penalty}"
+
+    def _init_latent_parameters(self):
+        self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(self._endog)

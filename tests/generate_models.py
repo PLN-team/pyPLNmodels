@@ -62,6 +62,7 @@ DICT_KWARGS = {
         "nb_cov_inflation": NB_COVS_INFLATION,
     },
     "PlnDiag": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
+    "PlnNetwork": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
 }
 for key, values in DICT_KWARGS.items():
     DICT_KWARGS[key] = _generate_combinations(values)
