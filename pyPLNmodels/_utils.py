@@ -67,8 +67,6 @@ def _add_doc(
         #     fun = fun.__func__
 
         doc = getattr(parent_class, fun.__name__).__doc__
-        # if doc is None:
-        #     doc = ""
         doc = textwrap.dedent(doc).rstrip(" \n\r")
         if params is not None:
             doc += textwrap.dedent(params.rstrip(" \n\r"))
