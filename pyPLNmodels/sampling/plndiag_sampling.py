@@ -72,7 +72,8 @@ class PlnDiagSampler(_BasePlnSampler):
     def _dim_latent(self):
         return self.dim
 
-    def _get_gaussians(self):
+    def _get_gaussians(self, seed):
+        torch.manual_seed(seed)
         centered_unit_gaussian = torch.randn(self.n_samples, self._dim_latent).to(
             DEVICE
         )
