@@ -13,7 +13,7 @@ def _format_dict_of_array(dict_array):
     return dict_array
 
 
-def _get_exog(*, n_samples, nb_cov, will_add_const, seed=0):
+def _get_exog(*, n_samples, nb_cov, will_add_const, seed):
     if nb_cov == 0:
         return None
     torch.manual_seed(seed)
@@ -26,7 +26,7 @@ def _get_exog(*, n_samples, nb_cov, will_add_const, seed=0):
     return exog
 
 
-def _get_coef(nb_cov, dim, mean, add_const, seed=0):
+def _get_coef(nb_cov, dim, mean, add_const, seed):
     if add_const is True:
         nb_cov += 1
     if nb_cov == 0:
@@ -35,7 +35,7 @@ def _get_coef(nb_cov, dim, mean, add_const, seed=0):
     return torch.randn(nb_cov, dim, device=DEVICE) + mean
 
 
-def _get_covariance(dim, seed=0):
+def _get_covariance(dim, seed):
     torch.manual_seed(seed)
     parameter_toeplitz = 0.1 * torch.rand(1).to(DEVICE) + 0.8
     to_toeplitz = parameter_toeplitz ** (torch.arange(dim, device=DEVICE))
@@ -44,8 +44,14 @@ def _get_covariance(dim, seed=0):
     ).to(DEVICE)
 
 
-def _get_offsets(*, n_samples, dim, use_offsets):
-    if use_offsets is False:
+def _get_diag_covariance(dim, seed):
+    torch.manual_seed(seed)
+    return torch.ones(dim) / 7 + torch.randn(dim, device=DEVICE) ** 2 / 4
+
+
+def _get_offsets(*, n_samples, dim, add_offsets, seed):
+    torch.manual_seed(seed)
+    if add_offsets is False:
         return torch.zeros(n_samples, dim).to(DEVICE)
     return torch.rand(n_samples, dim).to(DEVICE)
 
@@ -83,3 +89,14 @@ def _random_zero_off_diagonal(matrix, proba):
 
     matrix[zero_mask] = 0
     return matrix
+
+
+def _get_sparse_precision(covariance, percentage_zeros):
+    dim = covariance.shape[0]
+    precision = torch.inverse(covariance)
+    noise = (torch.rand(dim, dim) - 0.5) * 0.3
+    noise = (noise + noise.T) / 2
+    precision += 2 * torch.eye(dim, device=DEVICE)
+    precision += noise.to(DEVICE)
+    precision = _random_zero_off_diagonal(precision, percentage_zeros)
+    return precision

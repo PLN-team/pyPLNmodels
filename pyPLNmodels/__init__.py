@@ -15,6 +15,7 @@ from .sampling import (
     ZIPlnSampler,
     PlnNetworkSampler,
     PlnDiagSampler,
+    PlnMixtureSampler,
 )
 
 __version__ = importlib.metadata.version("pyplnmodels")

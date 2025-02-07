@@ -61,7 +61,7 @@ class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
 
         Returns
         -------
-        np.ndarray
+        torch.Tensor
             Generated samples.
         """
         prev_state = torch.random.get_rng_state()
@@ -115,3 +115,8 @@ class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
         if coef is None:
             return None
         return coef.cpu()
+
+    @property
+    def dict_model_true_parameters(self):
+        """Alias for the parameters."""
+        return self.params

@@ -21,7 +21,7 @@ def test_attributes():
 
 
 def test_offsets():
-    sampler = PlnSampler(use_offsets=True)
+    sampler = PlnSampler(add_offsets=True)
 
 
 def test_pca_sampler():
