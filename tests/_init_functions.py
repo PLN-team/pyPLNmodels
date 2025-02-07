@@ -1,34 +1,58 @@
-from pyPLNmodels import Pln, PlnPCA, ZIPln
+from pyPLNmodels import Pln, PlnPCA, ZIPln, PlnDiag, PlnNetwork
 
 PENALTY = 1
 
 
+def _basic_init(model):
+    def _init_function(init_method, **kwargs):
+        if init_method == "explicit":
+            endog = kwargs.get("endog", None)
+            exog = kwargs.get("exog", None)
+            offsets = kwargs.get("offsets", None)
+            add_const = kwargs.get("add_const", False)
+            return model(
+                endog=endog,
+                exog=exog,
+                offsets=offsets,
+                add_const=add_const,
+            )
+        if init_method == "formula":
+            data = kwargs.get("data", None)
+            formula = kwargs.get("formula", None)
+            return model.from_formula(formula, data=data)
+        raise ValueError('init_method must be "explicit" or "formula"')
+
+    return _init_function
+
+
 def _Pln_init(init_method, **kwargs):
+    _init = _basic_init(Pln)
+    return _init(init_method, **kwargs)
+
+
+def _PlnDiag_init(init_method, **kwargs):
+    _init = _basic_init(PlnDiag)
+    return _init(init_method, **kwargs)
+
+
+def _PlnNetwork_init(init_method, **kwargs):
     if init_method == "explicit":
         endog = kwargs.get("endog", None)
         exog = kwargs.get("exog", None)
         offsets = kwargs.get("offsets", None)
         add_const = kwargs.get("add_const", False)
-        return Pln(
+        return PlnNetwork(
             endog=endog,
             exog=exog,
             offsets=offsets,
             add_const=add_const,
+            penalty=PENALTY,
         )
     if init_method == "formula":
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
-        return Pln.from_formula(formula, data=data)
+        return PlnNetwork.from_formula(formula, data=data, penalty=PENALTY)
     raise ValueError('init_method must be "explicit" or "formula"')
-
-
-def _PlnDiag_init(init_method, **kwargs):
-    return _Pln_init(init_method, **kwargs)
-
-
-def _PlnNetwork_init(init_method, **kwargs):
-    kwargs["penalty"] = PENALTY
-    return _Pln_init(init_method, **kwargs)
 
 
 def _PlnPCA_init(init_method, **kwargs):
