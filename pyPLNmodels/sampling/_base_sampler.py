@@ -48,7 +48,10 @@ class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
             self._exog = self._exog_no_add
         self.add_const: bool = add_const
         self._offsets: torch.Tensor = _format_data(offsets)
-        self._params: Dict[str, torch.Tensor] = _format_dict_of_array(params)
+        self._params = self._format_parameters(params)
+
+    def _format_parameters(self, params):
+        return _format_dict_of_array(params)
 
     def sample(self, seed: int = 0) -> torch.Tensor:
         """
@@ -65,15 +68,14 @@ class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
             Generated samples.
         """
         prev_state = torch.random.get_rng_state()
-        torch.random.manual_seed(seed)
-        gaussians = self._get_gaussians()
+        gaussians = self._get_gaussians(seed=seed)
         self.latent_variables = gaussians
         endog = torch.poisson(torch.exp(gaussians))
         torch.random.set_rng_state(prev_state)
         return endog.cpu()
 
     @abstractmethod
-    def _get_gaussians(self) -> torch.Tensor:
+    def _get_gaussians(self, seed: int) -> torch.Tensor:
         """Method to generate the Gaussian samples."""
 
     @property
@@ -102,19 +104,6 @@ class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
     def offsets(self) -> torch.Tensor:
         """Offsets."""
         return self._offsets.cpu()
-
-    @property
-    def covariance(self) -> torch.Tensor:
-        """Covariance matrix."""
-        return self._params["covariance"].cpu()
-
-    @property
-    def coef(self) -> torch.Tensor:
-        """Coefficient matrix."""
-        coef = self._params.get("coef")
-        if coef is None:
-            return None
-        return coef.cpu()
 
     @property
     def dict_model_true_parameters(self):

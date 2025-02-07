@@ -45,7 +45,8 @@ class _BasePlnSampler(_BaseSampler, ABC):
             params=params,
         )
 
-    def _get_gaussians(self):
+    def _get_gaussians(self, seed):
+        torch.manual_seed(seed)
         centered_unit_gaussian = torch.randn(self.n_samples, self._dim_latent).to(
             DEVICE
         )
@@ -66,6 +67,19 @@ class _BasePlnSampler(_BaseSampler, ABC):
         if self._exog is None:
             return 0
         return torch.matmul(self._exog, self._params["coef"])
+
+    @property
+    def covariance(self) -> torch.Tensor:
+        """Covariance matrix."""
+        return self._params["covariance"].cpu()
+
+    @property
+    def coef(self) -> torch.Tensor:
+        """Coefficient matrix."""
+        coef = self._params.get("coef")
+        if coef is None:
+            return None
+        return coef.cpu()
 
 
 class PlnSampler(_BasePlnSampler):

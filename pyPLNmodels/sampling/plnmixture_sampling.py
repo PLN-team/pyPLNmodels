@@ -1,28 +1,38 @@
-from typing import Dict
-
 import torch
 
-from pyPLNmodels._data_handler import _add_constant_to_exog
+from pyPLNmodels._data_handler import _format_data
+from pyPLNmodels._utils import _add_doc
 
-from ._utils import _get_coef, _get_diag_covariance, _get_exog, _get_offsets
+from ._base_sampler import _BaseSampler
+from ._utils import (
+    _get_coef,
+    _get_diag_covariance,
+    _get_exog,
+    _get_offsets,
+    _format_dict_of_array,
+)
 
 
-class PlnMixtureSampler:  # pylint: disable=too-many-instance-attributes
+class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attributes
     """
-    Initalize the data and parameters of the model.
-
+    Initalize the data and parameters of the PLN Mixture model.
+    This is basically a Poisson model where the log intensity
+    is given by a GMM.
 
     Examples
     --------
     >>> from pyPLNmodels import PlnMixtureSampler, PlnMixture
-    >>> sampler = PlnMixtureSampler()
+    >>> import seaborn as sns
+    >>> import matplotlib.pyplot as plt
+    >>> sampler = PlnMixtureSampler(nb_cov = 0, dim = 2)
     >>> endog = sampler.sample()
+    >>> gmm = sampler.latent_variables
+    >>> fig, axes = plt.subplots(2)
+    >>> sns.scatterplot(x = gmm[:,0], y = gmm[:,1], hue = sampler.clusters.numpy(), ax = axes[0])
+    >>> sns.scatterplot(x = endog[:,0], y = endog[:,1], hue = sampler.clusters.numpy(), ax = axes[1])
     >>> mixture = PlnMixture(endog, exog = sampler.exog, add_const = False, n_cluster = sampler.n_cluster)#pylint:disable = line-too-long
     >>> mixture.fit()
-    >>> estimated_covs = pln.covariances
-    >>> true_covariances = sampler.covariances
-    >>> estimated_latent_var = pln.latent_variables
-    >>> true_latent_var = sampler.latent_variables
+    >>> mixture.viz()
     """
 
     latent_variables: torch.Tensor
@@ -30,19 +40,18 @@ class PlnMixtureSampler:  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
-        *,
-        n_cluster=3,
-        nb_cov=1,
-        dim=20,
         n_samples=100,
+        dim=20,
+        *,
+        nb_cov=1,
         add_const=True,
         add_offsets=False,
+        n_cluster=3,
         seed=0,
     ):  # pylint: disable=too-many-arguments
         if nb_cov == 0 and add_const is False:
             raise ValueError("No mean in the model.")
         self.n_cluster = n_cluster
-        self.dim = dim
         torch.manual_seed(seed)
         self.n_samples = n_samples
         cluster_probs = torch.rand(n_cluster) + dim / 2
@@ -58,44 +67,34 @@ class PlnMixtureSampler:  # pylint: disable=too-many-instance-attributes
                 seed=(seed + 1) * i,
             )
             covariances[i] = _get_diag_covariance(dim, seed=(seed + 1) * i)
-        self._exog_no_add = _get_exog(
+        exog_no_add = _get_exog(
             n_samples=n_samples, nb_cov=nb_cov, will_add_const=add_const, seed=seed
         )
-        self._offsets = _get_offsets(
+        offsets = _get_offsets(
             n_samples=n_samples, dim=dim, add_offsets=add_offsets, seed=seed
         )
-        if add_const is True:
-            self._exog = _add_constant_to_exog(self._exog_no_add, n_samples)
-        else:
-            self._exog = self._exog_no_add
-        self._params = {}
-        self._params["covariances"] = covariances
-        self._params["coefs"] = coefs
-        self._params["cluster_probs"] = cluster_probs
+        params = {}
+        params["covariances"] = covariances
+        params["coefs"] = coefs
+        params["cluster_probs"] = cluster_probs
+        super().__init__(
+            n_samples=n_samples,
+            dim=dim,
+            exog=exog_no_add,
+            add_const=add_const,
+            offsets=offsets,
+            params=params,
+        )
 
-    @property
-    def params(self) -> Dict[str, torch.Tensor]:
-        """Method for the parameters of the model."""
-        return {key: param.cpu() for key, param in self._params.items()}
-
-    @property
-    def exog(self) -> torch.Tensor:
-        """Exogenous variables (i.e. covariates)."""
-        if self._exog is None:
-            return None
-        return self._exog.cpu()
-
-    @property
-    def exog_no_add(self) -> torch.Tensor:
-        """Exogenous variables (i.e. covariates)."""
-        if self._exog_no_add is None:
-            return None
-        return self._exog_no_add.cpu()
-
-    @property
-    def offsets(self) -> torch.Tensor:
-        """Offsets."""
-        return self._offsets.cpu()
+    def _format_parameters(self, params):
+        covariances_params = _format_dict_of_array(params["covariances"])
+        coefs_params = _format_dict_of_array(params["coefs"])
+        cluster_probs_params = _format_data(params["cluster_probs"])
+        return {
+            "covariances": covariances_params,
+            "coefs": coefs_params,
+            "cluster_probs": cluster_probs_params,
+        }
 
     @property
     def covariances(self) -> torch.tensor:
@@ -114,28 +113,23 @@ class PlnMixtureSampler:  # pylint: disable=too-many-instance-attributes
         """The cluster probabilites of the model. Returns a torch.Tensor."""
         return self._params.get("cluster_probs")
 
-    # @property
-    # def marginal_means(self):
+    @_add_doc(
+        _BaseSampler,
+        example="""
+        >>> from pyPLNmodels import PlnMixtureSampler
+        >>> sampler = PlnMixtureSampler()
+        >>> endog = sampler.sample()
+        """,
+    )
     def sample(self, seed: int = 0):
-        """
-        Generate samples from the mixture model.
+        return super().sample(seed=seed)
 
-        Parameters
-        ----------
-        seed : int, optional
-            Seed for random number generation, by default 0.
-
-        Returns
-        -------
-        torch.Tensor
-            Generated samples.
-        """
+    def _get_gaussians(self, seed):
         torch.manual_seed(seed)
         gaussians = torch.randn(self.n_samples, self.dim)
         self.clusters = torch.multinomial(
             self.cluster_probs, self.n_samples, replacement=True
         )
-        # gaussians += torch.matmul(self._exog, se)
         for cluster_number in range(self.n_cluster):
             indices = self.clusters == cluster_number
             gaussians[indices] *= self._params["covariances"][cluster_number]
@@ -143,6 +137,4 @@ class PlnMixtureSampler:  # pylint: disable=too-many-instance-attributes
                 self._exog[indices] @ self._params["coefs"][cluster_number]
             )
         gaussians += self._offsets
-        self.latent_variables = gaussians
-        endog = torch.poisson(torch.exp(gaussians)).int()
-        return endog.cpu()
+        return gaussians
