@@ -50,7 +50,7 @@ class PlnNetwork(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnNetwork, load_scrna
             >>> data = load_scrna()
-            >>> net = PlnNetwork.from_formula("endog ~ 1", data)
+            >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
             >>> net.fit()
             >>> print(net)
         """,
