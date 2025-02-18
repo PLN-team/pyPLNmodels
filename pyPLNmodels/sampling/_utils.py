@@ -35,6 +35,11 @@ def _get_coef(nb_cov, dim, mean, add_const, seed):
     return torch.randn(nb_cov, dim, device=DEVICE) + mean
 
 
+def _get_mean(dim, mean, seed):
+    torch.manual_seed(seed)
+    return torch.randn(dim, device=DEVICE) + mean
+
+
 def _get_covariance(dim, seed):
     torch.manual_seed(seed)
     parameter_toeplitz = 0.1 * torch.rand(1).to(DEVICE) + 0.8
@@ -46,7 +51,7 @@ def _get_covariance(dim, seed):
 
 def _get_diag_covariance(dim, seed):
     torch.manual_seed(seed)
-    return torch.ones(dim) / 7 + torch.randn(dim, device=DEVICE) ** 2 / 4
+    return torch.ones(dim) / 10 + torch.randn(dim, device=DEVICE) ** 2 / 5
 
 
 def _get_offsets(*, n_samples, dim, add_offsets, seed):

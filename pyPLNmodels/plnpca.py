@@ -52,7 +52,7 @@ class PlnPCA(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
-            >>> pca = PlnPCA.from_formula("endog ~ 1", data)
+            >>> pca = PlnPCA(data["endog"])
             >>> pca.fit()
             >>> print(pca)
         """,

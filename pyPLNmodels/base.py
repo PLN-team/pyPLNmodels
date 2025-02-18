@@ -329,6 +329,7 @@ class BaseModel(
 
         loss = self._compute_loss(elbo)
         loss.backward()
+        self._update_closed_forms()
         self.optim.step()
         self._project_parameters()
         return elbo.detach().cpu()
@@ -455,6 +456,9 @@ class BaseModel(
 
     def _project_parameters(self):
         """Project some parameters such as probabilities."""
+
+    def _update_closed_forms(self):
+        """Update some parameters."""
 
     def _track_mse(self):
         for name_param, param in self.dict_model_parameters.items():

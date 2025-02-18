@@ -229,7 +229,6 @@ def _check_full_rank_exog(exog: torch.Tensor, inflation: bool = False) -> None:
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
-        print("exog", exog)
         name_mat = "exog_inflation" if inflation else "exog"
         add_const_name = "add_const_inflation" if inflation else "add_const"
         msg = (

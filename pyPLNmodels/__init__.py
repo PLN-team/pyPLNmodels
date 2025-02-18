@@ -8,6 +8,7 @@ from .plnpcacollection import PlnPCAcollection
 from .zipln import ZIPln
 from .network import PlnNetwork
 from .plndiag import PlnDiag
+from .plnmixture import PlnMixture
 
 from .sampling import (
     PlnSampler,
@@ -27,6 +28,7 @@ __all__ = [
     "Pln",
     "PlnPCA",
     "PlnPCAcollection",
+    "PlnMixture",
     "PlnSampler",
     "PlnPCASampler",
     "ZIPlnSampler",
