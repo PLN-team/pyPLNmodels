@@ -76,6 +76,10 @@ class PlnDiag(Pln):
             n_samples=self.n_samples,
         )
 
+    @property
+    def _precision(self):
+        return 1 / self._covariance
+
     def compute_elbo(self):
         return profiled_elbo_pln_diag(
             endog=self._endog,

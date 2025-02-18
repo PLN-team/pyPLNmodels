@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 import numpy as np
 from sklearn.decomposition import PCA
-
+from sklearn.mixture import GaussianMixture
 from pyPLNmodels._utils import _log_stirling
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -166,7 +166,7 @@ def compute_log_posterior(  # pylint: disable=too-many-arguments
     latent_mean: torch.Tensor,
     components: torch.Tensor,
     coef: torch.Tensor,
-    log_stirling_endog: torch.Tensor,
+    log_stirling_log_endog: torch.Tensor,
 ) -> torch.Tensor:
     """
     Compute the log posterior of the Poisson Log-Normal (`Pln`) model.
@@ -185,7 +185,7 @@ def compute_log_posterior(  # pylint: disable=too-many-arguments
         Components with size (dim, rank)
     coef : torch.Tensor
         Coefficient with size (nb_cov, dim)
-    log_stirling_endog : torch.Tensor, keyword-only
+    log_stirling_log_endog : torch.Tensor, keyword-only
         Precomputed log Stirling approximation
 
     Returns
@@ -208,7 +208,7 @@ def compute_log_posterior(  # pylint: disable=too-many-arguments
         -rank / 2 * math.log(2 * math.pi) - 1 / 2 * torch.norm(latent_mean, dim=-1) ** 2
     )
     likelihood_term = torch.sum(
-        -torch.exp(log_lambda) + log_lambda * endog - log_stirling_endog, axis=-1
+        -torch.exp(log_lambda) + log_lambda * endog - log_stirling_log_endog, axis=-1
     )
     return prior_term + likelihood_term
 
@@ -252,7 +252,7 @@ def _init_latent_mean(  # pylint: disable=too-many-arguments
     torch.Tensor
         The initialized latent mean with size (n_samples, rank)
     """
-    log_stirling_endog = _log_stirling(endog)
+    log_stirling_log_endog = _log_stirling(endog)
     latent_mean = torch.randn(endog.shape[0], components.shape[1], device=DEVICE)
     latent_mean.requires_grad_(True)
     optimizer = torch.optim.Rprop([latent_mean], lr=learning_rate)
@@ -269,7 +269,7 @@ def _init_latent_mean(  # pylint: disable=too-many-arguments
                 latent_mean=latent_mean,
                 components=components,
                 coef=coef,
-                log_stirling_endog=log_stirling_endog,
+                log_stirling_log_endog=log_stirling_log_endog,
             )
         )
         loss.backward()
@@ -290,30 +290,36 @@ def _init_coef_coef_inflation(*, endog, exog, exog_inflation, offsets):
     return (zip_model.coef.detach(), zip_model.coef_inflation.detach())
 
 
-class ZIP:
+def _init_latent_pln(endog):
+    n_samples, dim = endog.shape
+    latent_mean = torch.log(endog + (endog == 0)).to(DEVICE)
+    latent_sqrt_variance = 1 / 2 * torch.ones((n_samples, dim)).to(DEVICE)
+    return latent_mean, latent_sqrt_variance
+
+
+class ZIP:  # pylint: disable=too-many-instance-attributes
     """
     Simple Zero Inflated Poisson model for initialization of the `ZIPln` model.
     """
 
-    # pylint: disable=too-many-instance-attributes
     def __init__(self, *, endog, exog, exog_inflation, offsets):
         """
         Simple initialization of the Zero Inflated Poisson model. Coefficients are
         initialized randomly.
         """
-        self._endog = endog.to(DEVICE)
+        self._log_endog = endog
         if exog is not None:
-            self._exog = exog.to(DEVICE)
+            self._exog = exog
         else:
             self._exog = None
-        self._exog_inflation = exog_inflation.to(DEVICE)
-        self._offsets = offsets.to(DEVICE)
+        self._exog_inflation = exog_inflation
+        self._offsets = offsets
 
-        self._r0 = torch.mean((self._endog == 0).double(), axis=0)
-        self._ybarre = torch.mean(self._endog, axis=0)
+        self._r0 = torch.mean((self._log_endog == 0).double(), axis=0)
+        self._ybarre = torch.mean(self._log_endog, axis=0)
 
-        self._n_samples = self._endog.shape[0]
-        dim = self._endog.shape[1]
+        self._n_samples = self._log_endog.shape[0]
+        dim = self._log_endog.shape[1]
         nb_cov = exog.shape[1] if exog is not None else 0
         nb_cov_infla = exog_inflation.shape[1]
 
@@ -368,8 +374,13 @@ class ZIP:
         return self._coef_inflation
 
 
-def _init_latent_pln(endog):
-    n_samples, dim = endog.shape
-    latent_mean = torch.log(endog + (endog == 0)).to(DEVICE)
-    latent_sqrt_variance = 1 / 2 * torch.ones((n_samples, dim)).to(DEVICE)
-    return latent_mean, latent_sqrt_variance
+def _init_gmm(latent_positions, n_clusters, seed=0):
+    gmm = GaussianMixture(
+        n_components=n_clusters, covariance_type="diag", random_state=seed
+    )
+    gmm.fit(latent_positions)
+    cluster_bias = torch.from_numpy(gmm.means_)
+    sqrt_covariances = torch.sqrt(torch.from_numpy(gmm.covariances_))
+    weights = torch.from_numpy(gmm.weights_)
+    latent_prob = torch.from_numpy(gmm.predict_proba(latent_positions))
+    return cluster_bias, sqrt_covariances, weights, latent_prob
