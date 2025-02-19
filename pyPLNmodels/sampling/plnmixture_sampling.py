@@ -46,10 +46,15 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         dim=20,
         *,
         nb_cov=1,
+        add_const: bool = False,
         add_offsets=False,
         n_clusters=3,
         seed=0,
     ):  # pylint: disable=too-many-arguments,too-many-locals
+        if add_const is True:
+            msg = "The `add_const` keyword is useless here and ignored. Adding "
+            msg += "an intercept in the covariates results in non-identifiable coefficients."
+            raise ValueError(msg)
         self.n_clusters = n_clusters
         torch.manual_seed(seed)
         self.n_samples = n_samples
