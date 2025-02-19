@@ -34,7 +34,7 @@ def profiled_elbo_pln(
     latent_sqrt_variance : torch.Tensor
         Variational parameter with size (n_samples, dim).
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound) with size 1.
@@ -86,7 +86,7 @@ def elbo_pln(
     precision : torch.Tensor
         Model parameter with size (p, p).
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound), of size one.
@@ -136,7 +136,7 @@ def elbo_pln_diag(
     diag_precision : torch.Tensor
         Model parameter with size p, each value being positive.
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound), of size one.
@@ -184,10 +184,11 @@ def per_sample_elb_pln_diag(
         Variational parameter with size (n, p).
     diag_precision : torch.Tensor
         Model parameter with size p, each value being positive.
-    Returns:
+
+    Returns
     -------
-    torch.Tensor
-        The ELBO (Evidence Lower Bound), of size n_samples.
+    torch.tensor
+        the elbo (evidence lower bound) for each sample, of size n_samples.
     """
     n_samples, dim = endog.shape
     latent_variance = torch.square(latent_sqrt_variance)
@@ -233,6 +234,11 @@ def per_sample_elbo_pln_mixture_diag(
         Variational parameter for each cluster with size (n_cluster, n, p).
     diag_precisions : torch.Tensor
         Model parameter for each cluster with size (n_cluster, p), each value being positive.
+
+    Returns
+    -------
+    torch.tensor
+        the elbo (evidence lower bound) for each sample, of size n_samples.
     """
     n_samples, dim = endog.shape
     latent_variances = torch.square(latent_sqrt_variances)
@@ -285,7 +291,7 @@ def weighted_elbo_pln_diag(
     latent_prob: torch.Tensor
         Vector of latent_prob on the samples, of size (n).
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound), of size one.
@@ -316,18 +322,16 @@ def profiled_elbo_pln_diag(
     ----------
     endog : torch.Tensor
         Counts with size (n, p).
-    marginal_mean : torch.Tensor
-        Marginal mean with size (n, p).
+    exog : torch.Tensor
+        Covariates with size (n_samples, nb_cov).
     offsets : torch.Tensor
         Offset with size (n, p).
     latent_mean : torch.Tensor
         Variational parameter with size (n, p).
     latent_sqrt_variance : torch.Tensor
         Variational parameter with size (n, p).
-    diag_precision : torch.Tensor
-        Model parameter with size p, each value being positive.
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound), of size one.
@@ -347,58 +351,6 @@ def profiled_elbo_pln_diag(
         + 0.5 * torch.log(latent_var)
     )
     elbo -= torch.sum(_log_stirling(endog))
-
-    return elbo
-
-
-def elbo_plnpca(  # pylint: disable=too-many-arguments
-    *,
-    endog: torch.Tensor,
-    marginal_mean: torch.Tensor,
-    offsets: torch.Tensor,
-    latent_mean: torch.Tensor,
-    latent_sqrt_variance: torch.Tensor,
-    components: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Compute the ELBO (Evidence Lower Bound) for the `Pln` model
-    with PCA parametrization.
-
-    Parameters:
-    ----------
-    endog : torch.Tensor
-        Counts with size (n_samples, dim).
-    marginal_mean : torch.Tensor
-        The matrix product `exog @ coef`, of size (n_samples, dim).
-    offsets : torch.Tensor
-        Offset with size (n_samples, dim).
-    latent_mean : torch.Tensor
-        Variational parameter with size (n_samples, dim).
-    latent_sqrt_variance : torch.Tensor
-        Variational parameter with size (n_samples, dim). More precisely, it is the unsigned
-        square root of the variational variance.
-    components : torch.Tensor
-        Model parameter with size (dim, rank).
-
-    Returns:
-    -------
-    torch.Tensor
-        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
-    """
-    n_samples = endog.shape[0]
-    rank = components.shape[1]
-    latent_variance = torch.square(latent_sqrt_variance)
-
-    log_intensity = offsets + marginal_mean + latent_mean @ components.T
-
-    elbo = torch.sum(endog * log_intensity)
-    elbo += torch.sum(
-        -torch.exp(log_intensity + 0.5 * latent_variance @ (components * components).T)
-    )
-    elbo += 0.5 * torch.sum(torch.log(latent_variance))
-    elbo -= 0.5 * torch.sum(torch.square(latent_mean) + latent_variance)
-    elbo -= torch.sum(_log_stirling(endog))
-    elbo += 0.5 * n_samples * rank
 
     return elbo
 
@@ -437,11 +389,8 @@ def elbo_zipln(
         The model precision of size (dim, dim).
     marginal_mean_inflation : torch.Tensor
         The matrix product `exog_inflation @ coef`, of size (n_samples, dim).
-    dirac : torch.Tensor
-        Vector with 0s and 1s only, indicating whether `endog` is null or not.
-        Size is (n_samples, dim).
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound) with size 1, with a gradient.
@@ -487,6 +436,130 @@ def elbo_zipln(
     return elbo
 
 
+def elbo_ziplnpca(
+    *,
+    endog,
+    marginal_mean,
+    offsets,
+    latent_mean,
+    latent_sqrt_variance,
+    latent_prob,
+    components,
+    marginal_mean_inflation,
+    dirac,
+):  # pylint: disable=too-many-arguments
+    """
+    Compute the ELBO (Evidence Lower Bound) for the `Pln` model
+    with PCA parametrization.
+
+    Parameters:
+    ----------
+    endog : torch.Tensor
+        Counts with size (n_samples, dim).
+    marginal_mean : torch.Tensor
+        The matrix product `exog @ coef`, of size (n_samples, dim).
+    offsets : torch.Tensor
+        Offset with size (n_samples, dim).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n_samples, dim).
+    latent_sqrt_variance : torch.Tensor
+        Variational parameter with size (n_samples, dim). More precisely, it is the unsigned
+        square root of the variational variance.
+    components : torch.Tensor
+        Model parameter with size (dim, rank).
+    dirac : torch.Tensor
+        Vector with 0s and 1s only, indicating whether `endog` is null or not.
+        Size is (n_samples, dim).
+
+    Returns
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1, with a gradient.
+
+
+    """
+    if torch.norm(latent_prob * dirac - latent_prob) > 1e-8:
+        raise RuntimeError(
+            "Latent probability error. It has non-zeros where it should be zeros."
+        )
+    complement_prob = 1 - latent_prob
+    log_intensity = offsets + marginal_mean + latent_mean @ components.T
+    latent_variance = latent_sqrt_variance**2
+    elbo = torch.sum(
+        complement_prob
+        * (
+            endog * log_intensity
+            - torch.exp(
+                log_intensity + 1 / 2 * torch.matmul(latent_variance, (components**2).T)
+            )
+            - _log_stirling(endog)
+        )
+    )
+    elbo += -0.5 * torch.sum(
+        latent_mean**2 + latent_variance - torch.log(latent_variance)
+    )
+    elbo += torch.sum(
+        latent_prob * marginal_mean_inflation - _log1pexp(marginal_mean_inflation)
+    )
+    elbo += -torch.sum(
+        latent_prob * _trunc_log(latent_prob)
+        + (complement_prob) * _trunc_log(complement_prob)
+    )
+    return elbo
+
+
+def elbo_plnpca(  # pylint: disable=too-many-arguments
+    *,
+    endog: torch.Tensor,
+    marginal_mean: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
+    components: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the `Pln` model
+    with PCA parametrization.
+
+    Parameters:
+    ----------
+    endog : torch.Tensor
+        Counts with size (n_samples, dim).
+    marginal_mean : torch.Tensor
+        The matrix product `exog @ coef`, of size (n_samples, dim).
+    offsets : torch.Tensor
+        Offset with size (n_samples, dim).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n_samples, dim).
+    latent_sqrt_variance : torch.Tensor
+        Variational parameter with size (n_samples, dim). More precisely, it is the unsigned
+        square root of the variational variance.
+    components : torch.Tensor
+        Model parameter with size (dim, rank).
+
+    Returns
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound) with size 1.
+    """
+    n_samples = endog.shape[0]
+    rank = components.shape[1]
+    latent_variance = torch.square(latent_sqrt_variance)
+
+    log_intensity = offsets + marginal_mean + latent_mean @ components.T
+
+    elbo = torch.sum(endog * log_intensity)
+    elbo += torch.sum(
+        -torch.exp(log_intensity + 0.5 * latent_variance @ (components * components).T)
+    )
+    elbo += 0.5 * torch.sum(torch.log(latent_variance))
+    elbo -= 0.5 * torch.sum(torch.square(latent_mean) + latent_variance)
+    elbo -= torch.sum(_log_stirling(endog))
+    elbo += 0.5 * n_samples * rank
+
+    return elbo
+
+
 def profiled_elbo_zipln(
     *,
     endog,
@@ -523,7 +596,7 @@ def profiled_elbo_zipln(
         Vector with 0s and 1s only, indicating whether `endog` is null or not.
         Size is (n_samples, dim).
 
-    Returns:
+    Returns
     -------
     torch.Tensor
         The ELBO (Evidence Lower Bound) with size 1, with a gradient.

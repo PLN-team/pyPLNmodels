@@ -130,6 +130,11 @@ class PlnSampler(_BasePlnSampler):
             Mean of the marginal means (default is 2).
         seed : int, optional
             Random seed for reproducibility (default is 0).
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnSampler
+        >>> sampler = PlnSampler()
+        >>> endog = sampler.sample()
         """
         exog = _get_exog(
             n_samples=n_samples, nb_cov=nb_cov, will_add_const=add_const, seed=seed
