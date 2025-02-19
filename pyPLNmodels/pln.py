@@ -11,7 +11,7 @@ from pyPLNmodels._utils import (
     _add_doc,
     _shouldbefitted,
     _none_if_no_exog,
-    _two_dim_covariances,
+    _two_dim_latent_variances,
 )
 from pyPLNmodels.sandwich import SandwichPln
 from pyPLNmodels._initialization import _init_latent_pln
@@ -189,8 +189,8 @@ class Pln(BaseModel):
             self.n_samples,
         )
 
-    def _get_two_dim_covariances(self, sklearn_components):
-        _two_dim_covariances(sklearn_components, self.latent_sqrt_variance)
+    def _get_two_dim_latent_variances(self, sklearn_components):
+        _two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
 
     @property
     @_add_doc(
@@ -218,7 +218,7 @@ class Pln(BaseModel):
         >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data)
         >>> pln.fit()
-        >>> print(pln.latent_positions.shape)
+        >>> print("Shape latent positions", pln.latent_positions.shape)
         >>> pln.viz(remove_exog_effect=True) # Visualize the latent positions
         """,
         see_also="""

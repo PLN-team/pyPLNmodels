@@ -51,7 +51,7 @@ class _BasePlnSampler(_BaseSampler, ABC):
             DEVICE
         )
         components = self._get_components()
-        mean = self._marginal_mean + self._offsets
+        mean = self._marginal_mean
         return torch.matmul(centered_unit_gaussian, components.T) + mean
 
     @property

@@ -19,6 +19,9 @@ from .sampling import (
     PlnMixtureSampler,
 )
 
+from ._utils import get_confusion_matrix, plot_confusion_matrix, get_label_mapping
+
+
 __version__ = importlib.metadata.version("pyplnmodels")
 
 __all__ = [

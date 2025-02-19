@@ -248,7 +248,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         """
         return self._latent_prob.detach().cpu()
 
-    def _get_two_dim_covariances(self, sklearn_components):
+    def _get_two_dim_latent_variances(self, sklearn_components):
         components_var = np.expand_dims(
             self.latent_sqrt_variance**2, 1
         ) * np.expand_dims(sklearn_components, 0)

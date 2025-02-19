@@ -1,10 +1,14 @@
 from functools import wraps
 import math
 import textwrap
-
 import time
-import numpy as np
 
+import matplotlib
+import numpy as np
+from numpy.typing import ArrayLike
+from sklearn.metrics import confusion_matrix
+from scipy.stats import mode
+import seaborn as sns
 import torch
 
 
@@ -60,7 +64,14 @@ def _log_stirling(integer: torch.Tensor) -> torch.Tensor:
 
 
 def _add_doc(
-    parent_class, *, params=None, example=None, returns=None, see_also=None, raises=None
+    parent_class,
+    *,
+    params=None,
+    example=None,
+    returns=None,
+    see_also=None,
+    raises=None,
+    notes=None,
 ):  # pylint: disable=too-many-arguments
     def wrapper(fun):
         # if isinstance(fun, classmethod):
@@ -84,8 +95,12 @@ def _add_doc(
             doc += textwrap.dedent(example)
         if raises is not None:
             doc += "\n\nRaises"
-            doc += "\n--------"
+            doc += "\n------"
             doc += textwrap.dedent(raises)
+        if notes is not None:
+            doc += "\n\nNotes"
+            doc += "\n-----"
+            doc += textwrap.dedent(notes)
         fun.__doc__ = doc
         return fun
 
@@ -203,9 +218,84 @@ def _none_if_no_exog(func):
     return _func
 
 
-def _two_dim_covariances(components, latent_sqrt_variance):
+def _two_dim_latent_variances(components, latent_sqrt_variance):
     components_var = np.expand_dims(latent_sqrt_variance**2, 1) * np.expand_dims(
         components, 0
     )
     covariances = np.matmul(components_var, np.expand_dims(components.T, 0))
     return covariances
+
+
+def get_label_mapping(cluster_labels: ArrayLike, true_labels: ArrayLike):
+    """
+    Generate a mapping from cluster labels to true labels based on majority voting.
+
+    Parameters
+    ----------
+    cluster_labels : array-like of shape (n_samples,)
+        Cluster labels assigned by the clustering algorithm.
+    true_labels : array-like of shape (n_samples,)
+        True labels of the samples.
+
+    Returns
+    -------
+    label_mapping : dict
+        Dictionary where keys are cluster labels and values are the most frequent true label
+        within each cluster. If a cluster has no true labels, it is mapped to -1.
+    """
+    label_mapping = {}
+    n_clusters = len(np.unique(cluster_labels))
+    for cluster in range(n_clusters):
+        mask = cluster_labels == cluster
+        if isinstance(mask, torch.Tensor):
+            mask = mask.numpy()
+        if np.sum(mask) > 0:  # Check if there are any true labels for this cluster
+            majority_class = mode(true_labels[mask], keepdims=True)[0][0]
+            label_mapping[cluster] = majority_class
+        else:
+            label_mapping[cluster] = -1
+    return label_mapping
+
+
+def get_confusion_matrix(pred_clusters: ArrayLike, true_clusters: ArrayLike):
+    """
+    Compute the confusion matrix for k-means clustering results.
+
+    Parameters
+    ----------
+    pred_clusters : array-like of shape (n_samples,)
+        Predicted cluster labels from k-means clustering.
+    true_clusters : array-like of shape (n_samples,)
+        True cluster labels.
+
+    Returns
+    -------
+    cm : ndarray of shape (n_classes, n_classes)
+        Confusion matrix where cm[i, j] is the number of samples with true label being i-th class
+        and predicted label being j-th class.
+    """
+    label_mapping = get_label_mapping(pred_clusters, true_clusters)
+    mapped_labels = np.vectorize(lambda x: label_mapping.get(x, -1))(pred_clusters)
+    cm = confusion_matrix(true_clusters, mapped_labels)
+    return cm
+
+
+def plot_confusion_matrix(
+    confusion_mat: np.ndarray, ax: matplotlib.axes.Axes, title: str = ""
+):
+    """
+    Plot the confusion matrix using a heatmap.
+
+    Parameters
+    ----------
+    confusion_mat : ndarray of shape (n_classes, n_classes)
+        Confusion matrix to be plotted.
+    ax : matplotlib.axes.Axes
+        Axes object to draw the heatmap on.
+    title : str (Optional)
+        Title for the heatmap.
+    """
+    sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
+    ax.set_xlabel("Predicted Labels")
+    ax.set_ylabel("True Labels")
+    ax.set_title(title)

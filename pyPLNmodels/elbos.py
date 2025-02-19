@@ -97,8 +97,8 @@ def elbo_pln(
     offsets_plus_mean = offsets + latent_mean
     m_minus_xb = latent_mean - marginal_mean
     m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-    A = torch.exp(offsets_plus_mean + latent_var / 2)
-    elbo = torch.sum(endog * offsets_plus_mean - A + 0.5 * torch.log(latent_var))
+    exp_term = torch.exp(offsets_plus_mean + latent_var / 2)
+    elbo = torch.sum(endog * offsets_plus_mean - exp_term + 0.5 * torch.log(latent_var))
     trace_term = torch.trace(precision @ diag_s) + torch.sum(
         precision * m_moins_xb_outer
     )
@@ -145,8 +145,8 @@ def elbo_pln_diag(
     latent_var = torch.square(latent_sqrt_variance)
     offsets_plus_mean = offsets + latent_mean
     m_minus_xb = latent_mean - marginal_mean
-    A = torch.exp(offsets_plus_mean + latent_var / 2)
-    elbo = torch.sum(endog * offsets_plus_mean - A + 0.5 * torch.log(latent_var))
+    exp_term = torch.exp(offsets_plus_mean + latent_var / 2)
+    elbo = torch.sum(endog * offsets_plus_mean - exp_term + 0.5 * torch.log(latent_var))
     trace_term = torch.sum(diag_precision * torch.sum(latent_var, dim=0)) + torch.sum(
         torch.sum(m_minus_xb**2, dim=0) * diag_precision
     )
@@ -157,7 +157,7 @@ def elbo_pln_diag(
     return elbo
 
 
-def persample_elbo_pln_diag(
+def per_sample_elb_pln_diag(
     *,  # pylint: disable=too-many-arguments
     endog: torch.Tensor,
     marginal_mean: torch.Tensor,
@@ -194,25 +194,19 @@ def persample_elbo_pln_diag(
     offsets_plus_latent_mean = offsets + latent_mean
     latent_mean_minus_marginal_mean = latent_mean - marginal_mean
     exp_term = torch.exp(offsets_plus_latent_mean + latent_variance / 2)
-    log_likelihood_term = (
+    elbo = (
         endog * offsets_plus_latent_mean
         - exp_term
         + 0.5 * torch.log(latent_variance + 1e-10)
     )
 
-    precision_term = -0.5 * diag_precision.unsqueeze(0) * latent_variance
+    elbo += -0.5 * diag_precision.unsqueeze(0) * latent_variance
 
-    mean_diff_term = (
-        -0.5 * latent_mean_minus_marginal_mean**2 * diag_precision.unsqueeze(0)
-    )
-    log_precision_term = 0.5 * torch.log(diag_precision)
-    combined_terms = precision_term + mean_diff_term + log_precision_term.unsqueeze(0)
-    stirling_term = -_log_stirling(endog)
-    constant_term = torch.ones(n_samples, dim) / 2
-    elbo = torch.sum(
-        log_likelihood_term + combined_terms + stirling_term + constant_term, dim=1
-    )
-    return elbo
+    elbo += -0.5 * latent_mean_minus_marginal_mean**2 * diag_precision.unsqueeze(0)
+    elbo += 0.5 * torch.log(diag_precision).unsqueeze(0)
+    elbo += -_log_stirling(endog)
+    elbo += torch.ones(n_samples, dim) / 2
+    return torch.sum(elbo, dim=-1)
 
 
 def per_sample_elbo_pln_mixture_diag(
@@ -223,7 +217,7 @@ def per_sample_elbo_pln_mixture_diag(
     latent_means: torch.Tensor,
     latent_sqrt_variances: torch.Tensor,
     diag_precisions: torch.Tensor,
-):
+):  # pylint: disable=too-many-arguments
     """
     Compute the ELBO (Evidence LOwer Bound) for the PlnMixture model in a vectorized way.
 
@@ -245,25 +239,19 @@ def per_sample_elbo_pln_mixture_diag(
     offsets_plus_latent_means = offsets.unsqueeze(0) + latent_means
     latent_means_minus_marginal_means = latent_means - marginal_means
     exp_term = torch.exp(offsets_plus_latent_means + latent_variances / 2)
-    log_likelihood_term = (
+    elbo = (
         endog.unsqueeze(0) * offsets_plus_latent_means
         - exp_term
         + 0.5 * torch.log(latent_variances + 1e-10)
     )
 
-    precision_term = -0.5 * diag_precisions.unsqueeze(1) * latent_variances
+    elbo += -0.5 * diag_precisions.unsqueeze(1) * latent_variances
 
-    mean_diff_term = (
-        -0.5 * latent_means_minus_marginal_means**2 * diag_precisions.unsqueeze(1)
-    )
-    log_precision_term = 0.5 * torch.log(diag_precisions)
-    combined_terms = precision_term + mean_diff_term + log_precision_term.unsqueeze(1)
-    stirling_term = -_log_stirling(endog.unsqueeze(0))
-    constant_term = torch.ones(latent_variances.shape[0], n_samples, dim) / 2
-    elbo = torch.sum(
-        log_likelihood_term + combined_terms + stirling_term + constant_term, dim=-1
-    )
-    return elbo
+    elbo += -0.5 * latent_means_minus_marginal_means**2 * diag_precisions.unsqueeze(1)
+    elbo += 0.5 * torch.log(diag_precisions).unsqueeze(1)
+    elbo += -_log_stirling(endog.unsqueeze(0))
+    elbo += torch.ones(latent_variances.shape[0], n_samples, dim) / 2
+    return torch.sum(elbo, dim=-1)
 
 
 def weighted_elbo_pln_diag(
@@ -302,7 +290,7 @@ def weighted_elbo_pln_diag(
     torch.Tensor
         The ELBO (Evidence Lower Bound), of size one.
     """
-    per_sample_elbo = persample_elbo_pln_diag(
+    per_sample_elbo = per_sample_elb_pln_diag(
         endog=endog,
         marginal_mean=marginal_mean,
         offsets=offsets,

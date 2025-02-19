@@ -283,7 +283,7 @@ class PlnPCA(BaseModel):
     def _covariance(self):
         return self._components @ self._components.T
 
-    def _get_two_dim_covariances(self, sklearn_components):
+    def _get_two_dim_latent_variances(self, sklearn_components):
         transformed_components = sklearn_components @ self.components.numpy()
         transformed_components_latent_var = (
             transformed_components[np.newaxis, :]

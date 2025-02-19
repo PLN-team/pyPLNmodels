@@ -77,7 +77,7 @@ class PlnDiagSampler(_BasePlnSampler):
         centered_unit_gaussian = torch.randn(self.n_samples, self._dim_latent).to(
             DEVICE
         )
-        mean = self._marginal_mean + self._offsets
+        mean = self._marginal_mean
         return centered_unit_gaussian * torch.sqrt(self._params["covariance"]) + mean
 
     @_add_doc(
