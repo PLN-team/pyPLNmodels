@@ -60,7 +60,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         for i in range(self.n_clusters):
             cluster_bias[i] = _get_mean(
                 dim=dim,
-                mean=i + 0.5,
+                mean=4 * i + 1,
                 seed=(seed + 1) * i,
             )
             covariances[i] = _get_diag_covariance(dim, seed=(seed + 1) * i)
@@ -143,7 +143,6 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
             )
             gaussians[indices] += self._params["cluster_bias"][cluster_number]
         gaussians += self._marginal_mean
-        gaussians += self._offsets
         return gaussians
 
     @property

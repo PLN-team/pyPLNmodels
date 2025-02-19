@@ -652,7 +652,7 @@ class BaseModel(
         pca = PCA(n_components=rank)
         proj_variables = pca.fit_transform(variables)
         sk_components = pca.components_
-        covariances = self._get_two_dim_covariances(sk_components)
+        covariances = self._get_two_dim_latent_variances(sk_components)
         return proj_variables, covariances
 
     def projected_latent_variables(self, rank=2, remove_exog_effect: bool = False):
@@ -710,6 +710,7 @@ class BaseModel(
         effect of covariates removed.
         """
 
+    @abstractmethod
     def viz(
         self,
         *,
@@ -748,7 +749,7 @@ class BaseModel(
         return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @abstractmethod
-    def _get_two_dim_covariances(self, sklearn_components):
+    def _get_two_dim_latent_variances(self, sklearn_components):
         """
         Computes the covariance when the latent variables are
         embedded in a lower dimensional space (often 2) with `sklearn_components`.
