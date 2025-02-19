@@ -39,6 +39,7 @@ class PlnPCA(BaseModel):
     --------
     :class:`pyPLNmodels.PlnPCAcollection`
     :class:`pyPLNmodels.Pln`
+    :class:`pyPLNmodels.ZIPlnPCA`
     """
 
     _components: torch.Tensor

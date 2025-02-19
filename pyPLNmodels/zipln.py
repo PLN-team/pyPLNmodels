@@ -7,9 +7,8 @@ import pandas as pd
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._data_handler import (
     _handle_inflation_data,
-    _extract_data_from_formula,
-    _extract_exog_inflation_from_formula,
     _array2tensor,
+    _process_formula_inflation,
 )
 from pyPLNmodels._initialization import _init_coef_coef_inflation
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
@@ -52,11 +51,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     --------
     :func:`pyPLNmodels.ZIPln.from_formula`
     :func:`pyPLNmodels.ZIPln.__init__`
-
-    Methods
-    -------
-    fit()
-
+    :class:`pyPLNmodels.ZIPlnPCA`
     """
 
     _latent_prob: torch.Tensor
@@ -159,20 +154,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
     ):
-        if "|" not in formula:
-            msg = "`exog_inflation` and `exog` are set to the same array. "
-            msg += "If you need different `exog_inflation`, "
-            msg += "specify it with a pipe: '|' like in the following: endog ~ 1 + x | x + y "
-            print(msg)
-            endog, exog, offsets = _extract_data_from_formula(formula, data)
-            exog_inflation = exog
-        else:
-            split_formula = formula.split("|")
-            formula_exog = split_formula[0]
-            endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
-            formula_infla = split_formula[1]
-            exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
-
+        endog, exog, offsets, exog_inflation = _process_formula_inflation(formula, data)
         return cls(
             endog,
             exog=exog,
@@ -190,7 +172,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             exog_inflation=self._exog_inflation,
             offsets=self._offsets,
         )
-        print("coef inflation ", self._coef_inflation.device)
         # coef and covariance are not initialized as defined by closed forms.
 
     @_add_doc(
@@ -237,8 +218,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
     @property
     def _marginal_mean_inflation(self):
-        print("exog inflation ", self._exog_inflation.device)
-        print("coef inflation ", self._coef_inflation.device)
         return self._exog_inflation @ self._coef_inflation
 
     @property
@@ -392,6 +371,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         colors: np.ndarray (optional)
             An array with one label for each
             sample in the endog property of the object. Defaults to `None`.
+        See also
+        --------
+        :func:`pyPLNmodels.ZIPln.pca_pairplot`
         """
         min_n_components = min(6, n_components)
         array = self.transform(return_latent_prob=True).numpy()

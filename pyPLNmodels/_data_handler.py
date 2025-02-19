@@ -478,3 +478,23 @@ def _remove_useless_exog(exog, column_names_exog, is_inflation):
         print(msg)
         return exog[:, ~zero_columns]
     return exog
+
+
+def _process_formula_inflation(formula, data):
+    if "|" not in formula:
+        msg = "`exog_inflation` and `exog` are set to the same array. "
+        msg += "If you need different `exog_inflation`, "
+        msg += (
+            "specify it with a pipe: '|' like in the following: endog ~ 1 + x | x + y "
+        )
+        print(msg)
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        exog_inflation = exog
+    else:
+        split_formula = formula.split("|")
+        formula_exog = split_formula[0]
+        endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
+        formula_infla = split_formula[1]
+        exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
+
+    return endog, exog, offsets, exog_inflation
