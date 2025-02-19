@@ -69,7 +69,7 @@ class PlnMixture(
         """,
         notes="""
         The `add_const` keyword is useless here and ignored. Adding an intercept in the covariates
-        results in non-identifiable coefficients.
+        results in non-identifiable coefficients for the mixture model.
         """,
     )
     def __init__(
