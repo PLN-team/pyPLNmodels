@@ -310,19 +310,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
     @_add_doc(
         BaseModel,
-        params="""
-        return_latent_prob: bool, optional = False
-            Whether to return latent probability variables of zero inflation
-            (`return_latent_prob = True`) or the latent mean of the gaussian component
-            (`return_latent_prob = False`). Defaults to `False`.
-
-        """,
-        returns="""
-        torch.Tensor
-            The transformed endogenous variables (latent variables of the model).
-            If `return_latent_prob` is `True`, will return the latent variables
-            of the zero-inflation component.
-        """,
         example="""
               >>> from pyPLNmodels import ZIPln, load_microcosm
               >>> data = load_microcosm()
@@ -330,12 +317,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
               >>> zi.fit()
               >>> transformed_endog = zi.transform()
               >>> print(transformed_endog.shape)
-              >>> latent_prob = zi.transform(return_latent_prob = True)
               """,
     )
-    def transform(self, remove_exog_effect: bool = True, return_latent_prob=False):
-        if return_latent_prob is True:
-            return self.latent_prob
+    def transform(self, remove_exog_effect: bool = True):
         return super().transform(remove_exog_effect=remove_exog_effect)
 
     @property
@@ -376,7 +360,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         :func:`pyPLNmodels.ZIPln.pca_pairplot`
         """
         min_n_components = min(6, n_components)
-        array = self.transform(return_latent_prob=True).numpy()
+        array = self.latent_prob.numpy()
         _pca_pairplot(array, min_n_components, colors)
 
     @_add_doc(
@@ -554,8 +538,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             >>> zi.viz_prob()
             >>> zi.viz_prob(colors = data["site"])
         """
-        prob = self.transform(return_latent_prob=True)
-        _viz_variables(prob, ax=ax, colors=colors, covariances=None)
+        _viz_variables(self.latent_prob, ax=ax, colors=colors, covariances=None)
 
     @_add_doc(
         BaseModel,
