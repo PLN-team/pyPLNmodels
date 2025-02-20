@@ -583,12 +583,15 @@ class PlnMixture(
         return [
             ".clusters",
             ".covariances",
-            ".coef",
             ".cluster_bias",
             ".latent_prob",
             ".n_clusters",
             ".weights",
         ]
+
+    @_add_doc(BaseModel)
+    def sigma(self):
+        return self.covariances
 
     @property
     def _additional_methods_list(self):
