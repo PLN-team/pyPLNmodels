@@ -23,7 +23,7 @@ from pyPLNmodels._utils import (
 )
 from pyPLNmodels._viz import (
     _viz_variables,
-    ModelViz,
+    BaseModelViz,
     plot_correlation_circle,
     _pca_pairplot,
     _plot_expected_vs_true,
@@ -50,6 +50,8 @@ class BaseModel(
 
     _coef: torch.Tensor
     _covariance: torch.Tensor
+
+    ModelViz = BaseModelViz
 
     def __init__(
         self,
@@ -188,15 +190,12 @@ class BaseModel(
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
 
-    def show(self, axes=None, savefig=False, name_file=""):
+    def show(self, savefig=False, name_file=""):
         """
         Display the model parameters, norm evolution of the parameters and the criterion.
 
         Parameters
         ----------
-        axes : matplotlib.axes.Axes, optional
-            The axes on which to plot the visualizations. If `None`, a new
-            figure and axes will be created.
         savefig : bool, optional
             If `True`, the figure will be saved to a file. Default is `False`.
         name_file : str, optional
@@ -205,16 +204,18 @@ class BaseModel(
 
         """
         model_viz = self._get_model_viz()
-        model_viz.show(axes=axes, savefig=savefig, name_file=name_file)
+        model_viz.show(savefig=savefig, name_file=name_file)
 
     def _get_model_viz(self):
-        return ModelViz(
+        return self.ModelViz(
             params=self.dict_model_parameters,
             dict_mse=self._dict_list_mse,
             running_times=self._time_recorder.running_times,
             criterion_list=self._elbo_criterion_monitor.criterion_list,
             name=self._name,
             tol=DEFAULT_TOL,
+            column_names=self.column_names_endog,
+            n_samples=self.n_samples,
         )
 
     @abstractmethod

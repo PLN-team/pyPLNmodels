@@ -51,7 +51,9 @@ def _get_covariance(dim, seed):
 
 def _get_diag_covariance(dim, seed):
     torch.manual_seed(seed)
-    return torch.ones(dim) / 10 + torch.randn(dim, device=DEVICE) ** 2 / 5
+    return (
+        torch.ones(dim, device=DEVICE) / 10 + torch.randn(dim, device=DEVICE) ** 2 / 5
+    )
 
 
 def _get_offsets(*, n_samples, dim, add_offsets, seed):

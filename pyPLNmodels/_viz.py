@@ -215,15 +215,23 @@ def plot_correlation_circle(
     ax.set_xlabel(f"PCA 1 ({np.round(explained_variance_ratio[0] * 100, 3)}%)")
     ax.set_ylabel(f"PCA 2 ({np.round(explained_variance_ratio[1] * 100, 3)}%)")
     ax.set_title(f"Correlation circle on the transformed variables {title}")
-
     plt.show()
 
 
-class ModelViz:
+class BaseModelViz:  # pylint: disable=too-many-instance-attributes
     """Class that visualizes the parameters of a model and the optimization process."""
 
     def __init__(
-        self, *, params, dict_mse, running_times, criterion_list, name, tol
+        self,
+        *,
+        params,
+        dict_mse,
+        running_times,
+        criterion_list,
+        name,
+        tol,
+        column_names,
+        n_samples,
     ):  # pylint: disable=too-many-arguments
         self._params = params
         self._dict_mse = dict_mse
@@ -231,27 +239,38 @@ class ModelViz:
         self._criterion_list = criterion_list
         self._name = name
         self._tol = tol
+        self.column_names = column_names
+        self.n_samples = n_samples
 
-    def display_covariance(self, *, ax: matplotlib.axes.Axes):
+    def display_relationship_matrix(self, *, ax: matplotlib.axes.Axes):
         """
         Display a heatmap of the model covariance.
         """
-        covariance = self._params["covariance"]
-        dim = covariance.shape[0]
-        is_diagonal = len(covariance.shape) == 1
+        relationship_matrix = self._get_relationship_matrix()
+        dim = relationship_matrix.shape[0]
+        is_diagonal = len(relationship_matrix.shape) == 1
         if dim > 400:
             if is_diagonal is True:
-                cov_to_show = torch.diag(covariance[:400])  # Diagonal covariance
+                cov_to_show = torch.diag(
+                    relationship_matrix[:400]
+                )  # Diagonal relationship_matrix
             else:
-                cov_to_show = covariance[:400, :400]
+                cov_to_show = relationship_matrix[:400, :400]
             warnings.warn("Only displaying the first 400 variables.")
         else:
             if is_diagonal is True:
-                cov_to_show = torch.diag(covariance)
+                cov_to_show = torch.diag(relationship_matrix)
             else:
-                cov_to_show = covariance
+                cov_to_show = relationship_matrix
         sns.heatmap(cov_to_show, ax=ax)
-        ax.set_title("Covariance matrix")
+        ax.set_title(self._relationship_matrix_title)
+
+    def _get_relationship_matrix(self):
+        return self._params["covariance"]
+
+    @property
+    def _relationship_matrix_title(self):
+        return "Covariance matrix"
 
     def display_coef(self, *, ax: matplotlib.axes.Axes):
         """
@@ -270,7 +289,7 @@ class ModelViz:
                 transform=ax.transAxes,
             )
 
-        ax.set_title("Regression Coefficient Matrix")
+        ax.set_xlabel("Regression Coefficient Matrix", fontsize=9)
 
     def display_norm_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -281,10 +300,10 @@ class ModelViz:
         absc = np.array(self._running_times)[absc.astype(int)]
         for key, value in self._dict_mse.items():
             ax.plot(absc, value, label=key)
-        ax.set_xlabel("Seconds", fontsize=15)
+        ax.set_xlabel("Seconds", fontsize=10)
         ax.set_yscale("log")
         ax.legend()
-        ax.set_title("Norm of each parameter.")
+        ax.set_title("Norm of each parameter.", fontsize=8)
 
     def display_criterion_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -295,41 +314,30 @@ class ModelViz:
         ax : matplotlib.axes.Axes, optional
             The axes object to plot on. If not provided, will be created.
         """
-        ax.plot(self._running_times, self._criterion_list, label="Criterion")
+        ax.plot(
+            self._running_times, self._criterion_list, label="Convergence Criterion"
+        )
 
-        # last_criterion = np.round(self._criterion_list[-1], 6)
-        last_criterion = f"{np.round(self._criterion_list[-1], 6):.2e}"
         ax.axhline(y=self._tol, color="r", linestyle="--", label="Tolerance threshold")
-        ax.set_title(f"Criterion. Last criterion = {last_criterion}", fontsize=14)
         ax.set_yscale("log")
-        ax.set_xlabel("Seconds", fontsize=14)
-        ax.set_ylabel("Criterion", fontsize=14)
+        ax.set_xlabel("Seconds", fontsize=9)
+        ax.set_ylabel("Criterion", fontsize=9)
         ax.legend()
 
-    def show(self, *, axes, savefig, name_file):
+    def show(self, *, savefig, name_file):
         """
         Display the model parameters and the norm of the parameters.
         """
-        to_show = False
-        if axes is None:
-            fig = plt.figure(figsize=(23, 5))
-            gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
+        fig = plt.figure(figsize=(23, 5))
+        gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
 
-            ax1 = fig.add_subplot(gs[0, 0])
-            ax2 = fig.add_subplot(gs[0, 1])
-            ax3 = fig.add_subplot(gs[0, 2])
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[0, 2])
 
-            ax4 = fig.add_subplot(gs[1, :])
-            to_show = True
-        else:
-            try:
-                ax1, ax2, ax3, ax4 = axes[0], axes[1], axes[2], axes[3]
-            except IndexError as err:
-                error_message = "You should be able to access the axes using axes[3]."
-                print(error_message)
-                raise IndexError(f"{error_message}: {err}") from err
+        ax4 = fig.add_subplot(gs[1, :])
 
-        self.display_covariance(ax=ax1)
+        self.display_relationship_matrix(ax=ax1)
         self.display_norm_evolution(ax=ax2)
         self.display_criterion_evolution(ax=ax3)
         self.display_coef(ax=ax4)
@@ -337,43 +345,50 @@ class ModelViz:
         if savefig is True:
             plt.savefig(name_file + self._name + ".pdf", format="pdf")
 
-        if to_show is True:
-            plt.show()
+        plt.show()
 
-    def show_zi(self, *, axes, savefig, name_file):
+
+class NetworkModelViz(BaseModelViz):
+    """
+    Visualize the parameters of a PlnNetwork model and the optimization process.
+    """
+
+    def _get_relationship_matrix(self):
+        return torch.inverse(self._params["covariance"])
+
+    @property
+    def _relationship_matrix_title(self):
+        return "Precision matrix"
+
+
+class ZIModelViz(BaseModelViz):
+    """
+    Visualize the parameters of a ZIPln model and the optimization process.
+    """
+
+    def show(self, *, savefig, name_file):
         """
         Show the model but adds a zero inflation graph for the associated
         coefficient. Graphs are reordered so that `coef` and `coef_inflation`
         can be directly compared (compared to `show`).
         """
-        to_show = False
-        if axes is None:
-            fig = plt.figure(figsize=(23, 5))
-            gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
-            ax1 = fig.add_subplot(gs[0, 0])
-            ax2 = fig.add_subplot(gs[0, 1])
-            ax3 = fig.add_subplot(gs[0, 2])
+        fig = plt.figure(figsize=(23, 5))
+        gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[0, 2])
 
-            ax4 = fig.add_subplot(gs[1, 0])
-            ax5 = fig.add_subplot(gs[1, 1:3])
-            to_show = True
-            # axes = [ax4,ax1,ax3,ax2]
-            axes = [ax2, ax5, ax3, ax1]
-        else:
-            try:
-                ax1, ax2, ax3, ax4, ax5 = axes[0], axes[1], axes[2], axes[3], axes[4]
-            except IndexError as err:
-                error_message = "You should be able to access the axes using axes[4]."
-                print(error_message)
-                raise IndexError(f"{error_message}: {err}") from err
-
-        self.show(axes=axes, savefig=False, name_file="")
+        ax4 = fig.add_subplot(gs[1, 0])
+        ax5 = fig.add_subplot(gs[1, 1:3])
+        # axes = [ax4,ax1,ax3,ax2]
         self.display_coef_inflation(ax=ax4)
+        self.display_relationship_matrix(ax=ax2)
+        self.display_norm_evolution(ax=ax5)
+        self.display_criterion_evolution(ax=ax3)
+        self.display_coef(ax=ax1)
         if savefig is True:
             plt.savefig(name_file + self._name + ".pdf", format="pdf")
-
-        if to_show is True:
-            plt.show()
+        plt.show()
 
     def display_coef_inflation(self, *, ax: matplotlib.axes.Axes):
         """
@@ -382,6 +397,79 @@ class ModelViz:
         coef_inflation = self._params["coef_inflation"]
         sns.heatmap(coef_inflation, ax=ax)
         ax.set_title("Zero inflation Regression Coefficient Matrix")
+
+
+class MixtureModelViz(BaseModelViz):
+    """
+    Visualize the parameters of a MixturePln model and the optimization process.
+    """
+
+    def show(self, *, savefig, name_file):
+        weights = self._params["weights"]
+        cluster_bias = self._params["cluster_bias"]
+        variances = self._params["covariances"]
+
+        n_clusters = len(weights)
+
+        fig = plt.figure(figsize=(23, 5))
+        gs = gridspec.GridSpec(3, n_clusters + 2, figure=fig, wspace=0.3)
+
+        ax1 = fig.add_subplot(gs[0, 0:n_clusters])
+        axes_means = [fig.add_subplot(gs[1, i]) for i in range(n_clusters)]
+        axes_variances = [fig.add_subplot(gs[2, i]) for i in range(n_clusters)]
+
+        ax3 = fig.add_subplot(gs[0, n_clusters : n_clusters + 2])
+        ax4 = fig.add_subplot(gs[1, n_clusters : n_clusters + 2])
+        ax5 = fig.add_subplot(gs[2, n_clusters : n_clusters + 2])
+
+        self._plot_weights(ax1, weights)
+        self._plot_cluster_biases(axes_means, cluster_bias, n_clusters)
+        self._plot_variances(axes_variances, variances, n_clusters)
+
+        self.display_norm_evolution(ax=ax3)
+        self.display_criterion_evolution(ax=ax4)
+        self.display_coef(ax=ax5)
+
+        plt.tight_layout()
+        plt.show()
+
+    def _plot_weights(self, ax, weights):
+        clusters = np.arange(len(weights))
+        bars = ax.bar(clusters, weights, edgecolor="black")
+        nb_samples = weights * self.n_samples
+        ax.set_title("Histogram of Weights")
+        ax.set_xlabel("Cluster")
+        ax.set_ylabel("Weight")
+        ax.set_xticks(clusters)
+        for _bar, n_samples in zip(bars, nb_samples):
+            height = _bar.get_height()
+            ax.text(
+                _bar.get_x() + _bar.get_width() / 2.0,
+                height,
+                f"{int(n_samples)}",
+                ha="center",
+                va="bottom",
+            )
+
+    def _plot_cluster_biases(self, axes, cluster_bias, n_clusters):
+        y_indices = self.column_names
+        x_min, x_max = torch.min(cluster_bias), torch.max(cluster_bias)
+        for k in range(n_clusters):
+            axes[k].barh(y_indices, cluster_bias[k], label=f"Cluster {k}", color="blue")
+            axes[k].set_xlim(x_min, x_max)
+            axes[k].set_xlabel(f"Mean of Cluster {k}", fontsize=10)
+            if k > 0:
+                axes[k].set_yticklabels([])
+
+    def _plot_variances(self, axes, variances, n_clusters):
+        y_indices = self.column_names
+        x_max = torch.max(variances)
+        for k in range(n_clusters):
+            axes[k].barh(y_indices, variances[k], label=f"Cluster {k}", color="blue")
+            axes[k].set_xlim(0, x_max)
+            axes[k].set_xlabel(f"Variance of Cluster {k}", fontsize=10)
+            if k > 0:
+                axes[k].set_yticklabels([])
 
 
 def _perform_pca(array, n_components):
@@ -575,14 +663,14 @@ def _viz_network(precision, node_labels=None, ax=None, seed=0):
 
 
 def _build_graph(precision, node_labels=None):
-    G = nx.Graph()
+    graph = nx.Graph()
     nb_variables = precision.shape[0]
-    G.add_nodes_from(range(nb_variables))
+    graph.add_nodes_from(range(nb_variables))
     if node_labels is not None:
         for i, label in enumerate(node_labels):
-            G.nodes[i]["label"] = label
+            graph.nodes[i]["label"] = label
     for i in range(nb_variables):
         for j in range(i + 1, nb_variables):
             if precision[i, j] != 0:
-                G.add_edge(i, j, weight=precision[i, j])
-    return G
+                graph.add_edge(i, j, weight=precision[i, j])
+    return graph

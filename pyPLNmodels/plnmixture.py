@@ -10,6 +10,10 @@ from pyPLNmodels._utils import _add_doc, _two_dim_latent_variances
 from pyPLNmodels._initialization import _init_gmm
 from pyPLNmodels.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.plndiag import PlnDiag
+from pyPLNmodels._viz import MixtureModelViz
+
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class PlnMixture(
@@ -47,6 +51,8 @@ class PlnMixture(
     _latent_sqrt_variances: torch.Tensor
     _sqrt_covariances: torch.Tensor
     _per_sample_per_cluster_elbo: torch.Tensor
+
+    ModelViz = MixtureModelViz
 
     @_add_doc(
         BaseModel,
@@ -256,7 +262,7 @@ class PlnMixture(
             _init_gmm(positions_with_mean, self.n_clusters)
         )
         if pln.nb_cov > 1:
-            self._coef = pln.coef[:-1]  # Should not retrieve the mean
+            self._coef = pln.coef[:-1].to(DEVICE)  # Should not retrieve the mean
         else:
             self._coef = None
         self._latent_means = self._cluster_bias.unsqueeze(1)
@@ -269,7 +275,7 @@ class PlnMixture(
 
         self._latent_sqrt_variances = torch.randn(
             self.n_clusters, self.n_samples, self.dim
-        )
+        ).to(DEVICE)
 
     def _init_latent_parameters(self):
         """Everything is done in the _init_parameters method."""
@@ -410,6 +416,7 @@ class PlnMixture(
             "coef": self.coef,
             "covariances": self.covariances,
             "weights": self.weights,
+            "cluster_bias": self.cluster_bias,
         }
 
     @property
@@ -569,7 +576,7 @@ class PlnMixture(
 
     def predict_clusters(self):
         """Predict the clusters of the given endog in the model."""
-        return torch.argmax(self._latent_prob, axis=1)
+        return torch.argmax(self.latent_prob, axis=1)
 
     @property
     def _additional_attributes_list(self):
