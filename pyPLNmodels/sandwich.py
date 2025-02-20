@@ -39,7 +39,9 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
             endog_minus_pred.unsqueeze(2), endog_minus_pred.unsqueeze(1)
         )
         exog_outer = torch.matmul(self._exog.unsqueeze(2), self._exog.unsqueeze(1))
-        res = torch.zeros(self.nb_cov * self.dim, self.nb_cov * self.dim)
+        res = torch.zeros(self.nb_cov * self.dim, self.nb_cov * self.dim).to(
+            self._endog.device
+        )
         for i in range(self.n_samples):
             res += torch.kron(endog_outer[i], exog_outer[i])
         return res / self.n_samples
@@ -60,11 +62,13 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
         """
         exog_outer = torch.clone(
             torch.matmul(self._exog.unsqueeze(2), self._exog.unsqueeze(1))
+        ).to(self._endog.device)
+        mat_cn = torch.zeros(self.nb_cov * self.dim, self.nb_cov * self.dim).to(
+            self._endog.device
         )
-        mat_cn = torch.zeros(self.nb_cov * self.dim, self.nb_cov * self.dim)
         for i in tqdm(range(self.n_samples)):
             mat_i = self._get_mat_i_cn(i)
-            big_mat = torch.zeros(mat_i.shape)
+            big_mat = torch.zeros(mat_i.shape).to(self._endog.device)
             big_mat[:] = mat_i[:]
             exog_i = exog_outer[i].clone().detach()
             mat_cn += torch.kron(big_mat, exog_i)

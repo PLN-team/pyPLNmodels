@@ -465,7 +465,7 @@ class Pln(BaseModel):
         """
         variance = self.get_variance_coef()
         quantile = norm.ppf(1 - alpha / 2)
-        half_length = quantile * torch.sqrt(variance)
+        half_length = quantile * torch.sqrt(variance).detach().cpu()
         interval_low = self.coef - half_length
         interval_high = self.coef + half_length
         return interval_low, interval_high
@@ -497,7 +497,7 @@ class Pln(BaseModel):
         :func:`pyPLNmodels.Pln.get_confidence_interval_coef`
         """
         variance = self.get_variance_coef()
-        t_stat = self.coef / torch.sqrt(variance.detach())
+        t_stat = self.coef / torch.sqrt(variance.detach().cpu())
         p_values = 2 * (
             1 - t.cdf(torch.abs(t_stat), df=self.n_samples - self.nb_cov * self.dim)
         )
