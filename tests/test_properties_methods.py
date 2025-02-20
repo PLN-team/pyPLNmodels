@@ -17,6 +17,7 @@ def test_attributes_method():
             methods = [
                 method
                 for method in model._useful_methods_list
+                + model._additional_methods_list
                 if method
                 not in [".predict()", ".plot_correlation_circle()", ".biplot()"]
             ]
@@ -27,7 +28,9 @@ def test_attributes_method():
                 if callable(method_to_call):
                     result = method_to_call()
         for model in dict_fitted_models[model_name]["explicit"]:
-            attributes = model._useful_attributes_list
+            attributes = (
+                model._useful_attributes_list + model._additional_attributes_list
+            )
             for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)

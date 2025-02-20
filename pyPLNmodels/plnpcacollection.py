@@ -546,7 +546,7 @@ class PlnPCAcollection:
         str
             The string representation of the useful methods.
         """
-        return ".show(), .best_model(), .keys(), .items(), .values()"
+        return [".show()", ".best_model()", ".keys()", ".items()", ".values()"]
 
     @property
     def _useful_attributes_string(self) -> str:
@@ -558,7 +558,7 @@ class PlnPCAcollection:
         str
             The string representation of the useful attributes.
         """
-        return ".BIC, .AIC, .loglikes"
+        return [".BIC", ".AIC", ".loglikes"]
 
     def __repr__(self) -> str:
         """
