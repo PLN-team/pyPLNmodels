@@ -32,7 +32,7 @@ def _get_coef(nb_cov, dim, mean, add_const, seed):
     if nb_cov == 0:
         return None
     torch.manual_seed(seed)
-    return torch.randn(nb_cov, dim, device=DEVICE) + mean
+    return torch.randn(nb_cov, dim, device=DEVICE) / 5 + mean
 
 
 def _get_mean(dim, mean, seed):
@@ -42,10 +42,10 @@ def _get_mean(dim, mean, seed):
 
 def _get_covariance(dim, seed):
     torch.manual_seed(seed)
-    parameter_toeplitz = 0.1 * torch.rand(1).to(DEVICE) + 0.8
+    parameter_toeplitz = 0.1 * torch.rand(1).to(DEVICE) + 0.6
     to_toeplitz = parameter_toeplitz ** (torch.arange(dim, device=DEVICE))
     return (
-        torch.from_numpy(toeplitz(to_toeplitz.cpu().numpy())) + 0.5 * torch.eye(dim)
+        torch.from_numpy(toeplitz(to_toeplitz.cpu().numpy())) + 0.3 * torch.eye(dim)
     ).to(DEVICE)
 
 

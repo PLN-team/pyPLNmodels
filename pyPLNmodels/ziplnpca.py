@@ -17,7 +17,7 @@ from pyPLNmodels.zipln import ZIPln
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class ZIPlnPCA(ZIPln):
+class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     """
     Zero-Inflated Pln Principal Component Analysis (ZIPlnPCA) class.
     Like a PlnPCA but adds zero-inflation. For more details,
@@ -69,6 +69,7 @@ class ZIPlnPCA(ZIPln):
         add_const: bool = True,
         add_const_inflation: bool = True,
         rank: int = 5,
+        use_closed_form_prob: bool = True,
     ):  # pylint: disable=too-many-arguments
         """
         Initializes the ZIPln class, which is a Pln model with zero-inflation.
@@ -94,6 +95,10 @@ class ZIPlnPCA(ZIPln):
             Whether to add a column of ones in the `exog_inflation`. Defaults to `True`.
         rank : int, optional(keyword-only)
             The rank of the approximation, by default 5.
+        use_closed_form_prob: bool, optional (keyword-only)
+            Weither to use or not the anayltic formula for the latent probability. Default
+            is True.
+
 
         Returns
         -------
@@ -113,6 +118,7 @@ class ZIPlnPCA(ZIPln):
 
         """
         self._rank = rank
+        self._use_closed_form_prob = use_closed_form_prob
         super().__init__(
             endog,
             exog=exog,
@@ -160,7 +166,8 @@ class ZIPlnPCA(ZIPln):
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         rank: int = 5,
-    ):
+        use_closed_form_prob: bool = True,
+    ):  # pylint: disable= too-many-arguments
         endog, exog, offsets, exog_inflation = _process_formula_inflation(formula, data)
         return cls(
             endog,
@@ -171,6 +178,7 @@ class ZIPlnPCA(ZIPln):
             add_const=False,
             add_const_inflation=False,
             rank=rank,
+            use_closed_form_prob=use_closed_form_prob,
         )
 
     def _init_model_parameters(self):
@@ -206,6 +214,7 @@ class ZIPlnPCA(ZIPln):
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
+
         super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_latent_parameters(self):
@@ -219,7 +228,12 @@ class ZIPlnPCA(ZIPln):
         self._latent_sqrt_variance = (
             1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
         )
-        self._latent_prob = torch.sigmoid(self._marginal_mean_inflation) * self._dirac
+        if self._use_closed_form_prob is True:
+            self._latent_prob = self._closed_latent_prob
+        else:
+            self._latent_prob = (
+                torch.sigmoid(self._marginal_mean_inflation) * self._dirac
+            )
 
     @property
     def _description(self):
@@ -228,11 +242,17 @@ class ZIPlnPCA(ZIPln):
     @property
     @_add_doc(BaseModel)
     def list_of_parameters_needing_gradient(self):
-        list_no_coef = super().list_of_parameters_needing_gradient
-        list_no_coef.append(self._components)
+        list_params = [
+            self._latent_mean,
+            self._latent_sqrt_variance,
+            self._coef_inflation,
+            self._components,
+        ]
+        if self._use_closed_form_prob is False:
+            list_params.append(self._latent_prob)
         if self.__coef is not None:
-            return list_no_coef + [self.__coef]
-        return list_no_coef
+            return list_params + [self.__coef]
+        return list_params
 
     @property
     def _coef(self):
@@ -513,3 +533,11 @@ class ZIPlnPCA(ZIPln):
         return torch.exp(
             self.offsets + self.latent_variables + 1 / 2 * covariance_a_posteriori
         ) * (1 - self.latent_prob)
+
+    def _project_parameters(self):
+        if self._use_closed_form_prob is False:
+            super()._project_parameters()
+
+    def _update_closed_forms(self):
+        if self._use_closed_form_prob is True:
+            self._latent_prob = self._closed_latent_prob

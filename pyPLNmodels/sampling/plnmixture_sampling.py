@@ -1,6 +1,5 @@
 import torch
 
-from pyPLNmodels._data_handler import _format_data
 from pyPLNmodels._utils import _add_doc
 
 
@@ -10,7 +9,6 @@ from ._utils import (
     _get_diag_covariance,
     _get_exog,
     _get_offsets,
-    _format_dict_of_array,
     _get_mean,
 )
 
@@ -52,7 +50,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         seed=0,
     ):  # pylint: disable=too-many-arguments,too-many-locals
         if add_const is True:
-            msg = "The `add_const` keyword is useless here and ignored. Adding "
+            msg = "The `add_const` keyword is useless here. Adding "
             msg += "an intercept in the covariates results in non-identifiable coefficients."
             raise ValueError(msg)
         self.n_clusters = n_clusters
@@ -60,15 +58,13 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         self.n_samples = n_samples
         weights = torch.rand(n_clusters)
         weights /= weights.sum()
-        cluster_bias = {}
-        covariances = {}
+        cluster_bias = []
+        covariances = []
         for i in range(self.n_clusters):
-            cluster_bias[i] = _get_mean(
-                dim=dim,
-                mean=4 * i + 1,
-                seed=(seed + 1) * i,
-            )
-            covariances[i] = _get_diag_covariance(dim, seed=(seed + 1) * i)
+            cluster_bias.append(_get_mean(dim=dim, mean=4 * i + 1, seed=(seed + 1) * i))
+            covariances.append(_get_diag_covariance(dim, seed=(seed + 1) * i))
+        cluster_bias = torch.stack(cluster_bias, dim=0)
+        covariances = torch.stack(covariances, dim=0)
         exog_no_add = _get_exog(
             n_samples=n_samples, nb_cov=nb_cov, will_add_const=True, seed=seed
         )
@@ -90,23 +86,10 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
             params=params,
         )
 
-    def _format_parameters(self, params):
-        covariances_params = _format_dict_of_array(params["covariances"])
-        coefs_params = _format_data(params["coef"])
-        weights_params = _format_data(params["weights"])
-        cluster_bias = _format_dict_of_array(params["cluster_bias"])
-        return {
-            "covariances": covariances_params,
-            "coef": coefs_params,
-            "weights": weights_params,
-            "cluster_bias": cluster_bias,
-        }
-
     @property
     def covariances(self) -> torch.tensor:
         """Covariance matrix of each cluster."""
-        covariances = self._params.get("covariances")
-        return {key: value.cpu() for key, value in covariances.items()}
+        return self._params.get("covariances")
 
     @property
     def coef(self) -> torch.tensor:
@@ -121,8 +104,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
     @property
     def cluster_bias(self):
         """Mean vector depending on the cluster."""
-        cluster_bias = self._params.get("cluster_bias")
-        return {key: value.cpu() for key, value in cluster_bias.items()}
+        return self._params.get("cluster_bias")
 
     @_add_doc(
         _BaseSampler,

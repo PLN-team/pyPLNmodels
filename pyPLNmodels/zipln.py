@@ -11,7 +11,11 @@ from pyPLNmodels._data_handler import (
     _process_formula_inflation,
 )
 from pyPLNmodels._initialization import _init_coef_coef_inflation
-from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
+from pyPLNmodels._closed_forms import (
+    _closed_formula_coef,
+    _closed_formula_covariance,
+    _closed_formula_latent_prob,
+)
 from pyPLNmodels.elbos import profiled_elbo_zipln
 from pyPLNmodels._utils import _add_doc
 from pyPLNmodels._viz import _viz_variables, _pca_pairplot
@@ -564,3 +568,13 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     def show(self, axes=None, savefig: bool = False, name_file: str = ""):
         model_viz = self._get_model_viz()
         model_viz.show_zi(axes=axes, savefig=savefig, name_file=name_file)
+
+    @property
+    def _closed_latent_prob(self):
+        return _closed_formula_latent_prob(
+            self._marginal_mean,
+            self._offsets,
+            self._marginal_mean_inflation,
+            self._covariance,
+            self._dirac,
+        )
