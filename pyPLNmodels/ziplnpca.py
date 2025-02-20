@@ -8,7 +8,8 @@ from pyPLNmodels.elbos import elbo_ziplnpca
 from pyPLNmodels._initialization import (
     _init_coef_coef_inflation,
     _init_components,
-    _init_latent_mean,
+    _init_latent_sqrt_variance_pca,
+    _init_latent_mean_pca,
 )
 from pyPLNmodels._data_handler import _process_formula_inflation
 from pyPLNmodels._utils import _add_doc
@@ -209,31 +210,29 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     def fit(
         self,
         *,
-        maxiter: int = 400,
+        maxiter: int = 1000,
         lr: float = 0.01,
-        tol: float = DEFAULT_TOL,
+        tol: float = DEFAULT_TOL / 1000,
         verbose: bool = False,
     ):
 
         super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_latent_parameters(self):
-        self._latent_mean = _init_latent_mean(
+        self._latent_mean = _init_latent_mean_pca(
             endog=self._endog,
             exog=self._exog,
             offsets=self._offsets,
             coef=self.__coef,
             components=self._components,
         )
-        self._latent_sqrt_variance = (
-            1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
+        self._latent_sqrt_variance = _init_latent_sqrt_variance_pca(
+            marginal_mean=self._marginal_mean,
+            offsets=self._offsets,
+            components=self._components,
+            mode=self._latent_mean,
         )
-        if self._use_closed_form_prob is True:
-            self._latent_prob = self._closed_latent_prob
-        else:
-            self._latent_prob = (
-                torch.sigmoid(self._marginal_mean_inflation) * self._dirac
-            )
+        self._latent_prob = self._closed_latent_prob
 
     @property
     def _description(self):
@@ -452,6 +451,8 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         """,
     )
     def compute_elbo(self):
+        if self._use_closed_form_prob is True:
+            self._latent_prob = self._closed_latent_prob
         return elbo_ziplnpca(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
@@ -537,7 +538,3 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     def _project_parameters(self):
         if self._use_closed_form_prob is False:
             super()._project_parameters()
-
-    def _update_closed_forms(self):
-        if self._use_closed_form_prob is True:
-            self._latent_prob = self._closed_latent_prob

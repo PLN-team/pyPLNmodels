@@ -1,14 +1,12 @@
 # pylint: skip-file
-from tests.generate_models import get_dict_models_fitted
-
-fitted_models = get_dict_models_fitted()
+from .conftest import dict_fitted_models
 
 
-def test_method_attributes():
-    for model_name in fitted_models.keys():
+def test_refit_models():
+    for model_name in dict_fitted_models.keys():
         for model_formula, model_explicit in zip(
-            fitted_models[model_name]["formula"],
-            fitted_models[model_name]["explicit"],
+            dict_fitted_models[model_name]["formula"],
+            dict_fitted_models[model_name]["explicit"],
         ):
             model_formula.fit()
             model_explicit.fit()

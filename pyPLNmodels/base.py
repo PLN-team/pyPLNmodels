@@ -321,7 +321,6 @@ class BaseModel(
             The loss value.
         """
         self.optim.zero_grad()
-        self._update_closed_forms()
         elbo = self.compute_elbo()
         if torch.isfinite(elbo).item() is False:
             raise ValueError(
@@ -331,6 +330,7 @@ class BaseModel(
         loss = self._compute_loss(elbo)
         loss.backward()
         self.optim.step()
+        self._update_closed_forms()
         self._project_parameters()
         return elbo.detach().cpu()
 

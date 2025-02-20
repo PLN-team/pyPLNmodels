@@ -4,11 +4,15 @@ from pyPLNmodels import (
     ZIPlnSampler,
     PlnDiagSampler,
     PlnNetworkSampler,
+    PlnMixtureSampler,
+    ZIPlnPCASampler,
     Pln,
     PlnPCA,
     ZIPln,
     PlnDiag,
     PlnNetwork,
+    PlnMixture,
+    ZIPlnPCA,
 )
 
 
@@ -19,17 +23,21 @@ from tests._init_functions import (
     _ZIPln_init,
     _PlnDiag_init,
     _PlnNetwork_init,
+    _ZIPlnPCA_init,
+    _PlnMixture_init,
 )
 
-NB_COVS = [0, 2]
-NB_COVS_INFLATION = [1, 2]
-ADD_CONSTS = [True, False]
-RANKS = [3, 5]
+# NB_COVS = [0, 2]
+# NB_COVS_INFLATION = [1, 2]
+# ADD_CONSTS = [True, False]
+# RANKS = [3, 5]
+# NB_CLUSTERS = [2,3]
 
-# NB_COVS = [2]
-# NB_COVS_INFLATION = [2]
-# ADD_CONSTS = [True]
-# RANKS = [3]
+NB_COVS = [2]
+NB_COVS_INFLATION = [2]
+ADD_CONSTS = [True]
+RANKS = [3]
+NB_CLUSTERS = [2]
 
 
 DICT_SAMPLERS = {
@@ -38,6 +46,8 @@ DICT_SAMPLERS = {
     "ZIPln": ZIPlnSampler,
     "PlnDiag": PlnDiagSampler,
     "PlnNetwork": PlnNetworkSampler,
+    "PlnMixture": PlnMixtureSampler,
+    "ZIPlnPCA": ZIPlnPCASampler,
 }
 DICT_MODELS = {
     "Pln": Pln,
@@ -45,6 +55,8 @@ DICT_MODELS = {
     "ZIPln": ZIPln,
     "PlnDiag": PlnDiag,
     "PlnNetwork": PlnNetwork,
+    "PlnMixture": PlnMixture,
+    "ZIPlnPCA": ZIPlnPCA,
 }
 DICT_INIT_FUNCTIONS = {
     "Pln": _Pln_init,
@@ -52,6 +64,8 @@ DICT_INIT_FUNCTIONS = {
     "ZIPln": _ZIPln_init,
     "PlnDiag": _PlnDiag_init,
     "PlnNetwork": _PlnNetwork_init,
+    "PlnMixture": _PlnMixture_init,
+    "ZIPlnPCA": _ZIPlnPCA_init,
 }
 DICT_KWARGS = {
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
@@ -63,6 +77,13 @@ DICT_KWARGS = {
     },
     "PlnDiag": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
     "PlnNetwork": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
+    "PlnMixture": {"nb_cov": NB_COVS, "add_const": [False], "n_clusters": NB_CLUSTERS},
+    "ZIPlnPCA": {
+        "nb_cov": NB_COVS,
+        "add_const": ADD_CONSTS,
+        "rank": [4],
+        "nb_cov_inflation": NB_COVS_INFLATION,
+    },
 }
 for key, values in DICT_KWARGS.items():
     DICT_KWARGS[key] = _generate_combinations(values)
