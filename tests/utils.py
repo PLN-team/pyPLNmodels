@@ -19,9 +19,9 @@ def _get_formula_inflation(nb_cov, add_const):
     return first_formula + second_formula
 
 
-def mse(t):
+def median(t):
     """Mean squared error of a torch.Tensor."""
-    return torch.mean(t**2)
+    return torch.median(torch.abs(t))
 
 
 def _generate_combinations(input_dict):
@@ -42,3 +42,13 @@ def _get_formula_from_kw(kwargs, is_inflated):
     else:
         formula = _get_formula(nb_cov, add_const)
     return formula
+
+
+def _get_argmax_mapping(tensor):
+    # Calculate the sum of each row
+    row_sums = tensor.sum(dim=1)
+    # Get the indices that would sort the row sums
+    sorted_indices = torch.argsort(row_sums)
+    # Create the argmax mapping
+    argmax_mapping = torch.argsort(sorted_indices)
+    return argmax_mapping

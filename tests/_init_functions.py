@@ -1,4 +1,4 @@
-from pyPLNmodels import Pln, PlnPCA, ZIPln, PlnDiag, PlnNetwork
+from pyPLNmodels import Pln, PlnPCA, ZIPln, PlnDiag, PlnNetwork, PlnMixture, ZIPlnPCA
 
 PENALTY = 1
 
@@ -33,6 +33,51 @@ def _Pln_init(init_method, **kwargs):
 def _PlnDiag_init(init_method, **kwargs):
     _init = _basic_init(PlnDiag)
     return _init(init_method, **kwargs)
+
+
+def _PlnMixture_init(init_method, **kwargs):
+    n_clusters = kwargs.get("n_clusters", None)
+    if init_method == "explicit":
+        endog = kwargs.get("endog", None)
+        exog = kwargs.get("exog", None)
+        offsets = kwargs.get("offsets", None)
+        return PlnMixture(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            add_const=False,
+            n_clusters=n_clusters,
+        )
+    if init_method == "formula":
+        data = kwargs.get("data", None)
+        formula = kwargs.get("formula", None)
+        return PlnMixture.from_formula(formula, data=data, n_clusters=n_clusters)
+    raise ValueError('init_method must be "explicit" or "formula"')
+
+
+def _ZIPlnPCA_init(init_method, **kwargs):
+    rank = kwargs.get("rank", None)
+    if init_method == "explicit":
+        endog = kwargs.get("endog", None)
+        exog = kwargs.get("exog", None)
+        exog_inflation = kwargs.get("exog_inflation", None)
+        offsets = kwargs.get("offsets", None)
+        add_const = kwargs.get("add_const", False)
+        add_const_inflation = kwargs.get("add_const_inflation", False)
+        return ZIPlnPCA(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            add_const=add_const,
+            exog_inflation=exog_inflation,
+            add_const_inflation=add_const_inflation,
+            rank=rank,
+        )
+    if init_method == "formula":
+        data = kwargs.get("data", None)
+        formula = kwargs.get("formula", None)
+        return ZIPlnPCA.from_formula(formula, data=data, rank=rank)
+    raise ValueError('init_method must be "explicit" or "formula"')
 
 
 def _PlnNetwork_init(init_method, **kwargs):

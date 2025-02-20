@@ -213,7 +213,7 @@ def compute_log_posterior(  # pylint: disable=too-many-arguments
     return prior_term + likelihood_term
 
 
-def _init_latent_mean(  # pylint: disable=too-many-arguments
+def _init_latent_mean_pca(  # pylint: disable=too-many-arguments
     *,
     endog: torch.Tensor,
     exog: torch.Tensor,
@@ -280,6 +280,16 @@ def _init_latent_mean(  # pylint: disable=too-many-arguments
         iteration += 1
 
     return latent_mean.detach()
+
+
+def _init_latent_sqrt_variance_pca(marginal_mean, offsets, components, mode):
+    exp_term = torch.exp(offsets + marginal_mean + torch.matmul(mode, components.T))
+    first = components.T.unsqueeze(0) * exp_term.unsqueeze(1)
+    hessian = torch.matmul(first, components.unsqueeze(0)) + torch.eye(
+        mode.shape[1]
+    ).unsqueeze(0)
+    cov_matrix = torch.inverse(hessian)
+    return torch.sqrt(torch.diagonal(cov_matrix, dim1=1, dim2=2))
 
 
 def _init_coef_coef_inflation(*, endog, exog, exog_inflation, offsets):

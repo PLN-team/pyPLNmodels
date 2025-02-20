@@ -5,7 +5,12 @@ import pandas as pd
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.elbos import elbo_plnpca
-from pyPLNmodels._initialization import _init_coef, _init_components, _init_latent_mean
+from pyPLNmodels._initialization import (
+    _init_coef,
+    _init_components,
+    _init_latent_mean_pca,
+    _init_latent_sqrt_variance_pca,
+)
 from pyPLNmodels._data_handler import _extract_data_from_formula, _array2tensor
 from pyPLNmodels._utils import _add_doc
 
@@ -159,16 +164,24 @@ class PlnPCA(BaseModel):
             self._components = _init_components(self._endog, self.rank).to(DEVICE)
 
     def _init_latent_parameters(self):
-        self._latent_mean = _init_latent_mean(
+        self._latent_mean = _init_latent_mean_pca(
             endog=self._endog,
             exog=self._exog,
             offsets=self._offsets,
             coef=self._coef,
             components=self._components,
         )
-        self._latent_sqrt_variance = (
-            1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
-        )
+        if self.n_samples * self.rank**2 > 1e8:
+            self._latent_sqrt_variance = (
+                1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
+            )
+        else:
+            self._latent_sqrt_variance = _init_latent_sqrt_variance_pca(
+                marginal_mean=self._marginal_mean,
+                offsets=self._offsets,
+                components=self._components,
+                mode=self._latent_mean,
+            )
 
     @property
     def rank(self):
