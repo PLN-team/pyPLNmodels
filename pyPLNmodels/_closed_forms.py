@@ -1,4 +1,5 @@
 import torch
+from pyPLNmodels._utils import _phi
 
 
 def _closed_formula_coef(exog: torch.Tensor, latent_mean: torch.Tensor) -> torch.Tensor:
@@ -66,3 +67,19 @@ def _closed_formula_diag_covariance(
         torch.square(latent_sqrt_variance), dim=0
     )
     return closed / n_samples
+
+
+def _closed_formula_latent_prob(
+    marginal_mean, offsets, marginal_mean_infla, cov, dirac
+):
+    """
+    Closed formula for the latent probability using the lambert function.
+    """
+    diag = torch.diag(cov)
+    full_diag = diag.expand(dirac.shape[0], -1)
+    return (
+        torch.sigmoid(
+            marginal_mean_infla - torch.log(_phi(marginal_mean + offsets, full_diag))
+        )
+        * dirac
+    )

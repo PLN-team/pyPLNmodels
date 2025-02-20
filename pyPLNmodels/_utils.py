@@ -299,3 +299,21 @@ def plot_confusion_matrix(
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
+
+
+def _point_fixe_lambert(x, y):
+    return x - (1 - (y * torch.exp(-x) + 1) / (x + 1))
+
+
+def _lambert(y, nb_pf=5):
+    x = torch.log(1 + y)
+    for _ in range(nb_pf):
+        x = _point_fixe_lambert(x, y)
+    return x
+
+
+def _phi(mu, sigma2):
+    y = sigma2 * torch.exp(mu)
+    lamby = _lambert(y)
+    log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
+    return torch.exp(log_num) / torch.sqrt(1 + lamby)
