@@ -287,7 +287,7 @@ def _init_latent_sqrt_variance_pca(marginal_mean, offsets, components, mode):
     first = components.T.unsqueeze(0) * exp_term.unsqueeze(1)
     hessian = torch.matmul(first, components.unsqueeze(0)) + torch.eye(
         mode.shape[1]
-    ).unsqueeze(0)
+    ).unsqueeze(0).to(DEVICE)
     cov_matrix = torch.inverse(hessian)
     return torch.sqrt(torch.diagonal(cov_matrix, dim1=1, dim2=2))
 
@@ -389,8 +389,8 @@ def _init_gmm(latent_positions, n_clusters, seed=0):
         n_components=n_clusters, covariance_type="diag", random_state=seed
     )
     gmm.fit(latent_positions)
-    cluster_bias = torch.from_numpy(gmm.means_)
-    sqrt_covariances = torch.sqrt(torch.from_numpy(gmm.covariances_))
-    weights = torch.from_numpy(gmm.weights_)
-    latent_prob = torch.from_numpy(gmm.predict_proba(latent_positions))
+    cluster_bias = torch.from_numpy(gmm.means_).to(DEVICE)
+    sqrt_covariances = torch.sqrt(torch.from_numpy(gmm.covariances_)).to(DEVICE)
+    weights = torch.from_numpy(gmm.weights_).to(DEVICE)
+    latent_prob = torch.from_numpy(gmm.predict_proba(latent_positions)).to(DEVICE)
     return cluster_bias, sqrt_covariances, weights, latent_prob

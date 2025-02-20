@@ -206,7 +206,7 @@ def per_sample_elb_pln_diag(
     elbo += -0.5 * latent_mean_minus_marginal_mean**2 * diag_precision.unsqueeze(0)
     elbo += 0.5 * torch.log(diag_precision).unsqueeze(0)
     elbo += -_log_stirling(endog)
-    elbo += torch.ones(n_samples, dim) / 2
+    elbo += torch.ones(n_samples, dim).to(endog.device) / 2
     return torch.sum(elbo, dim=-1)
 
 
@@ -256,7 +256,7 @@ def per_sample_elbo_pln_mixture_diag(
     elbo += -0.5 * latent_means_minus_marginal_means**2 * diag_precisions.unsqueeze(1)
     elbo += 0.5 * torch.log(diag_precisions).unsqueeze(1)
     elbo += -_log_stirling(endog.unsqueeze(0))
-    elbo += torch.ones(latent_variances.shape[0], n_samples, dim) / 2
+    elbo += torch.ones(latent_variances.shape[0], n_samples, dim).to(endog.device) / 2
     return torch.sum(elbo, dim=-1)
 
 

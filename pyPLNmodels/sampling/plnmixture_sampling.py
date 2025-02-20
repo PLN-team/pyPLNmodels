@@ -13,6 +13,9 @@ from ._utils import (
 )
 
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attributes
     """
     Initalize the data and parameters of the PLN Mixture model.
@@ -119,10 +122,10 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
 
     def _get_gaussians(self, seed):
         torch.manual_seed(8)
-        gaussians = torch.randn(self.n_samples, self.dim)
+        gaussians = torch.randn(self.n_samples, self.dim, device=DEVICE)
         self.clusters = torch.multinomial(
             self.weights, self.n_samples, replacement=True
-        )
+        ).to(DEVICE)
         for cluster_number in range(self.n_clusters):
             indices = self.clusters == cluster_number
             gaussians[indices] *= torch.sqrt(

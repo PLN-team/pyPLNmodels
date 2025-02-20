@@ -18,7 +18,7 @@ from pyPLNmodels._closed_forms import (
 )
 from pyPLNmodels.elbos import profiled_elbo_zipln
 from pyPLNmodels._utils import _add_doc
-from pyPLNmodels._viz import _viz_variables, _pca_pairplot
+from pyPLNmodels._viz import _viz_variables, _pca_pairplot, ZIModelViz
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -61,6 +61,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
+
+    ModelViz = ZIModelViz
 
     def __init__(
         self,
@@ -563,11 +565,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     @_add_doc(BaseModel)
     def latent_positions(self):
         return self.latent_variables - self.marginal_mean
-
-    @_add_doc(BaseModel)
-    def show(self, axes=None, savefig: bool = False, name_file: str = ""):
-        model_viz = self._get_model_viz()
-        model_viz.show_zi(axes=axes, savefig=savefig, name_file=name_file)
 
     @property
     def _closed_latent_prob(self):

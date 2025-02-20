@@ -10,7 +10,7 @@ from pyPLNmodels.elbos import elbo_pln
 from pyPLNmodels._utils import _add_doc, _two_dim_latent_variances
 from pyPLNmodels._closed_forms import _closed_formula_coef
 from pyPLNmodels._initialization import _init_components_prec, _init_latent_pln
-from pyPLNmodels._viz import _viz_network
+from pyPLNmodels._viz import _viz_network, NetworkModelViz
 from pyPLNmodels._data_handler import _extract_data_from_formula
 
 
@@ -44,6 +44,8 @@ class PlnNetwork(BaseModel):
     penalty: float
     _components_prec: torch.Tensor
     mask: torch.Tensor
+
+    ModelViz = NetworkModelViz
 
     @_add_doc(
         BaseModel,
