@@ -19,7 +19,7 @@ def test_attributes_method():
                 for method in model._useful_methods_list
                 + model._additional_methods_list
                 if method
-                not in [".predict()", ".plot_correlation_circle()", ".biplot()"]
+                not in [".predict()", ".plot_correlation_circle()", ".biplot()", ".predict_prob_inflation()"]
             ]
             for method in methods:  # pylint: disable=protected-access
                 method = method[1:-2]

@@ -474,6 +474,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         - `exog_inflation` should have the shape `(_, nb_cov)`, where `nb_cov` is
           the number of exogenous variables.
         """
+        if exog_inflation is None:
+            raise ValueError("exog_inflation cannot be None.")
         if exog_inflation.shape[-1] != self.nb_cov_inflation:
             error_string = f"X has wrong shape:({exog_inflation.shape}). Should"
             error_string += f" be (integer, {self.nb_cov_inflation})."
