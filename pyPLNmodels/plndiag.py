@@ -8,7 +8,7 @@ from pyPLNmodels.pln import Pln
 from pyPLNmodels.base import BaseModel
 from pyPLNmodels._closed_forms import _closed_formula_diag_covariance
 from pyPLNmodels.elbos import profiled_elbo_pln_diag
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels._utils import _add_doc, _shouldbefitted, _none_if_no_exog
 
 
 class PlnDiag(Pln):
@@ -88,3 +88,132 @@ class PlnDiag(Pln):
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
         )
+
+    @_none_if_no_exog
+    @_shouldbefitted
+    def get_variance_coef(self):
+        """
+        Calculate the variance of the regression coefficients using the sandwich estimator.
+        Returns None if there are no exogenous variables in the model.
+
+        Returns
+        -------
+        torch.Tensor
+            Variance of the regression coefficients.
+
+        Raises
+        ------
+        ValueError
+            If the number of samples is less than the product of the
+            number of covariates and dimensions.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnDiag, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = PlnDiag(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
+        >>> pln.fit()
+        >>> variance = pln.get_variance_coef()
+        >>> print('variance', variance)
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnDiag.summary`
+        :func:`pyPLNmodels.PlnDiag.get_coef_p_values`
+        :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`
+        """
+        return super().get_variance_coef()
+
+    @_none_if_no_exog
+    @_shouldbefitted
+    def get_confidence_interval_coef(self, alpha: float = 0.05):
+        """
+        Calculate the confidence intervals for the regression coefficients.
+        Returns None if there are no exogenous variables in the model.
+
+        Parameters
+        ----------
+        alpha : float (optional)
+            Significance level for the confidence intervals. Defaults to 0.05.
+
+        Returns
+        -------
+        interval_low, interval_high : Tuple(torch.Tensor, torch.Tensor)
+            Lower and upper bounds of the confidence intervals for the coefficients.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnDiag, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = PlnDiag(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
+        >>> pln.fit()
+        >>> interval_low, interval_high = pln.get_confidence_interval_coef()
+
+        >>> import torch
+        >>> from pyPLNmodels import PlnDiag, PlnDiagSampler
+        >>>
+        >>> sampler = PlnDiagSampler(n_samples=1500, add_const=False, nb_cov=4)
+        >>> endog = sampler.sample() # Sample PlnDiag data.
+        >>>
+        >>> pln = PlnDiag(endog, exog=sampler.exog, add_const=False)
+        >>> pln.fit()
+        >>> interval_low, interval_high = pln.get_confidence_interval_coef(alpha=0.05)
+        >>> true_coef = sampler.coef
+        >>> inside_interval = (true_coef > interval_low) & (true_coef < interval_high)
+        >>> print('Should be around 0.95:', torch.mean(inside_interval.float()).item())
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnDiag.summary`
+        :func:`pyPLNmodels.PlnDiag.get_coef_p_values`
+        """
+        return super().get_confidence_interval_coef(alpha=alpha)
+
+    @_none_if_no_exog
+    @_shouldbefitted
+    def get_coef_p_values(self):
+        """
+        Calculate the p-values for the regression coefficients.
+        Returns None if there are no exogenous variables in the model.
+
+        Returns
+        -------
+        p_values : torch.Tensor
+            P-values for the regression coefficients.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnDiag, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = PlnDiag(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
+        >>> pln.fit()
+        >>> p_values = pln.get_coef_p_values()
+        >>> print('P-values: ', p_values)
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnDiag.summary`
+        :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`
+        """
+        return super().get_coef_p_values()
+
+    @_none_if_no_exog
+    @_shouldbefitted
+    def summary(self):
+        """
+        Print a summary of the regression coefficients and their p-values for each dimension.
+        Returns None if there are no exogenous variabes in the model.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnDiag, load_scrna
+        >>> rna_data = load_scrna()
+        >>> pln = PlnDiag(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
+        >>> pln.fit()
+        >>> pln.summary()
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`
+        """
+        return super().summary()
