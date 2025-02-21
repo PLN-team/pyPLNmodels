@@ -19,14 +19,17 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
         self.nb_cov = pln.nb_cov
         self.dim = pln.dim
         self.n_samples = pln.n_samples
-        self._latent_sqrt_variance = pln._latent_sqrt_variance
-        self._latent_mean = pln._latent_mean
+        self._latent_sqrt_variance = pln._latent_sqrt_variance.detach()
+        self._latent_mean = pln._latent_mean.detach()
         self._offsets = pln._offsets
-        self._covariance = pln._covariance
+        if len(pln._covariance.shape) == 1:
+            self._covariance = torch.diag(pln._covariance).detach()
+        else:
+            self._covariance = pln._covariance.detach()
         self._inv_covariance = torch.inverse(self._covariance)
         self._pred_endog = torch.exp(
             self._offsets + self._latent_mean + 0.5 * self._latent_sqrt_variance**2
-        )
+        ).detach()
 
     def get_mat_dn(self):
         """
