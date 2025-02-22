@@ -10,6 +10,7 @@ from .ziplnpca import ZIPlnPCA
 from .network import PlnNetwork
 from .plndiag import PlnDiag
 from .plnmixture import PlnMixture
+from .plnar import PlnAR
 
 from .sampling import (
     PlnSampler,
@@ -19,6 +20,7 @@ from .sampling import (
     PlnNetworkSampler,
     PlnDiagSampler,
     PlnMixtureSampler,
+    PlnARSampler,
 )
 
 from ._utils import get_confusion_matrix, plot_confusion_matrix, get_label_mapping
@@ -44,6 +46,8 @@ __all__ = [
     "PlnDiagSampler",
     "ZIPlnPCASampler",
     "ZIPlnPCA",
+    "PlnARSampler",
+    "PlnAR",
     "get_confusion_matrix",
     "plot_confusion_matrix",
     "get_label_mapping",

@@ -195,10 +195,10 @@ class PlnPCA(BaseModel):
     @property
     @_add_doc(BaseModel)
     def list_of_parameters_needing_gradient(self):
-        list_no_coef = [self._latent_mean, self._latent_sqrt_variance, self._components]
+        list_param = [self._latent_mean, self._latent_sqrt_variance, self._components]
         if self._coef is not None:
-            return list_no_coef + [self._coef]
-        return list_no_coef
+            return list_param + [self._coef]
+        return list_param
 
     @_add_doc(
         BaseModel,

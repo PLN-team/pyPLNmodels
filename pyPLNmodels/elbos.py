@@ -40,7 +40,7 @@ def profiled_elbo_pln(
         The ELBO (Evidence Lower Bound) with size 1.
     """
     n_samples, _ = endog.shape
-    latent_var = torch.square(latent_sqrt_variance)
+    latent_var = latent_sqrt_variance**2
     offsets_plus_mean = offsets + latent_mean
     coef = _closed_formula_coef(exog, latent_mean)
     marginal_mean = exog @ coef if exog is not None else 0
@@ -56,56 +56,6 @@ def profiled_elbo_pln(
     )
     elbo -= torch.sum(_log_stirling(endog))
 
-    return elbo
-
-
-def elbo_pln(
-    *,  # pylint: disable=too-many-arguments
-    endog: torch.Tensor,
-    marginal_mean: torch.Tensor,
-    offsets: torch.Tensor,
-    latent_mean: torch.Tensor,
-    latent_sqrt_variance: torch.Tensor,
-    precision: torch.Tensor,
-) -> torch.Tensor:
-    """
-    Compute the ELBO (Evidence Lower Bound) for the `Pln` model.
-
-    Parameters:
-    ----------
-    endog : torch.Tensor
-        Counts with size (n, p).
-    marginal_mean : torch.Tensor
-        Marginal mean with size (n, p).
-    offsets : torch.Tensor
-        Offset with size (n, p).
-    latent_mean : torch.Tensor
-        Variational parameter with size (n, p).
-    latent_sqrt_variance : torch.Tensor
-        Variational parameter with size (n, p).
-    precision : torch.Tensor
-        Model parameter with size (p, p).
-
-    Returns
-    -------
-    torch.Tensor
-        The ELBO (Evidence Lower Bound), of size one.
-    """
-    n_samples, _ = endog.shape
-    latent_var = torch.square(latent_sqrt_variance)
-    diag_s = torch.diag(torch.sum(latent_var, dim=0))
-    offsets_plus_mean = offsets + latent_mean
-    m_minus_xb = latent_mean - marginal_mean
-    m_moins_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
-    exp_term = torch.exp(offsets_plus_mean + latent_var / 2)
-    elbo = torch.sum(endog * offsets_plus_mean - exp_term + 0.5 * torch.log(latent_var))
-    trace_term = torch.trace(precision @ diag_s) + torch.sum(
-        precision * m_moins_xb_outer
-    )
-    elbo += -0.5 * trace_term
-    elbo += 0.5 * n_samples * torch.logdet(precision)
-    elbo -= torch.sum(_log_stirling(endog))
-    elbo += n_samples * endog.shape[1] / 2
     return elbo
 
 
@@ -142,7 +92,7 @@ def elbo_pln_diag(
         The ELBO (Evidence Lower Bound), of size one.
     """
     n_samples, _ = endog.shape
-    latent_var = torch.square(latent_sqrt_variance)
+    latent_var = latent_sqrt_variance**2
     offsets_plus_mean = offsets + latent_mean
     m_minus_xb = latent_mean - marginal_mean
     exp_term = torch.exp(offsets_plus_mean + latent_var / 2)
@@ -191,7 +141,7 @@ def per_sample_elb_pln_diag(
         the elbo (evidence lower bound) for each sample, of size n_samples.
     """
     n_samples, dim = endog.shape
-    latent_variance = torch.square(latent_sqrt_variance)
+    latent_variance = latent_sqrt_variance**2
     offsets_plus_latent_mean = offsets + latent_mean
     latent_mean_minus_marginal_mean = latent_mean - marginal_mean
     exp_term = torch.exp(offsets_plus_latent_mean + latent_variance / 2)
@@ -241,7 +191,7 @@ def per_sample_elbo_pln_mixture_diag(
         the elbo (evidence lower bound) for each sample, of size n_samples.
     """
     n_samples, dim = endog.shape
-    latent_variances = torch.square(latent_sqrt_variances)
+    latent_variances = latent_sqrt_variances**2
     offsets_plus_latent_means = offsets.unsqueeze(0) + latent_means
     latent_means_minus_marginal_means = latent_means - marginal_means
     exp_term = torch.exp(offsets_plus_latent_means + latent_variances / 2)
@@ -337,7 +287,7 @@ def profiled_elbo_pln_diag(
         The ELBO (Evidence Lower Bound), of size one.
     """
     n_samples, _ = endog.shape
-    latent_var = torch.square(latent_sqrt_variance)
+    latent_var = latent_sqrt_variance**2
     offsets_plus_mean = offsets + latent_mean
     coef = _closed_formula_coef(exog, latent_mean)
     marginal_mean = exog @ coef if exog is not None else 0
@@ -544,7 +494,7 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments
     """
     n_samples = endog.shape[0]
     rank = components.shape[1]
-    latent_variance = torch.square(latent_sqrt_variance)
+    latent_variance = latent_sqrt_variance**2
 
     log_intensity = offsets + marginal_mean + latent_mean @ components.T
 
@@ -553,7 +503,7 @@ def elbo_plnpca(  # pylint: disable=too-many-arguments
         -torch.exp(log_intensity + 0.5 * latent_variance @ (components * components).T)
     )
     elbo += 0.5 * torch.sum(torch.log(latent_variance))
-    elbo -= 0.5 * torch.sum(torch.square(latent_mean) + latent_variance)
+    elbo -= 0.5 * torch.sum(latent_mean**2 + latent_variance)
     elbo -= torch.sum(_log_stirling(endog))
     elbo += 0.5 * n_samples * rank
 
@@ -643,4 +593,121 @@ def profiled_elbo_zipln(
         + logdet_term
         + 0.5 * n_samples * dim
     )
+    return elbo
+
+
+def elbo_pln(
+    *,  # pylint: disable=too-many-arguments
+    endog: torch.Tensor,
+    marginal_mean: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
+    precision: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Compute the ELBO (Evidence Lower Bound) for the `Pln` model.
+
+    Parameters:
+    ----------
+    endog : torch.Tensor
+        Counts with size (n, p).
+    marginal_mean : torch.Tensor
+        Marginal mean with size (n, p).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_variance : torch.Tensor
+        Variational parameter with size (n, p).
+    precision : torch.Tensor
+        Model parameter with size (p, p).
+
+    Returns
+    -------
+    torch.Tensor
+        The ELBO (Evidence Lower Bound), of size one.
+    """
+    n_samples, _ = endog.shape
+    latent_var = latent_sqrt_variance**2
+    diag_s = torch.diag(torch.sum(latent_var, dim=0))
+    offsets_plus_mean = offsets + latent_mean
+    m_minus_xb = latent_mean - marginal_mean
+    m_minus_xb_outer = torch.mm(m_minus_xb.T, m_minus_xb)
+    exp_term = torch.exp(offsets_plus_mean + latent_var / 2)
+    elbo = torch.sum(endog * offsets_plus_mean - exp_term + 0.5 * torch.log(latent_var))
+    trace_term = torch.trace(precision @ diag_s) + torch.sum(
+        precision * m_minus_xb_outer
+    )
+    elbo += -0.5 * trace_term
+    elbo += 0.5 * n_samples * torch.logdet(precision)
+    elbo -= torch.sum(_log_stirling(endog))
+    elbo += n_samples * endog.shape[1] / 2
+    return elbo
+
+
+def elbo_plnar(
+    *,  # pylint: disable=too-many-arguments
+    endog: torch.Tensor,
+    marginal_mean: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
+    covariance: torch.Tensor,
+    ar_matrix: torch.Tensor,
+):
+    """
+    Computes the ELBO for an autoregressive PLN model, i.e. PlnAR model.
+
+    endog : torch.Tensor
+        Counts with size (n, p).
+    marginal_mean : torch.Tensor
+        Marginal mean with size (n, p).
+    offsets : torch.Tensor
+        Offset with size (n, p).
+    latent_mean : torch.Tensor
+        Variational parameter with size (n, p).
+    latent_sqrt_variance : torch.Tensor
+        Variational parameter with size (n, p).
+    covariance : torch.Tensor
+        Model parameter with size (p).
+    ar_matrix: torch.Tensor:
+        Autoregressive model parameter with size (p).
+    """
+    n_samples, dim = endog.shape
+    offsets_plus_mean = offsets + latent_mean
+    latent_variance = latent_sqrt_variance**2
+
+    autoreg_covariance = covariance * (1 - ar_matrix**2)
+    precision = 1 / covariance
+    autoreg_precision = 1 / autoreg_covariance
+
+    elbo = torch.sum(
+        endog * offsets_plus_mean
+        - torch.exp(offsets_plus_mean + latent_variance / 2)
+        + 0.5 * torch.log(latent_variance)
+    ) - torch.sum(_log_stirling(endog))
+
+    elbo += -0.5 * torch.sum((latent_mean[0] - marginal_mean[0]) ** 2 * precision)
+    elbo += 0.5 * torch.sum(torch.log(precision))
+    elbo += -0.5 * torch.sum(precision * latent_variance[0])
+
+    latent_diff = latent_mean - marginal_mean
+    latent_diff_back = latent_diff[1:]
+    ar_term = ar_matrix.unsqueeze(0) * latent_diff[:-1]
+    latent_diff_back_minus_ar = latent_diff_back - ar_term
+
+    elbo += -0.5 * torch.sum(
+        latent_diff_back_minus_ar**2 * autoreg_precision.unsqueeze(0)
+    )
+    elbo += (n_samples - 1) / 2 * torch.sum(torch.log(autoreg_precision))
+    ar_variance_term = (
+        ar_matrix.unsqueeze(0) * latent_variance[:-1] * ar_matrix.unsqueeze(0)
+    )
+    elbo += -0.5 * torch.sum(
+        autoreg_precision.unsqueeze(0) * latent_variance[1:] + ar_variance_term
+    )
+
+    elbo += n_samples * dim / 2
+
     return elbo

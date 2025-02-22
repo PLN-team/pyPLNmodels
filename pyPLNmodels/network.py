@@ -220,6 +220,7 @@ class PlnNetwork(BaseModel):
         self._components_prec = _init_components_prec(self._endog)
 
     @property
+    @_add_doc(BaseModel)
     def list_of_parameters_needing_gradient(self):
         list_params = [
             self._latent_mean,

@@ -10,7 +10,7 @@ from pyPLNmodels._utils import _add_doc, _two_dim_latent_variances
 from pyPLNmodels._initialization import _init_gmm
 from pyPLNmodels.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.plndiag import PlnDiag
-from pyPLNmodels._viz import MixtureModelViz
+from pyPLNmodels._viz import MixtureModelViz, _viz_variables
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -231,14 +231,25 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.predict_clusters`
         :func:`pyPLNmodels.PlnMixture.pca_pairplot`
         """
+        clusters = self.predict_clusters()
         if colors is None:
-            colors = self.predict_clusters()
-        super().viz(
-            ax=ax,
-            colors=colors,
-            show_cov=show_cov,
-            remove_exog_effect=remove_exog_effect,
-        )
+            colors = clusters
+        if show_cov is True:
+            variables, covariances_per_cluster = (
+                self._pca_projected_latent_variables_with_covariances(
+                    remove_exog_effect=remove_exog_effect
+                )
+            )
+            covariances = torch.zeros(self.n_samples, 2, 2).to(DEVICE)
+            for k in range(self.n_clusters):
+                indices = clusters == k
+                covariances[indices] = covariances_per_cluster[k][indices]
+        else:
+            variables = self.projected_latent_variables(
+                remove_exog_effect=remove_exog_effect
+            )
+            covariances = None
+        return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @property
     def covariance(self):
@@ -486,6 +497,7 @@ class PlnMixture(
         return self._latent_prob.detach().cpu()
 
     @property
+    @_add_doc(BaseModel)
     def list_of_parameters_needing_gradient(self):
         """List of parameters needing gradient."""
         list_param = [
@@ -581,7 +593,6 @@ class PlnMixture(
     @property
     def _additional_attributes_list(self):
         return [
-            ".clusters",
             ".covariances",
             ".cluster_bias",
             ".latent_prob",
@@ -598,9 +609,11 @@ class PlnMixture(
         return [".predict_clusters()"]
 
     def _get_two_dim_latent_variances(self, sklearn_components):
-        latent_variances = torch.zeros(self.n_clusters, self.n_samples, 2)
+        latent_variances = torch.zeros(self.n_clusters, self.n_samples, 2, 2)
         for k in range(self.n_clusters):
-            latent_variances[k] = _two_dim_latent_variances(
-                sklearn_components, self.latent_sqrt_variances[k]
+            latent_variances[k] = torch.from_numpy(
+                _two_dim_latent_variances(
+                    sklearn_components, self.latent_sqrt_variances[k]
+                )
             )
         return latent_variances

@@ -342,9 +342,13 @@ class BaseModel(
         self._print_beginning_message()
         if self._fitted is True:
             time_to_remove_from_beginning = self._time_recorder.running_times[-1]
+            running_times = self._time_recorder.running_times
         else:
             time_to_remove_from_beginning = 0
-        self._time_recorder = _TimeRecorder(time_to_remove_from_beginning)
+            running_times = []
+        self._time_recorder = _TimeRecorder(
+            time_to_remove_from_beginning, running_times
+        )
 
     def _print_beginning_message(self):
         print(f"Fitting a {self._name} model with {self._description}")
@@ -677,7 +681,7 @@ class BaseModel(
             variables = self.latent_variables
         pca = PCA(n_components=rank)
         proj_variables = pca.fit_transform(variables)
-        return proj_variables
+        return torch.from_numpy(proj_variables)
 
     def transform(self, remove_exog_effect: bool = False):
         """
