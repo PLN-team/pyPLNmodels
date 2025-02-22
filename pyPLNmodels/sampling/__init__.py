@@ -5,6 +5,7 @@ from .ziplnpca_sampling import ZIPlnPCASampler
 from .network_sampling import PlnNetworkSampler
 from .plndiag_sampling import PlnDiagSampler
 from .plnmixture_sampling import PlnMixtureSampler
+from .plnar_sampling import PlnARSampler
 
 
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "PlnNetworkSampler",
     "PlnDiagSampler",
     "PlnMixtureSampler",
+    "PlnARSampler",
 ]

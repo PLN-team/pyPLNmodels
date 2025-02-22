@@ -34,8 +34,8 @@ def _get_log_sum_of_endog(endog: torch.Tensor) -> torch.Tensor:
 
 
 class _TimeRecorder:  # pylint: disable=too-few-public-methods
-    def __init__(self, time_to_remove_from_beginning):
-        self.running_times = []
+    def __init__(self, time_to_remove_from_beginning, running_times):
+        self.running_times = running_times
         self._beginning_time = time.time() - time_to_remove_from_beginning
 
     def track_running_time(self):
@@ -74,8 +74,8 @@ def _add_doc(
     notes=None,
 ):  # pylint: disable=too-many-arguments
     def wrapper(fun):
-        # if isinstance(fun, classmethod):
-        #     fun = fun.__func__
+        if isinstance(fun, classmethod):
+            fun = fun.__func__
 
         doc = getattr(parent_class, fun.__name__).__doc__
         doc = textwrap.dedent(doc).rstrip(" \n\r")

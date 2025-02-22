@@ -297,7 +297,9 @@ def _init_coef_coef_inflation(*, endog, exog, exog_inflation, offsets):
         endog=endog, exog=exog, exog_inflation=exog_inflation, offsets=offsets
     )
     zip_model.fit()
-    return (zip_model.coef.detach(), zip_model.coef_inflation.detach())
+    coef = zip_model.coef.detach()
+    coef = None if coef.shape[0] == 0 else coef
+    return (coef, zip_model.coef_inflation.detach())
 
 
 def _init_latent_pln(endog):

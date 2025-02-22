@@ -135,6 +135,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         """Rank of the covariance of the Gaussian latent variable."""
         return self._rank
 
+    @classmethod
     @_add_doc(
         BaseModel,
         example="""
@@ -159,7 +160,6 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         :func:`pyPLNmodels.ZIPln.__init__`
     """,
     )
-    @classmethod
     def from_formula(
         cls,
         formula: str,
@@ -502,7 +502,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
             >>> transformed_no_exog = zipca.transform(remove_exog_effect=True, project=True)
         """,
     )
-    def transform(self, remove_exog_effect: bool = False, project=True):
+    def transform(self, remove_exog_effect: bool = False, project=False):
         if project is True:
             return self.projected_latent_variables(
                 rank=self.rank, remove_exog_effect=remove_exog_effect

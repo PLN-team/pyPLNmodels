@@ -90,3 +90,6 @@ class PlnDiagSampler(_BasePlnSampler):
     )
     def sample(self, seed: int = 0) -> torch.Tensor:
         return super().sample(seed=seed)
+
+    def _get_components(self):
+        return torch.sqrt(self.covariance)
