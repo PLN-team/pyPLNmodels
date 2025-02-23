@@ -693,6 +693,10 @@ class BaseModel(
             Whether to remove or not the mean induced by the exogenous variables.
             Default is `False`.
 
+        Returns
+        -------
+        torch.Tensor
+            The transformed endogenous variables (latent variables of the model).
         """
         if remove_exog_effect is True:
             return self.latent_positions

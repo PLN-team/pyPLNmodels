@@ -372,10 +372,6 @@ class PlnNetwork(BaseModel):
 
     @_add_doc(
         BaseModel,
-        returns="""
-        torch.Tensor
-            The transformed endogenous variables (latent variables of the model).
-        """,
         example="""
               >>> from pyPLNmodels import PlnNetwork, load_scrna
               >>> data = load_scrna()
@@ -399,7 +395,6 @@ class PlnNetwork(BaseModel):
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnNetwork, load_scrna
             >>> data = load_scrna()
             >>> net = PlnNetwork(data["endog"], penalty=1)
@@ -414,7 +409,6 @@ class PlnNetwork(BaseModel):
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnNetwork, load_scrna
             >>> data = load_scrna()
             >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data, penalty=1)

@@ -12,10 +12,28 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PlnARSampler(PlnDiagSampler):
     """
-    PLN model with simple autoregressive model on the latent variables. This basically
+    PLN model sampler with simple autoregressive model on the latent variables. This basically
     assumes the latent variable of sample i depends on the latent variable on sample i-1.
-    This assumes the dataset given in the initialization is ordered !
+    This assumes the dataset given in the initialization is ordered ! The covariance is assumed
+    diagonal.
     See ?? for more details.
+
+    Examples
+    --------
+    >>> from pyPLNmodels import PlnARSampler, PlnAR
+    >>> sampler = PlnARSampler()
+    >>> endog = sampler.sample()
+    >>> pln = PlnAR(endog, exog = sampler.exog, add_const = False)
+    >>> pln.fit()
+    >>> estimated_cov = pln.covariance
+    >>> true_covariance = sampler.covariance
+    >>> estimated_latent_var = pln.latent_variables
+    >>> true_latent_var = sampler.latent_variables
+    >>> print('Autoreg matrix:', pln.autoreg_matrix)
+
+    See also
+    --------
+    :class:`pyPLNmodels.PlnDiag`
     """
 
     def __init__(
@@ -29,7 +47,7 @@ class PlnARSampler(PlnDiagSampler):
         marginal_mean_mean: int = 2,
         seed: int = 0,
     ):  # pylint: disable=too-many-arguments
-        self.autoreg_matrix = torch.ones(dim) / 1.2
+        self.autoreg_matrix = torch.ones(dim) / 2
         super().__init__(
             n_samples=n_samples,
             dim=dim,

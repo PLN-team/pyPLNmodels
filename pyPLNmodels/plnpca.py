@@ -314,10 +314,6 @@ class PlnPCA(BaseModel):
         project : bool, optional
             Whether to project the latent variables onto the `rank` first PCs, by default `False`.
         """,
-        returns="""
-        torch.Tensor
-            The transformed endog (latent variables of the model).
-        """,
         example="""
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
@@ -454,7 +450,6 @@ class PlnPCA(BaseModel):
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
             >>> pca = PlnPCA(data["endog"])
@@ -469,7 +464,6 @@ class PlnPCA(BaseModel):
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import PlnPCA, load_scrna
             >>> data = load_scrna()
             >>> pca = PlnPCA.from_formula("endog ~ 1 + labels", data=data)

@@ -186,12 +186,14 @@ Feel free to contribute, but read the [CONTRIBUTING.md](https://forgemia.inra.fr
 
 Please cite our work using the following references:
 
--   J. Chiquet, M. Mariadassou and S. Robin: Variational inference for
+-   J. Chiquet, M. Mariadassou and S. Robin: *Variational inference for
     probabilistic Poisson PCA, the Annals of Applied Statistics, 12:
-        2674–2698, 2018. [pdf](http://dx.doi.org/10.1214/18%2DAOAS1177)
+        2674–2698, 2018.* [pdf](http://dx.doi.org/10.1214/18%2DAOAS1177)
 
--  B. Batardiere, J.Chiquet, M.Mariadassou: Zero-inflation in the Multivariate
-   Poisson Lognormal Family. [pdf](https://arxiv.org/abs/2405.14711)
+-  B. Batardiere, J.Chiquet, M.Mariadassou: *Zero-inflation in the Multivariate
+   Poisson Lognormal Family.* [pdf](https://arxiv.org/abs/2405.14711)
 
--  B. Batardiere, J.Chiquet, M.Mariadassou: Evaluating Parameter Uncertainty in the Poisson
-    Lognormal Model with Corrected Variational Estimators. [pdf](https://arxiv.org/abs/2411.08524)
+-  B. Batardiere, J.Chiquet, M.Mariadassou: *Evaluating Parameter Uncertainty in the Poisson
+    Lognormal Model with Corrected Variational Estimators.* [pdf](https://arxiv.org/abs/2411.08524)
+
+-  B. Batardiere, J.Kwon, J.Chiquet: *pyPLNmodels: A Python package to analyze multivariate high-dimensional count data.* [pdf](https://joss.theoj.org/papers/10.21105/joss.06969)

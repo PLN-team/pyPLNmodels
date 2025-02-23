@@ -467,6 +467,8 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         ------
         RuntimeError
             If the shape of the `exog_inflation` is incorrect.
+        ValueError
+            If the exog inflation given is None.
 
         Notes
         -----
@@ -499,7 +501,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPln, load_microcosm
             >>> data = load_microcosm()
             >>> zi = ZIPln.from_formula("endog ~ 1 + site", data = data)
@@ -538,7 +539,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
         Examples
         --------
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPln, load_microcosm
             >>> data = load_microcosm()
             >>> zi = ZIPln.from_formula("endog ~ 1 + site", data = data)
@@ -551,7 +551,6 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPln, load_scrna
             >>> data = load_scrna()
             >>> zi = ZIPln(data["endog"])
