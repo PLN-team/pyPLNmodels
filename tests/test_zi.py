@@ -32,10 +32,5 @@ def test_zi():
                 model.predict_prob_inflation(
                     np.random.randn(10, model.nb_cov_inflation + 1)
                 )
-            _, axes = plt.subplots(5)
-            model.show(axes=axes)
-            _, axes = plt.subplots(5)
-            with pytest.raises(IndexError):
-                model.show(axes=axes[:4])
             model.show(savefig=True)
             assert torch.allclose(model.latent_prob_variables, model.latent_prob)

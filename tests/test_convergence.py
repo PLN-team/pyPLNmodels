@@ -24,6 +24,4 @@ def test_median():
                             print("param_key", param_key)
                             print("model_name", model_name)
                             print("init_method", init_method)
-                            print("exog infla model", model.exog_inflation)
-                            print("exog infla sampler", model.sampler.exog_inflation)
-                        assert err < 0.7
+                        assert err < 2

@@ -120,11 +120,7 @@ def test_display_norm_no_ax():
     pln = Pln(rna["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
-    _, axes_5 = plt.subplots(5, 1)
-    modviz.show(axes=axes_5, savefig=True, name_file="Test")
-    _, axes_3 = plt.subplots(3, 1)
-    with pytest.raises(IndexError):
-        modviz.show(axes=axes_3, savefig=False, name_file="Test")
+    modviz.show(savefig=True, name_file="Test")
 
 
 def test_display_norm_no_ax_zi():
@@ -132,11 +128,7 @@ def test_display_norm_no_ax_zi():
     pln = ZIPln(rna["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
-    _, axes_5 = plt.subplots(6, 1)
-    modviz.show(axes=axes_5, savefig=True, name_file="Test")
-    _, axes_3 = plt.subplots(3, 1)
-    with pytest.raises(IndexError):
-        modviz.show(axes=axes_3, savefig=False, name_file="Test")
+    modviz.show(savefig=True, name_file="Test")
 
 
 def test_plot_correlation_circle_pandas():

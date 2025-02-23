@@ -76,7 +76,7 @@ def _ZIPlnPCA_init(init_method, **kwargs):
     if init_method == "formula":
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
-        return ZIPlnPCA.from_formula(formula, data=data, rank=rank)
+        return ZIPlnPCA.from_formula(formula, data, rank=rank)
     raise ValueError('init_method must be "explicit" or "formula"')
 
 

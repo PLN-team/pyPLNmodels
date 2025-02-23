@@ -27,17 +27,17 @@ from tests._init_functions import (
     _PlnMixture_init,
 )
 
-# NB_COVS = [0, 2]
-# NB_COVS_INFLATION = [1, 2]
-# ADD_CONSTS = [True, False]
-# RANKS = [3, 5]
-# NB_CLUSTERS = [2,3]
+NB_COVS = [0, 2]
+NB_COVS_INFLATION = [1, 2]
+ADD_CONSTS = [True, False]
+RANKS = [3, 5]
+NB_CLUSTERS = [2, 3]
 
-NB_COVS = [2]
-NB_COVS_INFLATION = [2]
-ADD_CONSTS = [True]
-RANKS = [3]
-NB_CLUSTERS = [2]
+# NB_COVS = [2]
+# NB_COVS_INFLATION = [2]
+# ADD_CONSTS = [True]
+# RANKS = [3]
+# NB_CLUSTERS = [2]
 
 
 DICT_SAMPLERS = {
@@ -145,8 +145,10 @@ def get_dict_models_fitted():
     dict_models = get_dict_models_unfit()
     for model_name in dict_models.keys():
         for model in dict_models[model_name]["formula"]:
+            # model.fit(maxiter=10)
             model.fit()
         for model in dict_models[model_name]["explicit"]:
+            # model.fit(maxiter=10)
             model.fit()
     return dict_models
 
