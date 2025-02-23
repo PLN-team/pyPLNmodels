@@ -100,7 +100,10 @@ def test_bad_elbo():
             for model in unfit_models[model_name][init_method]:
                 model.fit(maxiter=1)
                 with torch.no_grad():
-                    model._latent_sqrt_variance *= 0
+                    if model_name == "PlnMixture":
+                        model._sqrt_covariances *= 0
+                    else:
+                        model._latent_sqrt_variance *= 0
                 with pytest.raises(ValueError):
                     model.fit()
 

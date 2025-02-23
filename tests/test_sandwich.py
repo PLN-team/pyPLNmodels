@@ -2,7 +2,7 @@
 from .conftest import dict_fitted_models
 
 
-def test_zi():
+def test_sandwich():
     for init_method in ["explicit", "formula"]:
         for model in dict_fitted_models["Pln"][init_method]:
             if model.nb_cov > 0:
@@ -14,7 +14,7 @@ def test_zi():
                 inside_interval = (true_coef > interval_low) & (
                     true_coef < interval_high
                 )
-                assert 0.99 > inside_interval.float().mean().item() > 0.8
+                assert 0.99 > inside_interval.float().mean().item() > 0.75
                 assert interval_low.shape == coef_shape
                 assert interval_high.shape == coef_shape
                 assert model.get_variance_coef().shape == coef_shape

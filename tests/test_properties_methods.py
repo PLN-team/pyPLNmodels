@@ -19,7 +19,12 @@ def test_attributes_method():
                 for method in model._useful_methods_list
                 + model._additional_methods_list
                 if method
-                not in [".predict()", ".plot_correlation_circle()", ".biplot()", ".predict_prob_inflation()"]
+                not in [
+                    ".predict()",
+                    ".plot_correlation_circle()",
+                    ".biplot()",
+                    ".predict_prob_inflation()",
+                ]
             ]
             for method in methods:  # pylint: disable=protected-access
                 method = method[1:-2]
@@ -64,10 +69,12 @@ def test_other_attributes():
                 seed=3,
             )
             model.predict(exog)
+
+            print("shape", model.n_samples, model.dim)
             model.plot_correlation_circle(
-                variables_names=["A", "B"], indices_of_variables=[3, 6]
+                variables_names=["A", "B"], indices_of_variables=[2, 6]
             )
-            model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 6])
+            model.biplot(variables_names=["A", "B"], indices_of_variables=[2, 4])
             if model.nb_cov == 0:
                 exog = _get_exog(
                     n_samples=model.n_samples, nb_cov=1, will_add_const=False, seed=3
