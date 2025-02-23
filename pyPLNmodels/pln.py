@@ -23,6 +23,12 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 class Pln(BaseModel):
     """Simplest model, that is the original PLN model from
     Aitchison, J., and C. H. Ho. “The Multivariate Poisson-Log Normal Distribution.” Biometrika.
+    Variance estimation of regression coefficients are available,
+    thanks to:
+    "Evaluating Parameter Uncertainty in the Poisson Lognormal Model
+    with Corrected Variational Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
+
+        .
 
     Examples
     --------
@@ -39,6 +45,16 @@ class Pln(BaseModel):
     >>> pln.fit()
     >>> print(pln)
     >>> pln.viz(colors=data["labels"])
+
+
+    See also
+    --------
+    :class:`pyPLNmodels.PlnDiag`
+    :class:`pyPLNmodels.PlnPCA`
+    :class:`pyPLNmodels.PlnAR`
+    :class:`pyPLNmodels.sandwich.SandwichPln`
+    :func:`pyPLNmodels.Pln.__init__`
+    :func:`pyPLNmodels.Pln.from_formula`
     """
 
     @_add_doc(
@@ -308,10 +324,6 @@ class Pln(BaseModel):
 
     @_add_doc(
         BaseModel,
-        returns="""
-        torch.Tensor
-            The transformed endogenous variables (latent variables of the model).
-        """,
         example="""
               >>> from pyPLNmodels import Pln, load_scrna
               >>> data = load_scrna()
@@ -335,7 +347,6 @@ class Pln(BaseModel):
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, load_scrna
             >>> data = load_scrna()
             >>> pln = Pln(data["endog"])
@@ -350,7 +361,6 @@ class Pln(BaseModel):
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import Pln, load_scrna
             >>> data = load_scrna()
             >>> pln = Pln.from_formula("endog ~ 1 + labels", data=data)

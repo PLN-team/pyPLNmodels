@@ -374,7 +374,6 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPlnPCA, load_microcosm
             >>> data = load_microcosm()
             >>> zipca = ZIPlnPCA.from_formula("endog ~ 1 + site", data = data)
@@ -413,7 +412,6 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
 
         Examples
         --------
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPlnPCA, load_microcosm
             >>> data = load_microcosm()
             >>> zipca = ZIPlnPCA.from_formula("endog ~ 1 + site", data = data)
@@ -427,7 +425,6 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     @_add_doc(
         BaseModel,
         example="""
-            >>> import matplotlib.pyplot as plt
             >>> from pyPLNmodels import ZIPlnPCA, load_scrna
             >>> data = load_scrna()
             >>> zipca = ZIPlnPCA(data["endog"])
@@ -485,10 +482,6 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         params="""
         project : bool, optional
             Whether to project the latent variables onto the `rank` first PCs, by default `False`.
-        """,
-        returns="""
-        torch.Tensor
-            The transformed endog (latent variables of the model).
         """,
         example="""
             >>> from pyPLNmodels import ZIPlnPCA, load_scrna

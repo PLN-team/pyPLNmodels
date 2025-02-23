@@ -25,7 +25,6 @@ class PlnMixture(
     Examples
     --------
     >>> import seaborn as sns
-    >>> import matplotlib.pyplot as plt
     >>> from pyPLNmodels import PlnMixture, load_scrna
     >>> data = load_scrna()
     >>> mixture = PlnMixture(data["endog]",n_clusters = 2)
@@ -215,7 +214,6 @@ class PlnMixture(
 
         Examples
         --------
-        >>> import matplotlib.pyplot as plt
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
         >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 2)
