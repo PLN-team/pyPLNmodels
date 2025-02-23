@@ -19,6 +19,7 @@ def load_microcosm(
         Lucie Rault, Sarah Barbey, Emmanuelle Helloin, Olivier Rué, Sophie Schbath,
         Frederic Launay, Olivier Sandra, Rachel Lefebvre, Yves Le Loir, Pierre Germon,
         Christine Citti & Sergine Even
+        https://animalmicrobiome.biomedcentral.com/articles/10.1186/s42523-023-00252-w
 
     Parameters
     ----------
