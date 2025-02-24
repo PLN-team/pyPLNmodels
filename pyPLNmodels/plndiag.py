@@ -220,3 +220,8 @@ class PlnDiag(Pln):
         :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`
         """
         return super().summary()
+
+    @property
+    @_add_doc(BaseModel)
+    def number_of_parameters(self):
+        return self.dim * (self.nb_cov + 1)

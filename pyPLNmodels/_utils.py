@@ -218,7 +218,7 @@ def _none_if_no_exog(func):
     return _func
 
 
-def _two_dim_latent_variances(components, latent_sqrt_variance):
+def _get_two_dim_latent_variances(components, latent_sqrt_variance):
     components_var = np.expand_dims(latent_sqrt_variance**2, 1) * np.expand_dims(
         components, 0
     )

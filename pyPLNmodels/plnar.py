@@ -5,15 +5,18 @@ import pandas as pd
 import numpy as np
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels.plndiag import PlnDiag
 from pyPLNmodels.elbos import per_entry_elbo_plnar
-from pyPLNmodels._initialization import _init_coef
-from pyPLNmodels._utils import _add_doc, _process_indices_of_variables
+from pyPLNmodels._initialization import _init_coef, _init_latent_pln
+from pyPLNmodels._utils import (
+    _add_doc,
+    _process_indices_of_variables,
+    _get_two_dim_latent_variances,
+)
 from pyPLNmodels._viz import _viz_dims, ARModelViz
 from pyPLNmodels._data_handler import _extract_data_from_formula
 
 
-class PlnAR(PlnDiag):
+class PlnAR(BaseModel):
     """
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
@@ -168,24 +171,6 @@ class PlnAR(PlnDiag):
         )
         self._autoreg_diff_term = torch.ones(self.dim) / 2
         self._sqrt_covariance = torch.ones(self.dim) / 2
-
-    @property
-    @_add_doc(
-        BaseModel,
-        example="""
-        >>> from pyPLNmodels import PlnAR, load_crossover
-        >>> data = load_crossover()
-        >>> ar = PlnAR.from_formula("endog ~ 1", data)
-        >>> ar.fit()
-        >>> print(ar.latent_variables.shape)
-        >>> ar.viz() # Visualize the latent variables
-        """,
-        see_also="""
-        :func:`pyPLNmodels.PlnAR.latent_positions`
-        """,
-    )
-    def latent_variables(self):
-        return super().latent_variables
 
     @property
     @_add_doc(
@@ -449,3 +434,41 @@ class PlnAR(PlnDiag):
         return [
             ".ar_coef",
         ]
+
+    @property
+    def _description(self):
+        return f"autoregressive type {self._autoreg_type}."
+
+    def _init_latent_parameters(self):
+        self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(self._endog)
+
+    @property
+    def dict_latent_parameters(self):
+        return self._default_dict_latent_parameters
+
+    @property
+    def number_of_parameters(self):
+        if self._autoreg_type == "diagonal":
+            return self.dim * (self.nb_cov + 2)
+        return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
+
+    def _get_two_dim_latent_variances(self, sklearn_components):
+        _get_two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
+
+    @property
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnAR, load_scrna
+        >>> data = load_scrna()
+        >>> ar = PlnAR.from_formula("endog ~ 1", data)
+        >>> ar.fit()
+        >>> print(ar.latent_variables.shape)
+        >>> ar.viz() # Visualize the latent variables
+        """,
+        see_also="""
+        :func:`pyPLNmodels.PlnAR.latent_positions`
+        """,
+    )
+    def latent_variables(self):
+        return self.latent_mean
