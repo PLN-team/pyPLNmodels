@@ -206,7 +206,7 @@ class PlnMixture(
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot, by default `None`.
         colors : list, optional
-            The colors to color the latent variables for the plot, by default the inferred clusters.
+            The labels to color the samples, of size `n_samples`.
         show_cov : bool, optional
             Whether to show covariances, by default False.
         remove_exog_effect: bool, optional
@@ -333,6 +333,7 @@ class PlnMixture(
             If `indices_of_variables` is `None`, the variables plotted
             are the ones in `variables_names`. If `indices_of_variables`
             is not `None`, this only serves as a legend.
+            Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
@@ -341,15 +342,13 @@ class PlnMixture(
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
-            The colors to use for the plot, by default the inferred clusters.
+            The labels to color the samples, by default the inferred clusters.
 
         Raises
         ------
         ValueError
-            If `indices_of_variables` is None and `column_names_endog` is not set,
-            that has been set if the model has been initialized with a pd.DataFrame as `endog`.
-        ValueError
-            If the length of `indices_of_variables` is different
+            If `indices_of_variables`  is not None and
+            the length of `indices_of_variables` is different
             from the length of `variables_names`.
 
         Examples

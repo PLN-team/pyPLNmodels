@@ -234,6 +234,7 @@ class BaseModel(
             If `indices_of_variables` is `None`, the variables plotted are the
             ones in `variables_names`. If `indices_of_variables` is not `None`,
             this only serves as a legend.
+            Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
@@ -281,6 +282,7 @@ class BaseModel(
             If `indices_of_variables` is `None`, the variables plotted
             are the ones in `variables_names`. If `indices_of_variables`
             is not `None`, this only serves as a legend.
+            Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
@@ -289,7 +291,7 @@ class BaseModel(
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
-            The colors to use for the plot, by default `None`.
+            The labels to color the samples, of size `n_samples`.
 
         Raises
         ------
@@ -737,7 +739,7 @@ class BaseModel(
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot, by default `None`.
         colors : list, optional
-            The colors to color the latent variables for the plot, by default `None`.
+            The labels to color the samples, of size `n_samples`.
         show_cov : bool, optional
             Whether to show covariances, by default False.
         remove_exog_effect: bool, optional
@@ -1006,7 +1008,8 @@ class BaseModel(
             The matplotlib axis to use. If `None`, the current axis is used, by default `None`.
 
         colors : Optional[Any], optional
-            The colors to use for plotting, by default `None`.
+            The labels to color the samples, of size `n_samples`.
+            By default `None` (no colors).
 
         Returns
         -------
@@ -1021,7 +1024,9 @@ class BaseModel(
         :func:`pyPLNmodels.PlnPCA.biplot`
         """
         endog_predictions = self._endog_predictions
-        reconstruction_error = torch.mean((self.endog - endog_predictions) ** 2)
+        reconstruction_error = torch.mean(
+            torch.nan_to_num((self.endog - endog_predictions) ** 2)
+        )
         return _plot_expected_vs_true(
             self.endog, endog_predictions, reconstruction_error, ax=ax, colors=colors
         )

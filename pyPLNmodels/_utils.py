@@ -317,3 +317,9 @@ def _phi(mu, sigma2):
     lamby = _lambert(y)
     log_num = -1 / (2 * sigma2) * (lamby**2 + 2 * lamby)
     return torch.exp(log_num) / torch.sqrt(1 + lamby)
+
+
+def _remove_nan(tens):
+    return torch.where(
+        torch.isfinite(tens), tens, torch.tensor(0.0, device=tens.device)
+    )

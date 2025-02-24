@@ -408,7 +408,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot, by default `None`.
         colors : list, optional
-            The colors to color the probabilities for the plot, by default `None`.
+            The labels to color the samples, of size `n_samples`.
 
         Examples
         --------
