@@ -9,6 +9,7 @@ from pyPLNmodels.base import BaseModel
 from pyPLNmodels._closed_forms import _closed_formula_diag_covariance
 from pyPLNmodels.elbos import profiled_elbo_pln_diag
 from pyPLNmodels._utils import _add_doc, _shouldbefitted, _none_if_no_exog
+from pyPLNmodels._viz import DiagModelViz
 
 
 class PlnDiag(Pln):
@@ -31,6 +32,8 @@ class PlnDiag(Pln):
     >>> print(pln)
     >>> pln.viz(colors=data["labels"])
     """
+
+    ModelViz = DiagModelViz
 
     @_add_doc(
         BaseModel,

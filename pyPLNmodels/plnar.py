@@ -6,9 +6,11 @@ import numpy as np
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.plndiag import PlnDiag
-from pyPLNmodels.elbos import elbo_plnar
+from pyPLNmodels.elbos import per_entry_elbo_plnar
 from pyPLNmodels._initialization import _init_coef
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels._utils import _add_doc, _process_indices_of_variables
+from pyPLNmodels._viz import _viz_dims, ARModelViz
+from pyPLNmodels._data_handler import _extract_data_from_formula
 
 
 class PlnAR(PlnDiag):
@@ -40,6 +42,8 @@ class PlnAR(PlnDiag):
     __coef: torch.Tensor
     _sqrt_covariance: torch.Tensor
 
+    ModelViz = ARModelViz
+
     @_add_doc(
         BaseModel,
         example="""
@@ -65,7 +69,9 @@ class PlnAR(PlnDiag):
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
+        autoreg_type: {"spherical", "diagonal"} = "spherical",
     ):  # pylint: disable=too-many-arguments
+        self._autoreg_type = autoreg_type
         super().__init__(
             endog,
             exog=exog,
@@ -96,11 +102,16 @@ class PlnAR(PlnDiag):
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
+        autoreg_type: {"spherical", "diagonal"} = "spherical",
     ):
-        return super().from_formula(
-            formula=formula,
-            data=data,
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            endog,
+            autoreg_type=autoreg_type,
+            exog=exog,
+            offsets=offsets,
             compute_offsets_method=compute_offsets_method,
+            add_const=False,
         )
 
     @_add_doc(
@@ -141,14 +152,14 @@ class PlnAR(PlnDiag):
         """,
     )
     def compute_elbo(self):
-        return elbo_plnar(
+        return per_entry_elbo_plnar(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
             offsets=self._offsets,
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
             covariance=self._covariance,
-            ar_matrix=self._autoreg_matrix,
+            ar_coef=self._ar_coef,
         )
 
     def _init_model_parameters(self):
@@ -275,7 +286,34 @@ class PlnAR(PlnDiag):
 
     @property
     def _endog_predictions(self):
-        raise NotImplementedError("Should take into account the time.")
+        raise NotImplementedError("Should be implemented.")
+        # first_mean = self.latent_mean[0]
+        # first_var = self.latent_sqrt_variance[0]**2
+        # mean_cond = torch.zeros(self.n_samples, self.dim)
+        # mean_cond[0] = first_mean
+        # var_cond = torch.zeros(self.n_samples, self.dim)
+        # var_cond[0] = first_var
+        # for i in range(1, self.n_samples):
+        #     mean_cond[i] = (
+        #         self.ar_coef * mean_cond[i - 1]
+        #         + (1 - self.ar_coef) * self.marginal_mean[i]
+        #     )
+        #     var_cond[i] = self.ar_coef**2 * var_cond[i - 1] + self.covariance * (
+        #         1 - self.ar_coef**2
+        #     )
+
+        # first_mean = self.latent_mean[0]
+        # first_var = self.latent_sqrt_variance[0]**2
+        # backward_mean = (
+        #     self.ar_coef * self.latent_mean[0:-1]
+        #     + (1 - self.ar_coef) * self.marginal_mean[1:]
+        # )
+        # backward_var = self.ar_coef**2 * self.latent_sqrt_variance[
+        #     0:-1
+        # ] + self.covariance * (1 - self.ar_coef**2).unsqueeze(0)
+        # mean_cond = torch.concat([first_mean.unsqueeze(0), backward_mean], dim=0)
+        # var_cond = torch.concat([first_var.unsqueeze(0), backward_var], dim=0)
+        # return torch.exp(self.offsets + mean_cond + var_cond / 2)
 
     @_add_doc(
         BaseModel,
@@ -324,17 +362,17 @@ class PlnAR(PlnDiag):
         return self._sqrt_covariance**2
 
     @property
-    def _autoreg_matrix(self):
+    def _ar_coef(self):
         return 1 / (1 + self._autoreg_diff_term**2)
 
     @property
-    def autoreg_matrix(self):
+    def ar_coef(self):
         """
         Autoregressive model parameters of size p. Defines the correlation
         between sample i and sample i-1 for each dimension.
         The greater the value, the greater the autocorrelation.
         """
-        return self._autoreg_matrix.detach().cpu()
+        return self._ar_coef.detach().cpu()
 
     @property
     @_add_doc(BaseModel)
@@ -355,5 +393,59 @@ class PlnAR(PlnDiag):
         return {
             "coef": self.coef,
             "covariance": self.covariance,
-            "autoreg_matrix": self.autoreg_matrix,
+            "ar_coef": self.ar_coef,
         }
+
+    def viz_dims(
+        self,
+        variables_names,
+        indices_of_variables: np.ndarray = None,
+        display: {"stretch", "keep"} = "stretch",
+        colors: np.ndarray = None,
+    ):
+        """
+        Parameters
+        ----------
+        variables_names : List[str]
+            A list of variable names to visualize.
+            If `indices_of_variables` is `None`, the variables plotted
+            are the ones in `variables_names`. If `indices_of_variables`
+            is not `None`, this only serves as a legend.
+            Check the attribute `column_names_endog`.
+        indices_of_variables : Optional[List[int]], optional keyword-only
+            A list of indices corresponding to the variables that should be plotted.
+            If `None`, the indices are determined based on `column_names_endog`
+            given the `variables_names`, by default `None`.
+            If not None, should have the same length as `variables_names`.
+        display : str (Optional)
+            How to display the time series when nan are at stake.
+            - "stretch": stretch the time serie so that all time series
+              seems to have the same length.
+            - "keep": Shorter time series will be displayed shorter.
+        colors : list, optional, keyword-only
+            The labels to color the samples, of size `n_samples`.
+        """
+        indices_of_variables = _process_indices_of_variables(
+            variables_names, indices_of_variables, self.column_names_endog
+        )
+        if display not in ["stretch", "keep"]:
+            msg = "`display` keyword have only two possible values: 'stretch' and 'keep', got"
+            msg += str(display)
+            raise ValueError(msg)
+        _viz_dims(
+            variables=self.latent_variables,
+            indices_of_variables=indices_of_variables,
+            variables_names=variables_names,
+            colors=colors,
+            display=display,
+        )
+
+    @property
+    def _additional_methods_list(self):
+        return ["._viz_dims()"]
+
+    @property
+    def _additional_attributes_list(self):
+        return [
+            ".ar_coef",
+        ]

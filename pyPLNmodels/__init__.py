@@ -1,6 +1,12 @@
 import importlib.metadata
 
-from .load_data import load_oaks, load_scrna, load_microcosm
+from .load_data import (
+    load_oaks,
+    load_scrna,
+    load_microcosm,
+    load_crossover,
+    load_crossover_per_species,
+)
 
 from .pln import Pln
 from .plnpca import PlnPCA
@@ -32,6 +38,8 @@ __all__ = [
     "load_oaks",
     "load_scrna",
     "load_microcosm",
+    "load_crossover",
+    "load_crossover_per_species",
     "Pln",
     "PlnPCA",
     "PlnPCAcollection",

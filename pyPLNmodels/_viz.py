@@ -141,7 +141,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     indices_of_variables : list, keyword-only
         List of indices of the variables to be considered in the plot.
     colors : Optional[np.ndarray], optional, keyword-only
-        The colors to use for plotting, by default `None` (no colors).
+        The labels to color the samples, of size `n_samples`.
     title : str, keyword-only
         Additional title on the plot.
 
@@ -249,21 +249,18 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         relationship_matrix = self._get_relationship_matrix()
         dim = relationship_matrix.shape[0]
         is_diagonal = len(relationship_matrix.shape) == 1
-        if dim > 400:
-            if is_diagonal is True:
-                cov_to_show = torch.diag(
-                    relationship_matrix[:400]
-                )  # Diagonal relationship_matrix
-            else:
-                cov_to_show = relationship_matrix[:400, :400]
-            warnings.warn("Only displaying the first 400 variables.")
+        if is_diagonal is True:
+            cov_to_show = relationship_matrix.unsqueeze(0)
         else:
-            if is_diagonal is True:
-                cov_to_show = torch.diag(relationship_matrix)
+
+            if dim > 400:
+                cov_to_show = relationship_matrix[:400, :400]
+                warnings.warn("Only displaying the first 400 variables.")
             else:
                 cov_to_show = relationship_matrix
         sns.heatmap(cov_to_show, ax=ax)
         ax.set_title(self._relationship_matrix_title)
+        _set_tick_labels_columns(ax, self.column_names)
 
     def _get_relationship_matrix(self):
         return self._params["covariance"]
@@ -289,7 +286,8 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
                 transform=ax.transAxes,
             )
 
-        ax.set_xlabel("Regression Coefficient Matrix", fontsize=9)
+        ax.set_title("Regression Coefficient Matrix", fontsize=9)
+        _set_tick_labels_columns(ax, self.column_names)
 
     def display_norm_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -328,7 +326,7 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = plt.figure(figsize=(23, 5))
+        fig = _get_figure()
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -346,6 +344,62 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
             plt.savefig(name_file + self._name + ".pdf", format="pdf")
 
         plt.show()
+
+
+class DiagModelViz(BaseModelViz):
+    """
+    Model visualization class for a Pln model with diagonal covariance.
+    """
+
+    @property
+    def _relationship_matrix_title(self):
+        return "Variance coefficients (Covariance is diagonal)."
+
+
+class ARModelViz(BaseModelViz):
+    """
+    Model visualization class for a Pln model with autoregressive.
+    """
+
+    def show(self, *, savefig, name_file):
+        """
+        Display the model parameters and the norm of the parameters.
+        """
+        fig = _get_figure()
+        gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
+
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[0, 2])
+
+        ax4 = fig.add_subplot(gs[1, 0])
+        ax5 = fig.add_subplot(gs[1, 1:])
+
+        self.display_relationship_matrix(ax=ax1)
+        self.display_norm_evolution(ax=ax2)
+        self.display_criterion_evolution(ax=ax3)
+        self.display_autoreg(ax=ax4)
+        self.display_coef(ax=ax5)
+
+        if savefig is True:
+            plt.savefig(name_file + self._name + ".pdf", format="pdf")
+
+        plt.show()
+
+    def display_autoreg(self, *, ax: matplotlib.axes.Axes):
+        """
+        Display a heatmap of the model covariance.
+        """
+        autoreg = self._params["autoreg_matrix"].unsqueeze(0)
+        sns.heatmap(autoreg, ax=ax)
+        ax.set_title("Autoregression coefficients")
+        _set_tick_labels_columns(ax, self.column_names)
+
+    @property
+    def _relationship_matrix_title(self):
+        if len(self._params["covariance"].shape) == 1:
+            return "Variance coefficients (Covariance is diagonal)."
+        return "Covariance Matrix"
 
 
 class NetworkModelViz(BaseModelViz):
@@ -372,7 +426,7 @@ class ZIModelViz(BaseModelViz):
         coefficient. Graphs are reordered so that `coef` and `coef_inflation`
         can be directly compared (compared to `show`).
         """
-        fig = plt.figure(figsize=(23, 5))
+        fig = _get_figure()
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
@@ -397,6 +451,7 @@ class ZIModelViz(BaseModelViz):
         coef_inflation = self._params["coef_inflation"]
         sns.heatmap(coef_inflation, ax=ax)
         ax.set_title("Zero inflation Regression Coefficient Matrix")
+        _set_tick_labels_columns(ax, self.column_names)
 
 
 class MixtureModelViz(BaseModelViz):
@@ -411,7 +466,7 @@ class MixtureModelViz(BaseModelViz):
 
         n_clusters = len(weights)
 
-        fig = plt.figure(figsize=(23, 5))
+        fig = _get_figure()
         gs = gridspec.GridSpec(3, n_clusters + 2, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0:n_clusters])
@@ -587,7 +642,7 @@ def _plot_expected_vs_true(
     ax : matplotlib.axes.Axes, optional
         The matplotlib axis to use. If `None`, the current axis is used.
     colors : np.ndarray, optional
-        The colors to use for plotting.
+            The labels to color the samples, of size `n_samples`.
 
     Returns
     -------
@@ -601,7 +656,7 @@ def _plot_expected_vs_true(
 
     _plot_scatter(ax, endog_ravel, predictions, colors)
 
-    max_y = int(torch.max(endog_ravel).item())
+    max_y = int(torch.max(torch.nan_to_num(endog_ravel)).item())
     _plot_identity_line(ax, max_y)
     _set_axis_attributes(ax, reconstruction_error, max_y)
 
@@ -674,3 +729,32 @@ def _build_graph(precision, node_labels=None):
             if precision[i, j] != 0:
                 graph.add_edge(i, j, weight=precision[i, j])
     return graph
+
+
+def _viz_dims(*, variables, indices_of_variables, variables_names, colors, display):
+    _, axes = plt.subplots(len(variables_names))
+    absc = np.arange(variables.shape[0])
+    min_y = torch.min(torch.nan_to_num(variables))
+    max_y = torch.max(torch.nan_to_num(variables))
+    for i, (dim, name) in enumerate(zip(indices_of_variables, variables_names)):
+        y = variables[:, dim]
+        sns.scatterplot(x=absc, y=y, ax=axes[i], hue=colors)
+        axes[i].set_title(name)
+        if display == "keep":
+            axes[i].set_xlim(absc[0], absc[-1])
+        axes[i].set_ylim(min_y, max_y)
+    plt.show()
+
+
+def _set_tick_labels_columns(ax, column_names):
+    tick_positions = ax.get_xticks()
+    tick_labels = [
+        column_names[int(pos)] for pos in tick_positions if int(pos) < len(column_names)
+    ]
+
+    ax.set_xticks(tick_positions)
+    ax.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+
+
+def _get_figure():
+    return plt.figure(figsize=(10, 8))
