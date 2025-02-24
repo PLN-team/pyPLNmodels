@@ -7,7 +7,7 @@ import pandas as pd
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.elbos import elbo_pln
-from pyPLNmodels._utils import _add_doc, _two_dim_latent_variances
+from pyPLNmodels._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels._closed_forms import _closed_formula_coef
 from pyPLNmodels._initialization import _init_components_prec, _init_latent_pln
 from pyPLNmodels._viz import _viz_network, NetworkModelViz
@@ -272,7 +272,7 @@ class PlnNetwork(BaseModel):
         return [".nb_zeros_precision"]
 
     def _get_two_dim_latent_variances(self, sklearn_components):
-        _two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
+        _get_two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
 
     @property
     @_add_doc(

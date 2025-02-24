@@ -6,7 +6,7 @@ import numpy as np
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._data_handler import _extract_data_from_formula
-from pyPLNmodels._utils import _add_doc, _two_dim_latent_variances
+from pyPLNmodels._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels._initialization import _init_gmm
 from pyPLNmodels.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.plndiag import PlnDiag
@@ -609,7 +609,7 @@ class PlnMixture(
         latent_variances = torch.zeros(self.n_clusters, self.n_samples, 2, 2)
         for k in range(self.n_clusters):
             latent_variances[k] = torch.from_numpy(
-                _two_dim_latent_variances(
+                _get_two_dim_latent_variances(
                     sklearn_components, self.latent_sqrt_variances[k]
                 )
             )

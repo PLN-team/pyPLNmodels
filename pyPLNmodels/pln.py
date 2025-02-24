@@ -11,7 +11,7 @@ from pyPLNmodels._utils import (
     _add_doc,
     _shouldbefitted,
     _none_if_no_exog,
-    _two_dim_latent_variances,
+    _get_two_dim_latent_variances,
 )
 from pyPLNmodels.sandwich import SandwichPln
 from pyPLNmodels._initialization import _init_latent_pln
@@ -206,7 +206,7 @@ class Pln(BaseModel):
         )
 
     def _get_two_dim_latent_variances(self, sklearn_components):
-        _two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
+        _get_two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
 
     @property
     @_add_doc(
