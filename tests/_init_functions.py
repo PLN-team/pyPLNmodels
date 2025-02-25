@@ -65,22 +65,23 @@ def _PlnMixture_init(init_method, **kwargs):
 
 
 def _PlnAR_init(init_method, **kwargs):
-    autoreg_type = kwargs.get("autoreg_type", None)
+    ar_type = kwargs.get("ar_type", None)
     if init_method == "explicit":
         endog = kwargs.get("endog", None)
         exog = kwargs.get("exog", None)
+        add_const = kwargs.get("add_const", False)
         offsets = kwargs.get("offsets", None)
         return PlnAR(
             endog=endog,
             exog=exog,
             offsets=offsets,
-            add_const=False,
-            autoreg_type=autoreg_type,
+            add_const=add_const,
+            ar_type=ar_type,
         )
     if init_method == "formula":
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
-        return PlnAR.from_formula(formula, data=data, autoreg_type=autoreg_type)
+        return PlnAR.from_formula(formula, data=data, ar_type=ar_type)
     raise ValueError('init_method must be "explicit" or "formula"')
 
 

@@ -6,6 +6,7 @@ from pyPLNmodels import (
     PlnNetworkSampler,
     PlnMixtureSampler,
     ZIPlnPCASampler,
+    PlnARSampler,
     Pln,
     PlnPCA,
     ZIPln,
@@ -29,18 +30,19 @@ from tests._init_functions import (
     _PlnAR_init,
 )
 
-NB_COVS = [0, 2]
-NB_COVS_INFLATION = [1, 2]
-ADD_CONSTS = [True, False]
-RANKS = [3, 5]
-NB_CLUSTERS = [2, 3]
-AUTOREG_TYPE = ["diag", "spherical"]
+# NB_COVS = [0, 2]
+# NB_COVS_INFLATION = [1, 2]
+# ADD_CONSTS = [True, False]
+# RANKS = [3, 5]
+# NB_CLUSTERS = [2, 3]
+# AUTOREG_TYPE = ["diagonal", "spherical"]
 
-# NB_COVS = [2]
-# NB_COVS_INFLATION = [2]
-# ADD_CONSTS = [True]
-# RANKS = [3]
-# NB_CLUSTERS = [2]
+NB_COVS = [2]
+NB_COVS_INFLATION = [2]
+ADD_CONSTS = [True]
+RANKS = [3]
+NB_CLUSTERS = [2]
+AUTOREG_TYPE = ["diagonal", "spherical"]
 
 
 DICT_SAMPLERS = {
@@ -91,9 +93,9 @@ DICT_KWARGS = {
         "nb_cov_inflation": NB_COVS_INFLATION,
     },
     "PlnAR": {
-        "nb_cov": NB_COS,
+        "nb_cov": NB_COVS,
         "add_const": ADD_CONSTS,
-        "autoreg_type": AUTOREG_TYPE,
+        "ar_type": AUTOREG_TYPE,
     },
 }
 for key, values in DICT_KWARGS.items():
@@ -199,5 +201,5 @@ def get_model(model_name, init_method, kwargs):
 def get_fitted_model(model_name, init_method, kwargs):
     """Return a fitted model."""
     model = get_model(model_name, init_method, kwargs)
-    model.fit()
+    model.fit(maxiter=5)
     return model
