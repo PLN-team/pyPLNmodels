@@ -71,7 +71,7 @@ class PlnARSampler(PlnSampler):
 
     def _get_covariance(self, dim, seed):
         if self.ar_type == "diagonal":
-            return _get_diag_covariance(dim, seed)
+            return _get_diag_covariance(dim, seed) + 0.5
         return _get_full_covariance(dim, seed)
 
     def _get_gaussians(self, seed):
