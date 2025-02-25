@@ -60,7 +60,7 @@ class PlnARSampler(PlnSampler):
             seed=seed,
         )
         if self.ar_type == "diagonal":
-            ar_coef = torch.ones(dim) / 2
+            ar_coef = torch.ones(dim) * 0.8
         else:
             ar_coef = torch.tensor([0.5])
         self._params["ar_coef"] = ar_coef
