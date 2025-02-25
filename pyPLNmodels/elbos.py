@@ -657,7 +657,7 @@ def elbo_plnar(
         ar_coef.unsqueeze(0) * latent_variance[:-1] * ar_coef.unsqueeze(0)
     )
     other += -0.5 * torch.sum(
-        autoreg_precision.unsqueeze(0) * latent_variance[1:] + ar_variance_term
+        autoreg_precision.unsqueeze(0) * (latent_variance[1:] + ar_variance_term)
     )
     elbo += other
 

@@ -189,9 +189,9 @@ class PlnAR(BaseModel):
                 covariance=self._covariance,
                 ar_coef=self._ar_coef,
             )
-            return second
             print("first", first)
             print("second", second)
+            return second
 
             return per_entry_elbo_plnar_diag(
                 endog=self._endog,
