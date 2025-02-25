@@ -40,7 +40,7 @@ def _get_mean(dim, mean, seed):
     return torch.randn(dim, device=DEVICE) + mean
 
 
-def _get_covariance(dim, seed):
+def _get_full_covariance(dim, seed):
     torch.manual_seed(seed)
     parameter_toeplitz = 0.1 * torch.rand(1).to(DEVICE) + 0.6
     to_toeplitz = parameter_toeplitz ** (torch.arange(dim, device=DEVICE))

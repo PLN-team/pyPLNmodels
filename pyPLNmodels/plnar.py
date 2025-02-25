@@ -5,8 +5,16 @@ import pandas as pd
 import numpy as np
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels.elbos import per_entry_elbo_plnar
-from pyPLNmodels._initialization import _init_coef, _init_latent_pln
+from pyPLNmodels.elbos import (
+    per_entry_elbo_plnar_diag,
+    per_entry_elbo_plnar_full,
+    elbo_plnar,
+)
+from pyPLNmodels._initialization import (
+    _init_coef,
+    _init_latent_pln,
+    _init_components_prec,
+)
 from pyPLNmodels._utils import (
     _add_doc,
     _process_indices_of_variables,
@@ -14,6 +22,8 @@ from pyPLNmodels._utils import (
 )
 from pyPLNmodels._viz import _viz_dims, ARModelViz
 from pyPLNmodels._data_handler import _extract_data_from_formula
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class PlnAR(BaseModel):
@@ -41,7 +51,7 @@ class PlnAR(BaseModel):
     >>> ar.viz(colors=data["labels"])
     """
 
-    _autoreg_diff_term: torch.Tensor
+    _ar_diff_coef: torch.Tensor
     __coef: torch.Tensor
     _sqrt_covariance: torch.Tensor
 
@@ -62,6 +72,7 @@ class PlnAR(BaseModel):
         see_also="""
         :func:`pyPLNmodels.PlnAR.from_formula`
         :class:`pyPLNmodels.PlnDiag`
+        :class:`pyPLNmodels.Pln`
         """,
     )
     def __init__(
@@ -72,9 +83,13 @@ class PlnAR(BaseModel):
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
-        autoreg_type: {"spherical", "diagonal"} = "spherical",
+        ar_type: {"spherical", "diagonal"} = "spherical",
     ):  # pylint: disable=too-many-arguments
-        self._autoreg_type = autoreg_type
+        if ar_type not in ["spherical", "diagonal"]:
+            msg = "`ar_type` keyword should be either 'spherical' or 'diagonal', got "
+            msg += ar_type
+            raise AttributeError(msg)
+        self._ar_type = ar_type
         super().__init__(
             endog,
             exog=exog,
@@ -105,12 +120,12 @@ class PlnAR(BaseModel):
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        autoreg_type: {"spherical", "diagonal"} = "spherical",
+        ar_type: {"spherical", "diagonal"} = "spherical",
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
-            autoreg_type=autoreg_type,
+            ar_type=ar_type,
             exog=exog,
             offsets=offsets,
             compute_offsets_method=compute_offsets_method,
@@ -155,22 +170,64 @@ class PlnAR(BaseModel):
         """,
     )
     def compute_elbo(self):
-        return per_entry_elbo_plnar(
+        if self._ar_type == "diagonal":
+            first = per_entry_elbo_plnar_diag(
+                endog=self._endog,
+                marginal_mean=self._marginal_mean,
+                offsets=self._offsets,
+                latent_mean=self._latent_mean,
+                latent_sqrt_variance=self._latent_sqrt_variance,
+                precision=self._precision,
+                ar_coef=self._ar_coef,
+            )
+            second = elbo_plnar(
+                endog=self._endog,
+                marginal_mean=self._marginal_mean,
+                offsets=self._offsets,
+                latent_mean=self._latent_mean,
+                latent_sqrt_variance=self._latent_sqrt_variance,
+                covariance=self._covariance,
+                ar_coef=self._ar_coef,
+            )
+            return second
+            print("first", first)
+            print("second", second)
+
+            return per_entry_elbo_plnar_diag(
+                endog=self._endog,
+                marginal_mean=self._marginal_mean,
+                offsets=self._offsets,
+                latent_mean=self._latent_mean,
+                latent_sqrt_variance=self._latent_sqrt_variance,
+                precision=self._precision,
+                ar_coef=self._ar_coef,
+            )
+        return per_entry_elbo_plnar_full(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
             offsets=self._offsets,
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
-            covariance=self._covariance,
+            precision=self._precision,
             ar_coef=self._ar_coef,
         )
+
+    @property
+    def _precision(self):
+        if self._ar_type == "diagonal":
+            return self._sqrt_precision**2
+        return self._components_prec @ (self._components_prec.T)
 
     def _init_model_parameters(self):
         self.__coef = _init_coef(
             endog=self._endog, exog=self._exog, offsets=self._offsets
-        )
-        self._autoreg_diff_term = torch.ones(self.dim) / 2
-        self._sqrt_covariance = torch.ones(self.dim) / 2
+        ).to(DEVICE)
+        if self._ar_type == "diagonal":
+            self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
+            self._sqrt_precision = torch.ones(self.dim).to(DEVICE) / 2
+        else:
+            self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
+            self._components_prec = _init_components_prec(self._endog).to(DEVICE)
 
     @property
     @_add_doc(
@@ -344,11 +401,13 @@ class PlnAR(BaseModel):
 
     @property
     def _covariance(self):
-        return self._sqrt_covariance**2
+        if self._ar_type == "diagonal":
+            return 1 / self._precision
+        return torch.inverse(self._precision)
 
     @property
     def _ar_coef(self):
-        return 1 / (1 + self._autoreg_diff_term**2)
+        return 1 / (1 + self._ar_diff_coef**2)
 
     @property
     def ar_coef(self):
@@ -365,9 +424,12 @@ class PlnAR(BaseModel):
         list_param = [
             self._latent_mean,
             self._latent_sqrt_variance,
-            self._sqrt_covariance,
-            self._autoreg_diff_term,
+            self._ar_diff_coef,
         ]
+        if self._ar_type == "diagonal":
+            list_param.append(self._sqrt_precision)
+        else:
+            list_param.append(self._components_prec)
         if self.__coef is not None:
             return list_param + [self.__coef]
         return list_param
@@ -437,7 +499,7 @@ class PlnAR(BaseModel):
 
     @property
     def _description(self):
-        return f"autoregressive type {self._autoreg_type}."
+        return f"autoregressive type {self._ar_type}."
 
     def _init_latent_parameters(self):
         self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(self._endog)
@@ -448,7 +510,7 @@ class PlnAR(BaseModel):
 
     @property
     def number_of_parameters(self):
-        if self._autoreg_type == "diagonal":
+        if self._ar_type == "diagonal":
             return self.dim * (self.nb_cov + 2)
         return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
 

@@ -13,6 +13,7 @@ from pyPLNmodels import (
     PlnNetwork,
     PlnMixture,
     ZIPlnPCA,
+    PlnAR,
 )
 
 
@@ -25,6 +26,7 @@ from tests._init_functions import (
     _PlnNetwork_init,
     _ZIPlnPCA_init,
     _PlnMixture_init,
+    _PlnAR_init,
 )
 
 NB_COVS = [0, 2]
@@ -32,6 +34,7 @@ NB_COVS_INFLATION = [1, 2]
 ADD_CONSTS = [True, False]
 RANKS = [3, 5]
 NB_CLUSTERS = [2, 3]
+AUTOREG_TYPE = ["diag", "spherical"]
 
 # NB_COVS = [2]
 # NB_COVS_INFLATION = [2]
@@ -48,6 +51,7 @@ DICT_SAMPLERS = {
     "PlnNetwork": PlnNetworkSampler,
     "PlnMixture": PlnMixtureSampler,
     "ZIPlnPCA": ZIPlnPCASampler,
+    "PlnAR": PlnARSampler,
 }
 DICT_MODELS = {
     "Pln": Pln,
@@ -57,6 +61,7 @@ DICT_MODELS = {
     "PlnNetwork": PlnNetwork,
     "PlnMixture": PlnMixture,
     "ZIPlnPCA": ZIPlnPCA,
+    "PlnAR": PlnAR,
 }
 DICT_INIT_FUNCTIONS = {
     "Pln": _Pln_init,
@@ -66,6 +71,7 @@ DICT_INIT_FUNCTIONS = {
     "PlnNetwork": _PlnNetwork_init,
     "PlnMixture": _PlnMixture_init,
     "ZIPlnPCA": _ZIPlnPCA_init,
+    "PlnAR": _PlnAR_init,
 }
 DICT_KWARGS = {
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
@@ -83,6 +89,11 @@ DICT_KWARGS = {
         "add_const": ADD_CONSTS,
         "rank": [4],
         "nb_cov_inflation": NB_COVS_INFLATION,
+    },
+    "PlnAR": {
+        "nb_cov": NB_COS,
+        "add_const": ADD_CONSTS,
+        "autoreg_type": AUTOREG_TYPE,
     },
 }
 for key, values in DICT_KWARGS.items():

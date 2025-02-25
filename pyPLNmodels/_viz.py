@@ -390,7 +390,7 @@ class ARModelViz(BaseModelViz):
         """
         Display a heatmap of the model covariance.
         """
-        autoreg = self._params["autoreg_matrix"].unsqueeze(0)
+        autoreg = self._params["ar_coef"].unsqueeze(0)
         sns.heatmap(autoreg, ax=ax)
         ax.set_title("Autoregression coefficients")
         _set_tick_labels_columns(ax, self.column_names)

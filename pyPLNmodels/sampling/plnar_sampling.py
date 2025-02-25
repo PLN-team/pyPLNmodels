@@ -3,14 +3,14 @@ import torch
 from pyPLNmodels._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
-
-from .plndiag_sampling import PlnDiagSampler
+from .pln_sampling import PlnSampler
+from ._utils import _get_diag_covariance, _get_full_covariance
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class PlnARSampler(PlnDiagSampler):
+class PlnARSampler(PlnSampler):
     """
     PLN model sampler with simple autoregressive model on the latent variables. This basically
     assumes the latent variable of sample i depends on the latent variable on sample i-1.
@@ -29,11 +29,12 @@ class PlnARSampler(PlnDiagSampler):
     >>> true_covariance = sampler.covariance
     >>> estimated_latent_var = pln.latent_variables
     >>> true_latent_var = sampler.latent_variables
-    >>> print('Autoreg matrix:', pln.autoreg_matrix)
+    >>> print('Autoreg matrix:', pln.ar_coef)
 
     See also
     --------
     :class:`pyPLNmodels.PlnDiag`
+    :class:`pyPLNmodels.Pln`
     """
 
     def __init__(
@@ -46,8 +47,9 @@ class PlnARSampler(PlnDiagSampler):
         add_offsets: bool = False,
         marginal_mean_mean: int = 2,
         seed: int = 0,
+        ar_type: {"spherical", "diagonal"} = "spherical",
     ):  # pylint: disable=too-many-arguments
-        self.autoreg_matrix = torch.ones(dim) / 2
+        self.ar_type = ar_type
         super().__init__(
             n_samples=n_samples,
             dim=dim,
@@ -57,22 +59,65 @@ class PlnARSampler(PlnDiagSampler):
             marginal_mean_mean=marginal_mean_mean,
             seed=seed,
         )
+        if self.ar_type == "diagonal":
+            ar_coef = torch.ones(dim) / 2
+        else:
+            ar_coef = torch.tensor([0.5])
+        self._params["ar_coef"] = ar_coef
+
+    @property
+    def ar_coef(self):
+        return self._params["ar_coef"].cpu()
+
+    def _get_covariance(self, dim, seed):
+        if self.ar_type == "diagonal":
+            return _get_diag_covariance(dim, seed)
+        return _get_full_covariance(dim, seed)
 
     def _get_gaussians(self, seed):
+        if self.ar_type == "diagonal":
+            return self._get_gaussians_diag_ar(seed)
+        return self._get_gaussians_spherical_ar(seed)
+
+    def _get_gaussians_spherical_ar(self, seed):
         torch.manual_seed(seed)
         centered_gaussian = torch.randn(self.n_samples, self._dim_latent).to(DEVICE)
+        ar_coef = self._params["ar_coef"]
+        mean = self._marginal_mean
+        components = self._get_components()
+        gaussians = torch.zeros(self.n_samples, self.dim).to(DEVICE)
+        Z_i = centered_gaussian[0] @ components + mean[0]
+        gaussians[0] = Z_i
+        covariance = self._params["covariance"]
+        autoregressive_covariance = covariance - ar_coef**2 * covariance
+        autoregressive_components = torch.linalg.cholesky(autoregressive_covariance)
+        for i in range(1, self.n_samples):
+            mean_noise = mean[i] - ar_coef * mean[i - 1]
+            noise = centered_gaussian[i] @ autoregressive_components + mean_noise
+            gaussians[i] = ar_coef * gaussians[i - 1] + noise
+        return gaussians
+
+    def _get_components(self):
+        if self.ar_type == "diagonal":
+            return torch.sqrt(self._params["covariance"])
+        return torch.linalg.cholesky(self._params["covariance"])
+
+    def _get_gaussians_diag_ar(self, seed):
+        torch.manual_seed(seed)
+        centered_gaussian = torch.randn(self.n_samples, self._dim_latent).to(DEVICE)
+        ar_coef = self._params["ar_coef"]
         mean = self._marginal_mean
         components = self._get_components()
         gaussians = torch.zeros(self.n_samples, self.dim).to(DEVICE)
         Z_i = centered_gaussian[0] * components + mean[0]
         gaussians[0] = Z_i
         covariance = self._params["covariance"]
-        autoregressive_covariance = covariance - self.autoreg_matrix**2 * covariance
+        autoregressive_covariance = covariance - ar_coef**2 * covariance
         autoregressive_components = torch.sqrt(autoregressive_covariance)
         for i in range(1, self.n_samples):
-            mean_noise = mean[i] - self.autoreg_matrix * mean[i - 1]
+            mean_noise = mean[i] - ar_coef * mean[i - 1]
             noise = centered_gaussian[i] * autoregressive_components + mean_noise
-            gaussians[i] = self.autoreg_matrix * gaussians[i - 1] + noise
+            gaussians[i] = ar_coef * gaussians[i - 1] + noise
         return gaussians
 
     @_add_doc(
@@ -81,8 +126,8 @@ class PlnARSampler(PlnDiagSampler):
         >>> from pyPLNmodels import PlnARSampler
         >>> sampler = PlnARSampler()
         >>> endog = sampler.sample()
-        >>> autoreg_matrix = sampler.autoreg_matrix
-        >>> print(autoreg_matrix)
+        >>> ar_coef = sampler.ar_coef
+        >>> print(ar_coef)
         """,
     )
     def sample(self, seed: int = 0) -> torch.Tensor:

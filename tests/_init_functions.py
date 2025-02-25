@@ -1,4 +1,13 @@
-from pyPLNmodels import Pln, PlnPCA, ZIPln, PlnDiag, PlnNetwork, PlnMixture, ZIPlnPCA
+from pyPLNmodels import (
+    Pln,
+    PlnPCA,
+    ZIPln,
+    PlnDiag,
+    PlnNetwork,
+    PlnMixture,
+    ZIPlnPCA,
+    PlnAR,
+)
 
 PENALTY = 1
 
@@ -52,6 +61,26 @@ def _PlnMixture_init(init_method, **kwargs):
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
         return PlnMixture.from_formula(formula, data=data, n_clusters=n_clusters)
+    raise ValueError('init_method must be "explicit" or "formula"')
+
+
+def _PlnAR_init(init_method, **kwargs):
+    autoreg_type = kwargs.get("autoreg_type", None)
+    if init_method == "explicit":
+        endog = kwargs.get("endog", None)
+        exog = kwargs.get("exog", None)
+        offsets = kwargs.get("offsets", None)
+        return PlnAR(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            add_const=False,
+            autoreg_type=autoreg_type,
+        )
+    if init_method == "formula":
+        data = kwargs.get("data", None)
+        formula = kwargs.get("formula", None)
+        return PlnAR.from_formula(formula, data=data, autoreg_type=autoreg_type)
     raise ValueError('init_method must be "explicit" or "formula"')
 
 

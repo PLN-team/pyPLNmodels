@@ -5,7 +5,7 @@ import torch
 from pyPLNmodels._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
-from ._utils import _get_exog, _get_coef, _get_covariance, _get_offsets
+from ._utils import _get_exog, _get_coef, _get_full_covariance, _get_offsets
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -149,7 +149,7 @@ class PlnSampler(_BasePlnSampler):
             add_const=add_const,
             seed=seed,
         )
-        covariance = _get_covariance(dim, seed=seed)
+        covariance = self._get_covariance(dim, seed=seed)
         super().__init__(
             n_samples=n_samples,
             exog=exog,
@@ -158,6 +158,9 @@ class PlnSampler(_BasePlnSampler):
             coef=coef,
             covariance=covariance,
         )
+
+    def _get_covariance(self, dim, seed):
+        return _get_full_covariance(dim, seed=seed)
 
     @property
     def _dim_latent(self):
