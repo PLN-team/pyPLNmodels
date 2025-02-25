@@ -8,7 +8,6 @@ from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.elbos import (
     per_entry_elbo_plnar_diag,
     per_entry_elbo_plnar_full,
-    elbo_plnar,
 )
 from pyPLNmodels._initialization import (
     _init_coef,
@@ -30,8 +29,9 @@ class PlnAR(BaseModel):
     """
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
-    on sample i-1. This assumes the dataset given in the initialization is ordered !
-    The covariance is assumed diagonal.
+    on sample i-1. The dataset given in the initialization must be ordered !
+    The autoregressive coefficient can be per dimension or common to each dimension.
+    Note that the autregressive coefficient seems to be underestimated when the covariance is low.
     See ?? for more details.
 
     Examples
@@ -171,28 +171,6 @@ class PlnAR(BaseModel):
     )
     def compute_elbo(self):
         if self._ar_type == "diagonal":
-            first = per_entry_elbo_plnar_diag(
-                endog=self._endog,
-                marginal_mean=self._marginal_mean,
-                offsets=self._offsets,
-                latent_mean=self._latent_mean,
-                latent_sqrt_variance=self._latent_sqrt_variance,
-                precision=self._precision,
-                ar_coef=self._ar_coef,
-            )
-            second = elbo_plnar(
-                endog=self._endog,
-                marginal_mean=self._marginal_mean,
-                offsets=self._offsets,
-                latent_mean=self._latent_mean,
-                latent_sqrt_variance=self._latent_sqrt_variance,
-                covariance=self._covariance,
-                ar_coef=self._ar_coef,
-            )
-            print("first", first)
-            print("second", second)
-            return second
-
             return per_entry_elbo_plnar_diag(
                 endog=self._endog,
                 marginal_mean=self._marginal_mean,

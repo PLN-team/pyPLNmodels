@@ -596,76 +596,6 @@ def profiled_elbo_zipln(
     return elbo
 
 
-def elbo_plnar(
-    *,
-    endog: torch.Tensor,
-    marginal_mean: torch.Tensor,
-    offsets: torch.Tensor,
-    latent_mean: torch.Tensor,
-    latent_sqrt_variance: torch.Tensor,
-    covariance: torch.Tensor,
-    ar_coef: torch.Tensor,
-):  # pylint: disable=too-many-arguments
-    """
-    Computes the ELBO for an autoregressive PLN model, i.e. PlnAR model.
-
-    endog : torch.Tensor
-        Counts with size (n, p).
-    marginal_mean : torch.Tensor
-        Marginal mean with size (n, p).
-    offsets : torch.Tensor
-        Offset with size (n, p).
-    latent_mean : torch.Tensor
-        Variational parameter with size (n, p).
-    latent_sqrt_variance : torch.Tensor
-        Variational parameter with size (n, p).
-    covariance : torch.Tensor
-        Model parameter with size (p).
-    ar_coef: torch.Tensor:
-        Autoregressive model parameter with size (p).
-    """
-    n_samples, dim = endog.shape
-    offsets_plus_mean = offsets + latent_mean
-    latent_variance = latent_sqrt_variance**2
-
-    autoreg_covariance = covariance * (1 - ar_coef**2)
-    precision = 1 / covariance
-    autoreg_precision = 1 / autoreg_covariance
-
-    elbo = torch.sum(
-        endog * offsets_plus_mean
-        - torch.exp(offsets_plus_mean + latent_variance / 2)
-        + 0.5 * torch.log(latent_variance)
-        - _log_stirling(endog)
-    )
-
-    elbo += -0.5 * torch.sum((latent_mean[0] - marginal_mean[0]) ** 2 * precision)
-    elbo += 0.5 * torch.sum(torch.log(precision))
-    elbo += -0.5 * torch.sum(precision * latent_variance[0])
-
-    latent_diff = latent_mean - marginal_mean
-    latent_diff_back = latent_diff[1:]
-    ar_term = ar_coef.unsqueeze(0) * latent_diff[:-1]
-    latent_diff_back_minus_ar = latent_diff_back - ar_term
-    other = 0
-
-    other += -0.5 * torch.sum(
-        latent_diff_back_minus_ar**2 * autoreg_precision.unsqueeze(0)
-    )
-    other += (n_samples - 1) / 2 * torch.sum(torch.log(autoreg_precision))
-    ar_variance_term = (
-        ar_coef.unsqueeze(0) * latent_variance[:-1] * ar_coef.unsqueeze(0)
-    )
-    other += -0.5 * torch.sum(
-        autoreg_precision.unsqueeze(0) * (latent_variance[1:] + ar_variance_term)
-    )
-    elbo += other
-
-    elbo += n_samples * dim / 2
-
-    return elbo
-
-
 def elbo_pln(
     *,  # pylint: disable=too-many-arguments
     endog: torch.Tensor,
@@ -717,6 +647,68 @@ def elbo_pln(
 
     elbo += 0.5 * n_samples * torch.logdet(precision)
     elbo += n_samples * endog.shape[1] / 2
+    return elbo
+
+
+def per_entry_elbo_plnar_full(
+    *,
+    endog: torch.Tensor,
+    marginal_mean: torch.Tensor,
+    offsets: torch.Tensor,
+    latent_mean: torch.Tensor,
+    latent_sqrt_variance: torch.Tensor,
+    precision: torch.Tensor,
+    ar_coef: torch.Tensor,
+):  # pylint: disable=too-many-positional-arguments
+    offsets_plus_mean = _remove_nan(offsets + latent_mean)
+    latent_variance = latent_sqrt_variance**2
+    latent_variance = _remove_nan(latent_variance)
+    # multiplier = 1 / (1 - ar_coef**2)
+    # autoreg_precision = multiplier * precision
+    covariance = torch.inverse(precision)
+    autoreg_precision = torch.inverse(covariance - ar_coef**2 * covariance)
+    logdet_prec = torch.logdet(precision)
+    # mine_logdet = endog.shape[1] * torch.log(multiplier) + logdet_prec
+    # mine_logdet = mine_logdet.squeeze()
+    mine_logdet = torch.logdet(autoreg_precision)
+
+    latent_diff = _remove_nan(latent_mean - marginal_mean)
+    latent_diff_back = latent_diff[1:]
+    ar_term = ar_coef * latent_diff[:-1]
+    latent_diff_back_minus_ar = latent_diff_back - ar_term
+    ar_elbo = 0
+    ar_elbo += (
+        -0.5
+        * (latent_diff_back_minus_ar @ autoreg_precision)
+        * latent_diff_back_minus_ar
+    )
+    ar_elbo += (
+        0.5
+        / endog.shape[1]
+        * mine_logdet.unsqueeze(0)
+        .unsqueeze(1)
+        .repeat_interleave(endog.shape[0] - 1, dim=0)
+    )
+    ar_elbo += -0.5 * (latent_variance[1:] * torch.diag(autoreg_precision))
+    ar_elbo += -0.5 * (
+        ar_coef**2 * latent_variance[:-1] * torch.diag(autoreg_precision)
+    )
+    ar_elbo = torch.concat([torch.zeros(1, endog.shape[1]), ar_elbo])
+    elbo = (
+        endog * offsets_plus_mean
+        - torch.exp(offsets_plus_mean + latent_variance / 2)
+        + 0.5 * _remove_nan(torch.log(latent_variance))
+        - _remove_nan(_log_stirling(endog))
+    )
+    elbo += ar_elbo
+    elbo = torch.sum(elbo)
+    elbo += -0.5 * torch.sum(
+        ((latent_mean[0] - marginal_mean[0]) @ precision)
+        * (latent_mean[0] - marginal_mean[0])
+    )
+    elbo += -0.5 * torch.sum(latent_variance[0] * torch.diag(precision))
+    elbo += 0.5 * logdet_prec
+    elbo += endog.shape[0] * endog.shape[1] / 2
     return elbo
 
 
@@ -783,65 +775,5 @@ def per_entry_elbo_plnar_diag(
     elbo += -0.5 * torch.sum((latent_mean[0] - marginal_mean[0]) ** 2 * precision)
     elbo += -0.5 * torch.sum(latent_variance[0] * precision)
     elbo += 0.5 * torch.sum(torch.log(precision))
-    elbo += endog.shape[0] * endog.shape[1] / 2
-    print("coef", ar_coef)
-    return elbo
-
-
-def per_entry_elbo_plnar_full(
-    *,
-    endog: torch.Tensor,
-    marginal_mean: torch.Tensor,
-    offsets: torch.Tensor,
-    latent_mean: torch.Tensor,
-    latent_sqrt_variance: torch.Tensor,
-    precision: torch.Tensor,
-    ar_coef: torch.Tensor,
-):  # pylint: disable=too-many-positional-arguments
-    offsets_plus_mean = _remove_nan(offsets + latent_mean)
-    latent_variance = latent_sqrt_variance**2
-    latent_variance = _remove_nan(latent_variance)
-    multiplier = 1 / (1 - ar_coef**2)
-    autoreg_precision = multiplier * precision
-    logdet_prec = torch.logdet(precision)
-    mine_logdet = endog.shape[1] * torch.log(multiplier) + logdet_prec
-    mine_logdet = mine_logdet.squeeze()
-
-    latent_diff = _remove_nan(latent_mean - marginal_mean)
-    latent_diff_back = latent_diff[1:]
-    ar_term = ar_coef * latent_diff[:-1]
-    latent_diff_back_minus_ar = latent_diff_back - ar_term
-    ar_elbo = 0
-    ar_elbo += (
-        -0.5
-        * (latent_diff_back_minus_ar @ autoreg_precision)
-        * latent_diff_back_minus_ar
-    )
-    ar_elbo += (
-        0.5
-        / endog.shape[1]
-        * mine_logdet.unsqueeze(0)
-        .unsqueeze(1)
-        .repeat_interleave(endog.shape[0] - 1, dim=0)
-    )
-    ar_elbo += -0.5 * (latent_variance[1:] * torch.diag(autoreg_precision))
-    ar_elbo += -0.5 * (
-        ar_coef**2 * latent_variance[:-1] * torch.diag(autoreg_precision)
-    )
-    ar_elbo = torch.concat([torch.zeros(1, endog.shape[1]), ar_elbo])
-    elbo = (
-        endog * offsets_plus_mean
-        - torch.exp(offsets_plus_mean + latent_variance / 2)
-        + 0.5 * _remove_nan(torch.log(latent_variance))
-        - _remove_nan(_log_stirling(endog))
-    )
-    elbo += ar_elbo
-    elbo = torch.sum(elbo)
-    elbo += -0.5 * torch.sum(
-        ((latent_mean[0] - marginal_mean[0]) @ precision)
-        * (latent_mean[0] - marginal_mean[0])
-    )
-    elbo += -0.5 * torch.sum(latent_variance[0] * torch.diag(precision))
-    elbo += 0.5 * logdet_prec
     elbo += endog.shape[0] * endog.shape[1] / 2
     return elbo
