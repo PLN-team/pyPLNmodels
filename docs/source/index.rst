@@ -35,6 +35,7 @@ Overview
    zipln
    plnpca
    plnpcacollection
+   plnar
 
 
 .. toctree::

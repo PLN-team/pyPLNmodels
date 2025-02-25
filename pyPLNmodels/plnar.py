@@ -6,8 +6,8 @@ import numpy as np
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.elbos import (
-    per_entry_elbo_plnar_diag,
-    per_entry_elbo_plnar_full,
+    elbo_plnar_diag,
+    elbo_plnar_full,
 )
 from pyPLNmodels._initialization import (
     _init_coef,
@@ -66,6 +66,15 @@ class PlnAR(BaseModel):
             >>> pln.fit()
             >>> print(pln)
         """,
+        params="""
+        ar_type: str (optional)
+            The autregression type. Can be either "diagonal" or "spherical".
+            If "diagonal", the covariance must be diagonal and the model
+            boils down to individual independant 1D AR models. If "spherical",
+            covariance is full (dependence between variables) but the
+            autoregression is shared along the variables as the ar_coef is of size 1.
+            Default is "spherical"
+        """,
         returns="""
             PlnAR
         """,
@@ -108,6 +117,15 @@ class PlnAR(BaseModel):
         """,
         returns="""
             PlnAR
+        """,
+        params="""
+        ar_type: str (optional)
+            The autregression type. Can be either "diagonal" or "spherical".
+            If "diagonal", the covariance must be diagonal and the model
+            boils down to individual independant 1D AR models. If "spherical",
+            covariance is full (dependence between variables) but the
+            autoregression is shared along the variables as the ar_coef is of size 1.
+            Default is "spherical"
         """,
         see_also="""
         :class:`pyPLNmodels.PlnAR`
@@ -171,7 +189,7 @@ class PlnAR(BaseModel):
     )
     def compute_elbo(self):
         if self._ar_type == "diagonal":
-            return per_entry_elbo_plnar_diag(
+            return elbo_plnar_diag(
                 endog=self._endog,
                 marginal_mean=self._marginal_mean,
                 offsets=self._offsets,
@@ -180,7 +198,7 @@ class PlnAR(BaseModel):
                 precision=self._precision,
                 ar_coef=self._ar_coef,
             )
-        return per_entry_elbo_plnar_full(
+        return elbo_plnar_full(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
             offsets=self._offsets,
