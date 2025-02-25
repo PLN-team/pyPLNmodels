@@ -35,11 +35,6 @@ from ._utils import get_confusion_matrix, plot_confusion_matrix, get_label_mappi
 __version__ = importlib.metadata.version("pyplnmodels")
 
 __all__ = [
-    "load_oaks",
-    "load_scrna",
-    "load_microcosm",
-    "load_crossover",
-    "load_crossover_per_species",
     "Pln",
     "PlnPCA",
     "PlnPCAcollection",
@@ -59,4 +54,9 @@ __all__ = [
     "get_confusion_matrix",
     "plot_confusion_matrix",
     "get_label_mapping",
+    "load_microcosm",
+    "load_oaks",
+    "load_crossover_per_species",
+    "load_crossover",
+    "load_scrna",
 ]

@@ -700,15 +700,15 @@ def _viz_network(precision, node_labels=None, ax=None, seed=0):
         to_show = True
     else:
         to_show = False
-    G = _build_graph(precision, node_labels)
-    pos = nx.spring_layout(G, seed=seed)
-    edges = G.edges(data=True)
-    nx.draw_networkx_nodes(G, pos, node_size=500, node_color="lightblue")
-    nx.draw_networkx_edges(G, pos, width=[d["weight"] * 2 for (u, v, d) in edges])
+    graph = _build_graph(precision, node_labels)
+    pos = nx.spring_layout(graph, seed=seed)
+    edges = graph.edges(data=True)
+    nx.draw_networkx_nodes(graph, pos, node_size=500, node_color="lightblue")
+    nx.draw_networkx_edges(graph, pos, width=[d["weight"] * 2 for (u, v, d) in edges])
     nx.draw_networkx_labels(
-        G,
+        graph,
         pos,
-        labels=nx.get_node_attributes(G, "label"),
+        labels=nx.get_node_attributes(graph, "label"),
         font_size=12,
         font_color="black",
     )
