@@ -498,3 +498,21 @@ def _process_formula_inflation(formula, data):
         exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
 
     return endog, exog, offsets, exog_inflation
+
+
+def _format_clusters(clusters):
+    clusters = _format_data(clusters)
+    if clusters.dim() == 2 and torch.all((clusters == 0) | (clusters == 1)):
+        return clusters  # Already one-hot encoded
+
+    # Convert to one-hot encoding
+    if clusters.dim() == 1:
+        num_classes = clusters.max().item() + 1
+        one_hot_clusters = torch.nn.functional.one_hot(
+            clusters, num_classes=num_classes
+        )
+        return one_hot_clusters
+
+    msg = "Input clusters format is not recognized. Give either"
+    msg += " a one dimensional tensor or a one-hot encoded tensor."
+    raise ValueError(msg)
