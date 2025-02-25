@@ -791,7 +791,7 @@ def elbo_plnar_diag(
     )
 
     elbo += ar_elbo
-    elbo += 1/2
+    elbo += 1 / 2
 
     elbo = torch.sum(torch.nan_to_num(elbo))
     return elbo

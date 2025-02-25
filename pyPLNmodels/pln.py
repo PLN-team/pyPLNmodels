@@ -6,7 +6,7 @@ from scipy.stats import norm, t
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
-from pyPLNmodels.elbos import profiled_elbo_pln, elbo_pln
+from pyPLNmodels.elbos import profiled_elbo_pln
 from pyPLNmodels._utils import (
     _add_doc,
     _shouldbefitted,

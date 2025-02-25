@@ -63,10 +63,15 @@ class PlnARSampler(PlnSampler):
             ar_coef = torch.ones(dim) * 0.8
         else:
             ar_coef = torch.tensor([0.5])
-        self._params["ar_coef"] = ar_coef
+        self._params["ar_coef"] = ar_coef.to(DEVICE)
 
     @property
     def ar_coef(self):
+        """
+        Autoregressive coefficient of the model.
+        If `ar_type` is "diagonal", this is a vector of size `dim`.
+        If `ar_type` is "spherical", this is a scalar.
+        """
         return self._params["ar_coef"].cpu()
 
     def _get_covariance(self, dim, seed):
@@ -83,19 +88,22 @@ class PlnARSampler(PlnSampler):
         torch.manual_seed(seed)
         centered_gaussian = torch.randn(self.n_samples, self._dim_latent).to(DEVICE)
         ar_coef = self._params["ar_coef"]
-        mean = self._marginal_mean
         components = self._get_components()
         gaussians = torch.zeros(self.n_samples, self.dim).to(DEVICE)
-        Z_i = centered_gaussian[0] @ components + mean[0]
-        gaussians[0] = Z_i
+        gaussians[0] = centered_gaussian[0] @ components + self._get_mean_i(0)
         covariance = self._params["covariance"]
         autoregressive_covariance = covariance - ar_coef**2 * covariance
         autoregressive_components = torch.linalg.cholesky(autoregressive_covariance)
         for i in range(1, self.n_samples):
-            mean_noise = mean[i] - ar_coef * mean[i - 1]
+            mean_noise = self._get_mean_i(i) - ar_coef * self._get_mean_i(i - 1)
             noise = centered_gaussian[i] @ autoregressive_components + mean_noise
             gaussians[i] = ar_coef * gaussians[i - 1] + noise
         return gaussians
+
+    def _get_mean_i(self, i):
+        if self._exog is None:
+            return 0
+        return self._marginal_mean[i]
 
     def _get_components(self):
         if self.ar_type == "diagonal":
@@ -106,16 +114,14 @@ class PlnARSampler(PlnSampler):
         torch.manual_seed(seed)
         centered_gaussian = torch.randn(self.n_samples, self._dim_latent).to(DEVICE)
         ar_coef = self._params["ar_coef"]
-        mean = self._marginal_mean
         components = self._get_components()
         gaussians = torch.zeros(self.n_samples, self.dim).to(DEVICE)
-        Z_i = centered_gaussian[0] * components + mean[0]
-        gaussians[0] = Z_i
+        gaussians[0] = centered_gaussian[0] * components + self._get_mean_i(0)
         covariance = self._params["covariance"]
         autoregressive_covariance = covariance - ar_coef**2 * covariance
         autoregressive_components = torch.sqrt(autoregressive_covariance)
         for i in range(1, self.n_samples):
-            mean_noise = mean[i] - ar_coef * mean[i - 1]
+            mean_noise = self._get_mean_i(i) - ar_coef * self._get_mean_i(i - 1)
             noise = centered_gaussian[i] * autoregressive_components + mean_noise
             gaussians[i] = ar_coef * gaussians[i - 1] + noise
         return gaussians

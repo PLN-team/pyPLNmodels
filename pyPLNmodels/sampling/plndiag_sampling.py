@@ -3,7 +3,7 @@ from pyPLNmodels._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
 from .pln_sampling import PlnSampler
-from ._utils import _get_exog, _get_coef, _get_diag_covariance, _get_offsets
+from ._utils import _get_diag_covariance
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

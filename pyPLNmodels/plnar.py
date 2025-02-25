@@ -53,7 +53,8 @@ class PlnAR(BaseModel):
 
     _ar_diff_coef: torch.Tensor
     __coef: torch.Tensor
-    _sqrt_covariance: torch.Tensor
+    _sqrt_precision: torch.Tensor
+    _components_prec: torch.Tensor
 
     ModelViz = ARModelViz
 

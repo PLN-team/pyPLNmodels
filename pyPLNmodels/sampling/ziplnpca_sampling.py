@@ -71,9 +71,9 @@ class ZIPlnPCASampler(ZIPlnSampler):
         self.rank = rank
         super().__init__(
             n_samples=n_samples,
+            nb_cov_inflation=nb_cov_inflation,
             dim=dim,
             nb_cov=nb_cov,
-            nb_cov_inflation=nb_cov_inflation,
             add_const=add_const,
             add_const_inflation=add_const_inflation,
             add_offsets=add_offsets,
