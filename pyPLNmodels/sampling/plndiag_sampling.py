@@ -2,13 +2,13 @@ import torch
 from pyPLNmodels._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
-from .pln_sampling import _BasePlnSampler, PlnSampler
+from .pln_sampling import PlnSampler
 from ._utils import _get_exog, _get_coef, _get_diag_covariance, _get_offsets
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class PlnDiagSampler(_BasePlnSampler):
+class PlnDiagSampler(PlnSampler):
     """
     Sampler for Poisson Log-Normal model with diagonal covariance.
     The parameters of the model are generated randomly but have a specific structure.
@@ -45,28 +45,18 @@ class PlnDiagSampler(_BasePlnSampler):
         marginal_mean_mean: int = 2,
         seed=0,
     ):  # pylint: disable=too-many-arguments
-        exog = _get_exog(
-            n_samples=n_samples, nb_cov=nb_cov, will_add_const=add_const, seed=seed
-        )
-        offsets = _get_offsets(
-            n_samples=n_samples, dim=dim, add_offsets=add_offsets, seed=seed
-        )
-        coef = _get_coef(
-            nb_cov=nb_cov,
-            dim=dim,
-            mean=marginal_mean_mean,
-            add_const=add_const,
-            seed=seed,
-        )
-        covariance = _get_diag_covariance(dim, seed=seed)
         super().__init__(
             n_samples=n_samples,
-            exog=exog,
+            dim=dim,
+            nb_cov=nb_cov,
             add_const=add_const,
-            offsets=offsets,
-            coef=coef,
-            covariance=covariance,
+            add_offsets=add_offsets,
+            marginal_mean_mean=marginal_mean_mean,
+            seed=seed,
         )
+
+    def _get_covariance(self, dim, seed):
+        return _get_diag_covariance(dim, seed=seed)
 
     @property
     def _dim_latent(self):

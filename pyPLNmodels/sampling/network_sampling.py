@@ -7,7 +7,7 @@ from .pln_sampling import PlnSampler
 from ._utils import (
     _get_exog,
     _get_coef,
-    _get_covariance,
+    _get_full_covariance,
     _get_offsets,
     _get_sparse_precision,
 )
@@ -77,7 +77,7 @@ class PlnNetworkSampler(PlnSampler):
             add_const=add_const,
             seed=seed,
         )
-        covariance = 3 * _get_covariance(dim, seed=seed)
+        covariance = 3 * _get_full_covariance(dim, seed=seed)
         precision = _get_sparse_precision(covariance, percentage_zeros)
         covariance = torch.inverse(precision)
         super(PlnSampler, self).__init__(
