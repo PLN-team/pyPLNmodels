@@ -168,9 +168,9 @@ def load_crossover(n_samples=276, dim=104):
         :, ["nco" in column for column in data_pivoted.columns]
     ].iloc[:n_samples, :dim]
     isnan_first_sample = np.isnan(endog.iloc[0]).values
-    endog.iloc[0][isnan_first_sample] = endog.iloc[1][isnan_first_sample]
+    endog.iloc[0, isnan_first_sample] = endog.iloc[1, isnan_first_sample]
     offsets = data_pivoted.iloc[
         :, ["coverage" in column for column in data_pivoted.columns]
     ].iloc[:n_samples, :dim]
-    offsets.iloc[0][isnan_first_sample] = offsets.iloc[1][isnan_first_sample]
+    offsets.iloc[0, isnan_first_sample] = offsets.iloc[1, isnan_first_sample]
     return {"endog": endog, "offsets": offsets}

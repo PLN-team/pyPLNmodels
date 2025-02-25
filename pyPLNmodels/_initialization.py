@@ -148,6 +148,11 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
 
 
 def _init_components_prec(endog):
+
+    nan_mask = torch.isnan(endog)
+    mean_value = torch.nanmean(endog, dim=0)
+    endog[nan_mask] = mean_value[nan_mask.nonzero(as_tuple=True)[1]]
+
     log_y = _log_transform(endog)
     log_y = log_y - log_y.mean(dim=0)
     covariance = torch.mm(log_y.T, log_y) / (log_y.shape[0] - 1)
