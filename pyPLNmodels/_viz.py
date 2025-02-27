@@ -12,8 +12,8 @@ from matplotlib.patches import Circle
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-import networkx as nx
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+import networkx as nx
 
 from pyPLNmodels._utils import calculate_correlation
 
@@ -796,7 +796,7 @@ def _viz_lda(X, y, ax=None):
         ax = plt.gca()
     else:
         to_show = False
-    X_lda,_ = _get_lda_projection(X, y)
+    X_lda = _get_lda_projection(X, y)
     sns.scatterplot(
         x=X_lda[:, 0], y=X_lda[:, 1], hue=y, palette="viridis", edgecolor="black", ax=ax
     )
@@ -824,7 +824,7 @@ def _plot_contour_lda(X_lda, y, ax):
 def _get_lda_projection(X, y):
     clf = LinearDiscriminantAnalysis()
     clf.fit(X, y)
-    return clf.transform(X), clf
+    return clf.transform(X)
 
 
 def _viz_lda_new(*, X, y, new_X_transformed, colors, ax=None):
@@ -833,11 +833,16 @@ def _viz_lda_new(*, X, y, new_X_transformed, colors, ax=None):
         ax = plt.gca()
     else:
         to_show = False
-    if len(colors.shape)>1:
-        colors = colors.argmax(dim = 1)
-    X_lda, clf = _get_lda_projection(X, y)
+    if len(colors.shape) > 1:
+        colors = colors.argmax(dim=1)
+    X_lda = _get_lda_projection(X, y)
     sns.scatterplot(
-        x=new_X_transformed[:, 0], y=new_X_transformed[:, 1], hue=colors, palette="viridis", edgecolor="black", ax=ax
+        x=new_X_transformed[:, 0],
+        y=new_X_transformed[:, 1],
+        hue=colors,
+        palette="viridis",
+        edgecolor="black",
+        ax=ax,
     )
     _plot_contour_lda(X_lda, y, ax)
     ax.set_xlabel("LD1")

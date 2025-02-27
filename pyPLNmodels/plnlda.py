@@ -127,7 +127,7 @@ class PlnLDA(Pln):
         data : dict
             The data dictionary. Each value can be either a torch.Tensor,
             `np.ndarray`, `pd.DataFrame` or `pd.Series`. The categorical exogenous
-            variables should be 1-dimensional.
+            data should be 1-dimensional.
         compute_offsets_method : str, optional(keyword-only)
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
@@ -196,7 +196,8 @@ class PlnLDA(Pln):
     @property
     def marginal_mean_clusters(self):
         """
-        Marginal mean given only by the clusters mean.
+        Marginal mean given only by the clusters mean,
+        that is, the mean of each cluster.
         """
         return self._marginal_mean_clusters.cpu().detach()
 
@@ -282,11 +283,11 @@ class PlnLDA(Pln):
         >>> print('true', clusters_test)
         """
         latent_pos = self._ve_step_latent_pos(endog, exog=exog, offsets=offsets)
-        clf = self.get_lda_classifier_fitted()
+        clf = self._get_lda_classifier_fitted()
         pred = clf.predict(latent_pos)
         return pred
 
-    def _ve_step_latent_pos(self, endog,*, exog, offsets ):
+    def _ve_step_latent_pos(self, endog, *, exog, offsets):
         pln_pred = _PlnPred(
             endog=endog,
             exog=exog,
@@ -329,16 +330,43 @@ class PlnLDA(Pln):
         show_cov: bool = False,
         remove_exog_effect: bool = False,
     ):
+        """
+        Visualize the endogenous data in the LDA space.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes on which to plot, by default `None`.
+        colors : list, optional
+            Not implemented for PlnLDA.
+        show_cov : bool, optional
+            Not implemented for PlnLDA.
+        remove_exog_effect: bool, optional
+            Not implemented for PlnLDA.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
+        >>> endog = data["endog"]
+        >>> clusters = data["labels_1hot"]
+        >>> n_train, n_test = 100, 100
+        >>> endog_train = endog[:n_train]
+        >>> endog_test = endog[n_train:]
+        >>> clusters_train = clusters[:n_train]
+        >>> clusters_test = clusters[n_train:]
+        >>> lda = PlnLDA(endog_train, clusters = clusters_train).fit()
+        >>> lda.viz()
+        """
         if colors is not None:
             raise ValueError("'colors' is not implemented for PlnLDA.")
         if show_cov is not False:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
         if remove_exog_effect is not False:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
-        _viz_lda(self.latent_mean + self.marginal_mean_clusters, self.clusters, ax = ax)
+        _viz_lda(self.latent_mean + self.marginal_mean_clusters, self.clusters, ax=ax)
 
-
-    def get_lda_classifier_fitted(self):
+    def _get_lda_classifier_fitted(self):
         clf = LinearDiscriminantAnalysis()
         clf.fit(
             self.latent_mean + self.marginal_mean_clusters,
@@ -348,7 +376,7 @@ class PlnLDA(Pln):
 
     def transform(self, remove_exog_effect=False):
         """
-        Transform the endog into the LDA space. The remove_exog_effect is not
+        Transform the endog into the learned LDA space. The remove_exog_effect is not
         implemented for PlnLDA.
 
         Returns
@@ -362,7 +390,7 @@ class PlnLDA(Pln):
         >>> ntrain, ntest = 3000, 200
         >>> nb_cov, n_clusters = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False, dim=500)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False,dim=500)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -381,12 +409,12 @@ class PlnLDA(Pln):
         """
         if remove_exog_effect is not False:
             raise ValueError("'remove_exog_effect' is not implemented for PlnLDA")
-        clf = self.get_lda_classifier_fitted()
+        clf = self._get_lda_classifier_fitted()
         return clf.transform(self.latent_mean + self.marginal_mean_clusters)
 
-    def transform_new(self, endog, *, exog = None, offsets = None):
+    def transform_new(self, endog, *, exog=None, offsets=None):
         """
-        Transform the unseen endog data into the LDA space.
+        Transform the (unseen) endog data into the previously learned LDA space.
 
         Returns
         -------
@@ -399,7 +427,7 @@ class PlnLDA(Pln):
         >>> ntrain, ntest = 3000, 200
         >>> nb_cov, n_clusters = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False, dim=500)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False,dim=500)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -417,14 +445,49 @@ class PlnLDA(Pln):
         :func:`pyPLNmodels.PlnLDA.viz_transformed`
         :func:`pyPLNmodels.PlnLDA.predict_clusters`
         """
-        latent_pos = self._ve_step_latent_pos(endog, exog = exog, offsets = offsets)
-        clf = self.get_lda_classifier_fitted()
+        latent_pos = self._ve_step_latent_pos(endog, exog=exog, offsets=offsets)
+        clf = self._get_lda_classifier_fitted()
         return clf.transform(latent_pos)
 
+    def viz_transformed(self, transformed, colors=None, ax=None):
+        """
+        Visualize the transformed data in the LDA space.
 
+        Parameters
+        ----------
+        transformed : torch.Tensor
+            The transformed data.
+        colors : list, optional
+            The labels to color the samples, of size transformed.shape[0].
+        ax : matplotlib.axes.Axes, optional
+            The axes on which to plot, by default `None`.
 
-    def viz_transformed(self, transformed, colors = None, ax = None):
-        _viz_lda_new(X = self.latent_mean + self.marginal_mean_clusters, y = self.clusters, new_X_transformed = transformed, colors = colors, ax = ax)
+        Examples
+        --------
+        >>> import torch
+        >>> from pyPLNmodels import PlnLDA, PlnLDASampler
+        >>> ntrain, ntest = 3000, 200
+        >>> nb_cov, n_clusters = 1,3
+        >>> sampler = PlnLDASampler(
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False,dim=500)
+        >>> endog = sampler.sample()
+        >>> known_exog = sampler.known_exog
+        >>> clusters = sampler.clusters
+        >>> endog_train, endog_test = endog[:ntrain], endog[ntrain:]
+        >>> known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]
+        >>> clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]
+        >>> lda = PlnLDA(endog_train,
+        >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
+        >>> transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)
+        >>> lda.viz_transformed(transformed_endog_test)
+        """
+        _viz_lda_new(
+            X=self.latent_mean + self.marginal_mean_clusters,
+            y=self.clusters,
+            new_X_transformed=transformed,
+            colors=colors,
+            ax=ax,
+        )
 
 
 class _PlnPred(Pln):
