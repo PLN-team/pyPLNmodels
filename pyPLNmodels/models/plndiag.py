@@ -4,12 +4,12 @@ import pandas as pd
 import torch
 import numpy as np
 
-from pyPLNmodels.pln import Pln
-from pyPLNmodels.base import BaseModel
-from pyPLNmodels._closed_forms import _closed_formula_diag_covariance
-from pyPLNmodels.elbos import profiled_elbo_pln_diag
-from pyPLNmodels._utils import _add_doc, _shouldbefitted, _none_if_no_exog
-from pyPLNmodels._viz import DiagModelViz
+from pyPLNmodels.models.pln import Pln
+from pyPLNmodels.models.base import BaseModel
+from pyPLNmodels.calculations._closed_forms import _closed_formula_diag_covariance
+from pyPLNmodels.calculations.elbos import profiled_elbo_pln_diag
+from pyPLNmodels.utils._utils import _add_doc, _shouldbefitted, _none_if_no_exog
+from pyPLNmodels.utils._viz import DiagModelViz
 
 
 class PlnDiag(Pln):

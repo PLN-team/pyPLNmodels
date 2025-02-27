@@ -1,11 +1,11 @@
 import torch
 
-from pyPLNmodels._closed_forms import (
+from pyPLNmodels.calculations._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
     _closed_formula_diag_covariance,
 )
-from pyPLNmodels._utils import _log_stirling, _trunc_log, _log1pexp, _remove_nan
+from pyPLNmodels.utils._utils import _log_stirling, _trunc_log, _log1pexp, _remove_nan
 
 
 def profiled_elbo_pln(

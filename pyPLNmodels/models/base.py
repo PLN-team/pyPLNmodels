@@ -9,19 +9,19 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 
-from pyPLNmodels._data_handler import (
+from pyPLNmodels.utils._data_handler import (
     _handle_data,
     _extract_data_from_formula,
     _array2tensor,
 )
-from pyPLNmodels._criterion import _ElboCriterionMonitor
-from pyPLNmodels._utils import (
+from pyPLNmodels.utils._criterion import _ElboCriterionMonitor
+from pyPLNmodels.utils._utils import (
     _TimeRecorder,
     _nice_string_of_dict,
     _process_indices_of_variables,
     _shouldbefitted,
 )
-from pyPLNmodels._viz import (
+from pyPLNmodels.utils._viz import (
     _viz_variables,
     BaseModelViz,
     plot_correlation_circle,

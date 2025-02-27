@@ -4,21 +4,21 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels._data_handler import (
-    _handle_inflation_data,
-    _array2tensor,
-    _extract_data_inflation_from_formula,
-)
-from pyPLNmodels._initialization import _init_coef_coef_inflation
-from pyPLNmodels._closed_forms import (
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.calculations._initialization import _init_coef_coef_inflation
+from pyPLNmodels.calculations._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
     _closed_formula_latent_prob,
 )
-from pyPLNmodels.elbos import profiled_elbo_zipln
-from pyPLNmodels._utils import _add_doc
-from pyPLNmodels._viz import _viz_variables, _pca_pairplot, ZIModelViz
+from pyPLNmodels.calculations.elbos import profiled_elbo_zipln
+from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._viz import _viz_variables, _pca_pairplot, ZIModelViz
+from pyPLNmodels.utils._data_handler import (
+    _handle_inflation_data,
+    _array2tensor,
+    _extract_data_inflation_from_formula,
+)
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

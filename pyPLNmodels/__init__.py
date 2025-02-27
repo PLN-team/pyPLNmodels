@@ -8,16 +8,19 @@ from .load_data import (
     load_crossover_per_species,
 )
 
-from .pln import Pln
-from .plnpca import PlnPCA
-from .plnpcacollection import PlnPCAcollection
-from .zipln import ZIPln
-from .ziplnpca import ZIPlnPCA
-from .network import PlnNetwork
-from .plndiag import PlnDiag
-from .plnmixture import PlnMixture
-from .plnar import PlnAR
-from .plnlda import PlnLDA
+from .models import (
+    Pln,
+    PlnPCA,
+    PlnPCAcollection,
+    ZIPln,
+    ZIPlnPCA,
+    PlnNetwork,
+    PlnDiag,
+    PlnMixture,
+    PlnAR,
+    PlnLDA,
+)
+
 
 from .sampling import (
     PlnSampler,
@@ -31,9 +34,7 @@ from .sampling import (
     PlnLDASampler,
 )
 
-from ._utils import get_confusion_matrix, get_label_mapping
-from ._viz import plot_confusion_matrix
-
+from .utils import get_confusion_matrix, get_label_mapping, plot_confusion_matrix
 
 __version__ = importlib.metadata.version("pyplnmodels")
 

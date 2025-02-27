@@ -5,13 +5,16 @@ import numpy as np
 import pandas as pd
 
 
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels.elbos import elbo_pln
-from pyPLNmodels._utils import _add_doc, _get_two_dim_latent_variances
-from pyPLNmodels._closed_forms import _closed_formula_coef
-from pyPLNmodels._initialization import _init_components_prec, _init_latent_pln
-from pyPLNmodels._viz import _viz_network, NetworkModelViz
-from pyPLNmodels._data_handler import _extract_data_from_formula
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.calculations.elbos import elbo_pln
+from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
+from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz
+from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.calculations._closed_forms import _closed_formula_coef
+from pyPLNmodels.calculations._initialization import (
+    _init_components_prec,
+    _init_latent_pln,
+)
 
 
 THRESHOLD = 1e-5

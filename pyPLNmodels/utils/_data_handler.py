@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from patsy import dmatrices, dmatrix, PatsyError  # pylint: disable=no-name-in-module
 
-from pyPLNmodels._utils import _get_log_sum_of_endog
+from pyPLNmodels.utils._utils import _get_log_sum_of_endog
 
 if torch.cuda.is_available():
     DEVICE = "cuda"

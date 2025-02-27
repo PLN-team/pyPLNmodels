@@ -4,11 +4,11 @@ import torch
 import pandas as pd
 import numpy as np
 
-from pyPLNmodels._data_handler import _handle_data, _extract_data_from_formula
-from pyPLNmodels._utils import _add_doc, _nice_string_of_dict
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels.plnpca import PlnPCA
-from pyPLNmodels._viz import _show_information_criterion
+from pyPLNmodels.utils._data_handler import _handle_data, _extract_data_from_formula
+from pyPLNmodels.utils._utils import _add_doc, _nice_string_of_dict
+from pyPLNmodels.utils._viz import _show_information_criterion
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.plnpca import PlnPCA
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

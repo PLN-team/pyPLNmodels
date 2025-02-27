@@ -3,17 +3,17 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels.elbos import elbo_ziplnpca
-from pyPLNmodels._initialization import (
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.zipln import ZIPln
+from pyPLNmodels.calculations.elbos import elbo_ziplnpca
+from pyPLNmodels.calculations._initialization import (
     _init_coef_coef_inflation,
     _init_components,
     _init_latent_sqrt_variance_pca,
     _init_latent_mean_pca,
 )
-from pyPLNmodels._data_handler import _extract_data_inflation_from_formula
-from pyPLNmodels._utils import _add_doc
-from pyPLNmodels.zipln import ZIPln
+from pyPLNmodels.utils._data_handler import _extract_data_inflation_from_formula
+from pyPLNmodels.utils._utils import _add_doc
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
