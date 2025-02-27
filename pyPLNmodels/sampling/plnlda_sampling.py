@@ -91,4 +91,4 @@ class PlnLDASampler(PlnSampler):
         """
         Clusters given in initialization.
         """
-        return self._exog[:, -(self.n_clusters) :]
+        return (self._exog[:, -(self.n_clusters) :]).cpu()
