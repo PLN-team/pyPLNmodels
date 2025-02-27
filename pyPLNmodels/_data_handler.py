@@ -422,19 +422,23 @@ def _extract_data_from_formula(
     return endog, exog, offsets
 
 
-def _extract_exog_inflation_from_formula(
-    formula_inflation: str,
+def _extract_right_term_formula(
+    right_term_formula: str,
     data: Dict[str, Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
+    exog_string: str,
 ) -> Tuple:
     """
     Extract only the `exog_inflation` from the given formula and data dictionary.
 
     Parameters
     ----------
-    formula_inflation : str
+    right_term_formula : str
         The formula specifying the data to extract.
     data : Dict[str, Any]
         A dictionary containing the data.
+    exog_string: str
+        The name of the exog that is being extracted.
+        Should be either 'exog_inflation' or 'clusters'.
 
     Returns
     -------
@@ -442,13 +446,13 @@ def _extract_exog_inflation_from_formula(
         `exog_inflation` of size (n_samples, nb_cov_inflation).
     """
     try:
-        exog_inflation = dmatrix(formula_inflation, data=data)
-        column_names_exog_inflation = exog_inflation.design_info.column_names
-        exog_inflation = pd.DataFrame(exog_inflation)
-        exog_inflation.columns = column_names_exog_inflation
-        return exog_inflation
+        exog = dmatrix(right_term_formula, data=data)
+        column_names_exog = exog.design_info.column_names
+        exog = pd.DataFrame(exog)
+        exog.columns = column_names_exog
+        return exog
     except PatsyError as err:
-        msg = f"Formula of `exog_inflation` did not work: {formula_inflation}."
+        msg = f"Formula of `{exog_string}` did not work: {right_term_formula}."
         msg += " Error from Patsy:"
         warnings.warn(msg)
         raise err
@@ -480,7 +484,7 @@ def _remove_useless_exog(exog, column_names_exog, is_inflation):
     return exog
 
 
-def _process_formula_inflation(formula, data):
+def _extract_data_inflation_from_formula(formula, data):
     if "|" not in formula:
         msg = "`exog_inflation` and `exog` are set to the same array. "
         msg += "If you need different `exog_inflation`, "
@@ -495,9 +499,30 @@ def _process_formula_inflation(formula, data):
         formula_exog = split_formula[0]
         endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
         formula_infla = split_formula[1]
-        exog_inflation = _extract_exog_inflation_from_formula(formula_infla, data)
+        exog_inflation = _extract_right_term_formula(
+            formula_infla, data, "exog_inflation"
+        )
 
     return endog, exog, offsets, exog_inflation
+
+
+def _extract_data_and_clusters_from_formula(formula, data):
+    if "|" not in formula:
+        msg = "Clusters should be specified in the formula, like "
+        msg += "in the following example: 'endog ~ 1 + exog | clusters'"
+        raise ValueError(msg)
+    split_formula = formula.split("|")
+    formula_exog = split_formula[0]
+    endog, exog, offsets = _extract_data_from_formula(formula_exog, data)
+    formula_clusters = split_formula[1]
+    if _validate_after_pipe(formula_clusters) is False:
+        msg = "You may consider only one word in the second part of the formula. "
+        msg += f"Got {formula_clusters}. "
+        raise ValueError(msg)
+    formula_clusters = "0 + " + formula_clusters  # no intercept. as it is clusters.
+    clusters = _extract_right_term_formula(formula_clusters, data, "clusters")
+
+    return endog, exog, offsets, clusters
 
 
 def _format_clusters(clusters):
@@ -516,3 +541,51 @@ def _format_clusters(clusters):
     msg = "Input clusters format is not recognized. Give either"
     msg += " a one dimensional tensor or a one-hot encoded tensor."
     raise ValueError(msg)
+
+
+def _validate_after_pipe(part):
+    if len(part.split()) == 1:
+        return True
+    return False
+
+
+def _check_dimensions_for_prediction(endog, model_endog, exog, model_exog):
+    _check_dimensions_equal(
+        "new endog", "model endog", endog.shape[1], model_endog.shape[1], 1, 1
+    )
+    if exog is None and model_exog is not None:
+        raise ValueError(
+            "`exog` is `None` but exogenous variables were given in the model."
+        )
+    if model_exog is None and exog is not None:
+        raise ValueError(
+            "`exog` is not `None` but exogenous variables were not given in the model."
+        )
+    if exog is not None and model_exog is not None:
+        _check_dimensions_equal(
+            "new exog", "model exog", exog.shape[1], model_exog.shape[1], 1, 1
+        )
+
+
+def _get_dummies(input_tensor):
+    """
+    Convert a tensor of class indices to a one-hot encoded tensor.
+
+    Parameters:
+    input_tensor (torch.Tensor): Tensor containing class indices.
+
+    Returns:
+    torch.Tensor: One-hot encoded tensor.
+    """
+    # Determine the number of classes
+    num_classes = input_tensor.max().item() + 1
+
+    # Initialize the output tensor with zeros
+    one_hot_tensor = torch.zeros(
+        input_tensor.size(0), num_classes, device=input_tensor.device
+    )
+
+    # Fill the appropriate positions with ones
+    one_hot_tensor.scatter_(1, input_tensor.unsqueeze(1), 1)
+
+    return one_hot_tensor

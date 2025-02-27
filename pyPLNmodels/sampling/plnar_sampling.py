@@ -33,8 +33,7 @@ class PlnARSampler(PlnSampler):
 
     See also
     --------
-    :class:`pyPLNmodels.PlnDiag`
-    :class:`pyPLNmodels.Pln`
+    :class:`pyPLNmodels.PlnAR`
     """
 
     def __init__(

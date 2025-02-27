@@ -764,6 +764,7 @@ def elbo_plnar_diag(
     latent_variance = _remove_nan(latent_sqrt_variance**2)
     autoreg_precision = 1 / (1 - ar_coef**2) * precision
     latent_diff = _remove_nan(latent_mean - marginal_mean)
+    mask = torch.isfinite(endog)
 
     ar_elbo = torch.zeros_like(latent_diff)
 
@@ -792,6 +793,7 @@ def elbo_plnar_diag(
 
     elbo += ar_elbo
     elbo += 1 / 2
+    elbo = elbo * mask
 
     elbo = torch.sum(torch.nan_to_num(elbo))
     return elbo

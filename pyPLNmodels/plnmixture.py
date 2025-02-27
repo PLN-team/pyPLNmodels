@@ -3,6 +3,7 @@ import warnings
 import torch
 import pandas as pd
 import numpy as np
+from numpy.typing import ArrayLike
 
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._data_handler import _extract_data_from_formula
@@ -11,6 +12,7 @@ from pyPLNmodels._initialization import _init_gmm
 from pyPLNmodels.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.plndiag import PlnDiag
 from pyPLNmodels._viz import MixtureModelViz, _viz_variables
+from pyPLNmodels._data_handler import _check_dimensions_for_prediction
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -21,6 +23,8 @@ class PlnMixture(
 ):  # pylint: disable=too-many-instance-attributes, too-many-public-methods
     """
     Pln mixture models, that is a gaussian mixture model with Poisson layer on top of it.
+    The effect of covariates is shared with clusters. Note that stability
+    may significantly decrease with the number of covariates.
 
     Examples
     --------
@@ -93,6 +97,9 @@ class PlnMixture(
             msg += "This is ignored."
             warnings.warn(msg)
         self._n_clusters = n_clusters
+        self._compute_offsets_method = (
+            compute_offsets_method  # store it for prediction after.
+        )
         super().__init__(
             endog,
             exog=exog,
@@ -154,6 +161,9 @@ class PlnMixture(
         >>> mixture.fit(maxiter=500, verbose=True)
         >>> print(mixture)
         """,
+        returns="""
+        PlnMixture object
+        """,
     )
     def fit(
         self,
@@ -163,7 +173,7 @@ class PlnMixture(
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     @property
     def _covariance(self):
@@ -229,7 +239,7 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.predict_clusters`
         :func:`pyPLNmodels.PlnMixture.pca_pairplot`
         """
-        clusters = self.predict_clusters()
+        clusters = self._clusters
         if colors is None:
             colors = clusters
         if show_cov is True:
@@ -266,14 +276,27 @@ class PlnMixture(
         positions_with_mean = pln.latent_positions + (
             pln.exog[:, 0].unsqueeze(1) @ pln.coef[0].unsqueeze(0)
         )
-
-        self._cluster_bias, self._sqrt_covariances, self._weights, self._latent_prob = (
-            _init_gmm(positions_with_mean, self.n_clusters)
-        )
         if pln.nb_cov > 1:
-            self._coef = pln.coef[:-1].to(DEVICE)  # Should not retrieve the mean
+            _coef = pln.coef[:-1].to(DEVICE)  # Should not retrieve the mean
         else:
-            self._coef = None
+            _coef = None
+
+        _cluster_bias, _sqrt_covariances, _weights, _latent_prob = _init_gmm(
+            positions_with_mean, self.n_clusters
+        )
+        if not (
+            hasattr(self, "_cluster_bias")
+            or hasattr(self, "_sqrt_covariances")
+            or hasattr(self, "_weights")
+            or hasattr(self, "_latent_prob")
+            or hasattr(self, "_coef")
+        ):
+            self._cluster_bias = _cluster_bias
+            self._sqrt_covariances = _sqrt_covariances
+            self._weights = _weights
+            self._coef = _coef
+
+        self._latent_prob = _latent_prob
         self._latent_means = self._cluster_bias.unsqueeze(1)
         if self._exog is not None:
             self._latent_means = self._latent_means + self._marginal_mean.unsqueeze(0)
@@ -367,13 +390,17 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.pca_pairplot`
         """
         if colors is None:
-            colors = self.predict_clusters()
+            colors = self._clusters
         super().biplot(
             variables_names=variables_names,
             indices_of_variables=indices_of_variables,
             colors=colors,
             title=title,
         )
+
+    @property
+    def _clusters(self):
+        return torch.argmax(self._latent_prob, dim=1)
 
     @property
     def _marginal_means(self):
@@ -463,8 +490,9 @@ class PlnMixture(
     def latent_variables(self):
         """Latent variables."""
         variables = torch.zeros(self.n_samples, self.dim)
+        clusters = self._clusters
         for k in range(self.n_clusters):
-            indices = self.predict_clusters() == k
+            indices = clusters == k
             variables[indices] += self.latent_means[k, indices]
         # return torch.sum(self.latent_means * (self.latent_prob.T).unsqueeze(2), dim = 0)
         return variables
@@ -546,7 +574,7 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.viz`
         """
         if colors is None:
-            colors = self.predict_clusters()
+            colors = self._clusters
         super().pca_pairplot(n_components=n_components, colors=colors)
 
     @_add_doc(
@@ -583,9 +611,52 @@ class PlnMixture(
         """
         return self._cluster_bias.detach().cpu()
 
-    def predict_clusters(self):
-        """Predict the clusters of the given endog in the model."""
-        return torch.argmax(self.latent_prob, axis=1)
+    def predict_clusters(self, endog: ArrayLike, *, exog=None, offsets=None):
+        """
+        Predict the clusters of the given endog and exog.
+        The dimensions of `endog`, `exog`, and `offsets` should match the ones given in the model.
+
+        Parameters
+        ----------
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The count data.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The covariate data. Defaults to `None`.
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The offsets data. Defaults to `None`.
+
+        Raises
+        ------
+        ValueError
+            If the endog (or exog) has wrong shape compared to the previously fitted
+            endog (or exog) variables.
+        Returns
+        -------
+        list: The predicted clusters
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
+        >>> pln = PlnMixture(endog, n_clusters = 2).fit()
+        >>> pred = pln.predict_clusters()
+        >>> print('pred', pred)
+        """
+        mixture_pred = _PlnMixturePredict(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
+            compute_offsets_method=self._compute_offsets_method,
+            cluster_bias=self._cluster_bias,
+            coef=self._coef,
+            sqrt_covariances=self._sqrt_covariances,
+            weights=self._weights,
+        )
+        _check_dimensions_for_prediction(
+            mixture_pred.endog, self._endog, mixture_pred.exog, self._exog
+        )
+        mixture_pred.fit()
+        return torch.argmax(mixture_pred.latent_prob, dim=1).tolist()
 
     @property
     def _additional_attributes_list(self):
@@ -614,3 +685,50 @@ class PlnMixture(
                 )
             )
         return latent_variances
+
+
+class _PlnMixturePredict(PlnMixture):
+    def __init__(
+        self,
+        *,
+        endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
+        exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        add_const: bool = False,
+        offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
+        compute_offsets_method: {"zero", "logsum"} = "zero",
+        cluster_bias: torch.Tensor,
+        coef: torch.Tensor,
+        sqrt_covariances: torch.Tensor,
+        weights: torch.Tensor,
+    ):  # pylint: disable=too-many-arguments
+        n_clusters = cluster_bias.shape[0]
+        self._cluster_bias = cluster_bias.detach()
+        if coef is None:
+            self._coef = None
+        else:
+            self._coef = coef.detach()
+        self._sqrt_covariances = sqrt_covariances.detach()
+        self._weights = weights.detach()
+        super().__init__(
+            endog=endog,
+            n_clusters=n_clusters,
+            exog=exog,
+            add_const=False,
+            offsets=offsets,
+            compute_offsets_method=compute_offsets_method,
+        )
+
+    @property
+    def list_of_parameters_needing_gradient(self):
+        return [self._latent_means, self._latent_sqrt_variances]
+
+    def fit(
+        self,
+    ):  # pylint: disable=arguments-differ
+        return super().fit(maxiter=30, lr=0.01, tol=0, verbose=False)
+
+    def _print_beginning_message(self):
+        print("Doing a VE step.")
+
+    def _print_end_of_fitting_message(self, stop_condition=None, tol=None):
+        print("Done!")

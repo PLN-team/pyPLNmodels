@@ -17,6 +17,7 @@ from .network import PlnNetwork
 from .plndiag import PlnDiag
 from .plnmixture import PlnMixture
 from .plnar import PlnAR
+from .plnlda import PlnLDA
 
 from .sampling import (
     PlnSampler,
@@ -27,9 +28,11 @@ from .sampling import (
     PlnDiagSampler,
     PlnMixtureSampler,
     PlnARSampler,
+    PlnLDASampler,
 )
 
-from ._utils import get_confusion_matrix, plot_confusion_matrix, get_label_mapping
+from ._utils import get_confusion_matrix, get_label_mapping
+from ._viz import plot_confusion_matrix
 
 
 __version__ = importlib.metadata.version("pyplnmodels")
@@ -51,6 +54,8 @@ __all__ = [
     "ZIPlnPCA",
     "PlnARSampler",
     "PlnAR",
+    "PlnLDA",
+    "PlnLDASampler",
     "get_confusion_matrix",
     "plot_confusion_matrix",
     "get_label_mapping",

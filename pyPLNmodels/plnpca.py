@@ -141,6 +141,9 @@ class PlnPCA(BaseModel):
         >>> plnpca.fit(maxiter=500, verbose=True)
         >>> print(plnpca)
         """,
+        returns="""
+        PlnPCA object
+        """,
     )
     def fit(
         self,
@@ -150,7 +153,7 @@ class PlnPCA(BaseModel):
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_model_parameters(self):
         coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)

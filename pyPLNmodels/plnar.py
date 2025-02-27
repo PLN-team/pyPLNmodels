@@ -166,6 +166,9 @@ class PlnAR(BaseModel):
         >>> ar.fit(maxiter=500, verbose=True)
         >>> print(ar)
         """,
+        returns="""
+        PlnAR object
+        """,
     )
     def fit(
         self,
@@ -175,7 +178,7 @@ class PlnAR(BaseModel):
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     @_add_doc(
         BaseModel,

@@ -23,6 +23,12 @@ class ZIPlnPCASampler(ZIPlnSampler):
     >>> true_covariance = sampler.covariance
     >>> latent_probabilities = zipca.latent_prob
     >>> true_latent_probabilites = sampler.bernoulli
+
+    See also
+    --------
+    :class:`pyPLNmodels.ZIPlnPCA`
+    :class:`pyPLNmodels.ZIPln`
+    :class:`pyPLNmodels.PlnPCA`
     """
 
     def __init__(

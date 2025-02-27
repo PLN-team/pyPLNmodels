@@ -30,6 +30,10 @@ class PlnNetworkSampler(PlnSampler):
     >>> net.fit()
     >>> estimated_precision = net.precision
     >>> true_precision = sampler.precision
+
+    See also
+    --------
+    :class:`pyPLNmodels.PlnNetwork`
     """
 
     @_add_doc(

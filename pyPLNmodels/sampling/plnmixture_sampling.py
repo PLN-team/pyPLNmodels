@@ -18,7 +18,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attributes
     """
-    Initalize the data and parameters of the PLN Mixture model.
+    Initalize the data and parameters of the PlnMixture model.
     This is basically a Poisson model where the log intensity
     is given by a GMM.
 
@@ -36,10 +36,15 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
     >>> mixture = PlnMixture(endog, exog = sampler.exog, n_clusters = sampler.n_clusters)#pylint:disable = line-too-long
     >>> mixture.fit()
     >>> mixture.viz()
+
+    See also
+    --------
+    :class:`pyPLNmodels.PlnMixture`
     """
 
     latent_variables: torch.Tensor
     clusters: torch.Tensor
+    _clusters: torch.Tensor
 
     def __init__(
         self,
@@ -124,11 +129,11 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
     def _get_gaussians(self, seed):
         torch.manual_seed(8)
         gaussians = torch.randn(self.n_samples, self.dim, device=DEVICE)
-        self.clusters = torch.multinomial(
+        self._clusters = torch.multinomial(
             self.weights, self.n_samples, replacement=True
         ).to(DEVICE)
         for cluster_number in range(self.n_clusters):
-            indices = self.clusters == cluster_number
+            indices = self._clusters == cluster_number
             gaussians[indices] *= torch.sqrt(
                 self._params["covariances"][cluster_number]
             )
@@ -137,7 +142,23 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         return gaussians
 
     @property
+    def clusters(self):
+        """
+        The clusters that LDA will be based on.
+        """
+        return self._clusters.tolist()
+
+    @property
     def _marginal_mean(self):
         if self._exog is None:
             return 0
         return torch.matmul(self._exog, self._params["coef"])
+
+    @property
+    def marginal_mean(self):
+        """
+        Marginal mean of the latent variables, not knwowing the endog variables.
+        """
+        if self._exog is None:
+            return 0
+        return self._marginal_mean.cpu()

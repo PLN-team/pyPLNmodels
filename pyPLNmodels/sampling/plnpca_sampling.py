@@ -25,6 +25,11 @@ class PlnPCASampler(PlnSampler):
     >>> true_covariance = sampler.covariance
     >>> estimated_latent_var = pca.latent_variables
     >>> true_latent_var = sampler.latent_variables
+
+    See also
+    --------
+    :class:`pyPLNmodels.PlnPCA`
+    :class:`pyPLNmodels.ZIPlnPCA`
     """
 
     def __init__(

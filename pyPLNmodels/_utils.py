@@ -3,12 +3,10 @@ import math
 import textwrap
 import time
 
-import matplotlib
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.metrics import confusion_matrix
 from scipy.stats import mode
-import seaborn as sns
 import torch
 
 
@@ -243,12 +241,17 @@ def get_label_mapping(cluster_labels: ArrayLike, true_labels: ArrayLike):
         Dictionary where keys are cluster labels and values are the most frequent true label
         within each cluster. If a cluster has no true labels, it is mapped to -1.
     """
+    if isinstance(cluster_labels, torch.Tensor):
+        cluster_labels = cluster_labels.numpy()
+    if isinstance(true_labels, torch.Tensor):
+        true_labels = true_labels.numpy()
+
+    cluster_labels = np.array(cluster_labels)
+    true_labels = np.array(true_labels)
     label_mapping = {}
     n_clusters = len(np.unique(cluster_labels))
     for cluster in range(n_clusters):
         mask = cluster_labels == cluster
-        if isinstance(mask, torch.Tensor):
-            mask = mask.numpy()
         if np.sum(mask) > 0:  # Check if there are any true labels for this cluster
             majority_class = mode(true_labels[mask], keepdims=True)[0][0]
             label_mapping[cluster] = majority_class
@@ -278,27 +281,6 @@ def get_confusion_matrix(pred_clusters: ArrayLike, true_clusters: ArrayLike):
     mapped_labels = np.vectorize(lambda x: label_mapping.get(x, -1))(pred_clusters)
     cm = confusion_matrix(true_clusters, mapped_labels)
     return cm
-
-
-def plot_confusion_matrix(
-    confusion_mat: np.ndarray, ax: matplotlib.axes.Axes, title: str = ""
-):
-    """
-    Plot the confusion matrix using a heatmap.
-
-    Parameters
-    ----------
-    confusion_mat : ndarray of shape (n_classes, n_classes)
-        Confusion matrix to be plotted.
-    ax : matplotlib.axes.Axes
-        Axes object to draw the heatmap on.
-    title : str (Optional)
-        Title for the heatmap.
-    """
-    sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
-    ax.set_xlabel("Predicted Labels")
-    ax.set_ylabel("True Labels")
-    ax.set_title(title)
 
 
 def _point_fixe_lambert(x, y):
