@@ -1,7 +1,7 @@
 import torch
 from scipy.linalg import toeplitz
 
-from pyPLNmodels._data_handler import _format_data
+from pyPLNmodels.utils._data_handler import _format_data
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

@@ -3,7 +3,7 @@ from .plnpca import PlnPCA
 from .plnpcacollection import PlnPCAcollection
 from .zipln import ZIPln
 from .ziplnpca import ZIPlnPCA
-from .network import PlnNetwork
+from .plnnetwork import PlnNetwork
 from .plndiag import PlnDiag
 from .plnmixture import PlnMixture
 from .plnar import PlnAR
