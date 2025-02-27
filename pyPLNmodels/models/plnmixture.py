@@ -5,14 +5,16 @@ import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
 
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels._data_handler import _extract_data_from_formula
-from pyPLNmodels._utils import _add_doc, _get_two_dim_latent_variances
-from pyPLNmodels._initialization import _init_gmm
-from pyPLNmodels.elbos import per_sample_elbo_pln_mixture_diag
-from pyPLNmodels.plndiag import PlnDiag
-from pyPLNmodels._viz import MixtureModelViz, _viz_variables
-from pyPLNmodels._data_handler import _check_dimensions_for_prediction
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.plndiag import PlnDiag
+from pyPLNmodels.utils._data_handler import (
+    _extract_data_from_formula,
+    _check_dimensions_for_prediction,
+)
+from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
+from pyPLNmodels.calculations._initialization import _init_gmm
+from pyPLNmodels.calculations.elbos import per_sample_elbo_pln_mixture_diag
+from pyPLNmodels.utils._viz import MixtureModelViz, _viz_variables
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

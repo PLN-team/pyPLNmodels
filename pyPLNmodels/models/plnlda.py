@@ -6,19 +6,22 @@ import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
 
-from pyPLNmodels.pln import Pln
-from pyPLNmodels._data_handler import (
+from pyPLNmodels.models.pln import Pln
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.utils._data_handler import (
     _format_clusters,
     _check_dimensions_equal,
     _extract_data_and_clusters_from_formula,
     _check_dimensions_for_prediction,
     _get_dummies,
 )
-from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
-from pyPLNmodels.elbos import profiled_elbo_pln, elbo_pln
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels._utils import _add_doc
-from pyPLNmodels._viz import _viz_lda, _viz_lda_new
+from pyPLNmodels.calculations._closed_forms import (
+    _closed_formula_coef,
+    _closed_formula_covariance,
+)
+from pyPLNmodels.calculations.elbos import profiled_elbo_pln, elbo_pln
+from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._viz import _viz_lda, _viz_lda_new
 
 
 class PlnLDA(Pln):

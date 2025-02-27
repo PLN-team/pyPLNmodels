@@ -3,16 +3,16 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels.elbos import elbo_plnpca
-from pyPLNmodels._initialization import (
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.calculations.elbos import elbo_plnpca
+from pyPLNmodels.calculations._initialization import (
     _init_coef,
     _init_components,
     _init_latent_mean_pca,
     _init_latent_sqrt_variance_pca,
 )
-from pyPLNmodels._data_handler import _extract_data_from_formula, _array2tensor
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
+from pyPLNmodels.utils._utils import _add_doc
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

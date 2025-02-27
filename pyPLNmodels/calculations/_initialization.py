@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
-from pyPLNmodels._utils import _log_stirling
+from pyPLNmodels.utils._utils import _log_stirling
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

@@ -4,17 +4,20 @@ import pandas as pd
 import numpy as np
 from scipy.stats import norm, t
 
-from pyPLNmodels.base import BaseModel, DEFAULT_TOL
-from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_covariance
-from pyPLNmodels.elbos import profiled_elbo_pln
-from pyPLNmodels._utils import (
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.calculations._closed_forms import (
+    _closed_formula_coef,
+    _closed_formula_covariance,
+)
+from pyPLNmodels.calculations.elbos import profiled_elbo_pln
+from pyPLNmodels.calculations.sandwich import SandwichPln
+from pyPLNmodels.calculations._initialization import _init_latent_pln
+from pyPLNmodels.utils._utils import (
     _add_doc,
     _shouldbefitted,
     _none_if_no_exog,
     _get_two_dim_latent_variances,
 )
-from pyPLNmodels.sandwich import SandwichPln
-from pyPLNmodels._initialization import _init_latent_pln
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

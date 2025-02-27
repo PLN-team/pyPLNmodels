@@ -1,5 +1,5 @@
 import torch
-from pyPLNmodels._utils import _phi
+from pyPLNmodels.utils._utils import _phi
 
 
 def _closed_formula_coef(exog: torch.Tensor, latent_mean: torch.Tensor) -> torch.Tensor:

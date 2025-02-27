@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import networkx as nx
 
-from pyPLNmodels._utils import calculate_correlation
+from pyPLNmodels.utils._utils import calculate_correlation
 
 
 def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float:
