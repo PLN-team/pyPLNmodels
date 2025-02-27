@@ -532,11 +532,12 @@ def _format_clusters(clusters):
 
     # Convert to one-hot encoding
     if clusters.dim() == 1:
+        clusters = clusters.to(torch.int64)
         num_classes = clusters.max().item() + 1
         one_hot_clusters = torch.nn.functional.one_hot(
             clusters, num_classes=num_classes
         )
-        return one_hot_clusters
+        return one_hot_clusters.float()
 
     msg = "Input clusters format is not recognized. Give either"
     msg += " a one dimensional tensor or a one-hot encoded tensor."

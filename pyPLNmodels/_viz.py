@@ -833,8 +833,9 @@ def _viz_lda_new(*, X, y, new_X_transformed, colors, ax=None):
         ax = plt.gca()
     else:
         to_show = False
-    if len(colors.shape) > 1:
-        colors = colors.argmax(dim=1)
+    if colors is not None:
+        if len(colors.shape) > 1:
+            colors = colors.argmax(dim=1)
     X_lda = _get_lda_projection(X, y)
     sns.scatterplot(
         x=new_X_transformed[:, 0],
