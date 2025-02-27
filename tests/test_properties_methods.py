@@ -24,6 +24,7 @@ def test_attributes_method():
                     ".plot_correlation_circle()",
                     ".biplot()",
                     ".predict_prob_inflation()",
+                    ".predict_clusters()",
                 ]
             ]
             for method in methods:  # pylint: disable=protected-access

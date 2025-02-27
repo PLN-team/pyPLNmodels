@@ -157,7 +157,7 @@ def _init_components_prec(endog):
     covariance = torch.mm(log_y.T, log_y) / (log_y.shape[0] - 1)
     precision = torch.linalg.pinv(covariance)
     eigenvalues, eigenvectors = torch.linalg.eigh(precision)
-    eigenvalues = torch.maximum(eigenvalues, torch.Tensor([0]))
+    eigenvalues = torch.maximum(eigenvalues, torch.Tensor([0]).to(endog.device))
     return eigenvectors @ torch.diag(torch.sqrt(eigenvalues))
 
 
