@@ -1,5 +1,5 @@
 import torch
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels.utils._utils import _add_doc
 
 from .zipln_sampling import ZIPlnSampler
 from ._utils import _components_from_covariance

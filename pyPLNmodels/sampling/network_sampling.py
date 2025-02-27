@@ -1,6 +1,6 @@
 import torch
 
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels.utils._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
 from .pln_sampling import PlnSampler

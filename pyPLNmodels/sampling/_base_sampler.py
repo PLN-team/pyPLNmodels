@@ -3,7 +3,7 @@ from typing import Dict
 
 import torch
 
-from pyPLNmodels._data_handler import _format_data, _add_constant_to_exog
+from pyPLNmodels.utils._data_handler import _format_data, _add_constant_to_exog
 
 from ._utils import _format_dict_of_array
 

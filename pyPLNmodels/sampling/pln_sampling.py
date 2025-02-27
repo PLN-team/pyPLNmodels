@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 
 import torch
 
-from pyPLNmodels._utils import _add_doc
+from pyPLNmodels.utils._utils import _add_doc
 
 from ._base_sampler import _BaseSampler
 from ._utils import _get_exog, _get_coef, _get_full_covariance, _get_offsets
