@@ -301,9 +301,7 @@ class PlnLDA(Pln):
             pln_pred.endog, self._endog, pln_pred.exog, self._exog
         )
         pln_pred.fit()
-        out = pln_pred.latent_mean
-        print("out", out)
-        return pln_pred.latent_mean  # + pln_pred._intercept.unsqueeze(0).detach().cpu()
+        return pln_pred.latent_positions
 
     @property
     def _additional_methods_list(self):
@@ -367,12 +365,12 @@ class PlnLDA(Pln):
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
         if remove_exog_effect is not False:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
-        _viz_lda(self.latent_positions_clusters, self.clusters, ax=ax)
+        _viz_lda(self._latent_positions_clusters.cpu(), self.clusters, ax=ax)
 
     def _get_lda_classifier_fitted(self):
         clf = LinearDiscriminantAnalysis()
         clf.fit(
-            self.latent_positions_clusters.cpu().detach().numpy(),
+            self._latent_positions_clusters.cpu().detach(),
             self.clusters,
         )
         return clf
@@ -413,7 +411,7 @@ class PlnLDA(Pln):
         if remove_exog_effect is not False:
             raise ValueError("'remove_exog_effect' is not implemented for PlnLDA")
         clf = self._get_lda_classifier_fitted()
-        return clf.transform(self.latent_positions_clusters)
+        return clf.transform(self._latent_positions_clusters.cpu())
 
     def transform_new(self, endog, *, exog=None, offsets=None):
         """
@@ -485,7 +483,7 @@ class PlnLDA(Pln):
         >>> lda.viz_transformed(transformed_endog_test)
         """
         _viz_lda_new(
-            X=self.latent_positions_clusters,
+            X=self._latent_positions_clusters.cpu(),
             y=self.clusters,
             new_X_transformed=transformed,
             colors=colors,
@@ -493,9 +491,8 @@ class PlnLDA(Pln):
         )
 
     @property
-    def latent_positions_clusters(self):
-        print("latent positions clusters", self.latent_mean - self.marginal_mean)
-        return self.latent_mean - self.marginal_mean
+    def _latent_positions_clusters(self):
+        return self._latent_mean - self._marginal_mean
 
 
 class _PlnPred(Pln):
@@ -521,12 +518,11 @@ class _PlnPred(Pln):
         else:
             self._fixed_marginal_mean = self._exog @ fixed_coef
         self._fixed_precision = fixed_precision
-        self._intercept = torch.zeros(self.dim).to(self._endog.device)
 
     def compute_elbo(self):
         return elbo_pln(
             endog=self._endog,
-            marginal_mean=self._fixed_marginal_mean,  # + self._intercept.unsqueeze(0),
+            marginal_mean=self._fixed_marginal_mean,
             offsets=self._offsets,
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
@@ -536,8 +532,4 @@ class _PlnPred(Pln):
     def fit(
         self,
     ):  # pylint: disable=arguments-differ
-        return super().fit(maxiter=400, lr=0.01, tol=0, verbose=False)
-
-    @property
-    def list_of_parameters_needing_gradient(self):
-        return [self._latent_mean, self._latent_sqrt_variance, self._intercept]
+        return super().fit(maxiter=30, lr=0.01, tol=0, verbose=False)

@@ -172,7 +172,9 @@ class PlnSampler(_BasePlnSampler):
             covariance=covariance,
         )
 
-    def _get_coef(self, *, nb_cov, dim, mean, add_const, seed):
+    def _get_coef(
+        self, *, nb_cov, dim, mean, add_const, seed
+    ):  # pylint: disable = too-many-arguments
         return _get_coef(
             nb_cov=nb_cov, dim=dim, mean=mean, add_const=add_const, seed=seed
         )
