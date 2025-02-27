@@ -7,11 +7,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib import transforms, gridspec
+from matplotlib.colors import ListedColormap
 from matplotlib.patches import Circle
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import networkx as nx
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from pyPLNmodels._utils import calculate_correlation
 
@@ -784,5 +786,62 @@ def plot_confusion_matrix(
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
+    if to_show is True:
+        plt.show()
+
+
+def _viz_lda(X, y, ax=None):
+    if ax is None:
+        to_show = True
+        ax = plt.gca()
+    else:
+        to_show = False
+    X_lda,_ = _get_lda_projection(X, y)
+    sns.scatterplot(
+        x=X_lda[:, 0], y=X_lda[:, 1], hue=y, palette="viridis", edgecolor="black", ax=ax
+    )
+    _plot_contour_lda(X_lda, y, ax)
+    ax.set_xlabel("LD1")
+    ax.set_ylabel("LD2")
+    ax.set_title("LDA Projection with Decision Boundaries")
+    if to_show:
+        plt.show()
+
+
+def _plot_contour_lda(X_lda, y, ax):
+    x_min, x_max = X_lda[:, 0].min() - 1, X_lda[:, 0].max() + 1
+    y_min, y_max = X_lda[:, 1].min() - 1, X_lda[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200), np.linspace(y_min, y_max, 200))
+
+    lda_2d = LinearDiscriminantAnalysis()
+    lda_2d.fit(X_lda, y)
+    prediction = lda_2d.predict(np.c_[xx.ravel(), yy.ravel()])
+    prediction = prediction.reshape(xx.shape)
+    cmap = ListedColormap(sns.color_palette("viridis", 3).as_hex())
+    ax.contourf(xx, yy, prediction, alpha=0.3, cmap=cmap)
+
+
+def _get_lda_projection(X, y):
+    clf = LinearDiscriminantAnalysis()
+    clf.fit(X, y)
+    return clf.transform(X), clf
+
+
+def _viz_lda_new(*, X, y, new_X_transformed, colors, ax=None):
+    if ax is None:
+        to_show = True
+        ax = plt.gca()
+    else:
+        to_show = False
+    if len(colors.shape)>1:
+        colors = colors.argmax(dim = 1)
+    X_lda, clf = _get_lda_projection(X, y)
+    sns.scatterplot(
+        x=new_X_transformed[:, 0], y=new_X_transformed[:, 1], hue=colors, palette="viridis", edgecolor="black", ax=ax
+    )
+    _plot_contour_lda(X_lda, y, ax)
+    ax.set_xlabel("LD1")
+    ax.set_ylabel("LD2")
+    ax.set_title("LDA Projection with Decision Boundaries")
     if to_show is True:
         plt.show()

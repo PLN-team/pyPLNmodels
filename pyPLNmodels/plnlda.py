@@ -18,6 +18,7 @@ from pyPLNmodels._closed_forms import _closed_formula_coef, _closed_formula_cova
 from pyPLNmodels.elbos import profiled_elbo_pln, elbo_pln
 from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._utils import _add_doc
+from pyPLNmodels._viz import _viz_lda, _viz_lda_new
 
 
 class PlnLDA(Pln):
@@ -33,8 +34,7 @@ class PlnLDA(Pln):
     >>> data = load_scrna()
     >>> endog_train, endog_test = data["endog"][:100],data["endog"][100:]
     >>> labels_train, labels_test = data["labels"][:100], data["endog"][100:]
-    >>> lda = PlnLDA(endog_train, clusters = labels_train)
-    >>> lda.fit()
+    >>> lda = PlnLDA(endog_train, clusters = labels_train).fit()
     >>> pred_test = lda.predict_clusters(endog_test)
     >>> confusion = get_confusion_matrix(pred_test, labels_test)
     >>> plot_confusion_matrix(confusion_matrix)
@@ -158,9 +158,8 @@ class PlnLDA(Pln):
         example="""
         >>> from pyPLNmodels import PlnLDA, load_scrna
         >>> data = load_scrna()
-        >>> lda = PlnLDA.from_formula("endog ~ 1| labels", data)
-        >>> lda.fit()
-        >>> print(pln)
+        >>> lda = PlnLDA.from_formula("endog ~ 1| labels", data).fit()
+        >>> print(lda)
         """,
         returns="""
         PlnLDA object
@@ -282,6 +281,12 @@ class PlnLDA(Pln):
         >>> print('pred', pred)
         >>> print('true', clusters_test)
         """
+        latent_pos = self._ve_step_latent_pos(endog, exog=exog, offsets=offsets)
+        clf = self.get_lda_classifier_fitted()
+        pred = clf.predict(latent_pos)
+        return pred
+
+    def _ve_step_latent_pos(self, endog,*, exog, offsets ):
         pln_pred = _PlnPred(
             endog=endog,
             exog=exog,
@@ -294,18 +299,132 @@ class PlnLDA(Pln):
             pln_pred.endog, self._endog, pln_pred.exog, self._exog
         )
         pln_pred.fit()
+        return pln_pred.latent_positions
 
+    @property
+    def _additional_methods_list(self):
+        return [".predict_clusters()"]
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> from pyPLNmodels import PlnLDA, load_scrna
+            >>> data = load_scrna()
+            >>> endog = data["endog"]
+            >>> clusters = data["labels_1hot"]
+            >>> n_train, n_test = 100, 100
+            >>> endog_train = endog[:n_train]
+            >>> endog_test = endog[n_train:]
+            >>> clusters_train = clusters[:n_train]
+            >>> clusters_test = clusters[n_train:]
+            >>> lda = PlnLDA(endog_train, clusters = clusters_train).fit()
+            >>> lda.viz()
+            """,
+    )
+    def viz(
+        self,
+        *,
+        ax=None,
+        colors=None,
+        show_cov: bool = False,
+        remove_exog_effect: bool = False,
+    ):
+        if colors is not None:
+            raise ValueError("'colors' is not implemented for PlnLDA.")
+        if show_cov is not False:
+            raise ValueError("'show_cov' is not implemented for PlnLDA.")
+        if remove_exog_effect is not False:
+            raise ValueError("'show_cov' is not implemented for PlnLDA.")
+        _viz_lda(self.latent_mean + self.marginal_mean_clusters, self.clusters, ax = ax)
+
+
+    def get_lda_classifier_fitted(self):
         clf = LinearDiscriminantAnalysis()
         clf.fit(
             self.latent_mean + self.marginal_mean_clusters,
             self.clusters,
         )
-        pred = clf.predict(pln_pred.latent_positions)
-        return pred
+        return clf
 
-    @property
-    def _additional_methods_list(self):
-        return [".predict_clusters()"]
+    def transform(self, remove_exog_effect=False):
+        """
+        Transform the endog into the LDA space. The remove_exog_effect is not
+        implemented for PlnLDA.
+
+        Returns
+        -------
+        torch.Tensor: The transformed data
+
+        Examples
+        --------
+        >>> import torch
+        >>> from pyPLNmodels import PlnLDA, PlnLDASampler
+        >>> ntrain, ntest = 3000, 200
+        >>> nb_cov, n_clusters = 1,3
+        >>> sampler = PlnLDASampler(
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False, dim=500)
+        >>> endog = sampler.sample()
+        >>> known_exog = sampler.known_exog
+        >>> clusters = sampler.clusters
+        >>> endog_train, endog_test = endog[:ntrain], endog[ntrain:]
+        >>> known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]
+        >>> clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]
+        >>> lda = PlnLDA(endog_train,
+        >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
+        >>> transformed_endog_train = lda.transform()
+        >>> print(transformed_endog_train.shape)
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnLDA.transform_new`
+        :func:`pyPLNmodels.PlnLDA.viz_transformed`
+        """
+        if remove_exog_effect is not False:
+            raise ValueError("'remove_exog_effect' is not implemented for PlnLDA")
+        clf = self.get_lda_classifier_fitted()
+        return clf.transform(self.latent_mean + self.marginal_mean_clusters)
+
+    def transform_new(self, endog, *, exog = None, offsets = None):
+        """
+        Transform the unseen endog data into the LDA space.
+
+        Returns
+        -------
+        torch.Tensor: The transformed data
+
+        Examples
+        --------
+        >>> import torch
+        >>> from pyPLNmodels import PlnLDA, PlnLDASampler
+        >>> ntrain, ntest = 3000, 200
+        >>> nb_cov, n_clusters = 1,3
+        >>> sampler = PlnLDASampler(
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False, dim=500)
+        >>> endog = sampler.sample()
+        >>> known_exog = sampler.known_exog
+        >>> clusters = sampler.clusters
+        >>> endog_train, endog_test = endog[:ntrain], endog[ntrain:]
+        >>> known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]
+        >>> clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]
+        >>> lda = PlnLDA(endog_train,
+        >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
+        >>> transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)
+        >>> print(transformed_endog_test.shape)
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnLDA.transform`
+        :func:`pyPLNmodels.PlnLDA.viz_transformed`
+        :func:`pyPLNmodels.PlnLDA.predict_clusters`
+        """
+        latent_pos = self._ve_step_latent_pos(endog, exog = exog, offsets = offsets)
+        clf = self.get_lda_classifier_fitted()
+        return clf.transform(latent_pos)
+
+
+
+    def viz_transformed(self, transformed, colors = None, ax = None):
+        _viz_lda_new(X = self.latent_mean + self.marginal_mean_clusters, y = self.clusters, new_X_transformed = transformed, colors = colors, ax = ax)
 
 
 class _PlnPred(Pln):
