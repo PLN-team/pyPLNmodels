@@ -155,7 +155,7 @@ class PlnSampler(_BasePlnSampler):
         offsets = _get_offsets(
             n_samples=n_samples, dim=dim, add_offsets=add_offsets, seed=seed
         )
-        coef = _get_coef(
+        coef = self._get_coef(
             nb_cov=nb_cov,
             dim=dim,
             mean=marginal_mean_mean,
@@ -170,6 +170,11 @@ class PlnSampler(_BasePlnSampler):
             offsets=offsets,
             coef=coef,
             covariance=covariance,
+        )
+
+    def _get_coef(self, *, nb_cov, dim, mean, add_const, seed):
+        return _get_coef(
+            nb_cov=nb_cov, dim=dim, mean=mean, add_const=add_const, seed=seed
         )
 
     def _get_exog(self, *, n_samples, nb_cov, will_add_const, seed):
