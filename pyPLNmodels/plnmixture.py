@@ -239,7 +239,7 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.predict_clusters`
         :func:`pyPLNmodels.PlnMixture.pca_pairplot`
         """
-        clusters = self._clusters
+        clusters = self.clusters
         if colors is None:
             colors = clusters
         if show_cov is True:
@@ -248,7 +248,7 @@ class PlnMixture(
                     remove_exog_effect=remove_exog_effect
                 )
             )
-            covariances = torch.zeros(self.n_samples, 2, 2).to(DEVICE)
+            covariances = torch.zeros(self.n_samples, 2, 2)
             for k in range(self.n_clusters):
                 indices = clusters == k
                 covariances[indices] = covariances_per_cluster[k][indices]
@@ -390,7 +390,7 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.pca_pairplot`
         """
         if colors is None:
-            colors = self._clusters
+            colors = self.clusters
         super().biplot(
             variables_names=variables_names,
             indices_of_variables=indices_of_variables,
@@ -400,7 +400,14 @@ class PlnMixture(
 
     @property
     def _clusters(self):
-        return torch.argmax(self._latent_prob, dim=1)
+        return torch.argmax(self._latent_prob, dim=1).detach()
+
+    @property
+    def clusters(self):
+        """
+        The predicted clusters of each sample.
+        """
+        return self._clusters.cpu()
 
     @property
     def _marginal_means(self):
@@ -489,13 +496,13 @@ class PlnMixture(
     )
     def latent_variables(self):
         """Latent variables."""
-        variables = torch.zeros(self.n_samples, self.dim)
+        variables = torch.zeros(self.n_samples, self.dim).to(DEVICE)
         clusters = self._clusters
         for k in range(self.n_clusters):
             indices = clusters == k
-            variables[indices] += self.latent_means[k, indices]
+            variables[indices] += self._latent_means[k, indices]
         # return torch.sum(self.latent_means * (self.latent_prob.T).unsqueeze(2), dim = 0)
-        return variables
+        return variables.detach().cpu()
 
     @property
     def latent_means(self):
@@ -574,7 +581,7 @@ class PlnMixture(
         :func:`pyPLNmodels.PlnMixture.viz`
         """
         if colors is None:
-            colors = self._clusters
+            colors = self.clusters
         super().pca_pairplot(n_components=n_components, colors=colors)
 
     @_add_doc(

@@ -951,7 +951,7 @@ class BaseModel(
             error_string = f"`exog` has th wrong shape ({exog.shape}). Should"
             error_string += f" be ({self.n_samples, self.nb_cov})."
             raise RuntimeError(error_string)
-        return exog @ self.coef
+        return exog @ self._coef
 
     @property
     @_shouldbefitted
