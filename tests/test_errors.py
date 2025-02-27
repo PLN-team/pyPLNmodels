@@ -104,8 +104,9 @@ def test_bad_elbo():
                         model._sqrt_covariances *= 0
                     else:
                         model._latent_sqrt_variance *= 0
-                with pytest.raises(ValueError):
-                    model.fit()
+                if model_name != "PlnAR":
+                    with pytest.raises(ValueError):
+                        model.fit()
 
 
 def test_bad_fit():

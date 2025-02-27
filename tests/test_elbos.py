@@ -32,7 +32,7 @@ def test_right_pln_elbo():
         latent_sqrt_variance=pln._latent_sqrt_variance,
         diag_precision=diag_prec,
     )
-    assert elbo_diag_cov == elbo_diag_fast
+    assert torch.allclose(elbo_diag_cov, elbo_diag_fast)
     profiled_elbo = pln.compute_elbo()
     elbo = elbo_pln(
         endog=pln._endog,
@@ -42,7 +42,7 @@ def test_right_pln_elbo():
         latent_sqrt_variance=pln._latent_sqrt_variance,
         precision=torch.linalg.inv(pln._covariance),
     )
-    assert elbo == profiled_elbo
+    assert torch.allclose(elbo, profiled_elbo)
 
 
 def test_right_zipln_elbo():

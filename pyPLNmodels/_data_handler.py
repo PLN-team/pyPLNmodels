@@ -467,7 +467,7 @@ def _array2tensor(func):
 
 
 def _remove_useless_exog(exog, column_names_exog, is_inflation):
-    zero_columns = torch.sum(exog**2, axis=0) == 0
+    zero_columns = (torch.sum(exog**2, axis=0) == 0).cpu()
     if torch.sum(zero_columns) > 0:
         if column_names_exog is not None:
             msg = (
