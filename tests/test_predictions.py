@@ -6,6 +6,8 @@ from pyPLNmodels import (
     get_label_mapping,
     get_confusion_matrix,
     plot_confusion_matrix,
+    PlnLDA,
+    PlnLDASampler,
 )
 
 
@@ -36,7 +38,7 @@ def test_right_prediction_and_confusion_matrix():
 
         label_mapping = get_label_mapping(clusters_pred, true_clusters)
 
-        for i in enumerate(clusters_pred):
+        for i, _ in enumerate(clusters_pred):
             clusters_pred[i] = label_mapping[clusters_pred[i]]
         confusion_matrix = get_confusion_matrix(clusters_pred, true_clusters)
         plot_confusion_matrix(confusion_matrix)
@@ -46,3 +48,32 @@ def test_right_prediction_and_confusion_matrix():
             )
             > 0.9
         )
+
+
+def test_lda_right_prediction():
+    ntrain, ntest = 1000, 200
+    n_clusters = 4
+    for nb_cov in [0, 1]:
+        sampler = PlnLDASampler(
+            n_samples=ntrain + ntest,
+            nb_cov=nb_cov,
+            n_clusters=n_clusters,
+            add_const=False,
+            dim=300,
+        )
+        endog = sampler.sample()
+        known_exog = sampler.known_exog
+        clusters = sampler.clusters
+        endog_train, endog_test = endog[:ntrain], endog[ntrain:]
+        if nb_cov > 0:
+            known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]
+        else:
+            known_exog_train, known_exog_test = None, None
+        clusters_train, clusters_test = clusters[:ntrain], clusters[ntrain:]
+        lda = PlnLDA(
+            endog_train, clusters=clusters_train, exog=known_exog_train, add_const=False
+        ).fit()
+        pred = lda.predict_clusters(endog_test, exog=known_exog_test)
+        true_cluster = torch.argmax(clusters_test, dim=1)
+        mean_right_pred = torch.mean((torch.tensor(pred) == true_cluster).float())
+        assert mean_right_pred > 0.6
