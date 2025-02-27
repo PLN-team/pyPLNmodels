@@ -79,7 +79,9 @@ class PlnLDASampler(PlnSampler):
             return cluster_exog
         return torch.cat((known_exog, cluster_exog), dim=1)
 
-    def _get_coef(self, *, nb_cov, dim, mean, add_const, seed):
+    def _get_coef(
+        self, *, nb_cov, dim, mean, add_const, seed
+    ):  # pylint:disable = too-many-arguments
         nb_cov = nb_cov - self.n_clusters
         coef_known = super()._get_coef(
             nb_cov=nb_cov, dim=dim, mean=mean, add_const=add_const, seed=seed
@@ -87,9 +89,8 @@ class PlnLDASampler(PlnSampler):
         coef_clusters = super()._get_coef(
             nb_cov=self.n_clusters, dim=dim, mean=0, add_const=False, seed=seed + 1
         )
-        means = [-1, 5, 10, 6]
         for i in range(self.n_clusters):
-            coef_clusters[i] += means[i]
+            coef_clusters[i] += i
         if nb_cov == 0:
             return coef_clusters
         return torch.cat((coef_known, coef_clusters), dim=0)
