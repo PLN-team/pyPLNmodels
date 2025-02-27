@@ -444,6 +444,10 @@ class PlnPCAcollection:
             The tolerance, by default 1e-6.
         verbose : bool, optional(keyword-only)
             Whether to print verbose output, by default `False`.
+
+        Returns
+        -------
+        PlnPCACollection
         """
         self._print_beginning_message()
         for i in range(len(self.values())):
@@ -458,6 +462,7 @@ class PlnPCAcollection:
                 next_model = self[self.ranks[i + 1]]
                 self._init_next_model_with_current_model(next_model, model)
         self._print_ending_message()
+        return self
 
     def _print_ending_message(self):
         delimiter = "=" * 70

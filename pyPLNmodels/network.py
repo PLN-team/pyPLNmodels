@@ -144,6 +144,9 @@ class PlnNetwork(BaseModel):
             - The penalty parameter. The larger the penalty, the larger the
                sparsity of the precision matrix.
         """,
+        returns="""
+        PlnNetwork object
+        """,
     )
     def fit(
         self,
@@ -159,7 +162,7 @@ class PlnNetwork(BaseModel):
                 raise ValueError("penalty must be a float.")
             print(f"Changing penalty from {self.penalty} to : ", penalty, ".")
             self.penalty = penalty
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     @_add_doc(
         BaseModel,

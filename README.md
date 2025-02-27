@@ -197,3 +197,5 @@ Please cite our work using the following references:
     Lognormal Model with Corrected Variational Estimators.* [pdf](https://arxiv.org/abs/2411.08524)
 
 -  B. Batardiere, J.Kwon, J.Chiquet: *pyPLNmodels: A Python package to analyze multivariate high-dimensional count data.* [pdf](https://joss.theoj.org/papers/10.21105/joss.06969)
+
+- J. Chiquet, M. Mariadassou, S. Robin: *The Poisson-Lognormal Model as a Versatile Framework for the Joint Analysis of Species Abundances.* [pdf](https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2021.588292/full)

@@ -11,7 +11,7 @@ from pyPLNmodels._initialization import (
     _init_latent_sqrt_variance_pca,
     _init_latent_mean_pca,
 )
-from pyPLNmodels._data_handler import _process_formula_inflation
+from pyPLNmodels._data_handler import _extract_data_inflation_from_formula
 from pyPLNmodels._utils import _add_doc
 from pyPLNmodels.zipln import ZIPln
 
@@ -169,7 +169,9 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         rank: int = 5,
         use_closed_form_prob: bool = True,
     ):  # pylint: disable= too-many-arguments
-        endog, exog, offsets, exog_inflation = _process_formula_inflation(formula, data)
+        endog, exog, offsets, exog_inflation = _extract_data_inflation_from_formula(
+            formula, data
+        )
         return cls(
             endog,
             exog=exog,
@@ -206,6 +208,9 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> zipca.fit(maxiter = 500, verbose = True)
         >>> print(zipca)
         """,
+        returns="""
+        ZIPlnPCA object
+        """,
     )
     def fit(
         self,
@@ -216,7 +221,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         verbose: bool = False,
     ):
 
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_latent_parameters(self):
         self._latent_mean = _init_latent_mean_pca(

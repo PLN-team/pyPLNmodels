@@ -189,6 +189,7 @@ class BaseModel(
             iterdone += 1
         self._print_end_of_fitting_message(stop_condition, tol)
         self._fitted = True
+        return self
 
     def show(self, savefig=False, name_file=""):
         """

@@ -758,3 +758,31 @@ def _set_tick_labels_columns(ax, column_names):
 
 def _get_figure():
     return plt.figure(figsize=(10, 8))
+
+
+def plot_confusion_matrix(
+    confusion_mat: np.ndarray, ax: matplotlib.axes.Axes = None, title: str = ""
+):
+    """
+    Plot the confusion matrix using a heatmap.
+
+    Parameters
+    ----------
+    confusion_mat : ndarray of shape (n_classes, n_classes)
+        Confusion matrix to be plotted.
+    ax : matplotlib.axes.Axes (Optional)
+        Axes object to draw the heatmap on. Default is None
+    title : str (Optional)
+        Title for the heatmap.
+    """
+    if ax is None:
+        to_show = True
+        ax = plt.gca()
+    else:
+        to_show = False
+    sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
+    ax.set_xlabel("Predicted Labels")
+    ax.set_ylabel("True Labels")
+    ax.set_title(title)
+    if to_show is True:
+        plt.show()

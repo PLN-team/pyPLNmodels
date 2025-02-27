@@ -27,6 +27,10 @@ class ZIPlnSampler(PlnSampler):
     >>> true_covariance = sampler.covariance
     >>> latent_probabilities = zi.latent_prob
     >>> true_latent_probabilites = sampler.bernoulli
+
+    See also
+    --------
+    :class:`pyPLNmodels.ZIPln`
     """
 
     bernoulli: torch.Tensor

@@ -8,7 +8,7 @@ from pyPLNmodels.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels._data_handler import (
     _handle_inflation_data,
     _array2tensor,
-    _process_formula_inflation,
+    _extract_data_inflation_from_formula,
 )
 from pyPLNmodels._initialization import _init_coef_coef_inflation
 from pyPLNmodels._closed_forms import (
@@ -160,7 +160,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
     ):
-        endog, exog, offsets, exog_inflation = _process_formula_inflation(formula, data)
+        endog, exog, offsets, exog_inflation = _extract_data_inflation_from_formula(
+            formula, data
+        )
         return cls(
             endog,
             exog=exog,
@@ -195,6 +197,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> zi.fit(maxiter = 500, verbose = True)
         >>> print(zi)
         """,
+        returns="""
+        ZIPln object
+        """,
     )
     def fit(
         self,
@@ -204,7 +209,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_latent_parameters(self):
         self._latent_mean = torch.log(self._endog + (self._endog == 0)).to(DEVICE)

@@ -24,6 +24,10 @@ class PlnDiagSampler(PlnSampler):
     >>> true_covariance = sampler.covariance
     >>> estimated_latent_var = pln.latent_variables
     >>> true_latent_var = sampler.latent_variables
+
+    See also
+    --------
+    :class:`pyPLNmodels.PlnDiag`
     """
 
     @_add_doc(

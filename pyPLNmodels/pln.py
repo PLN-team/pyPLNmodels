@@ -62,7 +62,7 @@ class Pln(BaseModel):
         example="""
             >>> from pyPLNmodels import Pln, load_scrna
             >>> data = load_scrna()
-            >>> pln = Pln.from_formula("endog ~ 1", data)
+            >>> pln = Pln(data["endog"])
             >>> pln.fit()
             >>> print(pln)
         """,
@@ -136,6 +136,9 @@ class Pln(BaseModel):
         >>> pln.fit(maxiter=500, verbose=True)
         >>> print(pln)
         """,
+        returns="""
+        Pln object
+        """,
     )
     def fit(
         self,
@@ -145,7 +148,7 @@ class Pln(BaseModel):
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
     ):
-        super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+        return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_model_parameters(self):
         """The model parameters are profiled in the ELBO, no need to initialize them."""

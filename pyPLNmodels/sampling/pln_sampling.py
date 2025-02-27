@@ -69,6 +69,15 @@ class _BasePlnSampler(_BaseSampler, ABC):
         return torch.matmul(self._exog, self._params["coef"])
 
     @property
+    def marginal_mean(self):
+        """
+        Marginal mean of the latent variables, not knowing the endog variables.
+        """
+        if self._exog is None:
+            return 0
+        return self._marginal_mean.cpu()
+
+    @property
     def covariance(self) -> torch.Tensor:
         """Covariance matrix."""
         return self._params["covariance"].cpu()
@@ -98,6 +107,10 @@ class PlnSampler(_BasePlnSampler):
     >>> true_covariance = sampler.covariance
     >>> estimated_latent_variables = pln.latent_variables
     >>> true_latent_variables = sampler.latent_variables
+
+    See also
+    --------
+    :class:`pyPLNmodels.Pln`
     """
 
     def __init__(
@@ -136,7 +149,7 @@ class PlnSampler(_BasePlnSampler):
         >>> sampler = PlnSampler()
         >>> endog = sampler.sample()
         """
-        exog = _get_exog(
+        exog = self._get_exog(
             n_samples=n_samples, nb_cov=nb_cov, will_add_const=add_const, seed=seed
         )
         offsets = _get_offsets(
@@ -157,6 +170,11 @@ class PlnSampler(_BasePlnSampler):
             offsets=offsets,
             coef=coef,
             covariance=covariance,
+        )
+
+    def _get_exog(self, *, n_samples, nb_cov, will_add_const, seed):
+        return _get_exog(
+            n_samples=n_samples, nb_cov=nb_cov, will_add_const=will_add_const, seed=seed
         )
 
     def _get_covariance(self, dim, seed):

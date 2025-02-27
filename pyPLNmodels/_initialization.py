@@ -148,7 +148,6 @@ def _init_components(endog: torch.Tensor, rank: int) -> torch.Tensor:
 
 
 def _init_components_prec(endog):
-
     nan_mask = torch.isnan(endog)
     mean_value = torch.nanmean(endog, dim=0)
     endog[nan_mask] = mean_value[nan_mask.nonzero(as_tuple=True)[1]]
@@ -156,11 +155,10 @@ def _init_components_prec(endog):
     log_y = _log_transform(endog)
     log_y = log_y - log_y.mean(dim=0)
     covariance = torch.mm(log_y.T, log_y) / (log_y.shape[0] - 1)
-    eigvals, eigvecs = torch.linalg.eigh(covariance)
-    eigvals_inv = 1.0 / eigvals
-    precision = torch.mm(eigvecs, eigvals_inv.diag())
-    precision = torch.mm(precision, eigvecs.T)
-    return torch.linalg.cholesky(precision)
+    precision = torch.linalg.pinv(covariance + 1e-3 * torch.eye(covariance.shape[0]))
+    eigenvalues, eigenvectors = torch.linalg.eigh(precision)
+    eigenvalues = torch.maximum(eigenvalues, torch.Tensor([0]))
+    return eigenvectors @ torch.diag(torch.sqrt(eigenvalues))
 
 
 def compute_log_posterior(  # pylint: disable=too-many-arguments
