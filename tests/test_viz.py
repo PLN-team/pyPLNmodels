@@ -3,7 +3,7 @@ import pytest
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from pyPLNmodels._viz import _viz_variables, _plot_ellipse
+from pyPLNmodels.utils._viz import _viz_variables, _plot_ellipse
 from pyPLNmodels import Pln, load_scrna, ZIPln, PlnPCASampler, PlnPCA
 from .conftest import dict_fitted_models, dict_unfit_models
 

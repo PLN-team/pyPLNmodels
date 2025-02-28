@@ -27,15 +27,20 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
     >>> from pyPLNmodels import PlnMixtureSampler, PlnMixture
     >>> import seaborn as sns
     >>> import matplotlib.pyplot as plt
-    >>> sampler = PlnMixtureSampler(nb_cov = 0, dim = 2)
+    >>> sampler = PlnMixtureSampler(nb_cov = 0, dim = 2, n_samples = 300)
     >>> endog = sampler.sample()
     >>> gmm = sampler.latent_variables
-    >>> fig, axes = plt.subplots(2)
-    >>> sns.scatterplot(x = gmm[:,0], y = gmm[:,1], hue = sampler.clusters.numpy(), ax = axes[0])
-    >>> sns.scatterplot(x = endog[:,0], y = endog[:,1], hue = sampler.clusters.numpy(), ax = axes[1])
+    >>> fig, axes = plt.subplots(3)
+    >>> sns.scatterplot(x = gmm[:,0], y = gmm[:,1], hue = sampler.clusters, ax = axes[0])
+    >>> sns.scatterplot(x = endog[:,0], y = endog[:,1], hue = sampler.clusters, ax = axes[1])
+    >>> axes[0].set_title("Clusters in latent space")
+    >>> axes[1].set_title("Clusters in integer space")
     >>> mixture = PlnMixture(endog, exog = sampler.exog, n_clusters = sampler.n_clusters)#pylint:disable = line-too-long
     >>> mixture.fit()
-    >>> mixture.viz()
+    >>> mixture.viz(ax = axes[2])
+    >>> axes[2].set_title( "Inferred clusters and latent variables")
+    >>> plt.show()
+
 
     See also
     --------
@@ -70,7 +75,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         cluster_bias = []
         covariances = []
         for i in range(self.n_clusters):
-            cluster_bias.append(_get_mean(dim=dim, mean=4 * i + 1, seed=(seed + 1) * i))
+            cluster_bias.append(_get_mean(dim=dim, mean=2 * i + 1, seed=(seed + 1) * i))
             covariances.append(_get_diag_covariance(dim, seed=(seed + 1) * i))
         cluster_bias = torch.stack(cluster_bias, dim=0)
         covariances = torch.stack(covariances, dim=0)

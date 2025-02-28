@@ -4,8 +4,13 @@ import pytest
 import torch
 
 from pyPLNmodels import Pln, load_scrna, ZIPln
-from pyPLNmodels.elbos import elbo_pln, elbo_zipln, profiled_elbo_zipln, elbo_pln_diag
-from pyPLNmodels._closed_forms import (
+from pyPLNmodels.utils.elbos import (
+    elbo_pln,
+    elbo_zipln,
+    profiled_elbo_zipln,
+    elbo_pln_diag,
+)
+from pyPLNmodels.calculations._closed_forms import (
     _closed_formula_covariance,
     _closed_formula_diag_covariance,
 )

@@ -9,19 +9,24 @@ from numpy.typing import ArrayLike
 from pyPLNmodels.models.pln import Pln
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.utils._data_handler import (
-    _format_clusters,
+    _format_clusters_and_encoder,
     _check_dimensions_equal,
     _extract_data_and_clusters_from_formula,
     _check_dimensions_for_prediction,
     _get_dummies,
+    _check_full_rank_exog,
+    _format_data,
 )
 from pyPLNmodels.calculations._closed_forms import (
     _closed_formula_coef,
     _closed_formula_covariance,
 )
-from pyPLNmodels.calculations.elbos import profiled_elbo_pln, elbo_pln
+from pyPLNmodels.calculations.elbos import (
+    profiled_elbo_pln,
+    per_sample_elbo_pln,
+)
 from pyPLNmodels.utils._utils import _add_doc
-from pyPLNmodels.utils._viz import _viz_lda, _viz_lda_new
+from pyPLNmodels.utils._viz import _viz_lda_train, _viz_lda_test, LDAModelViz
 
 
 class PlnLDA(Pln):
@@ -36,7 +41,7 @@ class PlnLDA(Pln):
     >>> from pyPLNmodels import PlnLDA, load_scrna, get_confusion_matrix, plot_confusion_matrix
     >>> data = load_scrna()
     >>> endog_train, endog_test = data["endog"][:100],data["endog"][100:]
-    >>> labels_train, labels_test = data["labels"][:100], data["endog"][100:]
+    >>> labels_train, labels_test = data["labels"][:100], data["labels"][100:]
     >>> lda = PlnLDA(endog_train, clusters = labels_train).fit()
     >>> pred_test = lda.predict_clusters(endog_test)
     >>> confusion = get_confusion_matrix(pred_test, labels_test)
@@ -50,6 +55,8 @@ class PlnLDA(Pln):
     :func:`pyPLNmodels.PlnLDA.__init__`
     :func:`pyPLNmodels.PlnLDA.from_formula`
     """
+
+    ModelViz = LDAModelViz
 
     @_add_doc(
         BaseModel,
@@ -78,12 +85,60 @@ class PlnLDA(Pln):
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        add_const: bool = True,
+        add_const: bool = False,
     ):  # pylint: disable=too-many-arguments
+        """
+        Initializes the model class.
+
+        Parameters
+        ----------
+        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The count data.
+        clusters: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The known clusters to train on.
+        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The covariate data. Defaults to `None`.
+        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
+            The offsets data. Defaults to `None`.
+        compute_offsets_method : str, optional(keyword-only)
+            Method to compute offsets if not provided. Options are:
+                - "zero" that will set the offsets to zero.
+                - "logsum" that will take the logarithm of the sum (per line) of the counts.
+            Overridden (useless) if `offsets` is not None.
+        add_const: bool, optional(keyword-only)
+            Whether to add a column of one in the `exog`. Defaults to `False`.
+            Will raise an error if False as the exognenous matrix will not be full
+            rank if `add_const` is set to `True`, due to clusters being full rank.
+
+        Notes
+        -----
+        During training, the exogenous variables are composed of
+        `exog` and `cluster` being stacked. As a result,
+        adding an intercept (`add_const=True`) will result in an error
+        as this will result in non-full rank exogenous variables.
+
+        See also
+        --------
+        :func:`pyPLNmodels.PlnLDA.from_formula`
+        :class:`pyPLNmodels.Pln`
+        :class:`pyPLNmodels.PlnMixture`
+        :class:`pyPLNmodels.PlnPCA`
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
+        >>> lda = PlnLDA(data["endog"], clusters = data["labels"])
+        >>> lda.fit()
+        >>> print(lda)
+
+        """
         self.column_names_clusters = (
             clusters.columns if isinstance(clusters, pd.DataFrame) else None
         )
-        self._exog_clusters = _format_clusters(clusters)
+        self._exog_clusters, self._label_encoder = _format_clusters_and_encoder(
+            clusters
+        )
         if self._exog_clusters is None:
             raise ValueError("You should give clusters.")
         if len(self._exog_clusters.shape) == 1:
@@ -110,6 +165,7 @@ class PlnLDA(Pln):
             self._exog_and_clusters = torch.cat(
                 (self._exog, self._exog_clusters), dim=1
             )
+        _check_full_rank_exog(self._exog_and_clusters, name_mat="(exog,clusters)")
 
     @classmethod
     def from_formula(
@@ -285,30 +341,52 @@ class PlnLDA(Pln):
         >>> print('pred', pred)
         >>> print('true', clusters_test)
         """
-        latent_pos = self._ve_step_latent_pos(endog, exog=exog, offsets=offsets)
-        clf = self._get_lda_classifier_fitted()
-        pred = clf.predict(latent_pos)
-        return pred
+        prob, _ = self._estimate_prob_and_latent_positions(
+            endog, exog=exog, offsets=offsets
+        )
+        pred = torch.argmax(prob, dim=1)
+        if self._label_encoder is None:
+            return pred
+        return self._label_encoder.inverse_transform(pred)
 
-    def _ve_step_latent_pos(self, endog, *, exog, offsets):
-        coef = self._coef.detach() if self._coef is not None else None
-        pln_pred = _PlnPred(
-            endog=endog,
-            exog=exog,
-            offsets=offsets,
-            compute_offsets_method=self._compute_offsets_method,
-            fixed_coef=coef,
-            fixed_precision=self._precision.detach(),
+    def _estimate_prob_and_latent_positions(self, endog, *, exog, offsets):
+        endog = _format_data(endog)
+        n_clusters = self._exog_clusters.shape[1]
+        best_guess_gaussian = torch.zeros(endog.shape).to(self._endog.device)
+        predicted_prob = torch.zeros((endog.shape[0], n_clusters)).to(
+            self._endog.device
         )
-        _check_dimensions_for_prediction(
-            pln_pred.endog, self._endog, pln_pred.exog, self._exog
-        )
-        pln_pred.fit()
-        return pln_pred.latent_positions
+        best_prob = torch.zeros(endog.shape[0]).to(self._endog.device) - torch.inf
+        for k in range(n_clusters):
+            coef = self._coef.detach() if self._coef is not None else None
+            pln_pred = _PlnPred(
+                endog=endog,
+                exog=exog,
+                offsets=offsets,
+                compute_offsets_method=self._compute_offsets_method,
+                coef_k=self._coef_clusters[k].detach(),
+                known_coef=coef,
+                fixed_precision=self._precision.detach(),
+            )
+            _check_dimensions_for_prediction(
+                pln_pred.endog, self._endog, pln_pred.exog, self._exog
+            )
+            pln_pred.fit()
+            predicted_prob[:, k] = pln_pred.per_sample_elbo
+            better_individuals = predicted_prob[:, k] > best_prob
+            best_prob[better_individuals] = predicted_prob[better_individuals, k]
+            best_guess_gaussian[better_individuals] = pln_pred.latent_positions[
+                better_individuals
+            ]
+        return predicted_prob, best_guess_gaussian
 
     @property
     def _additional_methods_list(self):
-        return [".predict_clusters()"]
+        return [".predict_clusters()", ".transform_new", ".viz_transformed"]
+
+    @property
+    def _additional_attributes_list(self):
+        return [".clusters"]
 
     @_add_doc(
         BaseModel,
@@ -368,7 +446,9 @@ class PlnLDA(Pln):
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
         if remove_exog_effect is not False:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
-        _viz_lda(self._latent_positions_clusters.cpu(), self.clusters, ax=ax)
+        _viz_lda_train(
+            self._latent_positions_clusters.detach().cpu(), self.clusters, ax=ax
+        )
 
     def _get_lda_classifier_fitted(self):
         clf = LinearDiscriminantAnalysis()
@@ -391,10 +471,10 @@ class PlnLDA(Pln):
         --------
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
-        >>> ntrain, ntest = 3000, 200
+        >>> ntrain, ntest = 300, 200
         >>> nb_cov, n_clusters = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False,dim=500)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -428,10 +508,10 @@ class PlnLDA(Pln):
         --------
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
-        >>> ntrain, ntest = 3000, 200
+        >>> ntrain, ntest = 300, 200
         >>> nb_cov, n_clusters = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False,dim=500)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -449,7 +529,11 @@ class PlnLDA(Pln):
         :func:`pyPLNmodels.PlnLDA.viz_transformed`
         :func:`pyPLNmodels.PlnLDA.predict_clusters`
         """
-        latent_pos = self._ve_step_latent_pos(endog, exog=exog, offsets=offsets)
+        _, latent_pos = self._estimate_prob_and_latent_positions(
+            endog, exog=exog, offsets=offsets
+        )
+        print("latent pos", latent_pos)
+        print("should be close", self._latent_positions_clusters)
         clf = self._get_lda_classifier_fitted()
         return clf.transform(latent_pos)
 
@@ -473,7 +557,7 @@ class PlnLDA(Pln):
         >>> ntrain, ntest = 3000, 200
         >>> nb_cov, n_clusters = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False,dim=500)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -485,9 +569,9 @@ class PlnLDA(Pln):
         >>> transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)
         >>> lda.viz_transformed(transformed_endog_test)
         """
-        _viz_lda_new(
-            X=self._latent_positions_clusters.cpu(),
-            y=self.clusters,
+        _viz_lda_test(
+            X_train=self._latent_positions_clusters.detach().cpu(),
+            y_train=self.clusters,
             new_X_transformed=transformed,
             colors=colors,
             ax=ax,
@@ -499,6 +583,9 @@ class PlnLDA(Pln):
 
 
 class _PlnPred(Pln):
+
+    per_sample_elbo: torch.Tensor
+
     def __init__(
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
@@ -506,7 +593,8 @@ class _PlnPred(Pln):
         exog: torch.Tensor,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        fixed_coef: torch.Tensor,
+        coef_k: torch.Tensor,
+        known_coef: torch.Tensor,
         fixed_precision: torch.Tensor,
     ):  # pylint: disable=too-many-arguments
         super().__init__(
@@ -516,14 +604,12 @@ class _PlnPred(Pln):
             compute_offsets_method=compute_offsets_method,
             add_const=False,
         )
-        if self._exog is None:
-            self._fixed_marginal_mean = 0
-        else:
-            self._fixed_marginal_mean = self._exog @ fixed_coef
+        self._coef_k = coef_k
+        self._known_coef = known_coef
         self._fixed_precision = fixed_precision
 
     def compute_elbo(self):
-        return elbo_pln(
+        self.per_sample_elbo = per_sample_elbo_pln(
             endog=self._endog,
             marginal_mean=self._fixed_marginal_mean,
             offsets=self._offsets,
@@ -531,8 +617,33 @@ class _PlnPred(Pln):
             latent_sqrt_variance=self._latent_sqrt_variance,
             precision=self._fixed_precision,
         )
+        return torch.sum(self.per_sample_elbo)
+
+    @property
+    def _maginal_mean(self):
+        if self._exog is None:
+            return 0
+        return self._exog @ self._known_coef
+
+    @property
+    def _fixed_marginal_mean(self):
+        if self._exog is None:
+            return self._coef_k.unsqueeze(0).repeat_interleave(self.n_samples, dim=0)
+        return self._marginal_mean + self._coef_k.unsqueeze(0)
 
     def fit(
         self,
     ):  # pylint: disable=arguments-differ
-        return super().fit(maxiter=30, lr=0.01, tol=0, verbose=False)
+        return super().fit(maxiter=50, lr=0.01, tol=0, verbose=False)
+
+    def _print_beginning_message(self):
+        print("Doing a VE step.")
+
+    def _print_end_of_fitting_message(self, stop_condition=None, tol=None):
+        print("Done!")
+
+    def _print_start_init(self):
+        pass
+
+    def _print_end_init(self):
+        pass

@@ -10,6 +10,7 @@ from pyPLNmodels.models.plndiag import PlnDiag
 from pyPLNmodels.utils._data_handler import (
     _extract_data_from_formula,
     _check_dimensions_for_prediction,
+    _check_full_rank_exog_and_ones,
 )
 from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels.calculations._initialization import _init_gmm
@@ -109,6 +110,11 @@ class PlnMixture(
             compute_offsets_method=compute_offsets_method,
             add_const=False,
         )
+        if self._exog is not None:
+            _exog_and_ones = torch.cat(
+                (self._exog, torch.ones(self.n_samples).unsqueeze(1)), dim=1
+            )
+            _check_full_rank_exog_and_ones(_exog_and_ones)
 
     @classmethod
     @_add_doc(
@@ -472,7 +478,7 @@ class PlnMixture(
         >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 2)
         >>> mixture.fit()
         >>> print("Shape latent positions: ", mixture.latent_positions.shape)
-        >>> pln.viz(remove_exog_effect=True) # Visualize the latent positions
+        >>> mixture.viz(remove_exog_effect=True) # Visualize the latent positions
         """,
         see_also="""
         :func:`pyPLNmodels.PlnMixture.latent_variables`
@@ -490,7 +496,7 @@ class PlnMixture(
         >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 2)
         >>> mixture.fit()
         >>> print("Shape latent variables: ", mixture.latent_variables.shape)
-        >>> pln.viz() # Visualize the latent variables
+        >>> mixture.viz() # Visualize the latent variables
         """,
         see_also="""
         :func:`pyPLNmodels.PlnMixture.latent_positions`
@@ -591,7 +597,7 @@ class PlnMixture(
         example="""
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = Pln.from_formula("endog ~ 0", data=data, n_clusters = 2)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 2)
         >>> mixture.fit()
         >>> mixture.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
         >>> mixture.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
@@ -741,3 +747,9 @@ class _PlnMixturePredict(PlnMixture):
 
     def _print_end_of_fitting_message(self, stop_condition=None, tol=None):
         print("Done!")
+
+    def _print_start_init(self):
+        pass
+
+    def _print_end_init(self):
+        pass

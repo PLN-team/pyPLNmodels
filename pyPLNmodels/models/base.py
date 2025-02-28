@@ -208,16 +208,7 @@ class BaseModel(
         model_viz.show(savefig=savefig, name_file=name_file)
 
     def _get_model_viz(self):
-        return self.ModelViz(
-            params=self.dict_model_parameters,
-            dict_mse=self._dict_list_mse,
-            running_times=self._time_recorder.running_times,
-            criterion_list=self._elbo_criterion_monitor.criterion_list,
-            name=self._name,
-            tol=DEFAULT_TOL,
-            column_names=self.column_names_endog,
-            n_samples=self.n_samples,
-        )
+        return self.ModelViz(self)
 
     @abstractmethod
     def plot_correlation_circle(
@@ -376,9 +367,15 @@ class BaseModel(
             )
 
     def _init_parameters(self):
-        print("Intializing parameters ...")
+        self._print_start_init()
         self._init_model_parameters()
         self._init_latent_parameters()
+        self._print_end_init()
+
+    def _print_start_init(self):
+        print("Intializing parameters ...")
+
+    def _print_end_init(self):
         print("Initialization finished.")
 
     @abstractmethod
@@ -469,7 +466,7 @@ class BaseModel(
         """Update some parameters."""
 
     def _track_mse(self):
-        for name_param, param in self.dict_model_parameters.items():
+        for name_param, param in self.dict_model_parameters:
             mse_param = torch.mean(param**2).item() if param is not None else 0
             self._dict_list_mse[name_param].append(mse_param)
 
@@ -544,7 +541,6 @@ class BaseModel(
         return self._offsets.cpu()
 
     @property
-    @_shouldbefitted
     def latent_mean(self):
         """
         Property representing the latent mean conditionally on the observed counts, i.e. the
@@ -558,7 +554,6 @@ class BaseModel(
         return self._latent_mean.detach().cpu()
 
     @property
-    @_shouldbefitted
     def latent_variance(self):
         """
         Property representing the latent variance conditionally on the observed counts, i.e.

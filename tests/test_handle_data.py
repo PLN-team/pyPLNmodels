@@ -3,7 +3,7 @@ import pytest
 import torch
 import numpy as np
 
-from pyPLNmodels._data_handler import (
+from pyPLNmodels.utils._data_handler import (
     _handle_data,
     _add_constant_to_exog,
     _check_full_rank_exog,

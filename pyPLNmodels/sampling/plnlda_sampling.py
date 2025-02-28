@@ -15,10 +15,10 @@ class PlnLDASampler(PlnSampler):
     --------
     >>> import torch
     >>> from pyPLNmodels import PlnLDA, PlnLDASampler
-    >>> ntrain, ntest = 1000, 200
+    >>> ntrain, ntest = 300, 200
     >>> nb_cov, n_clusters = 1,3
     >>> sampler = PlnLDASampler(
-    >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False, dim=300)
+    >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
     >>> endog = sampler.sample()
     >>> known_exog = sampler.known_exog
     >>> clusters = sampler.clusters
@@ -27,10 +27,15 @@ class PlnLDASampler(PlnSampler):
     >>> clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]
     >>> lda = PlnLDA(endog_train,
     >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
-    >>> pred = lda.predict_clusters(endog_test, exog = known_exog_test)
-    >>> true_cluster = torch.argmax(clusters_test, dim = 1)
-    >>> mean_right_pred = torch.mean((torch.tensor(pred)==true_cluster).float())
-    >>> print('Pourcentage of right predictions:', mean_right_pred)
+    >>> pred_train = lda.predict_clusters(endog_train, exog = known_exog_train)
+    >>> true_cluster_train = torch.argmax(clusters_train, dim = 1)
+    >>> mean_right_pred_train = torch.mean((torch.tensor(pred_train)==true_cluster_train).float())
+    >>> print('Pourcentage of right predictions on train set:', mean_right_pred_train)
+    >>> pred_test = lda.predict_clusters(endog_test, exog = known_exog_test)
+    >>> true_cluster_test = torch.argmax(clusters_test, dim = 1)
+    >>> mean_right_pred_test = torch.mean((torch.tensor(pred_test)==true_cluster_test).float())
+    >>> print('Pourcentage of right predictions on test set:', mean_right_pred_test)
+
 
     See also
     --------
@@ -46,12 +51,16 @@ class PlnLDASampler(PlnSampler):
         *,
         nb_cov: int = 1,
         n_clusters: int = 2,
-        add_const: bool = True,
+        add_const: bool = False,
         add_offsets: bool = False,
         marginal_mean_mean: int = 2,
         seed: int = 0,
     ):  # pylint: disable=too-many-arguments
         self.n_clusters = n_clusters
+        if add_const is True:
+            raise ValueError(
+                "`add_const` can not be set to `True` (for inversibility purposes)"
+            )
         super().__init__(
             n_samples=n_samples,
             dim=dim,
@@ -66,7 +75,7 @@ class PlnLDASampler(PlnSampler):
         known_exog = _get_exog(
             n_samples=n_samples,
             nb_cov=nb_cov - self.n_clusters,
-            will_add_const=will_add_const,
+            will_add_const=True,
             seed=seed,
         )
         cluster_exog = _get_exog(

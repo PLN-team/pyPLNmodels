@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 import torch
 import matplotlib
@@ -15,7 +16,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import networkx as nx
 
-from pyPLNmodels.utils._utils import calculate_correlation
+from pyPLNmodels.utils._utils import calculate_correlation, get_confusion_matrix
+
+DEFAULT_TOL = 1e-6
 
 
 def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float:
@@ -223,26 +226,14 @@ def plot_correlation_circle(
 class BaseModelViz:  # pylint: disable=too-many-instance-attributes
     """Class that visualizes the parameters of a model and the optimization process."""
 
-    def __init__(
-        self,
-        *,
-        params,
-        dict_mse,
-        running_times,
-        criterion_list,
-        name,
-        tol,
-        column_names,
-        n_samples,
-    ):  # pylint: disable=too-many-arguments
-        self._params = params
-        self._dict_mse = dict_mse
-        self._running_times = running_times
-        self._criterion_list = criterion_list
-        self._name = name
-        self._tol = tol
-        self.column_names = column_names
-        self.n_samples = n_samples
+    def __init__(self, pln):  # pylint: disable=too-many-arguments
+        self._params = pln.dict_model_parameters
+        self._dict_mse = pln._dict_list_mse
+        self._running_times = pln._time_recorder.running_times
+        self._criterion_list = pln._elbo_criterion_monitor.criterion_list
+        self._name = pln._name
+        self.column_names = pln.column_names_endog
+        self.n_samples = pln.n_samples
 
     def display_relationship_matrix(self, *, ax: matplotlib.axes.Axes):
         """
@@ -318,7 +309,9 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
             self._running_times, self._criterion_list, label="Convergence Criterion"
         )
 
-        ax.axhline(y=self._tol, color="r", linestyle="--", label="Tolerance threshold")
+        ax.axhline(
+            y=DEFAULT_TOL, color="r", linestyle="--", label="Tolerance threshold"
+        )
         ax.set_yscale("log")
         ax.set_xlabel("Seconds", fontsize=9)
         ax.set_ylabel("Criterion", fontsize=9)
@@ -334,7 +327,6 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
         ax3 = fig.add_subplot(gs[0, 2])
-
         ax4 = fig.add_subplot(gs[1, :])
 
         self.display_relationship_matrix(ax=ax1)
@@ -358,6 +350,68 @@ class DiagModelViz(BaseModelViz):
         return "Variance coefficients (Covariance is diagonal)."
 
 
+class LDAModelViz(BaseModelViz):
+    """
+    Model visualization class for a PlnLDA model.
+    """
+
+    def __init__(self, pln):
+        super().__init__(pln)
+        self._latent_params = pln.dict_latent_parameters
+        self._exog = pln.exog
+        self._clusters = pln.clusters
+
+    @property
+    def latent_positions_clusters(self):
+        """
+        Latent positions needed for LDA analysis.
+        """
+        if self._exog is None:
+            return self._latent_params["latent_mean"]
+        return self._latent_params["latent_mean"] - self._exog @ self._params["coef"]
+
+    def display_norm_evolution(self, *, ax: matplotlib.axes.Axes):
+        """
+        Display the evolution of the norm of each parameter.
+        """
+        absc = np.arange(0, len(self._dict_mse[list(self._dict_mse.keys())[0]]))
+        absc = absc * len(self._running_times) / len(absc)
+        absc = np.array(self._running_times)[absc.astype(int)]
+        for key, value in self._dict_mse.items():
+            ax.plot(absc, value, label=key)
+        ax.set_xlabel("Seconds", fontsize=10)
+        ax.set_yscale("log")
+        ax.legend()
+        ax.set_title("Norm of each parameter.", fontsize=8)
+
+    def show(self, *, savefig, name_file):
+        """
+        Display the model parameters and the norm of the parameters.
+        """
+        fig = _get_figure()
+        gs = gridspec.GridSpec(3, 3, figure=fig, wspace=0.3)
+
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[0, 2])
+        ax4 = fig.add_subplot(gs[1:3, :2])
+        ax5 = fig.add_subplot(gs[2, 2])
+
+        self.display_relationship_matrix(ax=ax1)
+        self.display_norm_evolution(ax=ax2)
+        self.display_criterion_evolution(ax=ax3)
+        self.display_boundary(ax=ax4)
+        self.display_coef(ax=ax5)
+
+        if savefig is True:
+            plt.savefig(name_file + self._name + ".pdf", format="pdf")
+        plt.show()
+
+    def display_boundary(self, ax):
+        """Display the boundary and training points in 2D or 1D."""
+        _viz_lda_train(self.latent_positions_clusters, self._clusters, ax=ax)
+
+
 class ARModelViz(BaseModelViz):
     """
     Model visualization class for a Pln model with autoregressive.
@@ -373,7 +427,6 @@ class ARModelViz(BaseModelViz):
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
         ax3 = fig.add_subplot(gs[0, 2])
-
         ax4 = fig.add_subplot(gs[1, 0])
         ax5 = fig.add_subplot(gs[1, 1:])
 
@@ -433,10 +486,9 @@ class ZIModelViz(BaseModelViz):
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
         ax3 = fig.add_subplot(gs[0, 2])
-
         ax4 = fig.add_subplot(gs[1, 0])
         ax5 = fig.add_subplot(gs[1, 1:3])
-        # axes = [ax4,ax1,ax3,ax2]
+
         self.display_coef_inflation(ax=ax4)
         self.display_relationship_matrix(ax=ax2)
         self.display_norm_evolution(ax=ax5)
@@ -474,7 +526,6 @@ class MixtureModelViz(BaseModelViz):
         ax1 = fig.add_subplot(gs[0, 0:n_clusters])
         axes_means = [fig.add_subplot(gs[1, i]) for i in range(n_clusters)]
         axes_variances = [fig.add_subplot(gs[2, i]) for i in range(n_clusters)]
-
         ax3 = fig.add_subplot(gs[0, n_clusters : n_clusters + 2])
         ax4 = fig.add_subplot(gs[1, n_clusters : n_clusters + 2])
         ax5 = fig.add_subplot(gs[2, n_clusters : n_clusters + 2])
@@ -763,20 +814,28 @@ def _get_figure():
 
 
 def plot_confusion_matrix(
-    confusion_mat: np.ndarray, ax: matplotlib.axes.Axes = None, title: str = ""
+    pred_clusters: ArrayLike,
+    true_clusters: ArrayLike,
+    ax: matplotlib.axes.Axes = None,
+    title: str = "",
 ):
     """
-    Plot the confusion matrix using a heatmap.
+    Compute and plot the confusion matrix for clustering results.
 
     Parameters
     ----------
-    confusion_mat : ndarray of shape (n_classes, n_classes)
-        Confusion matrix to be plotted.
+    pred_clusters : array-like of shape (n_samples,)
+        Predicted cluster labels from k-means clustering.
+    true_clusters : array-like of shape (n_samples,)
+        True cluster labels.
     ax : matplotlib.axes.Axes (Optional)
         Axes object to draw the heatmap on. Default is None
     title : str (Optional)
         Title for the heatmap.
     """
+    confusion_mat, pred_encoder, true_encoder = get_confusion_matrix(
+        pred_clusters, true_clusters
+    )
     if ax is None:
         to_show = True
         ax = plt.gca()
@@ -786,40 +845,90 @@ def plot_confusion_matrix(
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
+
+    if pred_encoder is not None:
+        pred_labels = pred_encoder.classes_
+        ax.set_xticklabels(pred_labels, rotation=45, ha="right")
+    if true_encoder is not None:
+        true_labels = true_encoder.classes_
+        ax.set_yticklabels(true_labels, rotation=0)
+
     if to_show is True:
         plt.show()
 
 
-def _viz_lda(X, y, ax=None):
-    if ax is None:
-        to_show = True
-        ax = plt.gca()
-    else:
-        to_show = False
-    transformed_lda = _get_lda_projection(X, y)
+def _plot_lda_2d_projection(
+    *, transformed_lda_train, y_train, transformed_lda_test, colors, ax
+):
     sns.scatterplot(
-        x=transformed_lda[:, 0],
-        y=transformed_lda[:, 1],
-        hue=y,
+        x=transformed_lda_test[:, 0],
+        y=transformed_lda_test[:, 1],
+        hue=colors,
         palette="viridis",
         edgecolor="black",
         ax=ax,
     )
-    _plot_contour_lda(transformed_lda, y, ax)
+    _plot_contour_lda(transformed_lda_train, y_train, ax)
     ax.set_xlabel("LD1")
     ax.set_ylabel("LD2")
     ax.set_title("LDA Projection with Decision Boundaries")
-    if to_show:
-        plt.show()
 
 
-def _plot_contour_lda(transformed_lda, y, ax):
-    x_min, x_max = transformed_lda[:, 0].min() - 1, transformed_lda[:, 0].max() + 1
-    y_min, y_max = transformed_lda[:, 1].min() - 1, transformed_lda[:, 1].max() + 1
+def _plot_lda_1d_projection(
+    *, transformed_lda_train, y_train, transformed_lda_test, colors, ax
+):
+    mean_0 = transformed_lda_train[y_train == 0].mean()
+    mean_1 = transformed_lda_train[y_train == 1].mean()
+    boundary = (mean_0 + mean_1) / 2
+    sns.kdeplot(
+        transformed_lda_train[y_train == 0].ravel(),
+        fill=True,
+        label="Class 0 (train data)",
+        alpha=0.5,
+        ax=ax,
+        palette="viridis",
+    )
+    sns.kdeplot(
+        transformed_lda_train[y_train == 1].ravel(),
+        fill=True,
+        label="Class 1 (train data)",
+        alpha=0.5,
+        ax=ax,
+        palette="viridis",
+    )
+    ax.axvline(boundary, color="black", linestyle="--", label="Decision Boundary")
+
+    jitter = np.random.normal(0, 0.05, size=transformed_lda_test.shape)
+    sns.scatterplot(
+        x=transformed_lda_test.squeeze(),
+        y=jitter.squeeze(),
+        hue=colors,
+        palette="viridis",
+        edgecolor="k",
+        s=80,
+        alpha=0.7,
+        ax=ax,
+    )
+
+    ax.legend()
+    ax.set_xlabel("LDA Projection")
+    ax.set_ylabel("Density (random noise on the y-axis for a better visualization)")
+    ax.set_title("1D LDA Projection with Decision Boundary")
+
+
+def _plot_contour_lda(transformed_lda_train, y_train, ax):
+    x_min, x_max = (
+        transformed_lda_train[:, 0].min() - 1,
+        transformed_lda_train[:, 0].max() + 1,
+    )
+    y_min, y_max = (
+        transformed_lda_train[:, 1].min() - 1,
+        transformed_lda_train[:, 1].max() + 1,
+    )
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200), np.linspace(y_min, y_max, 200))
 
     lda_2d = LinearDiscriminantAnalysis()
-    lda_2d.fit(transformed_lda, y)
+    lda_2d.fit(transformed_lda_train, y_train)
     prediction = lda_2d.predict(np.c_[xx.ravel(), yy.ravel()])
     prediction = prediction.reshape(xx.shape)
     cmap = ListedColormap(sns.color_palette("viridis", 3).as_hex())
@@ -832,27 +941,57 @@ def _get_lda_projection(X, y):
     return clf.transform(X)
 
 
-def _viz_lda_new(*, X, y, new_X_transformed, colors, ax=None):
+def _viz_lda_train(X_train, y_train, ax=None):
+    transformed_train = _get_lda_projection(X_train, y_train)
+    _viz_lda(
+        X_train=X_train,
+        y_train=y_train,
+        X_transformed=transformed_train,
+        colors=y_train,
+        ax=ax,
+    )
+
+
+def _viz_lda(*, X_train, y_train, X_transformed, colors, ax):
     if ax is None:
         to_show = True
         ax = plt.gca()
     else:
         to_show = False
+
+    transformed_lda_train = _get_lda_projection(X_train, y_train)
     if colors is not None:
-        if len(colors.shape) > 1:
-            colors = colors.argmax(dim=1)
-    transformed_lda = _get_lda_projection(X, y)
-    sns.scatterplot(
-        x=new_X_transformed[:, 0],
-        y=new_X_transformed[:, 1],
-        hue=colors,
-        palette="viridis",
-        edgecolor="black",
+        if isinstance(colors, np.ndarray):
+            if len(colors.shape) > 1:
+                colors = colors.argmax(axis=1)
+        if isinstance(colors, torch.Tensor):
+            if len(colors.shape) > 1:
+                colors = colors.argmax(dim=1)
+    if len(np.unique(y_train)) > 2:
+        _plot_lda_2d_projection(
+            transformed_lda_train=transformed_lda_train,
+            y_train=y_train,
+            transformed_lda_test=X_transformed,
+            colors=colors,
+            ax=ax,
+        )
+    else:
+        _plot_lda_1d_projection(
+            transformed_lda_train=transformed_lda_train,
+            y_train=y_train,
+            transformed_lda_test=X_transformed,
+            colors=colors,
+            ax=ax,
+        )
+    if to_show:
+        plt.show()
+
+
+def _viz_lda_test(*, X_train, y_train, new_X_transformed, colors, ax=None):
+    _viz_lda(
+        X_train=X_train,
+        y_train=y_train,
+        X_transformed=new_X_transformed,
+        colors=colors,
         ax=ax,
     )
-    _plot_contour_lda(transformed_lda, y, ax)
-    ax.set_xlabel("LD1")
-    ax.set_ylabel("LD2")
-    ax.set_title("LDA Projection with Decision Boundaries")
-    if to_show is True:
-        plt.show()

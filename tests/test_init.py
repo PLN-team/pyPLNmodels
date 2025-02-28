@@ -1,7 +1,7 @@
 # pylint: skip-file
 import torch
 
-from pyPLNmodels._initialization import _init_coef
+from pyPLNmodels.calculations._initialization import _init_coef
 from pyPLNmodels import load_scrna, PlnPCA
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

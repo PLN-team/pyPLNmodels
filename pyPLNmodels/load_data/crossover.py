@@ -45,7 +45,7 @@ def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)
 
     Examples
     --------
-    >>> from pyPLNmodels import load_crossover
+    >>> from pyPLNmodels import load_crossover_per_species
     >>> data = load_crossover_per_species()
     >>> print('Keys: ', data.keys())
     >>> print(data["endog"].head())
