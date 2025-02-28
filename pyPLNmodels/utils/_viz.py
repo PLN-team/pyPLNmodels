@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import warnings
 
 import numpy as np
@@ -122,13 +123,28 @@ def _viz_variables(
     if colors is not None:
         if isinstance(colors, np.ndarray):
             colors = np.squeeze(colors)
-
-    sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80)
+        colors = colors.astype(str)
+    if colors is not None:
+        nb_colors = len(np.unique(colors))
+        if nb_colors > 15:
+            sns.scatterplot(
+                x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis", legend=False
+            )
+            norm = plt.Normalize(0, nb_colors)
+            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm.set_array([])  # Required for colorbar
+            plt.colorbar(sm, label="Value")
+        else:
+            sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
+    else:
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
     if covariances is not None:
         for i in range(covariances.shape[0]):
             _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
     if to_show is True:
         plt.show()
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
     return ax
 
 
@@ -594,17 +610,46 @@ def _create_labels(explained_variance, n_components):
     }
 
 
-def _create_dataframe(proj_variables, labels, colors):
+def _create_dataframe(proj_variables, labels):
     data = pd.DataFrame(proj_variables)
     data.columns = labels.values()
-    if colors is not None:
-        data["labels"] = colors
     return data
 
 
 def _plot_pairplot(data, colors):
     if colors is not None:
-        sns.pairplot(data, hue="labels", diag_kind="bins")
+        nb_colors = len(np.unique(colors))
+        if nb_colors > 15:
+            norm = plt.Normalize(vmin=0, vmax=nb_colors)
+            num_features = len(data.columns)
+            fig, ax = plt.subplots(num_features, num_features, figsize=(10, 10))
+            for i, icol in enumerate(data.columns):
+                for j, jcol in enumerate(data.columns):
+                    if i == j:  # diagonal
+                        sns.distplot(data[icol], kde=False, ax=ax[i][j])
+                    else:  # off diagonal
+                        sm = sns.scatterplot(
+                            x=data[icol],
+                            y=data[jcol],
+                            ax=ax[j][i],
+                            hue=colors,
+                            palette="viridis",
+                            legend=False,
+                        )
+                    if i == 0:
+                        ax[j][i].set_ylabel(jcol)
+                    else:
+                        ax[j][i].set_ylabel("")
+                    if j == 2:
+                        ax[j][i].set_xlabel(icol)
+                    else:
+                        ax[j][i].set_xlabel("")
+            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm.set_array([])  # Required for colorbar
+            fig.colorbar(sm, ax=ax, orientation="vertical", label="Value")
+        else:
+            data["labels"] = pd.Categorical(colors)
+            sns.pairplot(data, hue="labels", palette="viridis")
     else:
         sns.pairplot(data, diag_kind="kde")
     plt.show()
@@ -634,7 +679,7 @@ def _pca_pairplot(array, n_components, colors):
     """
     proj_variables, explained_variance = _perform_pca(array, n_components)
     labels = _create_labels(explained_variance, n_components)
-    data = _create_dataframe(proj_variables, labels, colors)
+    data = _create_dataframe(proj_variables, labels)
     _plot_pairplot(data, colors)
 
 

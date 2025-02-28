@@ -6,7 +6,7 @@ import numpy as np
 from pyPLNmodels.load_data.utils import _threshold_samples_and_dim
 
 
-def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)):
+def load_crossover(n_samples=500, *, chromosome_numbers=range(1, 27)):
     """
     Load crossover data. It contains 2459 samples (regions) with 4 dimensions (species).
     Each sample belongs to a certain chromosome, ranging from 1 to 26. The length of each chromosome
@@ -30,7 +30,7 @@ def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)
     Parameters
     ----------
     n_samples : int, optional
-        Number of samples to load, by default 300 (maximum is 2459).
+        Number of samples to load, by default 500 (maximum is 2459).
     chromosome_numbers : int or range, optional
         Chromosome numbers to filter, by default range(1, 27).
 
@@ -41,12 +41,13 @@ def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)
         - 'endog':    DataFrame with endogenous variables.
         - 'chrom':      Series with chromosome numbers.
         - 'chrom_1hot': DataFrame with one-hot encoded chromosome numbers.
-        - 'offsets':  DataFrame with coverage offsets.
+        - 'offsets':  DataFrame with coverage offsets (in log scale).
+        - 'location': The location of the crossover counts
 
     Examples
     --------
-    >>> from pyPLNmodels import load_crossover_per_species
-    >>> data = load_crossover_per_species()
+    >>> from pyPLNmodels import load_crossover
+    >>> data = load_crossover()
     >>> print('Keys: ', data.keys())
     >>> print(data["endog"].head())
     >>> print(data["endog"].describe())
@@ -65,6 +66,17 @@ def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)
         data = data[np.isin(data["chrom"], chromosome_numbers)]
     data = data.iloc[:n_samples]
 
+    location = (
+        (data["wstart"] / 1000000).astype(int).astype(str)
+        + "-"
+        + (data["wstop"] / 1000000).astype(int).astype(str)
+    )
+    data["location"] = location
+
+    detailed_location = "chrom" + data["chrom"].astype(str) + "Loc:" + location
+    data["detailed_location"] = detailed_location
+    data.set_index("detailed_location", inplace=True)
+
     endog = data[["nco_Lacaune_M", "nco_Lacaune_F", "nco_Soay_F", "nco_Soay_M"]].copy()
     print(f"Returning crossover dataset of size {endog.shape}")
     offsets = data[
@@ -76,16 +88,6 @@ def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)
         ]
     ]
 
-    endog["Location"] = (
-        "chrom"
-        + data["chrom"].astype(str)
-        + "Loc:"
-        + (data["wstart"] / 1000000).astype(int).astype(str)
-        + "-"
-        + (data["wstop"] / 1000000).astype(int).astype(str)
-    )
-    endog.set_index("Location", inplace=True)
-
     chrom = data["chrom"]
     chrom_1hot = pd.get_dummies(chrom)
     chrom_1hot.columns = "Chr " + chrom_1hot.columns.astype(str)
@@ -94,14 +96,15 @@ def load_crossover_per_species(n_samples=300, *, chromosome_numbers=range(1, 27)
         "endog": endog,
         "chrom": chrom,
         "chrom_1hot": chrom_1hot,
-        "offsets": offsets,
+        "offsets": np.log(offsets),
+        "location": location,
     }
 
 
-def load_crossover(n_samples=276, dim=104):
+def load_crossover_per_chromosom(n_samples=276, dim=104):
     """
     Load crossover data. It contains 247 samples (regions) with 104 dimensions
-    (26 chromosome * 4 species). Some chromosomes are shorter than other, resulting in NaNs.
+    (26 chromosome * 4 species).
 
     This dataset describes recombination patterns in sheep, focusing on the genetic determinism
     of recombination. Recombination is a biological process during which chromosomes exchange
@@ -110,6 +113,8 @@ def load_crossover(n_samples=276, dim=104):
     meiotic recombination maps. The dataset identifies ∼50,000 crossover hotspots (regions where
     recombination occurs frequently) and highlights major loci (specific locations on chromosomes)
     affecting recombination rate variation.
+
+    Some chromosomes are shorter than other, resulting in NaNs.
 
     References:
         Petit, Morgane, Jean-Michel Astruc, Julien Sarry, Laurence Drouilhet,
@@ -130,12 +135,12 @@ def load_crossover(n_samples=276, dim=104):
     dict
         Dictionary containing:
         - 'endog':    DataFrame with endogenous variables.
-        - 'offsets':  DataFrame with coverage offsets.
+        - 'offsets':  DataFrame with coverage offsets (in log scale).
 
     Examples
     --------
-    >>> from pyPLNmodels import load_crossover
-    >>> data = load_crossover()
+    >>> from pyPLNmodels import load_crossover_per_chromosom
+    >>> data = load_crossover_per_chromosom()
     >>> print('Keys: ', data.keys())
     >>> print(data["endog"].head())
     >>> print(data["endog"].describe())
@@ -173,4 +178,5 @@ def load_crossover(n_samples=276, dim=104):
         :, ["coverage" in column for column in data_pivoted.columns]
     ].iloc[:n_samples, :dim]
     offsets.iloc[0, isnan_first_sample] = offsets.iloc[1, isnan_first_sample]
+    offsets = np.log(offsets)
     return {"endog": endog, "offsets": offsets}

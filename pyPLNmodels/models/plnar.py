@@ -41,14 +41,16 @@ class PlnAR(BaseModel):
     >>> ar = PlnAR(data["endog"])
     >>> ar.fit()
     >>> print(ar)
-    >>> ar.viz(colors=data["labels"])
+    >>> ar.viz(colors=data["chrom"])
+    >>> ar.viz_dims(variables_names = ["nco_Lacaune_M", "nco_Soay_M"])
 
     >>> from pyPLNmodels import PlnAR, load_crossover
     >>> data = load_crossover()
     >>> ar = PlnAR.from_formula("endog ~ 1 + labels", data=data)
     >>> ar.fit()
     >>> print(ar)
-    >>> ar.viz(colors=data["labels"])
+    >>> ar.viz(colors=data["chrom"])
+    >>> ar.viz_dims(variables_names = ["nco_Lacaune_F", "nco_Soay_F"])
     """
 
     _ar_diff_coef: torch.Tensor
@@ -258,8 +260,8 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
-        >>> ar.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> ar.plot_correlation_circle(variables_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.plot_correlation_circle(variables_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
         """,
     )
     def plot_correlation_circle(
@@ -278,8 +280,8 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.biplot(variables_names=["MALAT1", "ACTB"])
-        >>> ar.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> ar.biplot(variables_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.biplot(variables_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
         """,
     )
     def biplot(
@@ -304,8 +306,8 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.pca_pairplot(n_components=5)
-        >>> ar.pca_pairplot(n_components=5, colors=data["labels"])
+        >>> ar.pca_pairplot(n_components=3)
+        >>> ar.pca_pairplot(n_components=3, colors=data["chrom"])
         """,
     )
     def pca_pairplot(self, n_components: bool = 3, colors=None):

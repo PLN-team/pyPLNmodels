@@ -5,7 +5,7 @@ from .load_data import (
     load_scrna,
     load_microcosm,
     load_crossover,
-    load_crossover_per_species,
+    load_crossover_per_chromosom,
 )
 
 from .models import (
@@ -62,7 +62,7 @@ __all__ = [
     "get_label_mapping",
     "load_microcosm",
     "load_oaks",
-    "load_crossover_per_species",
+    "load_crossover_per_chromosom",
     "load_crossover",
     "load_scrna",
 ]
