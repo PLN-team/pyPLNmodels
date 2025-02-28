@@ -17,7 +17,14 @@ class ZIPlnPCASampler(ZIPlnSampler):
     >>> from pyPLNmodels import ZIPlnPCASampler, ZIPlnPCA
     >>> sampler = ZIPlnPCASampler()
     >>> endog = sampler.sample()
-    >>> zipca = ZIPlnPCA(endog, exog = sampler.exog, exog_inflation = sampler.exog_inflation, add)
+    >>> zipca = ZIPlnPCA(
+    >>>        endog,
+    >>>        exog=sampler.exog,
+    >>>        exog_inflation=sampler.exog_inflation,
+    >>>        add_const=False,
+    >>>        add_const_inflation=False,
+    >>>        rank=4
+    >>>    )
     >>> zipca.fit()
     >>> estimated_cov = zipca.covariance
     >>> true_covariance = sampler.covariance

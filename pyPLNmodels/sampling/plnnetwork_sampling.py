@@ -26,7 +26,7 @@ class PlnNetworkSampler(PlnSampler):
     >>> from pyPLNmodels import PlnNetworkSampler, PlnNetwork
     >>> sampler = PlnNetworkSampler()
     >>> endog = sampler.sample()
-    >>> net = PlnNetwork(endog, exog = sampler.exog, add_const = False)
+    >>> net = PlnNetwork(endog, exog = sampler.exog, add_const = False, penalty = 1)
     >>> net.fit()
     >>> estimated_precision = net.precision
     >>> true_precision = sampler.precision

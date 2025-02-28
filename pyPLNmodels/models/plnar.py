@@ -185,7 +185,7 @@ class PlnAR(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnAR, load_crossover
             >>> data = load_crossover()
-            >>> ar = Pln.from_formula("endog ~ 1", data)
+            >>> ar = PlnAR.from_formula("endog ~ 1", data)
             >>> ar.fit()
             >>> elbo = ar.compute_elbo()
             >>> print(elbo)
@@ -316,7 +316,7 @@ class PlnAR(BaseModel):
         example="""
               >>> from pyPLNmodels import PlnAR, load_crossover
               >>> data = load_crossover()
-              >>> ar = Pln.from_formula("endog ~ 1", data=data)
+              >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
               >>> ar.fit()
               >>> print(ar.transform().shape)
               >>> pln.viz()

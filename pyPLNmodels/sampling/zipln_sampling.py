@@ -21,7 +21,13 @@ class ZIPlnSampler(PlnSampler):
     >>> from pyPLNmodels import ZIPlnSampler, ZIPln
     >>> sampler = ZIPlnSampler()
     >>> endog = sampler.sample()
-    >>> zi = ZIPln(endog, exog = sampler.exog, exog_inflation = sampler.exog_inflation, add)
+    >>> zi = ZIPln(
+    >>>        endog,
+    >>>        exog=sampler.exog,
+    >>>        exog_inflation=sampler.exog_inflation,
+    >>>        add_const=False,
+    >>>        add_const_inflation=False,
+    >>>    )
     >>> zi.fit()
     >>> estimated_cov = zi.covariance
     >>> true_covariance = sampler.covariance

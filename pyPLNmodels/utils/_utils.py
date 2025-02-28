@@ -6,6 +6,7 @@ import time
 import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import LabelEncoder
 from scipy.stats import mode
 import torch
 
@@ -277,10 +278,19 @@ def get_confusion_matrix(pred_clusters: ArrayLike, true_clusters: ArrayLike):
         Confusion matrix where cm[i, j] is the number of samples with true label being i-th class
         and predicted label being j-th class.
     """
+    pred_clusters, pred_encoder = _ensure_int_labels(np.array(pred_clusters))
+    true_clusters, true_encoder = _ensure_int_labels(np.array(true_clusters))
     label_mapping = get_label_mapping(pred_clusters, true_clusters)
     mapped_labels = np.vectorize(lambda x: label_mapping.get(x, -1))(pred_clusters)
     cm = confusion_matrix(true_clusters, mapped_labels)
-    return cm
+    return cm, pred_encoder, true_encoder
+
+
+def _ensure_int_labels(array):
+    if not np.issubdtype(array.dtype, np.integer):
+        label_encoder = LabelEncoder()
+        return label_encoder.fit_transform(array), label_encoder
+    return array, None
 
 
 def _point_fixe_lambert(x, y):

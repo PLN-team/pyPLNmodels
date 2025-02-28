@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import pandas as pd
 from patsy import dmatrices, dmatrix, PatsyError  # pylint: disable=no-name-in-module
+from sklearn.preprocessing import LabelEncoder
 
 from pyPLNmodels.utils._utils import _get_log_sum_of_endog
 
@@ -66,7 +67,7 @@ def _handle_data(
 
     if exog is not None:
         exog = _remove_useless_exog(exog, column_names_exog, is_inflation=False)
-        _check_full_rank_exog(exog)
+        _check_full_rank_exog(exog, name_mat="exog")
 
     return endog, exog, offsets, column_names_endog, column_names_exog
 
@@ -91,7 +92,9 @@ def _handle_inflation_data(exog_inflation, add_const_inflation, endog):
     exog_inflation = _remove_useless_exog(
         exog_inflation, column_names_exog_inflation, is_inflation=True
     )
-    _check_full_rank_exog(exog_inflation, inflation=True)
+    _check_full_rank_exog(
+        exog_inflation, name_mat="exog_inflation", add_const_name="add_const_inflation"
+    )
     dirac = endog == 0
     return exog_inflation, column_names_exog_inflation, dirac
 
@@ -207,10 +210,24 @@ def _format_data(
     if isinstance(data, torch.Tensor):
         return data.to(DEVICE).float()
     if isinstance(data, pd.Series):
-        return torch.from_numpy(data.values).to(DEVICE).unsqueeze(1).float()
+        return _series_to_tensor(data).unsqueeze(1).to(DEVICE).float()
+        # return torch.from_numpy(data.values).to(DEVICE).unsqueeze(1).float()
     msg = "Please insert either a `numpy.ndarray`, `pandas.DataFrame`, `pandas.Series` "
     msg += "or `torch.Tensor`"
     raise AttributeError(msg)
+
+
+def _series_to_tensor_and_encoder(series: pd.Series) -> torch.Tensor:
+    if series.dtype in [np.int64, np.float64]:
+        return torch.tensor(series.values), None
+    label_encoder = LabelEncoder()
+    integer_encoded = label_encoder.fit_transform(series)
+    return torch.tensor(integer_encoded), label_encoder
+
+
+def _series_to_tensor(series: pd.Series) -> torch.Tensor:
+    out, _ = _series_to_tensor_and_encoder(series)
+    return out
 
 
 def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
@@ -224,18 +241,33 @@ def _add_constant_to_exog(exog: torch.Tensor, length: int) -> torch.Tensor:
     return torch.cat((ones, exog), dim=1)
 
 
-def _check_full_rank_exog(exog: torch.Tensor, inflation: bool = False) -> None:
+def _check_full_rank_exog(
+    exog: torch.Tensor, name_mat: str = "exog", add_const_name: str = "add_const"
+) -> None:
     mat = exog.T @ exog
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
-        name_mat = "exog_inflation" if inflation else "exog"
-        add_const_name = "add_const_inflation" if inflation else "add_const"
         msg = (
             f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank "
             f"(rank = {rank}, expected = {d}). You may consider removing one or more variables "
             f"or set {add_const_name} to False if that is not already the case. "
             f"You can also set 0 + {name_mat} in the formula to avoid adding an intercept."
+        )
+        raise ValueError(msg)
+
+
+def _check_full_rank_exog_and_ones(
+    exog_and_ones: torch.Tensor,
+) -> None:
+    d = exog_and_ones.shape[1]
+    mat = exog_and_ones.T @ exog_and_ones
+    rank = torch.linalg.matrix_rank(mat)
+    if rank != d:
+        msg = (
+            f"Input matrix exog does not result in (exog,1).T @(exog,1) being full rank "
+            f"(rank = {rank}, expected = {d}). This gives non identifiable cluster means."
+            f" You may consider removing one or more variables in exog."
         )
         raise ValueError(msg)
 
@@ -525,10 +557,12 @@ def _extract_data_and_clusters_from_formula(formula, data):
     return endog, exog, offsets, clusters
 
 
-def _format_clusters(clusters):
-    clusters = _format_data(clusters)
+def _format_clusters_and_encoder(clusters):
+    if isinstance(clusters, pd.Series):
+        return _series_to_tensor_and_encoder(clusters)
+    clusters = _format_data(clusters).squeeze()
     if clusters.dim() == 2 and torch.all((clusters == 0) | (clusters == 1)):
-        return clusters  # Already one-hot encoded
+        return clusters, None  # Already one-hot encoded
 
     # Convert to one-hot encoding
     if clusters.dim() == 1:
@@ -537,7 +571,7 @@ def _format_clusters(clusters):
         one_hot_clusters = torch.nn.functional.one_hot(
             clusters, num_classes=num_classes
         )
-        return one_hot_clusters.float()
+        return one_hot_clusters.float(), None
 
     msg = "Input clusters format is not recognized. Give either"
     msg += " a one dimensional tensor or a one-hot encoded tensor."

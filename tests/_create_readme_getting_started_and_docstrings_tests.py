@@ -5,8 +5,10 @@ OUTPUT_DIR_DOCSTRINGS = "docstrings_examples"
 OUTPUT_DIR_README = "readme_examples"
 OUTPUT_DIR_GETTING_STARTED = "getting_started"
 
-DIR_LOAD_DATA = "test_load_data"
-DIR_SAMPLING = "test_sampling"
+DIR_LOAD_DATA = "load_data"
+DIR_SAMPLING = "sampling"
+DIR_MODELS = "models"
+DIR_UTILS = "utils"
 
 
 def _get_lines(path_to_file, filename, filetype=".py"):
@@ -81,14 +83,14 @@ def _filename_to_readme_example_file():
     _write_file(examples, "readme", "example", directory=OUTPUT_DIR_README)
 
 
-lines_getting_started = _get_lines("./", "test_getting_started")
 new_lines = []
-for line in lines_getting_started:
-    if len(line) > 20:
-        if line[0:11] != "get_ipython":
-            new_lines.append(line)
-    else:
-        new_lines.append(line)
+# lines_getting_started = _get_lines("./", "test_getting_started")
+# for line in lines_getting_started:
+#     if len(line) > 20:
+#         if line[0:11] != "get_ipython":
+#             new_lines.append(line)
+#     else:
+#         new_lines.append(line)
 
 
 os.makedirs(OUTPUT_DIR_README, exist_ok=True)
@@ -96,6 +98,8 @@ os.makedirs(OUTPUT_DIR_DOCSTRINGS, exist_ok=True)
 os.makedirs(OUTPUT_DIR_GETTING_STARTED, exist_ok=True)
 os.makedirs(OUTPUT_DIR_DOCSTRINGS + "/" + DIR_LOAD_DATA, exist_ok=True)
 os.makedirs(OUTPUT_DIR_DOCSTRINGS + "/" + DIR_SAMPLING, exist_ok=True)
+os.makedirs(OUTPUT_DIR_DOCSTRINGS + "/" + DIR_MODELS, exist_ok=True)
+os.makedirs(OUTPUT_DIR_DOCSTRINGS + "/" + DIR_UTILS, exist_ok=True)
 
 
 def _find_all_files(directory):
@@ -106,17 +110,34 @@ def _find_all_files(directory):
     return py_files_relative
 
 
-def _filename_to_docstring_example_file(filename, dirname):
-    lines = _get_lines("../pyPLNmodels/", filename)
+def _get_last_directory_name(path):
+    return os.path.split(path)[-1]
+
+
+def _find_all_directories(path):
+    _directories = []
+    for item in os.listdir(path):
+        item_path = os.path.join(path, item)
+        if os.path.isdir(item_path):
+            _directories.append(item_path)
+    return _directories
+
+
+def _filename_to_docstring_example_file(filename, dirname, path_to_file):
+    lines = _get_lines(path_to_file + "/", filename)
     examples = _get_examples_docstring(lines)
+    dirname += "/" + _get_last_directory_name(path_to_file)
     _write_file(examples, filename, "example", directory=dirname)
 
 
-files = _find_all_files("../pyPLNmodels")
-
-for _file in files:
-    if os.path.isfile("../pyPLNmodels/" + _file + ".py"):
-        _filename_to_docstring_example_file(_file, OUTPUT_DIR_DOCSTRINGS)
+directories = _find_all_directories("../pyPLNmodels")
+for _directory in directories:
+    files = _find_all_files(_directory)
+    for _file in files:
+        if os.path.isfile(_directory + "/" + _file + ".py"):
+            _filename_to_docstring_example_file(
+                _file, OUTPUT_DIR_DOCSTRINGS, _directory
+            )
 
 _write_file([new_lines], "getting_started", "", OUTPUT_DIR_GETTING_STARTED)
 
