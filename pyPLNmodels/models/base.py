@@ -466,7 +466,7 @@ class BaseModel(
         """Update some parameters."""
 
     def _track_mse(self):
-        for name_param, param in self.dict_model_parameters:
+        for name_param, param in self.dict_model_parameters.items():
             mse_param = torch.mean(param**2).item() if param is not None else 0
             self._dict_list_mse[name_param].append(mse_param)
 
