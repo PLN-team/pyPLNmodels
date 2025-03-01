@@ -75,7 +75,13 @@ def test_other_attributes():
             else:
                 if model._exog_clusters.shape[1] == 2:
                     with pytest.raises(ValueError):
-                        model.plot_correlation_circle()
+                        model.plot_correlation_circle(
+                            variables_names=["A", "B"], indices_of_variables=[1, 3]
+                        )
+                    with pytest.raises(ValueError):
+                        model.biplot(
+                            variables_names=["A", "B"], indices_of_variables=[2, 4]
+                        )
                 else:
                     launch_correlation_circle(model)
             if model.nb_cov == 0:
