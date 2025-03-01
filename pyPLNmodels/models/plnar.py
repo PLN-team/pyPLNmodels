@@ -46,7 +46,7 @@ class PlnAR(BaseModel):
 
     >>> from pyPLNmodels import PlnAR, load_crossover
     >>> data = load_crossover()
-    >>> ar = PlnAR.from_formula("endog ~ 1 + labels", data=data)
+    >>> ar = PlnAR.from_formula("endog ~ 1 + chrom", data=data)
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
@@ -65,9 +65,9 @@ class PlnAR(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnAR, load_crossover
             >>> data = load_crossover()
-            >>> pln = PlnAR.from_formula("endog ~ 1", data)
-            >>> pln.fit()
-            >>> print(pln)
+            >>> ar = PlnAR.from_formula("endog ~ 1", data)
+            >>> ar.fit()
+            >>> print(ar)
         """,
         params="""
         ar_type: str (optional)
@@ -247,7 +247,7 @@ class PlnAR(BaseModel):
         """,
     )
     def latent_positions(self):
-        return super().latent_positions
+        return self.latent_variables - self.marginal_mean
 
     @property
     def _coef(self):
@@ -261,7 +261,6 @@ class PlnAR(BaseModel):
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
         >>> ar.plot_correlation_circle(variables_names=["nco_Lacaune_M", "nco_Soay_M"])
-        >>> ar.plot_correlation_circle(variables_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
         """,
     )
     def plot_correlation_circle(
@@ -318,11 +317,11 @@ class PlnAR(BaseModel):
         example="""
               >>> from pyPLNmodels import PlnAR, load_crossover
               >>> data = load_crossover()
-              >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
+              >>> ar = PlnAR.from_formula("endog ~ 1 + chrom", data=data)
               >>> ar.fit()
               >>> print(ar.transform().shape)
-              >>> pln.viz()
-              >>> transformed_no_exog = pln.transform(remove_exog_effect=True)
+              >>> ar.viz()
+              >>> transformed_no_exog = ar.transform(remove_exog_effect=True)
               """,
     )
     def transform(self, remove_exog_effect: bool = False):
@@ -367,7 +366,7 @@ class PlnAR(BaseModel):
             >>> ar = PlnAR(data["endog"])
             >>> ar.fit()
             >>> ar.plot_expected_vs_true()
-            >>> ar.plot_expected_vs_true(colors=data["labels"])
+            >>> ar.plot_expected_vs_true(colors=data["chrom"])
             """,
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
@@ -378,12 +377,12 @@ class PlnAR(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnAR, load_crossover
             >>> data = load_crossover()
-            >>> ar = PlnAR.from_formula("endog ~ 1 + labels", data=data)
+            >>> ar = PlnAR.from_formula("endog ~ 1 + chrom", data=data)
             >>> ar.fit()
             >>> ar.viz()
-            >>> ar.viz(colors=data["labels"])
+            >>> ar.viz(colors=data["chrom"])
             >>> ar.viz(show_cov=True)
-            >>> ar.viz(remove_exog_effect=True, colors=data["labels"])
+            >>> ar.viz(remove_exog_effect=True, colors=data["location"])
             """,
     )
     def viz(

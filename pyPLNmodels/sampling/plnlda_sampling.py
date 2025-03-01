@@ -70,6 +70,22 @@ class PlnLDASampler(PlnSampler):
             marginal_mean_mean=marginal_mean_mean,
             seed=seed,
         )
+        self._params["coef_clusters"] = torch.clone(
+            self._params["coef"][: (-self.n_clusters) :]
+        )
+        if self._exog is None:
+            self._params["coef"] = None
+        else:
+            self._params["coef"] = torch.clone(
+                self._params["coef"][(-self.n_clusters) :]
+            )
+
+    @property
+    def _marginal_mean(self):
+        _marginal_mean_clusters = self._exog_clusters @ self._params["coef_clusters"]
+        if self._exog is None:
+            return _marginal_mean_clusters
+        return _marginal_mean_clusters + self._known_exog @ self._params["coef"]
 
     def _get_exog(self, *, n_samples, nb_cov, will_add_const, seed):
         known_exog = _get_exog(
@@ -105,15 +121,34 @@ class PlnLDASampler(PlnSampler):
         return torch.cat((coef_known, coef_clusters), dim=0)
 
     @property
+    def _known_exog(self):
+        return self._exog[:, : -(self.n_clusters)]
+
+    @property
     def known_exog(self):
         """
         The exogenous varaibles that are always known in the model.
         """
-        return self._exog[:, : -(self.n_clusters)]
+        exog_device = self._known_exog
+        if len(exog_device.shape) == 0:
+            return None
+        return self._known_exog.cpu()
 
     @property
-    def clusters(self):
+    def exog_clusters(self):
         """
         Clusters given in initialization.
         """
-        return (self._exog[:, -(self.n_clusters) :]).cpu()
+        return self._exog_clusters.cpu()
+
+    @property
+    def _exog_clusters(self):
+        """
+        Clusters given in initialization.
+        """
+        return self._exog[:, -(self.n_clusters) :]
+
+    @property
+    def clusters(self):
+        """The cluster of each individual in the dataset."""
+        return torch.argmax(self.exog_clusters, dim=1)

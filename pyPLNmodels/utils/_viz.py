@@ -123,7 +123,7 @@ def _viz_variables(
     if colors is not None:
         if isinstance(colors, np.ndarray):
             colors = np.squeeze(colors)
-        colors = colors.astype(str)
+        colors = np.array(colors).astype(str)
     if colors is not None:
         nb_colors = len(np.unique(colors))
         if nb_colors > 15:
@@ -648,7 +648,8 @@ def _plot_pairplot(data, colors):
             sm.set_array([])  # Required for colorbar
             fig.colorbar(sm, ax=ax, orientation="vertical", label="Value")
         else:
-            data["labels"] = pd.Categorical(colors)
+            colors = np.array(colors)
+            data["labels"] = pd.Categorical(colors, categories=pd.unique(colors))
             sns.pairplot(data, hue="labels", palette="viridis")
     else:
         sns.pairplot(data, diag_kind="kde")

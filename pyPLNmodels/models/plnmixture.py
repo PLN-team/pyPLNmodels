@@ -32,13 +32,12 @@ class PlnMixture(
     Examples
     --------
     >>> import seaborn as sns
-    >>> from pyPLNmodels import PlnMixture, load_scrna
+    >>> from pyPLNmodels import PlnMixture, load_scrna, plot_confusion_matrix
     >>> data = load_scrna()
-    >>> mixture = PlnMixture(data["endog]",n_clusters = 2)
+    >>> mixture = PlnMixture(data["endog"],n_clusters = 2)
     >>> mixture.fit()
     >>> print(mixture)
-    >>> pair_confusion_matrix(mixture.clusters, data["labels"])
-    >>> sns.show()
+    >>> plot_confusion_matrix(mixture.clusters, data["labels"])
 
 
     See also
@@ -69,7 +68,7 @@ class PlnMixture(
         example="""
             >>> from pyPLNmodels import PlnMixture, load_scrna
             >>> data = load_scrna()
-            >>> mixture = PlnMixture(data["endog]",n_clusters = 2)
+            >>> mixture = PlnMixture(data["endog"],n_clusters = 2)
             >>> mixture.fit()
             >>> print(mixture)
         """,
@@ -126,7 +125,7 @@ class PlnMixture(
         example="""
             >>> from pyPLNmodels import PlnMixture, load_scrna
             >>> data = load_scrna()
-            >>> mixture = PlnMixture.from_formula("endog ~ 1",data, n_clusters = 2)
+            >>> mixture = PlnMixture.from_formula("endog ~ 0",data, n_clusters = 2)
             >>> mixture.fit()
             >>> print(mixture)
         """,
@@ -159,13 +158,13 @@ class PlnMixture(
         example="""
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 1", data, n_clusters = 2)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 2)
         >>> mixture.fit()
         >>> print(mixture)
 
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 1", data, n_clusters = 2)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 2)
         >>> mixture.fit(maxiter=500, verbose=True)
         >>> print(mixture)
         """,
@@ -386,10 +385,14 @@ class PlnMixture(
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture("endog ~ 0", data=data, n_clusters = 2)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 2)
         >>> mixture.fit()
         >>> mixture.biplot(variables_names=["MALAT1", "ACTB"])
-        >>> mixture.biplot(variables_names=["A", "B"], colors=data["labels"])
+        >>> mixture.biplot(
+        >>>    variables_names=["A", "B"],
+        >>>    indices_of_variables=[1, 3],
+        >>>    colors=data["labels"],)
+
 
         See also
         --------
@@ -553,6 +556,7 @@ class PlnMixture(
     @property
     def number_of_parameters(self):
         """Number of parameters."""
+        return (2 * self.n_clusters + self.nb_cov) * self.dim
 
     def pca_pairplot(self, n_components: bool = 3, colors=None):
         """
@@ -651,10 +655,10 @@ class PlnMixture(
 
         Examples
         --------
-        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> pln = PlnMixture(endog, n_clusters = 2).fit()
-        >>> pred = pln.predict_clusters()
+        >>> mixture = PlnMixture(data["endog"], n_clusters = 2).fit()
+        >>> pred = mixture.predict_clusters(data["endog"])
         >>> print('pred', pred)
         """
         mixture_pred = _PlnMixturePredict(
