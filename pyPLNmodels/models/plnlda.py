@@ -25,7 +25,7 @@ from pyPLNmodels.calculations.elbos import (
     profiled_elbo_pln,
     per_sample_elbo_pln,
 )
-from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._utils import _add_doc, _raise_error_1D_viz
 from pyPLNmodels.utils._viz import _viz_lda_train, _viz_lda_test, LDAModelViz
 
 
@@ -451,6 +451,13 @@ class PlnLDA(Pln):
         >>> clusters_test = clusters[n_train:]
         >>> lda = PlnLDA(endog_train, clusters = clusters_train).fit()
         >>> lda.viz()
+
+        Notes
+        -----
+        The visualization is different when there are 2 clusters or
+        strictly more than 2 clusters. If 2 clusters, visualization
+        is only possible in 1D. A random noise is added on the y axis for visualization
+        purposes.
         """
         if colors is not None:
             raise ValueError("'colors' is not implemented for PlnLDA.")
@@ -469,6 +476,20 @@ class PlnLDA(Pln):
             self.clusters,
         )
         return clf
+
+    @_add_doc(
+        BaseModel,
+        example="""
+            >>> from pyPLNmodels import PlnLDA, load_scrna
+            >>> data = load_scrna()
+            >>> lda = PlnLDA(data["endog"])
+            >>> lda.fit()
+            >>> lda.plot_expected_vs_true()
+            >>> lda.plot_expected_vs_true(colors=data["labels"])
+            """,
+    )
+    def plot_expected_vs_true(self, ax=None, colors=None):
+        super().plot_expected_vs_true(ax=ax, colors=colors)
 
     def transform(self, remove_exog_effect=False):
         """
@@ -592,6 +613,70 @@ class PlnLDA(Pln):
     @property
     def _latent_positions_clusters(self):
         return self._latent_mean - self._marginal_mean
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
+        >>> lda = PlnLDA.from_formula("endog ~ 0|labels", data=data)
+        >>> lda.fit()
+        >>> lda.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
+        >>> lda.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
+        """,
+        raises="""
+        ValueError
+            If the number of clusters is 2, as the latent variables will be of dimension
+            and visualization is not possible.
+        """,
+    )
+    def plot_correlation_circle(
+        self, variables_names, indices_of_variables=None, title: str = ""
+    ):
+        if self._n_clusters == 2:
+            _raise_error_1D_viz()
+        super().plot_correlation_circle(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            title=title,
+        )
+
+    @property
+    def _n_clusters(self):
+        return self._exog_clusters.shape[1]
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
+        >>> lda = PlnLDA.from_formula("endog ~ 0 | labels", data=data)
+        >>> lda.fit()
+        >>> lda.biplot(variables_names=["MALAT1", "ACTB"])
+        >>> lda.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        """,
+        raises="""
+        ValueError
+            If the number of clusters is 2, as the latent variables will be of dimension
+            and visualization is not possible.
+        """,
+    )
+    def biplot(
+        self,
+        variables_names,
+        *,
+        indices_of_variables: np.ndarray = None,
+        colors: np.ndarray = None,
+        title: str = "",
+    ):
+        if self._n_clusters == 2:
+            _raise_error_1D_viz()
+        super().biplot(
+            variables_names=variables_names,
+            indices_of_variables=indices_of_variables,
+            colors=colors,
+            title=title,
+        )
 
 
 class _PlnPred(Pln):
