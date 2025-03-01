@@ -4,7 +4,6 @@ from pyPLNmodels import (
     PlnMixture,
     PlnMixtureSampler,
     get_label_mapping,
-    get_confusion_matrix,
     plot_confusion_matrix,
     PlnLDA,
     PlnLDASampler,
@@ -40,8 +39,7 @@ def test_right_prediction_and_confusion_matrix():
 
         for i, _ in enumerate(clusters_pred):
             clusters_pred[i] = label_mapping[clusters_pred[i]]
-        confusion_matrix = get_confusion_matrix(clusters_pred, true_clusters)
-        plot_confusion_matrix(confusion_matrix)
+        plot_confusion_matrix(clusters_pred, true_clusters)
         assert (
             torch.mean(
                 (torch.tensor(true_clusters) == torch.tensor(clusters_pred)).float()
@@ -74,6 +72,5 @@ def test_lda_right_prediction():
             endog_train, clusters=clusters_train, exog=known_exog_train, add_const=False
         ).fit()
         pred = lda.predict_clusters(endog_test, exog=known_exog_test)
-        true_cluster = torch.argmax(clusters_test, dim=1)
-        mean_right_pred = torch.mean((torch.tensor(pred) == true_cluster).float())
-        assert mean_right_pred > 0.6
+        mean_right_pred = torch.mean((torch.tensor(pred) == clusters_test).float())
+        assert mean_right_pred > 0.9
