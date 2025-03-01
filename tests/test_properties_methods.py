@@ -55,8 +55,9 @@ def test_attributes_method():
                     result = method_to_call()
 
 
-def test_nb_cov_0():
+def test_nb_cov_0_precision():
     pln = get_fitted_model("Pln", "formula", {"nb_cov": 0, "add_const": False})
+    assert pln.precision.shape == (pln.dim, pln.dim)
     assert pln.nb_cov == 0
 
 

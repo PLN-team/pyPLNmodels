@@ -2,7 +2,7 @@
 import pytest
 import torch
 
-from pyPLNmodels import ZIPln, load_scrna, Pln, load_microcosm, PlnPCA
+from pyPLNmodels import ZIPln, load_scrna, Pln, load_microcosm, PlnPCA, ZIPlnPCA
 
 
 from .generate_models import get_model, get_dict_models_unfit
@@ -11,32 +11,39 @@ from tests._init_functions import _Pln_init, _PlnPCA_init, _ZIPln_init
 
 def test_no_exog_inflation():
     rna = load_scrna()
-    with pytest.raises(ValueError):
-        zi = ZIPln.from_formula("endog ~ 0", rna)
+    for str_model, zi_model in {"ZIPln": ZIPln, "ZIPlnPCA": ZIPlnPCA}.items():
+        with pytest.raises(ValueError):
+            zi = zi_model.from_formula("endog ~ 0", rna)
 
-    with pytest.raises(ValueError):
-        zi = ZIPln(rna["endog"], exog=None, add_const=False, add_const_inflation=False)
+        with pytest.raises(ValueError):
+            zi = zi_model(
+                rna["endog"], exog=None, add_const=False, add_const_inflation=False
+            )
 
-    with pytest.raises(ValueError):
-        zi = ZIPln(
-            rna["endog"],
-            exog=None,
-            add_const=True,
-            exog_inflation=None,
-            add_const_inflation=False,
-        )
+        with pytest.raises(ValueError):
+            zi = zi_model(
+                rna["endog"],
+                exog=None,
+                add_const=True,
+                exog_inflation=None,
+                add_const_inflation=False,
+            )
 
-    with pytest.raises(ValueError):
-        zi = get_model(
-            "ZIPln", "formula", {"nb_cov_inflation": 0, "add_const_inflation": False}
-        )
+        with pytest.raises(ValueError):
+            zi = get_model(
+                str_model,
+                "formula",
+                {"nb_cov_inflation": 0, "add_const_inflation": False},
+            )
 
-    with pytest.raises(ValueError):
-        zi = get_model(
-            "ZIPln", "explicit", {"nb_cov_inflation": 0, "add_const_inflation": False}
-        )
-    with pytest.raises(ValueError):
-        zi = get_model("ZIPln", "wrong formula", {})
+        with pytest.raises(ValueError):
+            zi = get_model(
+                str_model,
+                "explicit",
+                {"nb_cov_inflation": 0, "add_const_inflation": False},
+            )
+        with pytest.raises(ValueError):
+            zi = get_model(str_model, "wrong formula", {})
 
 
 def test_endog_neg():

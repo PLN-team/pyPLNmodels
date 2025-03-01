@@ -77,16 +77,6 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
             mat_cn += torch.kron(big_mat, exog_i)
         return -mat_cn / self.n_samples
 
-    def get_inv_sandwich(self):
-        """
-        Gets the inverse of the sandwich (matrix) estimator. For more details,
-        see "Evaluating Parameter Uncertainty in the Poisson Lognormal Model
-        with Corrected Variational Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
-        """
-        mat_dn = self.get_mat_dn()
-        mat_cn = self.get_mat_cn()
-        return torch.mm(torch.mm(mat_cn, torch.inverse(mat_dn)), mat_cn)
-
     def get_sandwich(self):
         """
         Gets the sandwich (matrix) estimator. For more details,
