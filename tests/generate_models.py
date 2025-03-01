@@ -33,19 +33,19 @@ from tests._init_functions import (
     _PlnLDA_init,
 )
 
-# NB_COVS = [0, 2]
-# NB_COVS_INFLATION = [1, 2]
-# ADD_CONSTS = [True, False]
-# RANKS = [3, 5]
-# NB_CLUSTERS = [2, 3]
-# AUTOREG_TYPE = ["diagonal", "spherical"]
-
-NB_COVS = [2]
-NB_COVS_INFLATION = [2]
-ADD_CONSTS = [True]
-RANKS = [3]
-NB_CLUSTERS = [2]
+NB_COVS = [0, 2]
+NB_COVS_INFLATION = [1, 2]
+ADD_CONSTS = [True, False]
+RANKS = [3, 5]
+NB_CLUSTERS = [2, 3]
 AUTOREG_TYPE = ["diagonal", "spherical"]
+
+# NB_COVS = [2]
+# NB_COVS_INFLATION = [2]
+# ADD_CONSTS = [True]
+# RANKS = [3]
+# NB_CLUSTERS = [2]
+# AUTOREG_TYPE = ["diagonal", "spherical"]
 
 
 DICT_SAMPLERS = {

@@ -9,4 +9,4 @@ def test_refit_models():
             dict_fitted_models[model_name]["explicit"],
         ):
             model_formula.fit()
-            model_explicit.fit(maxiter=10)
+            model_explicit.fit(maxiter=30, verbose=True)

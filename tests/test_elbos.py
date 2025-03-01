@@ -3,12 +3,14 @@ import pytest
 
 import torch
 
-from pyPLNmodels import Pln, load_scrna, ZIPln
+from pyPLNmodels import Pln, load_scrna, ZIPln, ZIPlnPCA, PlnMixture
 from pyPLNmodels.calculations.elbos import (
     elbo_pln,
     elbo_zipln,
     profiled_elbo_zipln,
     elbo_pln_diag,
+    weighted_elbo_pln_diag,
+    per_sample_elbo_pln_mixture_diag,
 )
 from pyPLNmodels.calculations._closed_forms import (
     _closed_formula_covariance,
@@ -84,6 +86,21 @@ def test_error_dirac_zi():
             marginal_mean_inflation=zi._marginal_mean_inflation,
             dirac=dirac,
         )
+    zipca = ZIPlnPCA(data["endog"])
+    zipca.fit()
+    dirac = ~zipca._dirac
+    with pytest.raises(RuntimeError):
+        elbo_ziplnpca(
+            endog=zipca._endog,
+            marginal_mean=zipca._marginal_mean,
+            offsets=zipca._offsets,
+            latent_mean=zipca._latent_mean,
+            latent_sqrt_variance=zipca._latent_sqrt_variance,
+            latent_prob=zipca._latent_prob,
+            components=zipca._components,
+            marginal_mean_inflation=zipca._marginal_mean_inflation,
+            dirac=dirac,
+        )
 
 
 def test_closed_formula():
@@ -97,3 +114,31 @@ def test_closed_formula():
         pln.marginal_mean, pln.latent_mean, pln.latent_sqrt_variance, pln.n_samples
     )
     assert torch.allclose(closed_diagonal, torch.diag(closed))
+
+
+def test_weighted_elbo_pln_diag():
+    data = load_scrna(n_samples=30)
+    mixt = PlnMixture(data["endog"], n_clusters=2)
+    mixt.fit()
+    elbo_full = per_sample_elbo_pln_mixture_diag(
+        endog=mixt._endog,
+        marginal_means=mixt._marginal_means,
+        offsets=mixt._offsets,
+        latent_means=mixt._latent_means,
+        latent_sqrt_variances=mixt._latent_sqrt_variances,
+        diag_precisions=1 / (mixt._covariances),
+    )
+    elbo_full = torch.sum(elbo_full * (mixt._latent_prob.T))
+    elbo_each = 0
+    for k in range(mixt.n_clusters):
+        elbo_k = weighted_elbo_pln_diag(
+            endog=mixt._endog,
+            marginal_mean=mixt._marginal_means[k],
+            offsets=mixt._offsets,
+            latent_mean=mixt._latent_means[k],
+            latent_sqrt_variance=mixt._latent_sqrt_variances[k],
+            diag_precision=1 / (mixt._covariances[k]),
+            latent_prob=mixt._latent_prob[:, k],
+        )
+        elbo_each += elbo_k
+    assert torch.allclose(elbo_each, elbo_full)

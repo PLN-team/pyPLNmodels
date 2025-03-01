@@ -223,7 +223,9 @@ class PlnAR(BaseModel):
     def _init_model_parameters(self):
         self.__coef = _init_coef(
             endog=self._endog, exog=self._exog, offsets=self._offsets
-        ).to(DEVICE)
+        )
+        if self.__coef is not None:
+            self.__coef = self.__coef.to(DEVICE)
         if self._ar_type == "diagonal":
             self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
             self._sqrt_precision = torch.ones(self.dim).to(DEVICE) / 2
