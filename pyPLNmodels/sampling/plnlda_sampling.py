@@ -28,12 +28,10 @@ class PlnLDASampler(PlnSampler):
     >>> lda = PlnLDA(endog_train,
     >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
     >>> pred_train = lda.predict_clusters(endog_train, exog = known_exog_train)
-    >>> true_cluster_train = torch.argmax(clusters_train, dim = 1)
-    >>> mean_right_pred_train = torch.mean((torch.tensor(pred_train)==true_cluster_train).float())
+    >>> mean_right_pred_train = torch.mean((torch.tensor(pred_train)==clusters_train).float())
     >>> print('Pourcentage of right predictions on train set:', mean_right_pred_train)
     >>> pred_test = lda.predict_clusters(endog_test, exog = known_exog_test)
-    >>> true_cluster_test = torch.argmax(clusters_test, dim = 1)
-    >>> mean_right_pred_test = torch.mean((torch.tensor(pred_test)==true_cluster_test).float())
+    >>> mean_right_pred_test = torch.mean((torch.tensor(pred_test)==clusters_test).float())
     >>> print('Pourcentage of right predictions on test set:', mean_right_pred_test)
 
 
@@ -71,13 +69,13 @@ class PlnLDASampler(PlnSampler):
             seed=seed,
         )
         self._params["coef_clusters"] = torch.clone(
-            self._params["coef"][: (-self.n_clusters) :]
+            self._params["coef"][(-self.n_clusters) :]
         )
         if self._exog is None:
             self._params["coef"] = None
         else:
             self._params["coef"] = torch.clone(
-                self._params["coef"][(-self.n_clusters) :]
+                self._params["coef"][: (-self.n_clusters)]
             )
 
     @property
