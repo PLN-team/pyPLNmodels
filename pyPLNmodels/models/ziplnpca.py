@@ -36,7 +36,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     >>> pca.fit()
     >>> pca.viz(colors = data["site"])
     >>> # Can also give different covariates:
-    >>> zipca_diff = ZIPln.from_formula("endog ~ 1 + site | 1 + time", data, rank = 5)
+    >>> zipca_diff = ZIPlnPCA.from_formula("endog ~ 1 + site | 1 + time", data, rank = 5)
     >>> zipca_diff.fit()
     >>> zipca_diff.viz(colors = data["site"])
     >>> ## Or take all the covariates
@@ -103,17 +103,17 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
 
         Returns
         -------
-        A `ZIPln` object
+        A `ZIPlnPCA` object
 
         See also
         --------
-        :func:`pyPLNmodels.ZIPln.from_formula`
+        :func:`pyPLNmodels.ZIPlnPCA.from_formula`
 
         Examples
         --------
-        >>> from pyPLNmodels import ZIPln, load_scrna
+        >>> from pyPLNmodels import ZIPlnPCA, load_scrna
         >>> rna = load_scrna()
-        >>> zi = ZIPln(rna["endog"], add_const = True)
+        >>> zi = ZIPlnPCA(rna["endog"], add_const = True)
         >>> zi.fit()
         >>> print(zi)
 

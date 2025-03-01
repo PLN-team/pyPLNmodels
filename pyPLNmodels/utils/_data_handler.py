@@ -248,11 +248,15 @@ def _check_full_rank_exog(
     d = mat.shape[1]
     rank = torch.linalg.matrix_rank(mat)
     if rank != d:
+        if name_mat == "(exog,clusters)":
+            formula = "exog | clusters "
+        else:
+            formula = name_mat
         msg = (
             f"Input matrix {name_mat} does not result in {name_mat}.T @{name_mat} being full rank "
             f"(rank = {rank}, expected = {d}). You may consider removing one or more variables "
             f"or set {add_const_name} to False if that is not already the case. "
-            f"You can also set 0 + {name_mat} in the formula to avoid adding an intercept."
+            f"You can also set 0 + {formula} in the formula to avoid adding an intercept."
         )
         raise ValueError(msg)
 

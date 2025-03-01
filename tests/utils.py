@@ -19,6 +19,12 @@ def _get_formula_inflation(nb_cov, add_const):
     return first_formula + second_formula
 
 
+def _get_formula_lda(nb_cov):
+    first_formula = _get_formula(nb_cov, False)
+    second_formula = "| clusters"
+    return first_formula + second_formula
+
+
 def median(t):
     """Mean squared error of a torch.Tensor."""
     return torch.median(torch.abs(t))
@@ -34,11 +40,13 @@ def _generate_combinations(input_dict):
     return result
 
 
-def _get_formula_from_kw(kwargs, is_inflated):
+def _get_formula_from_kw(kwargs, is_inflated, is_lda):
     nb_cov = kwargs.get("nb_cov")
     add_const = kwargs.get("add_const")
     if is_inflated is True:
         formula = _get_formula_inflation(nb_cov, add_const)
+    elif is_lda is True:
+        formula = _get_formula_lda(nb_cov)
     else:
         formula = _get_formula(nb_cov, add_const)
     return formula

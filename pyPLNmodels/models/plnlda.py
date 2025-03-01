@@ -38,14 +38,13 @@ class PlnLDA(Pln):
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnLDA, load_scrna, get_confusion_matrix, plot_confusion_matrix
+    >>> from pyPLNmodels import PlnLDA, load_scrna, plot_confusion_matrix
     >>> data = load_scrna()
     >>> endog_train, endog_test = data["endog"][:100],data["endog"][100:]
     >>> labels_train, labels_test = data["labels"][:100], data["labels"][100:]
     >>> lda = PlnLDA(endog_train, clusters = labels_train).fit()
     >>> pred_test = lda.predict_clusters(endog_test)
-    >>> confusion = get_confusion_matrix(pred_test, labels_test)
-    >>> plot_confusion_matrix(confusion_matrix)
+    >>> plot_confusion_matrix(pred_test, labels_test)
 
     See also
     --------
@@ -217,7 +216,7 @@ class PlnLDA(Pln):
         example="""
         >>> from pyPLNmodels import PlnLDA, load_scrna
         >>> data = load_scrna()
-        >>> lda = PlnLDA.from_formula("endog ~ 1| labels", data).fit()
+        >>> lda = PlnLDA.from_formula("endog ~ 0| labels", data).fit()
         >>> print(lda)
         """,
         returns="""
@@ -273,6 +272,19 @@ class PlnLDA(Pln):
         return _closed_formula_coef(self._exog_clusters, self._latent_mean)
 
     @property
+    def coef_clusters(self):
+        """Regression coefficients for the cluster variable."""
+        return self._coef_clusters.detach().cpu()
+
+    @property
+    def dict_model_parameters(self):
+        return {
+            "coef": self.coef,
+            "coef_clusters": self.coef_clusters,
+            "covariance": self.covariance,
+        }
+
+    @property
     def _covariance(self):
         return _closed_formula_covariance(
             self._full_marginal_mean,
@@ -286,7 +298,7 @@ class PlnLDA(Pln):
         example="""
             >>> from pyPLNmodels import PlnLDA, load_scrna
             >>> data = load_scrna()
-            >>> lda = PlnLDA.from_formula("endog ~ 1 | labels", data)
+            >>> lda = PlnLDA.from_formula("endog ~ 0 | labels", data)
             >>> lda.fit()
             >>> elbo = lda.compute_elbo()
             >>> print(elbo)
@@ -484,7 +496,7 @@ class PlnLDA(Pln):
         >>> lda = PlnLDA(endog_train,
         >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
         >>> transformed_endog_train = lda.transform()
-        >>> print(transformed_endog_train.shape)
+        >>> print('shape', transformed_endog_train.shape)
 
         See also
         --------
@@ -494,7 +506,7 @@ class PlnLDA(Pln):
         if remove_exog_effect is not False:
             raise ValueError("'remove_exog_effect' is not implemented for PlnLDA")
         clf = self._get_lda_classifier_fitted()
-        return clf.transform(self._latent_positions_clusters.cpu())
+        return clf.transform(self._latent_positions_clusters.detach().cpu())
 
     def transform_new(self, endog, *, exog=None, offsets=None):
         """

@@ -7,6 +7,7 @@ from pyPLNmodels import (
     PlnMixtureSampler,
     ZIPlnPCASampler,
     PlnARSampler,
+    PlnLDASampler,
     Pln,
     PlnPCA,
     ZIPln,
@@ -15,6 +16,7 @@ from pyPLNmodels import (
     PlnMixture,
     ZIPlnPCA,
     PlnAR,
+    PlnLDA,
 )
 
 
@@ -28,6 +30,7 @@ from tests._init_functions import (
     _ZIPlnPCA_init,
     _PlnMixture_init,
     _PlnAR_init,
+    _PlnLDA_init,
 )
 
 # NB_COVS = [0, 2]
@@ -54,6 +57,7 @@ DICT_SAMPLERS = {
     "PlnMixture": PlnMixtureSampler,
     "ZIPlnPCA": ZIPlnPCASampler,
     "PlnAR": PlnARSampler,
+    "PlnLDA": PlnLDASampler,
 }
 DICT_MODELS = {
     "Pln": Pln,
@@ -64,8 +68,10 @@ DICT_MODELS = {
     "PlnMixture": PlnMixture,
     "ZIPlnPCA": ZIPlnPCA,
     "PlnAR": PlnAR,
+    "PlnLDA": PlnLDA,
 }
 DICT_INIT_FUNCTIONS = {
+    "PlnLDA": _PlnLDA_init,
     "Pln": _Pln_init,
     "PlnPCA": _PlnPCA_init,
     "ZIPln": _ZIPln_init,
@@ -76,6 +82,7 @@ DICT_INIT_FUNCTIONS = {
     "PlnAR": _PlnAR_init,
 }
 DICT_KWARGS = {
+    "PlnLDA": {"nb_cov": NB_COVS, "add_const": [False], "n_clusters": NB_CLUSTERS},
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
     "PlnPCA": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS, "rank": RANKS},
     "ZIPln": {
@@ -115,7 +122,8 @@ def get_dict_models_unfit():
             current_sampler = DICT_SAMPLERS[model_name](**kwargs)
             endog = current_sampler.sample()
             is_inflated = "nb_cov_inflation" in kwargs
-            formula = _get_formula_from_kw(kwargs, is_inflated)
+            is_lda = model_name == "PlnLDA"
+            formula = _get_formula_from_kw(kwargs, is_inflated, is_lda)
             data = {
                 "endog": endog,
                 "exog": current_sampler.exog_no_add,
@@ -123,6 +131,9 @@ def get_dict_models_unfit():
             }
             if is_inflated is True:
                 data["exog_inflation"] = current_sampler.exog_inflation
+            if is_lda is True:
+                data["clusters"] = current_sampler.clusters
+                data["exog"] = current_sampler.known_exog
 
             kwargs_formula, kwargs_explicit = kwargs.copy(), kwargs.copy()
             for kw in [kwargs_formula, kwargs_explicit]:
@@ -138,6 +149,8 @@ def get_dict_models_unfit():
 
             if is_inflated is True:
                 kwargs_explicit["exog_inflation"] = data["exog_inflation"]
+            if is_lda is True:
+                kwargs_explicit["clusters"] = data["clusters"]
 
             formula_model = init_model_function("formula", **kwargs_formula)
             formula_model.sampler = current_sampler
@@ -171,6 +184,7 @@ def get_model(model_name, init_method, kwargs):
     sampler = DICT_SAMPLERS[model_name](**kwargs)
     endog = sampler.sample()
     is_inflated = "nb_cov_inflation" in kwargs
+    is_lda = model_name == "PlnLDA"
 
     data = {
         "endog": endog,
@@ -189,7 +203,7 @@ def get_model(model_name, init_method, kwargs):
             kwargs["exog_inflation"] = data["exog_inflation"]
         model = init_model_function("explicit", **kwargs)
     elif init_method == "formula":
-        formula = _get_formula_from_kw(kwargs, is_inflated)
+        formula = _get_formula_from_kw(kwargs, is_inflated, is_lda)
         kwargs["formula"] = formula
         kwargs["data"] = data
         model = init_model_function("formula", **kwargs)
