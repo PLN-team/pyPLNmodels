@@ -317,3 +317,9 @@ def _remove_nan(tens):
     return torch.where(
         torch.isfinite(tens), tens, torch.tensor(0.0, device=tens.device)
     )
+
+
+def _raise_error_1D_viz():
+    msg = "There is only 2 clusters, so LDA transformation is 1D"
+    msg += " and visualization is not possible."
+    raise ValueError(msg)

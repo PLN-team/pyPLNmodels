@@ -70,12 +70,14 @@ def test_other_attributes():
                 seed=3,
             )
             model.predict(exog)
-
-            print("shape", model.n_samples, model.dim)
-            model.plot_correlation_circle(
-                variables_names=["A", "B"], indices_of_variables=[2, 6]
-            )
-            model.biplot(variables_names=["A", "B"], indices_of_variables=[2, 4])
+            if model_name != "PlnLDA":
+                launch_correlation_circle(model)
+            else:
+                if model._exog_clusters.shape[1] == 2:
+                    with pytest.raises(ValueError):
+                        model.plot_correlation_circle()
+                else:
+                    launch_correlation_circle(model)
             if model.nb_cov == 0:
                 exog = _get_exog(
                     n_samples=model.n_samples, nb_cov=1, will_add_const=False, seed=3
@@ -91,3 +93,10 @@ def test_other_attributes():
                     pred = model.predict(exog)
                 with pytest.raises(AttributeError):
                     model.predict()
+
+
+def launch_correlation_circle(model):
+    model.plot_correlation_circle(
+        variables_names=["A", "B"], indices_of_variables=[2, 6]
+    )
+    model.biplot(variables_names=["A", "B"], indices_of_variables=[2, 4])
