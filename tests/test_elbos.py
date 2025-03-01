@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from pyPLNmodels import Pln, load_scrna, ZIPln
-from pyPLNmodels.utils.elbos import (
+from pyPLNmodels.calculations.elbos import (
     elbo_pln,
     elbo_zipln,
     profiled_elbo_zipln,
