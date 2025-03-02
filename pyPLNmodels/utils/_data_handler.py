@@ -15,12 +15,14 @@ else:
     DEVICE = "cpu"
 
 
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def _handle_data(
     endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     exog: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series],
     offsets: Union[torch.Tensor, np.ndarray, pd.DataFrame],
     compute_offsets_method: str,
     add_const: bool,
+    remove_zero_columns: bool = True,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[pd.Index]]:
     """
     Handle the input data for the model.
@@ -40,6 +42,9 @@ def _handle_data(
             - "logsum" that will take the logarithm of the sum (per line) of the counts.
     add_const : bool
         Indicates whether to add a constant column to the `exog`.
+    remove_zero_columns: bool
+        Whether to remove or not the columns which have only zeros.
+        Default to `True`.
 
     Returns
     -------
@@ -61,9 +66,10 @@ def _handle_data(
         endog, exog, offsets, compute_offsets_method, add_const
     )
     _check_data_shapes(endog, exog, offsets)
-    endog, offsets, column_names_endog = _remove_zero_columns(
-        endog, offsets, column_names_endog
-    )
+    if remove_zero_columns is True:
+        endog, offsets, column_names_endog = _remove_zero_columns(
+            endog, offsets, column_names_endog
+        )
 
     if exog is not None:
         exog = _remove_useless_exog(exog, column_names_exog, is_inflation=False)
@@ -371,7 +377,7 @@ def _raise_dimension_error(  # pylint: disable=too-many-arguments,too-many-posit
     """
     msg = (
         f"The size of tensor {str_first_array} at non-singleton"
-        f"dimension {dim_order_first} ({dim_first_array}) must match "
+        f" dimension {dim_order_first} ({dim_first_array}) must match "
         f"the size of tensor {str_second_array} ({dim_second_array}) at "
         f"non-singleton dimension {dim_order_second}."
     )

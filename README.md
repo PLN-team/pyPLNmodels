@@ -186,6 +186,10 @@ Feel free to contribute, but read the [CONTRIBUTING.md](https://forgemia.inra.fr
 
 Please cite our work using the following references:
 
+-  B. Batardiere, J.Kwon, J.Chiquet: *pyPLNmodels: A Python package to analyze
+   multivariate high-dimensional count data.*
+   [pdf](https://joss.theoj.org/papers/10.21105/joss.06969)
+
 -   J. Chiquet, M. Mariadassou and S. Robin: *Variational inference for
     probabilistic Poisson PCA, the Annals of Applied Statistics, 12:
         2674–2698, 2018.* [pdf](http://dx.doi.org/10.1214/18%2DAOAS1177)
@@ -196,6 +200,6 @@ Please cite our work using the following references:
 -  B. Batardiere, J.Chiquet, M.Mariadassou: *Evaluating Parameter Uncertainty in the Poisson
     Lognormal Model with Corrected Variational Estimators.* [pdf](https://arxiv.org/abs/2411.08524)
 
--  B. Batardiere, J.Kwon, J.Chiquet: *pyPLNmodels: A Python package to analyze multivariate high-dimensional count data.* [pdf](https://joss.theoj.org/papers/10.21105/joss.06969)
-
 - J. Chiquet, M. Mariadassou, S. Robin: *The Poisson-Lognormal Model as a Versatile Framework for the Joint Analysis of Species Abundances.* [pdf](https://www.frontiersin.org/journals/ecology-and-evolution/articles/10.3389/fevo.2021.588292/full)
+
+- J. Chiquet, S. Robin, M. Mariadassou: *Variational Inference for sparse network reconstruction from count data* [pdf](https://proceedings.mlr.press/v97/chiquet19a.html)

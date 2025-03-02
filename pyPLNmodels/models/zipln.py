@@ -62,7 +62,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
 
-    ModelViz = ZIModelViz
+    _ModelViz = ZIModelViz
 
     def __init__(
         self,

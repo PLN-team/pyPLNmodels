@@ -46,9 +46,9 @@ class PlnNetwork(BaseModel):
 
     penalty: float
     _components_prec: torch.Tensor
-    mask: torch.Tensor
+    _mask: torch.Tensor
 
-    ModelViz = NetworkModelViz
+    _ModelViz = NetworkModelViz
 
     @_add_doc(
         BaseModel,
@@ -87,9 +87,9 @@ class PlnNetwork(BaseModel):
             compute_offsets_method=compute_offsets_method,
             add_const=add_const,
         )
-        self.mask = torch.ones((self.dim, self.dim)).to(self._endog.device) - torch.eye(
-            self.dim, device=self._endog.device
-        )
+        self._mask = torch.ones((self.dim, self.dim)).to(
+            self._endog.device
+        ) - torch.eye(self.dim, device=self._endog.device)
 
     @classmethod
     @_add_doc(
@@ -191,7 +191,7 @@ class PlnNetwork(BaseModel):
         return elbo_no_penalty - self.penalty * self._l1_penalty(precision)
 
     def _l1_penalty(self, precision):
-        return torch.norm(precision * self.mask, p=1)
+        return torch.norm(precision * self._mask, p=1)
 
     @property
     def _precision(self):

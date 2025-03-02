@@ -36,6 +36,11 @@ Overview
    plnpca
    plnpcacollection
    plnar
+   plnlda
+   plnnetwork
+   plnmixture
+   ziplnpca
+   plndiag
 
 
 .. toctree::

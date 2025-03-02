@@ -57,7 +57,7 @@ class PlnMixture(
     _sqrt_covariances: torch.Tensor
     _per_sample_per_cluster_elbo: torch.Tensor
 
-    ModelViz = MixtureModelViz
+    _ModelViz = MixtureModelViz
 
     @_add_doc(
         BaseModel,
