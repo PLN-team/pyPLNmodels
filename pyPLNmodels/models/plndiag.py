@@ -33,7 +33,7 @@ class PlnDiag(Pln):
     >>> pln.viz(colors=data["labels"])
     """
 
-    ModelViz = DiagModelViz
+    _ModelViz = DiagModelViz
 
     @_add_doc(
         BaseModel,

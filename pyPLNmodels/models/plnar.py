@@ -58,7 +58,7 @@ class PlnAR(BaseModel):
     _sqrt_precision: torch.Tensor
     _components_prec: torch.Tensor
 
-    ModelViz = ARModelViz
+    _ModelViz = ARModelViz
 
     @_add_doc(
         BaseModel,
@@ -329,37 +329,6 @@ class PlnAR(BaseModel):
     def transform(self, remove_exog_effect: bool = False):
         return super().transform(remove_exog_effect=remove_exog_effect)
 
-    @property
-    def _endog_predictions(self):
-        raise NotImplementedError("Should be implemented.")
-        # first_mean = self.latent_mean[0]
-        # first_var = self.latent_sqrt_variance[0]**2
-        # mean_cond = torch.zeros(self.n_samples, self.dim)
-        # mean_cond[0] = first_mean
-        # var_cond = torch.zeros(self.n_samples, self.dim)
-        # var_cond[0] = first_var
-        # for i in range(1, self.n_samples):
-        #     mean_cond[i] = (
-        #         self.ar_coef * mean_cond[i - 1]
-        #         + (1 - self.ar_coef) * self.marginal_mean[i]
-        #     )
-        #     var_cond[i] = self.ar_coef**2 * var_cond[i - 1] + self.covariance * (
-        #         1 - self.ar_coef**2
-        #     )
-
-        # first_mean = self.latent_mean[0]
-        # first_var = self.latent_sqrt_variance[0]**2
-        # backward_mean = (
-        #     self.ar_coef * self.latent_mean[0:-1]
-        #     + (1 - self.ar_coef) * self.marginal_mean[1:]
-        # )
-        # backward_var = self.ar_coef**2 * self.latent_sqrt_variance[
-        #     0:-1
-        # ] + self.covariance * (1 - self.ar_coef**2).unsqueeze(0)
-        # mean_cond = torch.concat([first_mean.unsqueeze(0), backward_mean], dim=0)
-        # var_cond = torch.concat([first_var.unsqueeze(0), backward_var], dim=0)
-        # return torch.exp(self.offsets + mean_cond + var_cond / 2)
-
     @_add_doc(
         BaseModel,
         example="""
@@ -373,6 +342,12 @@ class PlnAR(BaseModel):
     )
     def plot_expected_vs_true(self, ax=None, colors=None):
         super().plot_expected_vs_true(ax=ax, colors=colors)
+
+    @property
+    def _endog_predictions(self):
+        return torch.exp(
+            self.offsets + self.latent_mean + 1 / 2 * self.latent_sqrt_variance**2
+        )
 
     @_add_doc(
         BaseModel,

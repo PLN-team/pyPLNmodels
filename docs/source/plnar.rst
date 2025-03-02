@@ -1,5 +1,5 @@
-PlnAR (AutoRegressive Pln)
-==========================
+PlnAR
+=====
 
 PlnAR Documentation
 -------------------

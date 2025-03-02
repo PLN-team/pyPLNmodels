@@ -51,7 +51,8 @@ class BaseModel(
     _coef: torch.Tensor
     _covariance: torch.Tensor
 
-    ModelViz = BaseModelViz
+    _ModelViz = BaseModelViz
+    remove_zero_columns = True
 
     def __init__(
         self,
@@ -94,6 +95,7 @@ class BaseModel(
             offsets,
             compute_offsets_method,
             add_const,
+            remove_zero_columns=self.remove_zero_columns,
         )
         if column_names_endog is not None:
             self.column_names_endog = column_names_endog
@@ -208,7 +210,7 @@ class BaseModel(
         model_viz.show(savefig=savefig, name_file=name_file)
 
     def _get_model_viz(self):
-        return self.ModelViz(self)
+        return self._ModelViz(self)
 
     @abstractmethod
     def plot_correlation_circle(

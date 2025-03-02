@@ -55,7 +55,7 @@ class PlnLDA(Pln):
     :func:`pyPLNmodels.PlnLDA.from_formula`
     """
 
-    ModelViz = LDAModelViz
+    _ModelViz = LDAModelViz
 
     @_add_doc(
         BaseModel,
@@ -556,6 +556,14 @@ class PlnLDA(Pln):
         >>> transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)
         >>> print(transformed_endog_test.shape)
 
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna(n_samples = 500)
+        >>> n_train = 250
+        >>> endog_train, endog_test = data["endog"][:n_train],data["endog"][n_train:]
+        >>> labels_train, labels_test = data["labels"][:n_train], data["labels"][n_train:]
+        >>> lda = PlnLDA(endog_train, clusters = labels_train).fit()
+        >>> endog_test_transformed = lda.transform_new(endog_test)
+
         See also
         --------
         :func:`pyPLNmodels.PlnLDA.transform`
@@ -565,8 +573,6 @@ class PlnLDA(Pln):
         _, latent_pos = self._estimate_prob_and_latent_positions(
             endog, exog=exog, offsets=offsets
         )
-        print("latent pos", latent_pos)
-        print("should be close", self._latent_positions_clusters)
         clf = self._get_lda_classifier_fitted()
         return clf.transform(latent_pos)
 
@@ -601,6 +607,15 @@ class PlnLDA(Pln):
         >>>    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()
         >>> transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)
         >>> lda.viz_transformed(transformed_endog_test)
+
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna(n_samples = 500)
+        >>> n_train = 250
+        >>> endog_train, endog_test = data["endog"][:n_train],data["endog"][n_train:]
+        >>> labels_train, labels_test = data["labels"][:n_train], data["labels"][n_train:]
+        >>> lda = PlnLDA(endog_train, clusters = labels_train).fit()
+        >>> endog_test_transformed = lda.transform_new(endog_test)
+        >>> lda.viz_transformed(endog_test_transformed)
         """
         _viz_lda_test(
             X_train=self._latent_positions_clusters.detach().cpu(),
@@ -682,6 +697,8 @@ class PlnLDA(Pln):
 class _PlnPred(Pln):
 
     per_sample_elbo: torch.Tensor
+
+    remove_zero_columns = False
 
     def __init__(
         self,
