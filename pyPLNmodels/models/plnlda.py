@@ -25,8 +25,17 @@ from pyPLNmodels.calculations.elbos import (
     profiled_elbo_pln,
     per_sample_elbo_pln,
 )
-from pyPLNmodels.utils._utils import _add_doc, _raise_error_1D_viz
-from pyPLNmodels.utils._viz import _viz_lda_train, _viz_lda_test, LDAModelViz
+from pyPLNmodels.utils._utils import (
+    _add_doc,
+    _raise_error_1D_viz,
+    _process_indices_of_variables,
+)
+from pyPLNmodels.utils._viz import (
+    _viz_lda_train,
+    _viz_lda_test,
+    LDAModelViz,
+    _biplot_lda,
+)
 
 
 class PlnLDA(Pln):
@@ -363,13 +372,12 @@ class PlnLDA(Pln):
 
     def _estimate_prob_and_latent_positions(self, endog, *, exog, offsets):
         endog = _format_data(endog)
-        n_clusters = self._exog_clusters.shape[1]
         best_guess_gaussian = torch.zeros(endog.shape).to(self._endog.device)
-        predicted_prob = torch.zeros((endog.shape[0], n_clusters)).to(
+        predicted_prob = torch.zeros((endog.shape[0], self._n_clusters)).to(
             self._endog.device
         )
         best_prob = torch.zeros(endog.shape[0]).to(self._endog.device) - torch.inf
-        for k in range(n_clusters):
+        for k in range(self._n_clusters):
             coef = self._coef.detach() if self._coef is not None else None
             pln_pred = _PlnPred(
                 endog=endog,
@@ -398,7 +406,7 @@ class PlnLDA(Pln):
 
     @property
     def _additional_attributes_list(self):
-        return [".clusters"]
+        return [".clusters", ".latent_positions_clusters"]
 
     @_add_doc(
         BaseModel,
@@ -422,7 +430,7 @@ class PlnLDA(Pln):
         ax=None,
         colors=None,
         show_cov: bool = False,
-        remove_exog_effect: bool = False,
+        remove_exog_effect: bool = True,
     ):
         """
         Visualize the endogenous data in the LDA space.
@@ -432,11 +440,12 @@ class PlnLDA(Pln):
         ax : matplotlib.axes.Axes, optional
             The axes on which to plot, by default `None`.
         colors : list, optional
-            Not implemented for PlnLDA.
+            The labels to color the samples, of size n_samples.
         show_cov : bool, optional
             Not implemented for PlnLDA.
         remove_exog_effect: bool, optional
-            Not implemented for PlnLDA.
+            Not implemented for PlnLDA. By default, True.
+            the effect of exogenous variables is removed.
 
         Examples
         --------
@@ -459,15 +468,13 @@ class PlnLDA(Pln):
         is only possible in 1D. A random noise is added on the y axis for visualization
         purposes.
         """
-        if colors is not None:
-            raise ValueError("'colors' is not implemented for PlnLDA.")
+        if colors is None:
+            colors = self._decode_clusters(self.clusters)
         if show_cov is not False:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
-        if remove_exog_effect is not False:
+        if remove_exog_effect is not True:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
-        _viz_lda_train(
-            self._latent_positions_clusters.detach().cpu(), self.clusters, ax=ax
-        )
+        _viz_lda_train(self._latent_positions_clusters.detach().cpu(), colors, ax=ax)
 
     def _get_lda_classifier_fitted(self):
         clf = LinearDiscriminantAnalysis()
@@ -476,6 +483,11 @@ class PlnLDA(Pln):
             self.clusters,
         )
         return clf
+
+    def _decode_clusters(self, clusters):
+        if self._label_encoder is None:
+            return clusters
+        return self._label_encoder.inverse_transform(clusters)
 
     @_add_doc(
         BaseModel,
@@ -618,7 +630,7 @@ class PlnLDA(Pln):
         >>> lda.viz_transformed(endog_test_transformed)
         """
         _viz_lda_test(
-            X_train=self._latent_positions_clusters.detach().cpu(),
+            transformed_train=self._latent_positions_clusters.detach().cpu(),
             y_train=self.clusters,
             new_X_transformed=transformed,
             colors=colors,
@@ -628,6 +640,24 @@ class PlnLDA(Pln):
     @property
     def _latent_positions_clusters(self):
         return self._latent_mean - self._marginal_mean
+
+    @property
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
+        >>> pln = PlnLDA.from_formula("endog ~ 1 | labels", data)
+        >>> pln.fit()
+        >>> print(pln.latent_variables.shape)
+        >>> pln.viz() # Visualize the latent variables without exogenous effects.
+        """,
+        see_also="""
+        :func:`pyPLNmodels.Pln.latent_positions`
+        """,
+    )
+    def latent_variables(self):
+        return self.latent_mean
 
     @_add_doc(
         BaseModel,
@@ -655,6 +685,9 @@ class PlnLDA(Pln):
             indices_of_variables=indices_of_variables,
             title=title,
         )
+
+    def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
+        raise NotImplementedError("pca pairplot not implemented for LDA models.")
 
     @property
     def _n_clusters(self):
@@ -686,10 +719,15 @@ class PlnLDA(Pln):
     ):
         if self._n_clusters == 2:
             _raise_error_1D_viz()
-        super().biplot(
-            variables_names=variables_names,
+        indices_of_variables = _process_indices_of_variables(
+            variables_names, indices_of_variables, self.column_names_endog
+        )
+        _biplot_lda(
+            self._latent_positions_clusters.detach().cpu(),
+            variables_names,
+            clusters=self.clusters,
+            colors=self._decode_clusters(self.clusters),
             indices_of_variables=indices_of_variables,
-            colors=colors,
             title=title,
         )
 
