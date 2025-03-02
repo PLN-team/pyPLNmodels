@@ -13,7 +13,7 @@ from matplotlib.colors import ListedColormap
 from matplotlib.patches import Circle
 import seaborn as sns
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import networkx as nx
 
@@ -80,7 +80,7 @@ def plot_correlation_arrows(axs, ccircle, variables_names):
             0,
             corr1,  # 0 for PC1
             corr2,  # 1 for PC2
-            lw=2,  # line width
+            lw=2,
             length_includes_head=True,
             head_width=0.05,
             head_length=0.05,
@@ -170,38 +170,53 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     -------
     None
     """
-    standardized_data = StandardScaler().fit_transform(data_matrix)
-    pca_transformed_data, explained_variance_ratio = _perform_pca(standardized_data, 2)
-
-    pca_projected_variables = torch.tensor(pca_transformed_data)
-    xs, ys = pca_projected_variables[:, 0], pca_projected_variables[:, 1]
-    scalex, scaley = 1.0 / (xs.max() - xs.min()), 1.0 / (ys.max() - ys.min())
-    pca_projected_variables[:, 0] *= scalex
-    pca_projected_variables[:, 1] *= scaley
-
     _, ax = plt.subplots(figsize=(10, 10))
-    _viz_variables(pca_projected_variables, ax=ax, colors=colors)
+    standardized_data = StandardScaler().fit_transform(data_matrix)
+    pca_transformed_data, _ = _perform_pca(standardized_data, 2)
+    pca_transformed_data = _normalize_2D(pca_transformed_data)
 
-    correlation_circle = calculate_correlation(
-        data_matrix[:, indices_of_variables], pca_transformed_data
+    _viz_variables(pca_transformed_data, ax=ax, colors=colors)
+    plot_correlation_circle(
+        data_matrix, variable_names, indices_of_variables, title=title, ax=ax
     )
+    plt.show()
 
-    plot_correlation_arrows(ax, correlation_circle, variable_names)
 
-    ax.add_patch(
-        Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
+def _normalize_2D(variables):
+    xs, ys = variables[:, 0], variables[:, 1]
+    scalex, scaley = 1.0 / (xs.max() - xs.min()), 1.0 / (ys.max() - ys.min())
+    variables[:, 0] *= scalex
+    variables[:, 1] *= scaley
+    return variables
+
+
+def _biplot_lda(
+    latent_variables, variable_names, *, clusters, indices_of_variables, title, colors
+):  # pylint: disable = too-many-arguments
+    _, ax = plt.subplots(figsize=(10, 10))
+    transformed_lda = _get_lda_projection(latent_variables, clusters)
+    transformed_lda = _normalize_2D(transformed_lda)
+    _viz_variables(transformed_lda, ax=ax, colors=colors)
+    data_matrix = torch.cat((latent_variables, clusters.unsqueeze(1)), dim=1)
+    plot_correlation_circle(
+        data_matrix,
+        variable_names,
+        indices_of_variables,
+        title=title,
+        ax=ax,
+        reduction="LDA",
     )
-
-    ax.set_xlabel(f"PCA 1 ({np.round(explained_variance_ratio[0] * 100, 3)}%)")
-    ax.set_ylabel(f"PCA 2 ({np.round(explained_variance_ratio[1] * 100, 3)}%)")
-    ax.set_title(f"Biplot: {title}")
-
     plt.show()
 
 
 def plot_correlation_circle(
-    data_matrix, variable_names, indices_of_variables, title=""
-):
+    data_matrix,
+    variable_names,
+    indices_of_variables,
+    title="",
+    ax=None,
+    reduction: str = "PCA",
+):  # pylint:disable=too-many-arguments, too-many-positional-arguments
     """
     Plot a correlation circle for principal component analysis (PCA).
 
@@ -209,34 +224,51 @@ def plot_correlation_circle(
     ----------
     data_matrix : np.ndarray
         Input data matrix with shape (n_samples, n_features).
+        If `reduction` is "lda", the last columns should be the target
+
     variable_names : list
         List of names for the variables corresponding to columns in data_matrix.
     indices_of_variables : list
         List of indices of the variables to be considered in the plot.
     title : str
         Additional title on the plot.
+    ax : matplotlib.axes.Axes, optional
+        The axes on which to plot, by default `None`.
+        If None, will call `plt.show()`
+    reduction :
+        Whether to use the PCA reduction or LDA reduction.
+        If "LDA", the last column of data_matrix should be the clusters.
     """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(10, 10))
+        to_show = True
+    else:
+        to_show = False
     standardized_data = StandardScaler().fit_transform(data_matrix)
-    pca_transformed_data, explained_variance_ratio = _perform_pca(standardized_data, 2)
+    if reduction == "PCA":
+        transformed_data, explained_variance_ratio = _perform_pca(standardized_data, 2)
+    else:
+        transformed_data, explained_variance_ratio = _perform_lda(
+            data_matrix[:, :-1], data_matrix[:, -1]
+        )
 
     correlation_circle = calculate_correlation(
-        data_matrix[:, indices_of_variables], pca_transformed_data
+        data_matrix[:, indices_of_variables], transformed_data
     )
 
     plt.style.use("seaborn-v0_8-whitegrid")
-    _, ax = plt.subplots(figsize=(10, 10))
     plot_correlation_arrows(ax, correlation_circle, variable_names)
 
-    unit_circle = Circle(
-        (0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5
+    ax.add_patch(
+        Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
     )
-    ax.add_patch(unit_circle)
 
     # Set labels and title
-    ax.set_xlabel(f"PCA 1 ({np.round(explained_variance_ratio[0] * 100, 3)}%)")
-    ax.set_ylabel(f"PCA 2 ({np.round(explained_variance_ratio[1] * 100, 3)}%)")
+    ax.set_xlabel(f"{reduction} 1 ({np.round(explained_variance_ratio[0] * 100, 3)}%)")
+    ax.set_ylabel(f"{reduction} 2 ({np.round(explained_variance_ratio[1] * 100, 3)}%)")
     ax.set_title(f"Correlation circle on the transformed variables {title}")
-    plt.show()
+    if to_show is True:
+        plt.show()
 
 
 class BaseModelViz:  # pylint: disable=too-many-instance-attributes
@@ -600,6 +632,14 @@ def _perform_pca(array, n_components):
     pca = PCA(n_components=n_components)
     proj_variables = pca.fit_transform(array)
     explained_variance = pca.explained_variance_ratio_
+    return proj_variables, explained_variance
+
+
+def _perform_lda(array, clusters):
+    array = StandardScaler().fit_transform(array)
+    lda = LinearDiscriminantAnalysis()
+    proj_variables = lda.fit_transform(array, clusters)
+    explained_variance = lda.explained_variance_ratio_
     return proj_variables, explained_variance
 
 
@@ -974,6 +1014,7 @@ def _plot_contour_lda(transformed_lda_train, y_train, ax):
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200), np.linspace(y_min, y_max, 200))
 
     lda_2d = LinearDiscriminantAnalysis()
+    y_train = LabelEncoder().fit_transform(y_train)
     lda_2d.fit(transformed_lda_train, y_train)
     prediction = lda_2d.predict(np.c_[xx.ravel(), yy.ravel()])
     prediction = prediction.reshape(xx.shape)
@@ -987,10 +1028,10 @@ def _get_lda_projection(X, y):
     return clf.transform(X)
 
 
-def _viz_lda_train(X_train, y_train, ax=None):
-    transformed_train = _get_lda_projection(X_train, y_train)
+def _viz_lda_train(transformed_train, y_train, ax=None):
+    transformed_train = _get_lda_projection(transformed_train, y_train)
     _viz_lda(
-        X_train=X_train,
+        transformed_train=transformed_train,
         y_train=y_train,
         X_transformed=transformed_train,
         colors=y_train,
@@ -998,14 +1039,14 @@ def _viz_lda_train(X_train, y_train, ax=None):
     )
 
 
-def _viz_lda(*, X_train, y_train, X_transformed, colors, ax):
+def _viz_lda(*, transformed_train, y_train, X_transformed, colors, ax):
     if ax is None:
         to_show = True
         ax = plt.gca()
     else:
         to_show = False
 
-    transformed_lda_train = _get_lda_projection(X_train, y_train)
+    transformed_lda_train = _get_lda_projection(transformed_train, y_train)
     if colors is not None:
         if isinstance(colors, np.ndarray):
             if len(colors.shape) > 1:
@@ -1033,9 +1074,9 @@ def _viz_lda(*, X_train, y_train, X_transformed, colors, ax):
         plt.show()
 
 
-def _viz_lda_test(*, X_train, y_train, new_X_transformed, colors, ax=None):
+def _viz_lda_test(*, transformed_train, y_train, new_X_transformed, colors, ax=None):
     _viz_lda(
-        X_train=X_train,
+        transformed_train=transformed_train,
         y_train=y_train,
         X_transformed=new_X_transformed,
         colors=colors,

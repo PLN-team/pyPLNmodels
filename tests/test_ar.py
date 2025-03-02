@@ -9,3 +9,8 @@ def test_viz_dims():
     ar.viz_dims(
         variables_names=["nco_Lacaune_F", "nco_Lacaune_M"], colors=data["chrom"]
     )
+    ar.viz_dims(
+        variables_names=["nco_Lacaune_F", "nco_Lacaune_M"],
+        colors=data["chrom"],
+        display="keep",
+    )

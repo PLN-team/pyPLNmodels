@@ -9,7 +9,7 @@ from pyPLNmodels.utils._data_handler import (
     _check_full_rank_exog,
     _check_data_shapes,
 )
-from pyPLNmodels import load_oaks, load_microcosm, Pln, PlnSampler
+from pyPLNmodels import load_oaks, load_microcosm, Pln, PlnSampler, PlnLDA, PlnMixture
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -67,6 +67,13 @@ def test_check_full_rank_exog_valid():
 def test_check_full_rank_exog_invalid():
     with pytest.raises(ValueError):
         _check_full_rank_exog(torch.tensor([[1, 1], [1, 1]]).float())
+
+    data = load_microcosm()
+    with pytest.raises(ValueError):
+        pln = PlnLDA.from_formula("endog~ 1| site ", data)
+
+    with pytest.raises(ValueError):
+        pln = PlnMixture.from_formula("endog~ 1", data, n_clusters=3)
 
 
 def test_check_data_shapes_valid():

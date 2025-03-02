@@ -69,31 +69,48 @@ def test_viz_general():
         for init_method in ["formula", "explicit"]:
             for model in dict_fitted_models[model_name][init_method]:
                 _, ax = plt.subplots()
-                model.plot_expected_vs_true(ax=ax)
-                colors = torch.randn(model.n_samples)
-                model.viz(colors=colors)
-                model.viz(colors=colors, show_cov=True)
-                model.viz(show_cov=True)
-                model.viz(show_cov=True, remove_exog_effect=True)
-                model.viz(remove_exog_effect=True)
                 model.viz()
-
-                model.biplot(variables_names=["A", "B"], indices_of_variables=[3, 4])
-                model.biplot(
-                    variables_names=["A", "B"],
-                    indices_of_variables=[3, 4],
-                    colors=colors,
-                )
-                model.biplot(
-                    variables_names=["A", "B"],
-                    indices_of_variables=[3, 4],
-                    colors=colors,
-                    title="Test",
-                )
-                model.pca_pairplot()
-                model.pca_pairplot(n_components=2)
-                model.pca_pairplot(n_components=2, colors=colors)
                 model.show()
+                model.show(savefig=True)
+                model.plot_expected_vs_true(ax=ax)
+                colors = torch.rand(model.n_samples)
+                model.plot_expected_vs_true(colors=colors)
+                if model_name != "PlnLDA":
+                    model.viz(colors=colors, show_cov=True)
+                    model.viz(show_cov=True)
+                    model.viz(show_cov=True, remove_exog_effect=True)
+                    model.viz(remove_exog_effect=True)
+                else:
+                    with pytest.raises(ValueError):
+                        model.viz(show_cov=True)
+                    with pytest.raises(ValueError):
+                        model.viz(remove_exog_effect=False)
+                model.viz(colors=colors)
+                model.viz()
+                if model_name == "PlnLDA":
+                    if model._n_clusters == 2:
+                        with pytest.raises(ValueError):
+                            model.biplot()
+                    else:
+                        model.biplot()
+                else:
+                    model.biplot(
+                        variables_names=["A", "B"], indices_of_variables=[3, 4]
+                    )
+                    model.biplot(
+                        variables_names=["A", "B"],
+                        indices_of_variables=[3, 4],
+                        colors=colors,
+                    )
+                    model.biplot(
+                        variables_names=["A", "B"],
+                        indices_of_variables=[3, 4],
+                        colors=colors,
+                        title="Test",
+                    )
+                    model.pca_pairplot()
+                    model.pca_pairplot(n_components=2)
+                    model.pca_pairplot(n_components=2, colors=colors)
                 with pytest.raises(ValueError):
                     model.plot_correlation_circle(
                         variables_names=["A", "B"], indices_of_variables=[1, 2, 3]
