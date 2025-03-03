@@ -1,4 +1,5 @@
 # pylint: skip-file
+import pytest
 from pyPLNmodels import load_crossover, PlnAR
 
 
@@ -12,3 +13,12 @@ def test_viz_dims():
         colors=data["chrom"],
         display="keep",
     )
+    print(ar)
+    with pytest.raises(ValueError):
+        ar.viz_dims(
+            variable_names=["nco_Lacaune_F", "nco_Lacaune_M"],
+            colors=data["chrom"],
+            display="wrong display",
+        )
+    with pytest.raises(AttributeError):
+        PlnAR(data["endog"], ar_type="wrong_ar")

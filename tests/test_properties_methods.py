@@ -48,6 +48,7 @@ def test_attributes_method():
                 attribute_value = getattr(model, attribute)
             for method in methods:  # pylint: disable=protected-access
                 method_test(model, method, model_name)
+            print(model)
         for model in dict_fitted_models[model_name]["explicit"]:
             attributes = (
                 model._useful_attributes_list + model._additional_attributes_list
@@ -59,12 +60,27 @@ def test_attributes_method():
                 attribute_value = getattr(model, attribute)
             for method in methods:  # pylint: disable=protected-access
                 method_test(model, method, model_name)
+            print(model)
 
 
-def test_nb_cov_0_precision():
+def test_properties_pln():
     pln = get_fitted_model("Pln", "formula", {"nb_cov": 0, "add_const": False})
     assert pln.precision.shape == (pln.dim, pln.dim)
     assert pln.nb_cov == 0
+    assert pln.latent_variance.shape == pln.latent_sqrt_variance.shape
+    _proj_variables, covariances = (
+        pln._pca_projected_latent_variables_with_covariances()
+    )
+    assert _proj_variables.shape == (pln.n_samples, 2)
+    assert covariances.shape == (pln.n_samples, 2, 2)
+    assert pln.projected_latent_variables(remove_exog_effect=True).shape == (
+        pln.n_samples,
+        2,
+    )
+    assert pln.get_variance_coef() is None
+    pln = get_fitted_model("Pln", "formula", {"nb_cov": 60, "add_const": False})
+    with pytest.raises(ValueError):
+        pln.get_variance_coef()
 
 
 def test_other_attributes():
@@ -113,3 +129,9 @@ def launch_correlation_circle(model):
         variable_names=["A", "B"], indices_of_variables=[2, 6]
     )
     model.biplot(variable_names=["A", "B"], indices_of_variables=[2, 4])
+
+
+def test_pln_diag():
+    pln = get_fitted_model("PlnDiag", "formula", {"nb_cov": 1, "add_const": False})
+    assert pln.precision.shape == pln.covariance.shape
+    print(pln)
