@@ -46,19 +46,16 @@ def _get_example_readme(lines):
     example = []
     in_example = False
     for readme_line in lines:
-        readme_line = readme_line.lstrip()
-        if len(readme_line) > 2:
-            if readme_line[0:3] == "```":
-                if in_example is False:
-                    if "not run" in readme_line:
-                        in_example = False
-                    else:
-                        in_example = True
-                else:
-                    in_example = False
-            elif in_example is True:
-                example.append(readme_line)
-    example.pop()
+        if readme_line.lstrip().startswith("```"):
+            if in_example:
+                in_example = False
+            else:
+                if "not run" not in readme_line:
+                    in_example = True
+        elif in_example:
+            example.append(readme_line)
+    if example and example[-1].strip() == "```":
+        example.pop()
     return [example]
 
 

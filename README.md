@@ -50,11 +50,8 @@ It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 
-[PLN](#pln)
-
-<a id="pln"></a>
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
-\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
+\mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), (\text{PLN-equation})$$
 
 where $\mathbf x_i \in \mathbb R^d$ (`exog`) and $\mathbf o_i \in \mathbb R^p$ (`offsets`) are
 user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
@@ -63,8 +60,8 @@ covariance matrix. The goal is to estimate the parameters $\mathbf B$ and
 $\mathbf \Sigma$, denoted as ```coef``` and ```covariance``` in the package,
 respectively.
 
-The PLN model described in the [equation](#pln) is the building block of many
-different statistical tasks adequate for count data.  The package implements:
+The PLN model described in the PLN-equation is the building block of many
+different statistical tasks adequate for count data, by modifying the $Z_i$ latent variables.  The package implements:
 
 - Covariance analysis (`Pln`)
 - Dimension reduction (`PlnPCA` and `PlnPCAcollection`)
@@ -76,83 +73,118 @@ different statistical tasks adequate for count data.  The package implements:
 - Zero-inflation and dimension reduction (`ZIPlnPCA`)
 - Variance estimation (`PlnDiag`)
 
-
 A normalization procedure adequate to count data can be applied
 by extracting the ```latent_variables``` $\mathbf Z_i$ once the parameters are learned.
 
 
-
-
-
-
 ## ⚡️ Quickstart
 
-The package comes with an ecological data set to present the functionality:
+The package comes with a single-cell RNA sequencing dataset to present the functionalities:
 ```
-from pyPLNmodels import PlnPCAcollection, Pln, ZIPln, load_oaks
-oaks = load_oaks()
+from pyPLNmodels import load_scrna
+data = load_scrna()
 ```
+
+This dataset contains the number of occurrences of each gene in each cell in
+`data["endog"]`. Each cell is labelled by its cell-type in  `data["labels"]`.
+
+
+
 
 ### How to specify a model
 Each model can be specified in two distinct manners:
 
 * by formula (similar to R), where a data frame is passed and the formula is specified using the  ```from_formula``` initialization:
 
-```model = Model.from_formula("endog ~ 1  + covariate_name ", data = oaks)# not run```
+```
+import numpy as np
+from pyPLNmodels import Pln
+pln = Pln.from_formula("endog ~ 1  + labels ", data = data)
+```
 
 We rely to the [patsy](https://github.com/pydata/patsy) package for the formula parsing.
 
 * by specifying the `endog`, `exog`, and `offsets` matrices directly:
 
-```model = Model(endog = oaks["endog"], exog = oaks[["covariate_name"]], offsets = oaks[["offset_name"]])# not run```
+```
+endog = data["endog"]
+exog = data["labels"]
+offsets = np.zeros((endog.shape))
+pln = Pln(endog = endog, exog = exog, offsets = offsets )
+```
 
 The parameters `exog` and `offsets` are optional. By default,
 `exog` is set to represent an intercept, which is a vector of ones. Similarly,
-`offsets` defaults to a matrix of zeros.
+`offsets` defaults to a matrix of zeros. The `offsets` should be on the scale of the log of the counts.
 
-### Unpenalized Poisson lognormal model (aka `Pln`)
+### Motivation
+
+The count data is often very noisy, and inferring the latent variables $Z_i$
+may reduce noise and increase signal. Suppose we try to infer the cell type of
+each cell, using Linear Discriminant Analysis (LDA):
+
+```
+from sklearn.model_selection import train_test_split
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+
+def get_classif_error(data, y):
+    data_train, data_test, y_train, y_test = train_test_split(data, y, test_size=0.33, random_state=42)
+    lda = LDA()
+    lda.fit(data_train, y_train)
+    y_pred = lda.predict(data_test)
+    return np.mean(y_pred != y_test)
+```
+Here is the classification error of the raw counts:
+
+```
+data = load_scrna(n_samples = 1000)
+get_classif_error(data["endog"], data["labels"])
+```
+Output:
+<0.31>
+And here is the classification error of the latent variables $Z_i$:
+```
+get_classif_error(Pln(data["endog"]).fit().latent_variables, data["labels"])
+```
+Output:
+<0.17>
+
+
+### Covariance analysis with the Poisson lognormal model (aka `Pln`)
 
 This is the building-block of the models implemented in this package. It fits a Poisson lognormal model to the data:
+
 ```
-pln = Pln.from_formula("endog ~ 1  + tree ", data = oaks)
+pln = Pln.from_formula("endog ~ 1  + labels ", data = data)
 pln.fit()
 print(pln)
 transformed_data = pln.transform()
 pln.show()
 ```
 
-### Rank Constrained Poisson lognormal for Poisson Principal Component Analysis (aka `PlnPCA` and `PlnPCAcollection`)
+### Dimension reduction with the PLN Principal Component Analysis (aka `PlnPCA` and `PlnPCAcollection`)
 
 This model excels in dimension reduction and is capable of scaling to
-high-dimensional count data ($p >> 1$). It represents a variant of the PLN
-model, incorporating a rank constraint on the covariance matrix. This can be
-interpreted as an extension of the [probabilistic
-PCA](https://academic.oup.com/jrsssb/article/61/3/611/7083217) for
-count data, where the rank determines the number of components in the
-probabilistic PCA. Users have the flexibility to define the rank of the
-covariance matrix via the `rank` keyword of the `PlnPCA` object. Furthermore, they can specify multiple ranks simultaneously
-within a single object (`PlnPCAcollection`), and then select the optimal model based on either the
-AIC (default) or BIC criterion:
+high-dimensional count data ($p >> 1$), by constrained the covariance matrix $\Sigma$ to be of low rank. The user may specify the rank when creating the `PlnPCA` object:
+
 ```
-pca_col =  PlnPCAcollection.from_formula("endog ~ 1  + tree ", data = oaks, ranks = [3,4,5])
+from pyPLNmodels import PlnPCA
+pca =  PlnPCA.from_formula("endog ~ 1  + labels ", data = data, rank = 3).fit()
+```
+
+Multiple ranks can be simultaneously tested
+within a single object (`PlnPCAcollection`), and select the optimal model.
+```
+from pyPLNmodels import PlnPCAcollection
+pca_col =  PlnPCAcollection.from_formula("endog ~ 1  + labels ", data = data, ranks = [3,4,5])
 pca_col.fit()
 print(pca_col)
 pca_col.show()
 best_pca = pca_col.best_model()
-best_pca.show()
-transformed_data = best_pca.transform(project = True)
-print('Original data shape: ', oaks["endog"].shape)
-print('Transformed data shape: ', transformed_data.shape)
+print(best_pca)
 ```
 
-A correlation circle may be employed to graphically represent the relationship
-between the variables and the components:
-```
-best_pca.plot_correlation_circle(["var_1","var_2"], indices_of_variables = [0,1])
-```
-
-
-### Zero inflated Poisson Log normal Model (aka `ZIPln`)
+### Zero inflation with the Zero-Inflated PLN Model (aka `ZIPln` and `ZIPlnPCA`)
 
 The `ZiPln` model, a variant of the PLN model, is designed to handle zero
 inflation in the data. It is defined as follows:
@@ -161,11 +193,13 @@ $$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf Z_i \sim \ma
 
 This model is particularly beneficial when the data contains a significant
 number of zeros. It incorporates additional covariates for the zero inflation
-coefficient, which are specified following the pipe `|` symbol in the formula or via the `exog_inflation` keyword. If not specified, it is set to the covariates for the Poisson part.
+coefficient, which are specified following the pipe `|` symbol in the formula
+or via the `exog_inflation` keyword. If not specified, it is set to the
+covariates for the Poisson part.
 
 ```
-zi =  ZIPln.from_formula("endog ~ 1  + tree | 1 + tree", data = oaks)
-zi.fit()
+from pyPLNmodels import ZIPln
+zi =  ZIPln.from_formula("endog ~ 1 | 1 + labels", data = data).fit()
 print(zi)
 print("Transformed data shape: ", zi.transform().shape)
 z_latent_variables = zi.transform()
@@ -174,30 +208,77 @@ print(r'$Z$ latent variables shape', z_latent_variables.shape)
 print(r'$W$ latent variables shape', w_latent_variables.shape)
 ```
 
-By default, the transformation of the data returns only the $\mathbf Z$ latent
-variable. However, if the `return_latent_prob`
-parameter is set to `True`, the transformed data will include both the latent
-variables $\mathbf W$ and $\mathbf Z$. Here, $\mathbf W$ accounts for the zero
-inflation, while $\mathbf Z$ accounts for the Poisson parameter.
+Similar to the `PlnPCA` model, the `ZIPlnPCA` model is capable of dimension reduction.
+
+### Network inference with the `PlnNetwork` model
+
+The `PlnNetwork` model is designed to infer the network structure of the data.
+It creates a network where the nodes are the count variables and the edges
+represent the correlation between them. The sparsity of the network is ensured
+via the `penalty` keyword. The larger the penalty, the sparser the network.
+
+```
+from pyPLNmodels import PlnNetwork
+net = PlnNetwork.from_formula("endog ~ 1  + labels ", data = data, penalty = 0.1).fit()
+net.viz_network()
+```
+
+### Supervised clustering with the `PlnLDA` model
+
+One can do supervised clustering using Linear Discriminant Analysis
+designed for count data.
+
+```
+from pyPLNmodels import PlnLDA, plot_confusion_matrix
+endog_train, endog_test = data["endog"][:500],data["endog"][500:]
+labels_train, labels_test = data["labels"][:500], data["labels"][500:]
+lda = PlnLDA(endog_train, clusters = labels_train).fit()
+pred_test = lda.predict_clusters(endog_test)
+plot_confusion_matrix(pred_test, labels_test)
+```
+
+### Unsupervised clustering with the `PlnMixture` model
+
+```
+from pyPLNmodels import PlnMixture
+mixture = PlnMixture.from_formula("endog ~ 0 ", data = data, n_clusters = 3).fit()
+mixture.show()
+clusters = mixture.clusters
+plot_confusion_matrix(clusters, data["labels"])
+```
+
+### Autoregressive models with the `PlnAR` model
+
+The `PlnAR` model is designed to handle time series data. It is a simple (one step) autoregressive model that can be used to predict the next time point.
+(This assumes the endog variable is a time series, which is not the case in the example below)
+
+```
+from pyPLNmodels import PlnAR
+ar = PlnAR.from_formula("endog ~ 1  + labels ", data = data).fit()
+ar.show()
+```
+
 
 ### Visualization
 
 The package is equipped with a set of visualization functions designed to help
-the user interpret the data. The `viz` function conducts Principal Component
-Analysis (PCA) on the latent variables. The `remove_exog_effect` keyword
+the user interpret the data. The `viz` function conducts PCA
+on the latent variables. The `remove_exog_effect` keyword
 removes the covariates effect specified in the model when set to `True`.
-Additionally, the `viz_prob` function provides a visual representation of the
-zero-inflation probability but is not often meaningful.
+
+Much more functionalities, depending on the model, are available. One can see the full list of available functions in the documentation and by printing the model:
 
 ```
-best_pca.viz(colors = oaks["tree"])
-best_pca.viz(colors = oaks["dist2ground"], remove_exog_effect = True)
-pln.viz(colors = oaks["tree"])
-pln.viz(colors = oaks["tree"], remove_exog_effect = True)
-zi.viz(colors = oaks["tree"])
-zi.viz(colors = oaks["tree"], remove_exog_effect = True)
-zi.viz_prob(colors = oaks["tree"])
+print(pln)
+print(pca)
+print(pca_col)
+print(zi)
+print(net)
+print(lda)
+print(mixture)
+print(ar)
 ```
+
 
 ## 👐 Contributing
 

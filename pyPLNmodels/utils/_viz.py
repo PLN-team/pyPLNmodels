@@ -928,19 +928,42 @@ def plot_confusion_matrix(
         ax = plt.gca()
     else:
         to_show = False
-    sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
+    # sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
+
+    if pred_encoder is not None:
+        pred_labels = pred_encoder.classes_
+        # ax.set_xticklabels(pred_labels, rotation=45, ha="right")
+    else:
+        pred_labels = np.arange(confusion_mat.shape[0])
+
+    if true_encoder is not None:
+        true_labels = true_encoder.classes_
+        # ax.set_yticklabels(true_labels, rotation=0)
+    else:
+        true_labels = np.arange(confusion_mat.shape[0])
+    _show_mat(confusion_mat, pred_labels, true_labels, ax)
+
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
-    if pred_encoder is not None:
-        pred_labels = pred_encoder.classes_
-        ax.set_xticklabels(pred_labels, rotation=45, ha="right")
-    if true_encoder is not None:
-        true_labels = true_encoder.classes_
-        ax.set_yticklabels(true_labels, rotation=0)
 
     if to_show is True:
         plt.show()
+
+
+def _show_mat(mat, xlabels, ylabels, ax):
+    _ = ax.imshow(mat)
+    ax.set_xticks(
+        range(len(xlabels)),
+        labels=xlabels,
+        rotation=45,
+        ha="right",
+        rotation_mode="anchor",
+    )
+    ax.set_yticks(range(len(ylabels)), labels=ylabels)
+    for i in range(len(xlabels)):
+        for j in range(len(ylabels)):
+            _ = ax.text(j, i, mat[i, j], ha="center", va="center", color="w")
 
 
 def _plot_lda_2d_projection(
