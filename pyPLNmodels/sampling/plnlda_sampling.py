@@ -81,7 +81,7 @@ class PlnLDASampler(PlnSampler):
     @property
     def _marginal_mean(self):
         _marginal_mean_clusters = self._exog_clusters @ self._params["coef_clusters"]
-        if self._exog is None:
+        if self._known_exog is None:
             return _marginal_mean_clusters
         return _marginal_mean_clusters + self._known_exog @ self._params["coef"]
 
@@ -120,6 +120,8 @@ class PlnLDASampler(PlnSampler):
 
     @property
     def _known_exog(self):
+        if self._exog.shape[1] == self.n_clusters:
+            return None
         return self._exog[:, : -(self.n_clusters)]
 
     @property
@@ -128,7 +130,7 @@ class PlnLDASampler(PlnSampler):
         The exogenous varaibles that are always known in the model.
         """
         exog_device = self._known_exog
-        if len(exog_device.shape) == 0:
+        if exog_device is None:
             return None
         return self._known_exog.cpu()
 

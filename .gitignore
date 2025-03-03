@@ -11,3 +11,4 @@ tests/TestPln.pdf
 tests/TestZIPln.pdf
 tests/ZIPln.pdf
 tests/.coverage
+*.pdf
