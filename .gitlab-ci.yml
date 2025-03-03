@@ -37,7 +37,7 @@ tests:
     - cd tests
     - python _create_readme_getting_started_and_docstrings_tests.py
     - rm test_getting_started.py # remove as it has been modified and placed in a directory.
-    - rm docstring_examples/models/*.py
+    - rm docstrings_examples/models/*.py
     - pytest .
   only:
     - main
