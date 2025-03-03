@@ -72,10 +72,9 @@ def _write_file(examples, filename, string_definer, directory):
             os.remove(example_filename)
         except FileNotFoundError:
             pass
-        if "mixture" in example_filename:
-            with open(example_filename, "a", encoding="utf-8") as the_file:
-                for example_line in example:
-                    the_file.write(example_line + "\n")
+        with open(example_filename, "a", encoding="utf-8") as the_file:
+            for example_line in example:
+                the_file.write(example_line + "\n")
 
 
 def _filename_to_readme_example_file():
