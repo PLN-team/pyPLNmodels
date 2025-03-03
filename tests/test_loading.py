@@ -1,5 +1,11 @@
 # pylint: skip-file
-from pyPLNmodels import load_scrna, load_microcosm, load_oaks, load_crossover
+from pyPLNmodels import (
+    load_scrna,
+    load_microcosm,
+    load_oaks,
+    load_crossover,
+    load_crossover_per_chromosom,
+)
 
 
 def test_right_shape():
@@ -19,3 +25,8 @@ def test_right_shape():
     oaks = load_oaks()
     assert oaks["endog"].shape == (116, 114)
     crossover_1_chrom = load_crossover(chromosome_numbers=1)
+
+    per_species = load_crossover_per_chromosom()
+    assert per_species["endog"].shape == (276, 104)
+
+    per_species = load_crossover_per_chromosom(n_samples=300, dim=500)
