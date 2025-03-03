@@ -923,11 +923,7 @@ def plot_confusion_matrix(
     confusion_mat, pred_encoder, true_encoder = get_confusion_matrix(
         pred_clusters, true_clusters
     )
-    if np.any(confusion_mat <= 0):
-        print("confusion_matrix", confusion_mat)
-        raise ValueError(
-            "Confusion matrix contains zero or negative values, which are not valid for plotting."
-        )
+    print("confusion mat", confusion_mat)
     if ax is None:
         to_show = True
         ax = plt.gca()
