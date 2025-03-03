@@ -403,7 +403,7 @@ class PlnLDA(Pln):
 
     @property
     def _additional_methods_list(self):
-        return [".predict_clusters()", ".transform_new", ".viz_transformed"]
+        return [".predict_clusters()", ".transform_new()", ".viz_transformed()"]
 
     @property
     def _additional_attributes_list(self):
@@ -475,12 +475,12 @@ class PlnLDA(Pln):
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
         if remove_exog_effect is not True:
             raise ValueError("'show_cov' is not implemented for PlnLDA.")
-        _viz_lda_train(self._latent_positions_clusters.detach().cpu(), colors, ax=ax)
+        _viz_lda_train(self.latent_positions_clusters, colors, ax=ax)
 
     def _get_lda_classifier_fitted(self):
         clf = LinearDiscriminantAnalysis()
         clf.fit(
-            self._latent_positions_clusters.cpu().detach(),
+            self.latent_positions_clusters,
             self.clusters,
         )
         return clf
@@ -540,7 +540,7 @@ class PlnLDA(Pln):
         if remove_exog_effect is not False:
             raise ValueError("'remove_exog_effect' is not implemented for PlnLDA")
         clf = self._get_lda_classifier_fitted()
-        return clf.transform(self._latent_positions_clusters.detach().cpu())
+        return clf.transform(self.latent_positions_clusters)
 
     def transform_new(self, endog, *, exog=None, offsets=None):
         """
@@ -631,7 +631,7 @@ class PlnLDA(Pln):
         >>> lda.viz_transformed(endog_test_transformed)
         """
         _viz_lda_test(
-            transformed_train=self._latent_positions_clusters.detach().cpu(),
+            transformed_train=self.latent_positions_clusters,
             y_train=self.clusters,
             new_X_transformed=transformed,
             colors=colors,
@@ -641,6 +641,14 @@ class PlnLDA(Pln):
     @property
     def _latent_positions_clusters(self):
         return self._latent_mean - self._marginal_mean
+
+    @property
+    def latent_positions_clusters(self):
+        """
+        The latent positions with effects coming only from the clusters
+        covariates (effects of 'known' covariates remove).
+        """
+        return self._latent_positions_clusters.detach().cpu()
 
     @property
     @_add_doc(
@@ -693,7 +701,7 @@ class PlnLDA(Pln):
         )
         data_matrix = torch.cat(
             (
-                self._latent_positions_clusters.detach().cpu(),
+                self.latent_positions_clusters,
                 self.clusters.unsqueeze(1),
             ),
             dim=1,
@@ -736,7 +744,7 @@ class PlnLDA(Pln):
             variable_names, indices_of_variables, self.column_names_endog
         )
         _biplot_lda(
-            self._latent_positions_clusters.detach().cpu(),
+            self.latent_positions_clusters,
             variable_names,
             clusters=self.clusters,
             colors=self._decode_clusters(self.clusters),

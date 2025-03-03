@@ -6,53 +6,58 @@ from .conftest import dict_fitted_models
 from tests.generate_models import get_fitted_model
 
 
+def get_methods_model(model):
+    methods = [
+        method
+        for method in (model._useful_methods_list + model._additional_methods_list)
+        if method
+        not in [
+            ".predict()",
+            ".plot_correlation_circle()",
+            ".biplot()",
+            ".predict_prob_inflation()",
+            ".predict_clusters()",
+            ".transform_new()",
+            ".viz_transformed()",
+        ]
+    ]
+    return methods
+
+
+def method_test(model, method, model_name):
+    if method == ".pca_pairplot()" and model_name == "PlnLDA":
+        with pytest.raises(NotImplementedError):
+            model.pca_pairplot()
+    else:
+        method = method[1:-2]
+        assert hasattr(model, method)
+        method_to_call = getattr(model, method)
+        if callable(method_to_call):
+            result = method_to_call()
+
+
 def test_attributes_method():
     for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["formula"]:
             attributes = model._useful_attributes_list
+            methods = get_methods_model(model)
             for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)
                 attribute_value = getattr(model, attribute)
-            methods = [
-                method
-                for method in model._useful_methods_list
-                + model._additional_methods_list
-                if method
-                not in [
-                    ".predict()",
-                    ".plot_correlation_circle()",
-                    ".biplot()",
-                    ".predict_prob_inflation()",
-                    ".predict_clusters()",
-                ]
-            ]
             for method in methods:  # pylint: disable=protected-access
-                method = method[1:-2]
-                assert hasattr(model, method)
-                method_to_call = getattr(model, method)
-                if callable(method_to_call):
-                    result = method_to_call()
+                method_test(model, method, model_name)
         for model in dict_fitted_models[model_name]["explicit"]:
             attributes = (
                 model._useful_attributes_list + model._additional_attributes_list
             )
+            methods = get_methods_model(model)
             for attribute in attributes:  # pylint: disable=protected-access
                 attribute = attribute[1:]
                 assert hasattr(model, attribute)
                 attribute_value = getattr(model, attribute)
-            methods = [
-                method
-                for method in model._useful_methods_list
-                if method
-                not in [".predict()", ".plot_correlation_circle()", ".biplot()"]
-            ]
             for method in methods:  # pylint: disable=protected-access
-                method = method[1:-2]
-                assert hasattr(model, method)
-                method_to_call = getattr(model, method)
-                if callable(method_to_call):
-                    result = method_to_call()
+                method_test(model, method, model_name)
 
 
 def test_nb_cov_0_precision():

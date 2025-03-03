@@ -467,7 +467,7 @@ class PlnAR(BaseModel):
 
     @property
     def _additional_methods_list(self):
-        return ["._viz_dims()"]
+        return [".viz_dims()"]
 
     @property
     def _additional_attributes_list(self):

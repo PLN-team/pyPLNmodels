@@ -7,6 +7,7 @@ from pyPLNmodels import Pln, load_scrna, ZIPln, ZIPlnPCA, PlnMixture
 from pyPLNmodels.calculations.elbos import (
     elbo_pln,
     elbo_zipln,
+    elbo_ziplnpca,
     profiled_elbo_zipln,
     elbo_pln_diag,
     weighted_elbo_pln_diag,

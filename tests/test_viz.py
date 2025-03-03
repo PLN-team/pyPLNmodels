@@ -151,7 +151,7 @@ def test_plot_correlation_circle_pandas():
     pca = PlnPCA(rna["endog"])
     pca.fit()
     pca.show()
-    pca.plot_correlation_circle(variable_names=["RPL14", "ACTB"])
+    pca.plot_correlation_circle(variable_names=["RPL41", "ACTB"])
 
 
 def test_viz_network():
