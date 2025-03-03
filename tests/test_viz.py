@@ -73,7 +73,7 @@ def test_viz_general():
                 model.show()
                 model.show(savefig=True)
                 model.plot_expected_vs_true(ax=ax)
-                colors = torch.rand(model.n_samples)
+                colors = np.random.randint(2, size=model.n_samples)
                 model.plot_expected_vs_true(colors=colors)
                 if model_name != "PlnLDA":
                     model.viz(colors=colors, show_cov=True)
