@@ -142,7 +142,9 @@ def _format_model_params(
         None, "logsum" or "zero".
     """
     endog = _format_data(endog)
-    if torch.min(endog) < 0:
+    if endog.shape[0] == 0:
+        raise ValueError("`endog` is empty.")
+    if torch.sum(endog < 0) > 0:
         raise ValueError("Counts should be only non-negative values.")
 
     exog = _format_data(exog)

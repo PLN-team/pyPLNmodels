@@ -119,6 +119,11 @@ class PlnLDASampler(PlnSampler):
         return torch.cat((coef_known, coef_clusters), dim=0)
 
     @property
+    def coef_clusters(self):
+        """Regresson coefficients associated to the clusters."""
+        return self._params["coef_clusters"].cpu()
+
+    @property
     def _known_exog(self):
         if self._exog.shape[1] == self.n_clusters:
             return None

@@ -67,6 +67,8 @@ class PlnLDA(Pln):
 
     _ModelViz = LDAModelViz
 
+    remove_zero_columns = False
+
     @_add_doc(
         BaseModel,
         example="""
@@ -248,7 +250,7 @@ class PlnLDA(Pln):
         """
         Marginal mean that takes both the exog and known clusters as covariates
         """
-        return self._marginal_mean_clusters + self._marginal_mean
+        return self._exog_and_clusters @ self._coef_and_coef_clusters
 
     @property
     def clusters(self):
@@ -268,6 +270,15 @@ class PlnLDA(Pln):
         that is, the mean of each cluster.
         """
         return self._marginal_mean_clusters.cpu().detach()
+
+    @property
+    def _covariance(self):
+        return _closed_formula_covariance(
+            self._full_marginal_mean,
+            self._latent_mean,
+            self._latent_sqrt_variance,
+            self.n_samples,
+        )
 
     @property
     def _coef_and_coef_clusters(self):
@@ -293,15 +304,6 @@ class PlnLDA(Pln):
             "coef_clusters": self.coef_clusters,
             "covariance": self.covariance,
         }
-
-    @property
-    def _covariance(self):
-        return _closed_formula_covariance(
-            self._full_marginal_mean,
-            self._latent_mean,
-            self._latent_sqrt_variance,
-            self.n_samples,
-        )
 
     @_add_doc(
         BaseModel,
@@ -357,9 +359,9 @@ class PlnLDA(Pln):
         >>> endog_test = endog[n_train:]
         >>> clusters_train = clusters[:n_train]
         >>> clusters_test = clusters[n_train:]
-        >>> pln = PlnLDA(endog_train, clusters = clusters_train)
-        >>> pln.fit()
-        >>> pred = pln.predict_clusters(endog_test)
+        >>> lda = PlnLDA(endog_train, clusters = clusters_train)
+        >>> lda.fit()
+        >>> pred = lda.predict_clusters(endog_test)
         >>> print('pred', pred)
         >>> print('true', clusters_test)
         """
@@ -378,8 +380,8 @@ class PlnLDA(Pln):
             self._endog.device
         )
         best_prob = torch.zeros(endog.shape[0]).to(self._endog.device) - torch.inf
+        coef = self._coef.detach() if self._coef is not None else None
         for k in range(self._n_clusters):
-            coef = self._coef.detach() if self._coef is not None else None
             pln_pred = _PlnPred(
                 endog=endog,
                 exog=exog,
