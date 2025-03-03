@@ -141,10 +141,10 @@ def _viz_variables(
     if covariances is not None:
         for i in range(covariances.shape[0]):
             _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
-    if to_show is True:
-        plt.show()
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
+    if to_show is True:
+        plt.show()
     return ax
 
 
@@ -923,30 +923,41 @@ def plot_confusion_matrix(
     confusion_mat, pred_encoder, true_encoder = get_confusion_matrix(
         pred_clusters, true_clusters
     )
-    print("confusion mat", confusion_mat)
     if ax is None:
         to_show = True
         ax = plt.gca()
     else:
         to_show = False
-    print("pred_clusters", pred_clusters)
-    print("true_clusters", true_clusters)
+    try:
+        sns.heatmap(confusion_mat)
+    except:
+        print("first")
+    try:
+        sns.heatmap(confusion_mat, annot=True)
+    except:
+        print("second")
+    try:
+        sns.heatmap(confusion_mat, annot=True, fmt="d")
+    except:
+        print("third")
+    try:
+        sns.heatmap(confusion_mat, annot=True, fmt="d", cmp="Blues")
+    except:
+        print("fourth")
+    try:
+        sns.heatmap(confusion_mat, annot=True, fmt="d", cmp="Blues", ax=ax)
+    except:
+        print("fifth")
     sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
     if pred_encoder is not None:
         pred_labels = pred_encoder.classes_
-        print("pred_labels", pred_labels)
         ax.set_xticklabels(pred_labels, rotation=45, ha="right")
-    else:
-        print("pred labels no encoder", pred_labels)
     if true_encoder is not None:
         true_labels = true_encoder.classes_
-        print("true_labels", true_labels)
         ax.set_yticklabels(true_labels, rotation=0)
-    else:
-        print("true labels no enncoder", true_labels)
 
     if to_show is True:
         plt.show()
