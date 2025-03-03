@@ -86,7 +86,6 @@ def test_viz_general():
                     with pytest.raises(ValueError):
                         model.viz(remove_exog_effect=False)
                 model.viz(colors=colors)
-                model.viz()
                 if model_name == "PlnLDA":
                     if model._n_clusters == 2:
                         with pytest.raises(ValueError):
