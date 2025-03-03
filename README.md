@@ -126,7 +126,7 @@ get_classif_error(data["endog"], data["labels"])
 ```
 Output:
 ```
-<0.31>
+0.31
 ```
 
 And here is the classification error of the latent variables $Z_i$:
@@ -135,7 +135,7 @@ get_classif_error(Pln(data["endog"]).fit().latent_variables, data["labels"])
 ```
 Output:
 ```
-<0.17>
+0.17
 ```
 
 ### Covariance analysis with the Poisson lognormal model (aka `Pln`)
