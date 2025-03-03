@@ -928,7 +928,7 @@ def plot_confusion_matrix(
         ax = plt.gca()
     else:
         to_show = False
-    print('nowwww')
+    print("nowwww")
     try:
         sns.heatmap(confusion_mat)
     except:
@@ -942,16 +942,16 @@ def plot_confusion_matrix(
     except:
         print("third")
     try:
-        sns.heatmap(confusion_mat, annot=True, fmt="d", cmp="Blues")
+        sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues")
     except:
         print("fourth")
     try:
-        sns.heatmap(confusion_mat, annot=True, fmt="d", cmp="Blues", ax=ax)
+        sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
     except:
         print("fifth")
-    print('heeere')
+    print("heeere")
     sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
-    print('theeeere')
+    print("theeeere")
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
