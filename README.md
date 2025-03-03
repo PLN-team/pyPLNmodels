@@ -50,6 +50,9 @@ It is assumed that each individual $\mathbf Y_i$, that is the $i^{\text{th}}$
 row of $\mathbf Y$, is independent from the others and follows a Poisson
 lognormal distribution:
 
+[PLN](#pln)
+
+<a id="pln"></a>
 $$\mathbf Y_{i}\sim \mathcal P(\exp(\mathbf Z_{i})), \quad \mathbf Z_i \sim
 \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma),$$
 
@@ -58,8 +61,26 @@ user-specified covariates and offsets. The matrix $\mathbf B$ is a $d\times p$
 matrix of regression coefficients and $\mathbf \Sigma$ is a $p\times p$
 covariance matrix. The goal is to estimate the parameters $\mathbf B$ and
 $\mathbf \Sigma$, denoted as ```coef``` and ```covariance``` in the package,
-respectively. A normalization procedure adequate to count data can be applied
+respectively.
+
+The PLN model described in the [equation](#pln) is the building block of many
+different statistical tasks adequate for count data.  The package implements:
+
+- Covariance analysis (`Pln`)
+- Dimension reduction (`PlnPCA` and `PlnPCAcollection`)
+- Zero-inflation (`ZIPln`)
+- Autoregressive models (`PlnAR`)
+- Supervised clustering (`PlnLDA`)
+- Unsupervised clustering (`PlnMixture`)
+- Network inference (`PlnNetwork`)
+- Zero-inflation and dimension reduction (`ZIPlnPCA`)
+- Variance estimation (`PlnDiag`)
+
+
+A normalization procedure adequate to count data can be applied
 by extracting the ```latent_variables``` $\mathbf Z_i$ once the parameters are learned.
+
+
 
 
 
@@ -81,7 +102,7 @@ Each model can be specified in two distinct manners:
 
 We rely to the [patsy](https://github.com/pydata/patsy) package for the formula parsing.
 
-* by specifying the endog, exog, and offsets matrices directly:
+* by specifying the `endog`, `exog`, and `offsets` matrices directly:
 
 ```model = Model(endog = oaks["endog"], exog = oaks[["covariate_name"]], offsets = oaks[["offset_name"]])# not run```
 

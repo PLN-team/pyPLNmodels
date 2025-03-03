@@ -171,11 +171,11 @@ def get_dict_models_fitted():
     dict_models = get_dict_models_unfit()
     for model_name in dict_models.keys():
         for model in dict_models[model_name]["formula"]:
-            model.fit(maxiter=10)
-            # model.fit()
+            # model.fit(maxiter=10)
+            model.fit()
         for model in dict_models[model_name]["explicit"]:
-            model.fit(maxiter=10)
-            # model.fit()
+            # model.fit(maxiter=10)
+            model.fit()
     return dict_models
 
 
