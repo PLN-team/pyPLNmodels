@@ -90,9 +90,13 @@ def test_viz_general():
                 if model_name == "PlnLDA":
                     if model._n_clusters == 2:
                         with pytest.raises(ValueError):
-                            model.biplot()
+                            model.biplot(
+                                variable_names=["A", "B"], indices_of_variables=[3, 4]
+                            )
                     else:
-                        model.biplot()
+                        model.biplot(
+                            variable_names=["A", "B"], indices_of_variables=[3, 4]
+                        )
                 else:
                     model.biplot(variable_names=["A", "B"], indices_of_variables=[3, 4])
                     model.biplot(
