@@ -275,15 +275,15 @@ class Pln(BaseModel):
         >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
-        >>> pln.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> pln.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
+        >>> pln.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
         """,
     )
     def plot_correlation_circle(
-        self, variables_names, indices_of_variables=None, title: str = ""
+        self, variable_names, indices_of_variables=None, title: str = ""
     ):
         super().plot_correlation_circle(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             title=title,
         )
@@ -295,20 +295,20 @@ class Pln(BaseModel):
         >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.biplot(variables_names=["MALAT1", "ACTB"])
-        >>> pln.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> pln.biplot(variable_names=["MALAT1", "ACTB"])
+        >>> pln.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
         self,
-        variables_names,
+        variable_names,
         *,
         indices_of_variables: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             colors=colors,
             title=title,

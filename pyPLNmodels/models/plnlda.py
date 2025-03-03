@@ -35,6 +35,7 @@ from pyPLNmodels.utils._viz import (
     _viz_lda_test,
     LDAModelViz,
     _biplot_lda,
+    plot_correlation_circle,
 )
 
 
@@ -494,7 +495,7 @@ class PlnLDA(Pln):
         example="""
             >>> from pyPLNmodels import PlnLDA, load_scrna
             >>> data = load_scrna()
-            >>> lda = PlnLDA(data["endog"])
+            >>> lda = PlnLDA(data["endog"], clusters = data["labels"])
             >>> lda.fit()
             >>> lda.plot_expected_vs_true()
             >>> lda.plot_expected_vs_true(colors=data["labels"])
@@ -647,7 +648,7 @@ class PlnLDA(Pln):
         example="""
         >>> from pyPLNmodels import PlnLDA, load_scrna
         >>> data = load_scrna()
-        >>> pln = PlnLDA.from_formula("endog ~ 1 | labels", data)
+        >>> pln = PlnLDA.from_formula("endog ~ 0 | labels", data)
         >>> pln.fit()
         >>> print(pln.latent_variables.shape)
         >>> pln.viz() # Visualize the latent variables without exogenous effects.
@@ -658,33 +659,6 @@ class PlnLDA(Pln):
     )
     def latent_variables(self):
         return self.latent_mean
-
-    @_add_doc(
-        BaseModel,
-        example="""
-        >>> from pyPLNmodels import PlnLDA, load_scrna
-        >>> data = load_scrna()
-        >>> lda = PlnLDA.from_formula("endog ~ 0|labels", data=data)
-        >>> lda.fit()
-        >>> lda.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
-        >>> lda.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
-        """,
-        raises="""
-        ValueError
-            If the number of clusters is 2, as the latent variables will be of dimension
-            and visualization is not possible.
-        """,
-    )
-    def plot_correlation_circle(
-        self, variables_names, indices_of_variables=None, title: str = ""
-    ):
-        if self._n_clusters == 2:
-            _raise_error_1D_viz()
-        super().plot_correlation_circle(
-            variables_names=variables_names,
-            indices_of_variables=indices_of_variables,
-            title=title,
-        )
 
     def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
         raise NotImplementedError("pca pairplot not implemented for LDA models.")
@@ -698,10 +672,49 @@ class PlnLDA(Pln):
         example="""
         >>> from pyPLNmodels import PlnLDA, load_scrna
         >>> data = load_scrna()
+        >>> lda = PlnLDA.from_formula("endog ~ 0|labels", data=data)
+        >>> lda.fit()
+        >>> lda.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
+        >>> lda.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        """,
+        raises="""
+        ValueError
+            If the number of clusters is 2, as the latent variables will be of dimension
+            and visualization is not possible.
+        """,
+    )
+    def plot_correlation_circle(
+        self, variable_names, indices_of_variables=None, title: str = ""
+    ):
+        if self._n_clusters == 2:
+            _raise_error_1D_viz()
+        indices_of_variables = _process_indices_of_variables(
+            variable_names, indices_of_variables, self.column_names_endog
+        )
+        data_matrix = torch.cat(
+            (
+                self._latent_positions_clusters.detach().cpu(),
+                self.clusters.unsqueeze(1),
+            ),
+            dim=1,
+        )
+        plot_correlation_circle(
+            data_matrix=data_matrix,
+            variable_names=variable_names,
+            indices_of_variables=indices_of_variables,
+            title=title,
+            reduction="LDA",
+        )
+
+    @_add_doc(
+        BaseModel,
+        example="""
+        >>> from pyPLNmodels import PlnLDA, load_scrna
+        >>> data = load_scrna()
         >>> lda = PlnLDA.from_formula("endog ~ 0 | labels", data=data)
         >>> lda.fit()
-        >>> lda.biplot(variables_names=["MALAT1", "ACTB"])
-        >>> lda.biplot(variables_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> lda.biplot(variable_names=["MALAT1", "ACTB"])
+        >>> lda.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
         """,
         raises="""
         ValueError
@@ -711,7 +724,7 @@ class PlnLDA(Pln):
     )
     def biplot(
         self,
-        variables_names,
+        variable_names,
         *,
         indices_of_variables: np.ndarray = None,
         colors: np.ndarray = None,
@@ -720,11 +733,11 @@ class PlnLDA(Pln):
         if self._n_clusters == 2:
             _raise_error_1D_viz()
         indices_of_variables = _process_indices_of_variables(
-            variables_names, indices_of_variables, self.column_names_endog
+            variable_names, indices_of_variables, self.column_names_endog
         )
         _biplot_lda(
             self._latent_positions_clusters.detach().cpu(),
-            variables_names,
+            variable_names,
             clusters=self.clusters,
             colors=self._decode_clusters(self.clusters),
             indices_of_variables=indices_of_variables,

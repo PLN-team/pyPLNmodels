@@ -77,11 +77,11 @@ def test_other_attributes():
                 if model._exog_clusters.shape[1] == 2:
                     with pytest.raises(ValueError):
                         model.plot_correlation_circle(
-                            variables_names=["A", "B"], indices_of_variables=[1, 3]
+                            variable_names=["A", "B"], indices_of_variables=[1, 3]
                         )
                     with pytest.raises(ValueError):
                         model.biplot(
-                            variables_names=["A", "B"], indices_of_variables=[2, 4]
+                            variable_names=["A", "B"], indices_of_variables=[2, 4]
                         )
                 else:
                     launch_correlation_circle(model)
@@ -104,6 +104,6 @@ def test_other_attributes():
 
 def launch_correlation_circle(model):
     model.plot_correlation_circle(
-        variables_names=["A", "B"], indices_of_variables=[2, 6]
+        variable_names=["A", "B"], indices_of_variables=[2, 6]
     )
-    model.biplot(variables_names=["A", "B"], indices_of_variables=[2, 4])
+    model.biplot(variable_names=["A", "B"], indices_of_variables=[2, 4])

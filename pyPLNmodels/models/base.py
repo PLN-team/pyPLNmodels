@@ -214,26 +214,26 @@ class BaseModel(
 
     @abstractmethod
     def plot_correlation_circle(
-        self, variables_names, indices_of_variables=None, title: str = ""
+        self, variable_names, indices_of_variables=None, title: str = ""
     ):
         """
         Visualizes variables using PCA and plots a correlation circle. If the `endog` has been
         given as a pd.DataFrame, the `column_names` have been stored and may be indicated with the
-        `variables_names` argument. Else, one should provide the indices of variables.
+        `variable_names` argument. Else, one should provide the indices of variables.
 
         Parameters
         ----------
-        variables_names : List[str]
+        variable_names : List[str]
             A list of variable names to visualize.
             If `indices_of_variables` is `None`, the variables plotted are the
-            ones in `variables_names`. If `indices_of_variables` is not `None`,
+            ones in `variable_names`. If `indices_of_variables` is not `None`,
             this only serves as a legend.
             Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variables_names`, by default None.
-            If not None, should have the same length as `variables_names`.
+            given the `variable_names`, by default None.
+            If not None, should have the same length as `variable_names`.
         title : str
             An additional title for the plot.
 
@@ -244,20 +244,20 @@ class BaseModel(
             that has been set if the model has been initialized with a pd.DataFrame as `endog`.
         ValueError
             If the length of `indices_of_variables` is different from the length
-            of `variables_names`.
+            of `variable_names`.
 
         """
         indices_of_variables = _process_indices_of_variables(
-            variables_names, indices_of_variables, self.column_names_endog
+            variable_names, indices_of_variables, self.column_names_endog
         )
         plot_correlation_circle(
-            self.transform(), variables_names, indices_of_variables, title=title
+            self.transform(), variable_names, indices_of_variables, title=title
         )
 
     @abstractmethod
     def biplot(
         self,
-        variables_names,
+        variable_names,
         *,
         indices_of_variables: np.ndarray = None,
         colors: np.ndarray = None,
@@ -266,22 +266,22 @@ class BaseModel(
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
-        may be indicated with the `variables_names` argument. Else, one should provide the
+        may be indicated with the `variable_names` argument. Else, one should provide the
         indices of variables.
 
         Parameters
         ----------
-        variables_names : List[str]
+        variable_names : List[str]
             A list of variable names to visualize.
             If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variables_names`. If `indices_of_variables`
+            are the ones in `variable_names`. If `indices_of_variables`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variables_names`, by default `None`.
-            If not None, should have the same length as `variables_names`.
+            given the `variable_names`, by default `None`.
+            If not None, should have the same length as `variable_names`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
@@ -294,15 +294,15 @@ class BaseModel(
             that has been set if the model has been initialized with a pd.DataFrame as `endog`.
         ValueError
             If the length of `indices_of_variables` is different
-            from the length of `variables_names`.
+            from the length of `variable_names`.
 
         """
         indices_of_variables = _process_indices_of_variables(
-            variables_names, indices_of_variables, self.column_names_endog
+            variable_names, indices_of_variables, self.column_names_endog
         )
         return _biplot(
             self.transform(),
-            variables_names,
+            variable_names,
             indices_of_variables=indices_of_variables,
             colors=colors,
             title=title,

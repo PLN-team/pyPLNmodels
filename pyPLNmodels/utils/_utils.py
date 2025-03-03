@@ -176,17 +176,17 @@ def _log1pexp(t):
 
 
 def _process_indices_of_variables(
-    variables_names, indices_of_variables, column_names_endog
+    variable_names, indices_of_variables, column_names_endog
 ):
     if indices_of_variables is None:
         indices_of_variables = [
-            column_names_endog.get_loc(name) for name in variables_names
+            column_names_endog.get_loc(name) for name in variable_names
         ]
     else:
-        if len(indices_of_variables) != len(variables_names):
+        if len(indices_of_variables) != len(variable_names):
             raise ValueError(
                 f"Number of indices ({len(indices_of_variables)}) should be "
-                f"the same as the number of variable names ({len(variables_names)})."
+                f"the same as the number of variable names ({len(variable_names)})."
             )
     return indices_of_variables
 
