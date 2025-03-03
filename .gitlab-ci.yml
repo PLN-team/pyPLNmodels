@@ -33,14 +33,11 @@ tests:
     pip install '.[tests]'
   script:
     - pip install .
-    - echo "matplotlib version"
-    - python -c "import matplotlib; print(matplotlib.__version__)"
-    - xxxx
     - jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
     - cd tests
     - python _create_readme_getting_started_and_docstrings_tests.py
     - rm test_getting_started.py # remove as it has been modified and placed in a directory.
-    - rm docstrings_examples/models/*.py
+    # - rm docstrings_examples/models/*.py
     - pytest .
   only:
     - main
