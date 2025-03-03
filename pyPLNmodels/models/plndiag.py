@@ -113,7 +113,7 @@ class PlnDiag(Pln):
         Examples
         --------
         >>> from pyPLNmodels import PlnDiag, load_scrna
-        >>> rna_data = load_scrna()
+        >>> rna_data = load_scrna(dim = 10)
         >>> pln = PlnDiag(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
         >>> pln.fit()
         >>> variance = pln.get_variance_coef()
@@ -147,7 +147,7 @@ class PlnDiag(Pln):
         Examples
         --------
         >>> from pyPLNmodels import PlnDiag, load_scrna
-        >>> rna_data = load_scrna()
+        >>> rna_data = load_scrna(dim = 10)
         >>> pln = PlnDiag(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
         >>> pln.fit()
         >>> interval_low, interval_high = pln.get_confidence_interval_coef()
@@ -187,7 +187,7 @@ class PlnDiag(Pln):
         Examples
         --------
         >>> from pyPLNmodels import PlnDiag, load_scrna
-        >>> rna_data = load_scrna()
+        >>> rna_data = load_scrna(dim = 10)
         >>> pln = PlnDiag(rna_data["endog"], exog=rna_data["labels_1hot"], add_const=False)
         >>> pln.fit()
         >>> p_values = pln.get_coef_p_values()
@@ -210,7 +210,7 @@ class PlnDiag(Pln):
         Examples
         --------
         >>> from pyPLNmodels import PlnDiag, load_scrna
-        >>> rna_data = load_scrna()
+        >>> rna_data = load_scrna(dim = 10)
         >>> pln = PlnDiag(rna_data["endog"], exog = rna_data["labels_1hot"], add_const = False)
         >>> pln.fit()
         >>> pln.summary()
