@@ -49,7 +49,6 @@ AUTOREG_TYPE = ["diagonal", "spherical"]
 
 
 DICT_SAMPLERS = {
-    "PlnLDA": PlnLDASampler,
     "Pln": PlnSampler,
     "PlnPCA": PlnPCASampler,
     "ZIPln": ZIPlnSampler,
@@ -58,6 +57,7 @@ DICT_SAMPLERS = {
     "PlnMixture": PlnMixtureSampler,
     "ZIPlnPCA": ZIPlnPCASampler,
     "PlnAR": PlnARSampler,
+    "PlnLDA": PlnLDASampler,
 }
 DICT_MODELS = {
     "PlnLDA": PlnLDA,
