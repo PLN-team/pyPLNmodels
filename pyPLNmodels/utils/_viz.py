@@ -929,11 +929,12 @@ def plot_confusion_matrix(
         ax = plt.gca()
     else:
         to_show = False
+    print("pred_clusters", pred_clusters)
+    print("true_clusters", true_clusters)
     sns.heatmap(confusion_mat, annot=True, fmt="d", cmap="Blues", ax=ax)
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     ax.set_title(title)
-
     if pred_encoder is not None:
         pred_labels = pred_encoder.classes_
         print("pred_labels", pred_labels)
