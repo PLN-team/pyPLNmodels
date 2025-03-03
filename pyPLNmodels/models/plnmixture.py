@@ -344,7 +344,7 @@ class PlnMixture(
     )
     def biplot(
         self,
-        variables_names,
+        variable_names,
         *,
         indices_of_variables: np.ndarray = None,
         colors: np.ndarray = None,
@@ -353,22 +353,22 @@ class PlnMixture(
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
-        may be indicated with the `variables_names` argument. Else, one should provide the
+        may be indicated with the `variable_names` argument. Else, one should provide the
         indices of variables.
 
         Parameters
         ----------
-        variables_names : List[str]
+        variable_names : List[str]
             A list of variable names to visualize.
             If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variables_names`. If `indices_of_variables`
+            are the ones in `variable_names`. If `indices_of_variables`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variables_names`, by default `None`.
-            If not None, should have the same length as `variables_names`.
+            given the `variable_names`, by default `None`.
+            If not None, should have the same length as `variable_names`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
@@ -379,7 +379,7 @@ class PlnMixture(
         ValueError
             If `indices_of_variables`  is not None and
             the length of `indices_of_variables` is different
-            from the length of `variables_names`.
+            from the length of `variable_names`.
 
         Examples
         --------
@@ -387,9 +387,9 @@ class PlnMixture(
         >>> data = load_scrna()
         >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 2)
         >>> mixture.fit()
-        >>> mixture.biplot(variables_names=["MALAT1", "ACTB"])
+        >>> mixture.biplot(variable_names=["MALAT1", "ACTB"])
         >>> mixture.biplot(
-        >>>    variables_names=["A", "B"],
+        >>>    variable_names=["A", "B"],
         >>>    indices_of_variables=[1, 3],
         >>>    colors=data["labels"],)
 
@@ -403,7 +403,7 @@ class PlnMixture(
         if colors is None:
             colors = self.clusters
         super().biplot(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             colors=colors,
             title=title,
@@ -603,15 +603,15 @@ class PlnMixture(
         >>> data = load_scrna()
         >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 2)
         >>> mixture.fit()
-        >>> mixture.plot_correlation_circle(variables_names=["MALAT1", "ACTB"])
-        >>> mixture.plot_correlation_circle(variables_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> mixture.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
+        >>> mixture.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
         """,
     )
     def plot_correlation_circle(
-        self, variables_names, indices_of_variables=None, title: str = ""
+        self, variable_names, indices_of_variables=None, title: str = ""
     ):
         super().plot_correlation_circle(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             title=title,
         )

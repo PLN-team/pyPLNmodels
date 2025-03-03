@@ -94,16 +94,14 @@ def test_viz_general():
                     else:
                         model.biplot()
                 else:
+                    model.biplot(variable_names=["A", "B"], indices_of_variables=[3, 4])
                     model.biplot(
-                        variables_names=["A", "B"], indices_of_variables=[3, 4]
-                    )
-                    model.biplot(
-                        variables_names=["A", "B"],
+                        variable_names=["A", "B"],
                         indices_of_variables=[3, 4],
                         colors=colors,
                     )
                     model.biplot(
-                        variables_names=["A", "B"],
+                        variable_names=["A", "B"],
                         indices_of_variables=[3, 4],
                         colors=colors,
                         title="Test",
@@ -113,7 +111,7 @@ def test_viz_general():
                     model.pca_pairplot(n_components=2, colors=colors)
                 with pytest.raises(ValueError):
                     model.plot_correlation_circle(
-                        variables_names=["A", "B"], indices_of_variables=[1, 2, 3]
+                        variable_names=["A", "B"], indices_of_variables=[1, 2, 3]
                     )
 
 
@@ -153,7 +151,7 @@ def test_plot_correlation_circle_pandas():
     pca = PlnPCA(rna["endog"])
     pca.fit()
     pca.show()
-    pca.plot_correlation_circle(variables_names=["RPL14", "ACTB"])
+    pca.plot_correlation_circle(variable_names=["RPL14", "ACTB"])
 
 
 def test_viz_network():

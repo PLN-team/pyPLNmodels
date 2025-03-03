@@ -42,7 +42,7 @@ class PlnAR(BaseModel):
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
-    >>> ar.viz_dims(variables_names = ["nco_Lacaune_M", "nco_Soay_M"])
+    >>> ar.viz_dims(variable_names = ["nco_Lacaune_M", "nco_Soay_M"])
 
     >>> from pyPLNmodels import PlnAR, load_crossover
     >>> data = load_crossover()
@@ -50,7 +50,7 @@ class PlnAR(BaseModel):
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
-    >>> ar.viz_dims(variables_names = ["nco_Lacaune_F", "nco_Soay_F"])
+    >>> ar.viz_dims(variable_names = ["nco_Lacaune_F", "nco_Soay_F"])
     """
 
     _ar_diff_coef: torch.Tensor
@@ -262,14 +262,14 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.plot_correlation_circle(variables_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.plot_correlation_circle(variable_names=["nco_Lacaune_M", "nco_Soay_M"])
         """,
     )
     def plot_correlation_circle(
-        self, variables_names, indices_of_variables=None, title: str = ""
+        self, variable_names, indices_of_variables=None, title: str = ""
     ):
         super().plot_correlation_circle(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             title=title,
         )
@@ -281,20 +281,20 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.biplot(variables_names=["nco_Lacaune_M", "nco_Soay_M"])
-        >>> ar.biplot(variables_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
+        >>> ar.biplot(variable_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.biplot(variable_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
         """,
     )
     def biplot(
         self,
-        variables_names,
+        variable_names,
         *,
         indices_of_variables: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             colors=colors,
             title=title,
@@ -423,7 +423,7 @@ class PlnAR(BaseModel):
 
     def viz_dims(
         self,
-        variables_names,
+        variable_names,
         indices_of_variables: np.ndarray = None,
         display: {"stretch", "keep"} = "stretch",
         colors: np.ndarray = None,
@@ -431,17 +431,17 @@ class PlnAR(BaseModel):
         """
         Parameters
         ----------
-        variables_names : List[str]
+        variable_names : List[str]
             A list of variable names to visualize.
             If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variables_names`. If `indices_of_variables`
+            are the ones in `variable_names`. If `indices_of_variables`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
         indices_of_variables : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variables_names`, by default `None`.
-            If not None, should have the same length as `variables_names`.
+            given the `variable_names`, by default `None`.
+            If not None, should have the same length as `variable_names`.
         display : str (Optional)
             How to display the time series when nan are at stake.
             - "stretch": stretch the time serie so that all time series
@@ -451,7 +451,7 @@ class PlnAR(BaseModel):
             The labels to color the samples, of size `n_samples`.
         """
         indices_of_variables = _process_indices_of_variables(
-            variables_names, indices_of_variables, self.column_names_endog
+            variable_names, indices_of_variables, self.column_names_endog
         )
         if display not in ["stretch", "keep"]:
             msg = "`display` keyword have only two possible values: 'stretch' and 'keep', got"
@@ -460,7 +460,7 @@ class PlnAR(BaseModel):
         _viz_dims(
             variables=self.latent_variables,
             indices_of_variables=indices_of_variables,
-            variables_names=variables_names,
+            variable_names=variable_names,
             colors=colors,
             display=display,
         )

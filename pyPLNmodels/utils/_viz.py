@@ -61,7 +61,7 @@ def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float
     ax.add_patch(ellipse)
 
 
-def plot_correlation_arrows(axs, ccircle, variables_names):
+def plot_correlation_arrows(axs, ccircle, variable_names):
     """
     Plot arrows representing the correlation circle.
 
@@ -71,7 +71,7 @@ def plot_correlation_arrows(axs, ccircle, variables_names):
         Axes object for plotting.
     ccircle : list of tuples
         List of tuples containing correlations with the first and second principal components.
-    variables_names : list
+    variable_names : list
         List of names for the variables corresponding to columns in X.
     """
     for i, (corr1, corr2) in enumerate(ccircle):
@@ -85,7 +85,7 @@ def plot_correlation_arrows(axs, ccircle, variables_names):
             head_width=0.05,
             head_length=0.05,
         )
-        axs.text(corr1 / 2, corr2 / 2, variables_names[i])
+        axs.text(corr1 / 2, corr2 / 2, variable_names[i])
 
 
 def _viz_variables(
@@ -133,7 +133,7 @@ def _viz_variables(
             norm = plt.Normalize(0, nb_colors)
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
             sm.set_array([])  # Required for colorbar
-            plt.colorbar(sm, label="Value")
+            plt.colorbar(sm, label="Value", ax=ax)
         else:
             sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
     else:
@@ -244,10 +244,11 @@ def plot_correlation_circle(
         to_show = True
     else:
         to_show = False
-    standardized_data = StandardScaler().fit_transform(data_matrix)
     if reduction == "PCA":
+        standardized_data = StandardScaler().fit_transform(data_matrix)
         transformed_data, explained_variance_ratio = _perform_pca(standardized_data, 2)
     else:
+        standardized_data = StandardScaler().fit_transform(data_matrix[:, :-1])
         transformed_data, explained_variance_ratio = _perform_lda(
             data_matrix[:, :-1], data_matrix[:, -1]
         )
@@ -870,12 +871,12 @@ def _build_graph(precision, node_labels=None):
     return graph
 
 
-def _viz_dims(*, variables, indices_of_variables, variables_names, colors, display):
-    _, axes = plt.subplots(len(variables_names))
+def _viz_dims(*, variables, indices_of_variables, variable_names, colors, display):
+    _, axes = plt.subplots(len(variable_names))
     absc = np.arange(variables.shape[0])
     min_y = torch.min(torch.nan_to_num(variables))
     max_y = torch.max(torch.nan_to_num(variables))
-    for i, (dim, name) in enumerate(zip(indices_of_variables, variables_names)):
+    for i, (dim, name) in enumerate(zip(indices_of_variables, variable_names)):
         y = variables[:, dim]
         sns.scatterplot(x=absc, y=y, ax=axes[i], hue=colors)
         axes[i].set_title(name)

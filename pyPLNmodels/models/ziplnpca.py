@@ -337,15 +337,15 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> data = load_microcosm()
         >>> zipca = ZIPlnPCA.from_formula("endog ~ 1", data = data)
         >>> zipca.fit()
-        >>> zipca.plot_correlation_circle(variables_names = ["ASV_315", "ASV_749"])
-        >>> zipca.plot_correlation_circle(variables_names = ["A", "B"], indices_of_variables = [0,2])
+        >>> zipca.plot_correlation_circle(variable_names = ["ASV_315", "ASV_749"])
+        >>> zipca.plot_correlation_circle(variable_names = ["A", "B"], indices_of_variables = [0,2])
         """,
     )
     def plot_correlation_circle(
-        self, variables_names, indices_of_variables=None, title: str = ""
+        self, variable_names, indices_of_variables=None, title: str = ""
     ):
         super().plot_correlation_circle(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             title=title,
         )
@@ -357,20 +357,20 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> data = load_microcosm()
         >>> zipca = ZIPlnPCA.from_formula("endog ~ 1", data = data)
         >>> zipca.fit()
-        >>> zipca.biplot(variables_names = ["ASV_315", "ASV_749"])
-        >>> zipca.biplot(variables_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
+        >>> zipca.biplot(variable_names = ["ASV_315", "ASV_749"])
+        >>> zipca.biplot(variable_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
         """,
     )
     def biplot(
         self,
-        variables_names,
+        variable_names,
         *,
         indices_of_variables: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variables_names=variables_names,
+            variable_names=variable_names,
             indices_of_variables=indices_of_variables,
             colors=colors,
             title=title,
