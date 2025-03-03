@@ -938,10 +938,14 @@ def plot_confusion_matrix(
         pred_labels = pred_encoder.classes_
         print("pred_labels", pred_labels)
         ax.set_xticklabels(pred_labels, rotation=45, ha="right")
+    else:
+        print("pred labels no encoder", pred_labels)
     if true_encoder is not None:
         true_labels = true_encoder.classes_
         print("true_labels", true_labels)
         ax.set_yticklabels(true_labels, rotation=0)
+    else:
+        print("true labels no enncoder", true_labels)
 
     if to_show is True:
         plt.show()

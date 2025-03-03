@@ -84,13 +84,13 @@ def _filename_to_readme_example_file():
 
 
 new_lines = []
-# lines_getting_started = _get_lines("./", "test_getting_started")
-# for line in lines_getting_started:
-#     if len(line) > 20:
-#         if line[0:11] != "get_ipython":
-#             new_lines.append(line)
-#     else:
-#         new_lines.append(line)
+lines_getting_started = _get_lines("./", "test_getting_started")
+for line in lines_getting_started:
+    if len(line) > 20:
+        if line[0:11] != "get_ipython":
+            new_lines.append(line)
+    else:
+        new_lines.append(line)
 
 
 os.makedirs(OUTPUT_DIR_README, exist_ok=True)
