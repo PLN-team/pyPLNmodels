@@ -19,6 +19,7 @@ def get_methods_model(model):
             ".predict_clusters()",
             ".transform_new()",
             ".viz_transformed()",
+            ".viz_dims()",
         ]
     ]
     return methods
