@@ -184,7 +184,7 @@ def _check_data_shapes(
 
 
 def _format_data(
-    data: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]
+    data: Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series],
 ) -> torch.Tensor:
     """
     Transforms the data into a `torch.Tensor` if the input is an array, and None if the input is
