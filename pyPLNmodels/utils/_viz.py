@@ -1007,19 +1007,20 @@ def _plot_lda_1d_projection(
 
 
 def _plot_contour_lda(transformed_lda_train, y_train, ax):
+    transformed_lda_train_2d = transformed_lda_train[:, :2]
     x_min, x_max = (
-        transformed_lda_train[:, 0].min() - 1,
-        transformed_lda_train[:, 0].max() + 1,
+        transformed_lda_train_2d[:, 0].min() - 1,
+        transformed_lda_train_2d[:, 0].max() + 1,
     )
     y_min, y_max = (
-        transformed_lda_train[:, 1].min() - 1,
-        transformed_lda_train[:, 1].max() + 1,
+        transformed_lda_train_2d[:, 1].min() - 1,
+        transformed_lda_train_2d[:, 1].max() + 1,
     )
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200), np.linspace(y_min, y_max, 200))
 
     lda_2d = LinearDiscriminantAnalysis()
     y_train = LabelEncoder().fit_transform(y_train)
-    lda_2d.fit(transformed_lda_train, y_train)
+    lda_2d.fit(transformed_lda_train_2d, y_train)
     prediction = lda_2d.predict(np.c_[xx.ravel(), yy.ravel()])
     prediction = prediction.reshape(xx.shape)
     cmap = ListedColormap(sns.color_palette("viridis", 3).as_hex())
