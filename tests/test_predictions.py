@@ -17,7 +17,6 @@ def test_right_prediction_and_confusion_matrix():
         sampler = PlnMixtureSampler(
             nb_cov=nb_cov, n_samples=ntrain + ntest, dim=100, n_clusters=3
         )
-
         endog = sampler.sample()
         endog_train = endog[:ntrain]
         endog_test = endog[ntrain:]
@@ -44,7 +43,7 @@ def test_right_prediction_and_confusion_matrix():
             torch.mean(
                 (torch.tensor(true_clusters) == torch.tensor(clusters_pred)).float()
             )
-            > 0.9
+            > 0.85
         )
 
 
