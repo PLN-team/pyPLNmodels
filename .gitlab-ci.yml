@@ -39,7 +39,6 @@ tests:
     - pytest .
   only:
     - main
-    - redesign
     - dev
     - tags
 
