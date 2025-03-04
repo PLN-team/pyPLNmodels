@@ -856,7 +856,7 @@ def _viz_network(precision, node_labels=None, ax=None, seed=0):
         font_size=12,
         font_color="black",
     )
-    plt.title("Graph Representation of Precision Matrix")
+    plt.title("Graph Representation of Precision Matrix links")
     if to_show:
         plt.show()
 
@@ -912,7 +912,7 @@ def _set_tick_labels_columns(ax, column_names):
 
 
 def _get_figure():
-    return plt.figure(figsize=(10, 8))
+    return plt.figure(figsize=(20, 12))
 
 
 def plot_confusion_matrix(
