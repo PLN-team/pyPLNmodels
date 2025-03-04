@@ -840,7 +840,7 @@ def _viz_network(precision, node_labels=None, ax=None, seed=0):
         to_show = True
     else:
         to_show = False
-    graph = _build_graph(precision, node_labels)
+    graph, _ = _build_graph(precision, node_labels)
     pos = nx.spring_layout(graph, seed=seed)
     edges = graph.edges(data=True)
     nx.draw_networkx_nodes(graph, pos, node_size=500, node_color="lightblue")
@@ -868,7 +868,18 @@ def _build_graph(precision, node_labels=None):
         for j in range(i + 1, nb_variables):
             if precision[i, j] != 0:
                 graph.add_edge(i, j, weight=precision[i, j])
-    return graph
+
+    if node_labels is not None:
+        connections = {
+            node_labels[node]: [
+                node_labels[neighbor] for neighbor in graph.neighbors(node)
+            ]
+            for node in graph.nodes
+        }
+    else:
+        connections = {node: list(graph.neighbors(node)) for node in graph.nodes}
+
+    return graph, connections
 
 
 def _viz_dims(*, variables, indices_of_variables, variable_names, colors, display):
