@@ -150,8 +150,6 @@ class PlnLDA(Pln):
         self._exog_clusters, self._label_encoder = _format_clusters_and_encoder(
             clusters
         )
-        if self._exog_clusters is None:
-            raise ValueError("You should give clusters.")
         if len(self._exog_clusters.shape) == 1:
             self._exog_clusters = _get_dummies(self._exog_clusters)
 

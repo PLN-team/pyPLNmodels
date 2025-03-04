@@ -493,7 +493,9 @@ class PlnAR(BaseModel):
         return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
 
     def _get_two_dim_latent_variances(self, sklearn_components):
-        _get_two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
+        return _get_two_dim_latent_variances(
+            sklearn_components, self.latent_sqrt_variance
+        )
 
     @property
     @_add_doc(
