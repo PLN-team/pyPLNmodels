@@ -295,7 +295,7 @@ class PlnNetwork(BaseModel):
 
     @property
     def _additional_attributes_list(self):
-        return [".nb_zeros_precision"]
+        return [".network", ".nb_zeros_precision"]
 
     def _get_two_dim_latent_variances(self, sklearn_components):
         return _get_two_dim_latent_variances(
