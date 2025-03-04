@@ -8,7 +8,7 @@ import pandas as pd
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.calculations.elbos import elbo_pln
 from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
-from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz
+from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz, _build_graph
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 from pyPLNmodels.calculations._closed_forms import _closed_formula_coef
 from pyPLNmodels.calculations._initialization import (
@@ -29,7 +29,7 @@ class PlnNetwork(BaseModel):
     --------
     >>> from pyPLNmodels import PlnNetwork, load_scrna
     >>> data = load_scrna()
-    >>> net = PlnNetwork(data["endog"], penalty = 1)
+    >>> net = PlnNetwork(data["endog"], penalty = 200)
     >>> net.fit()
     >>> print(net)
     >>> net.viz(colors=data["labels"])
@@ -37,7 +37,7 @@ class PlnNetwork(BaseModel):
 
     >>> from pyPLNmodels import PlnNetwork, load_scrna
     >>> data = load_scrna()
-    >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data, penalty = 1)
+    >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data, penalty = 200)
     >>> net.fit()
     >>> print(net)
     >>> net.viz(colors=data["labels"])
@@ -55,7 +55,7 @@ class PlnNetwork(BaseModel):
         example="""
             >>> from pyPLNmodels import PlnNetwork, load_scrna
             >>> data = load_scrna()
-            >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
+            >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 200)
             >>> net.fit()
             >>> print(net)
         """,
@@ -130,16 +130,16 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 200)
         >>> net.fit()
         >>> print(net)
 
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 200)
         >>> net.fit()
         >>> print(net)
-        >>> net.fit(penalty = 10)
+        >>> net.fit(penalty = 100)
         >>> print(net)
         """,
         params="""
@@ -172,7 +172,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 200)
         >>> net.fit()
         >>> elbo = net.compute_elbo()
         >>> print('ELBO:', elbo)
@@ -243,7 +243,7 @@ class PlnNetwork(BaseModel):
 
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork(data["endog"], penalty = 1)
+        >>> net = PlnNetwork(data["endog"], penalty = 200)
         >>> net.fit()
         >>> print(net)
         >>> net.viz(colors=data["labels"])
@@ -254,6 +254,26 @@ class PlnNetwork(BaseModel):
             ax=ax,
             node_labels=self.column_names_endog,
         )
+
+    @property
+    def network(self):
+        """
+        Return the network infered by the model, i.e. variables with non zero correlations.
+
+        Examples
+
+        >>> from pyPLNmodels import PlnNetwork, load_scrna
+        >>> data = load_scrna()
+        >>> net = PlnNetwork(data["endog"], penalty = 200)
+        >>> net.fit()
+        >>> print(net)
+        >>> print(net.network)
+        """
+        _, connections = _build_graph(
+            self.precision * (torch.abs(self.precision) > THRESHOLD),
+            node_labels=self.column_names_endog,
+        )
+        return connections
 
     @property
     @_add_doc(BaseModel)
@@ -288,7 +308,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 200)
         >>> net.fit()
         >>> print(net.latent_variables.shape)
         >>> net.viz() # Visualize the latent variables
@@ -306,7 +326,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data, penalty = 200)
         >>> net.fit()
         >>> print(net.latent_positions.shape)
         >>> net.viz(remove_exog_effect=True) # Visualize the latent positions
@@ -323,7 +343,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 200)
         >>> net.fit()
         >>> net.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
         >>> net.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
@@ -369,7 +389,7 @@ class PlnNetwork(BaseModel):
         example="""
         >>> from pyPLNmodels import PlnNetwork, load_scrna
         >>> data = load_scrna()
-        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 1)
+        >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 200)
         >>> net.fit()
         >>> net.pca_pairplot(n_components=5)
         >>> net.pca_pairplot(n_components=5, colors=data["labels"])
@@ -383,7 +403,7 @@ class PlnNetwork(BaseModel):
         example="""
               >>> from pyPLNmodels import PlnNetwork, load_scrna
               >>> data = load_scrna()
-              >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 1)
+              >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 200)
               >>> net.fit()
               >>> transformed_endog = net.transform()
               >>> print(transformed_endog.shape)
