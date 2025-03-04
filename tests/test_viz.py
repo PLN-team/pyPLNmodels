@@ -1,90 +1,153 @@
+# pylint: skip-file
 import pytest
-import matplotlib.pyplot as plt
+import torch
 import numpy as np
-
-from tests.conftest import dict_fixtures
-from tests.utils import MSE, filter_models
-
-from tests.import_data import true_sim_0cov, true_sim_2cov, labels_real
-
-single_models = ["Pln", "PlnPCA", "ZIPln"]
+import matplotlib.pyplot as plt
+from pyPLNmodels.utils._viz import _viz_variables, _plot_ellipse
+from pyPLNmodels import Pln, load_scrna, ZIPln, PlnPCASampler, PlnPCA
+from .conftest import dict_fitted_models, dict_unfit_models
 
 
-@pytest.mark.parametrize("any_model", dict_fixtures["loaded_and_fitted_model"])
-def test_print(any_model):
-    print(any_model)
+@pytest.fixture
+def pca_projected_variables():
+    return torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
 
 
-@pytest.mark.parametrize("any_model", dict_fixtures["fitted_model"])
-@filter_models(single_models)
-def test_show_coef_transform_covariance_pcaprojected(any_model):
-    any_model.show()
-    any_model._criterion_args._show_loss()
-    any_model._criterion_args._show_stopping_criterion()
-    assert hasattr(any_model, "coef")
-    assert callable(any_model.transform)
-    assert hasattr(any_model, "covariance")
-    assert callable(any_model.sk_PCA)
-    assert any_model.sk_PCA(n_components=None) is not None
-    with pytest.raises(Exception):
-        any_model.sk_PCA(n_components=any_model.dim + 1)
+@pytest.fixture
+def covariances():
+    return torch.tensor(
+        [[[0.5, 0.2], [0.2, 0.5]], [[0.3, 0.1], [0.1, 0.3]], [[0.4, 0.2], [0.2, 0.4]]]
+    )
 
 
-@pytest.mark.parametrize("model", dict_fixtures["fitted_model"])
-@filter_models(single_models)
-def test_pca_pairplot(model):
-    if model._NAME in ["Pln", "ZIPln"]:
-        model.pca_pairplot(n_components=8)
-    else:
-        model.pca_pairplot(n_components=2)
-        model.pca_pairplot()
-    model.pca_pairplot(n_components=4)
+@pytest.fixture
+def colors():
+    return np.array(["red", "green", "blue"])
 
 
-@pytest.mark.parametrize("plnpca", dict_fixtures["loaded_and_fitted_model"])
-@filter_models(["PlnPCAcollection"])
-def test_viz_pcacol(plnpca):
-    for model in plnpca.values():
-        _, ax = plt.subplots()
-        model.viz(ax=ax)
-        plt.show()
-        model.viz()
-        plt.show()
-        n_samples = plnpca.n_samples
-        colors = np.random.randint(low=0, high=2, size=n_samples)
-        model.viz(colors=colors)
-        plt.show()
-        model.viz(show_cov=True)
-        plt.show()
-
-
-@pytest.mark.parametrize("model", dict_fixtures["real_fitted_model_intercept_array"])
-@filter_models(single_models)
-def test_plot_pca_correlation_circle_with_names_only(model):
-    model.plot_pca_correlation_circle([f"var_{i}" for i in range(8)])
-
-
-@pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_sim_model"])
-@filter_models(single_models)
-def test_fail_plot_pca_correlation_circle_without_names(model):
-    with pytest.raises(ValueError):
-        model.plot_pca_correlation_circle([f"var_{i}" for i in range(8)])
-    with pytest.raises(ValueError):
-        model.plot_pca_correlation_circle([f"var_{i}" for i in range(6)], [1, 2, 3])
-    model.plot_pca_correlation_circle([f"var_{i}" for i in range(3)], [0, 1, 2])
-
-
-@pytest.mark.parametrize("model", dict_fixtures["loaded_and_fitted_model"])
-@filter_models(single_models)
-def test_expected_vs_true(model):
-    model.plot_expected_vs_true()
+def test_viz_variables_no_covariances(pca_projected_variables):
     fig, ax = plt.subplots()
-    model.plot_expected_vs_true(ax=ax)
+    result_ax = _viz_variables(pca_projected_variables, ax=ax)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
 
 
-@pytest.mark.parametrize("model", dict_fixtures["real_fitted_model_intercept_array"])
-@filter_models(["Pln", "PlnPCA"])
-def test_expected_vs_true_real(model):
-    model.plot_expected_vs_true(colors=labels_real)
+def test_viz_variables_with_covariances(pca_projected_variables, covariances):
     fig, ax = plt.subplots()
-    model.plot_expected_vs_true(ax=ax, colors=labels_real)
+    result_ax = _viz_variables(pca_projected_variables, ax=ax, covariances=covariances)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+    assert len(result_ax.patches) == len(covariances)  # Check if ellipses are created
+
+
+def test_viz_variables_with_colors(pca_projected_variables, colors):
+    fig, ax = plt.subplots()
+    result_ax = _viz_variables(pca_projected_variables, ax=ax, colors=colors)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+    assert len(result_ax.collections[0].get_facecolors()) == len(
+        colors
+    )  # Check if colors are applied
+
+
+def test_viz_variables_without_axis(pca_projected_variables):
+    result_ax = _viz_variables(pca_projected_variables)
+    assert result_ax is not None
+    assert len(result_ax.collections) > 0  # Check if scatter plot is created
+
+
+def test_plot_ellipse():
+    fig, ax = plt.subplots()
+    mean_x, mean_y = 1.0, 2.0
+    cov = np.array([[0.5, 0.2], [0.2, 0.5]])
+    _plot_ellipse(mean_x, mean_y, cov=cov, ax=ax)
+    assert len(ax.patches) == 1  # Check if ellipse is created
+
+
+def test_viz_general():
+    for model_name in dict_fitted_models:
+        for init_method in ["formula", "explicit"]:
+            for model in dict_fitted_models[model_name][init_method]:
+                _, ax = plt.subplots()
+                model.viz()
+                model.show(savefig=True)
+                colors = np.random.randint(2, size=model.n_samples)
+                model.plot_expected_vs_true(colors=colors, ax=ax)
+                if model_name != "PlnLDA":
+                    model.viz(show_cov=True, remove_exog_effect=True)
+                else:
+                    with pytest.raises(ValueError):
+                        model.viz(show_cov=True)
+                    with pytest.raises(ValueError):
+                        model.viz(remove_exog_effect=False)
+                model.viz(colors=colors)
+                # if model_name == "PlnLDA":
+                #     if model._n_clusters == 2:
+                #         with pytest.raises(ValueError):
+                #             model.biplot(
+                #                 variable_names=["A", "B"], indices_of_variables=[3, 4]
+                #             )
+                #     else:
+                #         model.biplot(
+                #             variable_names=["A", "B"], indices_of_variables=[3, 4]
+                #         )
+                # else:
+                #     model.biplot(
+                #         variable_names=["A", "B"],
+                #         indices_of_variables=[3, 4],
+                #         colors=colors,
+                #         title="Test",
+                #     )
+                #     model.pca_pairplot()
+                #     model.pca_pairplot(n_components=2, colors=colors)
+                # with pytest.raises(ValueError):
+                #     model.plot_correlation_circle(
+                #         variable_names=["A", "B"], indices_of_variables=[1, 2, 3]
+                #     )
+
+
+def test_show_big_matrix():
+    sampler = PlnPCASampler(dim=500)
+    endog = sampler.sample()
+    pca = PlnPCA(endog)
+    pca.fit()
+    pca.show()
+
+
+def test_show_no_coef():
+    rna = load_scrna()
+    pln = Pln(rna["endog"], exog=None, add_const=None)
+    pln.fit()
+    pln.show()
+
+
+def test_display_norm_no_ax():
+    rna = load_scrna()
+    pln = Pln(rna["endog"])
+    pln.fit()
+    modviz = pln._get_model_viz()
+    modviz.show(savefig=True, name_file="Test")
+
+
+def test_display_norm_no_ax_zi():
+    rna = load_scrna()
+    pln = ZIPln(rna["endog"])
+    pln.fit()
+    modviz = pln._get_model_viz()
+    modviz.show(savefig=True, name_file="Test")
+
+
+def test_plot_correlation_circle_pandas():
+    rna = load_scrna()
+    pca = PlnPCA(rna["endog"])
+    pca.fit()
+    pca.show()
+    pca.plot_correlation_circle(variable_names=["RPL41", "ACTB"])
+
+
+def test_viz_network():
+    for init_method in ["explicit", "formula"]:
+        for model in dict_fitted_models["PlnNetwork"][init_method]:
+            model.viz_network()
+            _, ax = plt.subplots()
+            model.viz_network(ax=ax)

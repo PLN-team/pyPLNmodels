@@ -53,10 +53,10 @@ dependencies = [
 "scikit-learn",
 "patsy",
 "tqdm",
-"statsmodels",
+"networkx",
 ]
 [project.optional-dependencies]
-tests = ["pytest","pytest_lazy_fixture"]
+tests = ["pytest"]
 build-doc = ["sphinx","sphinx_rtd_theme"]
 
 [project.urls]
