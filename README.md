@@ -90,7 +90,6 @@ Each model can be specified in two distinct manners:
 
 * by formula (similar to R), where a data frame is passed and the formula is specified using the `from_formula` initialization:
 ```python
-import numpy as np
 from pyPLNmodels import Pln
 pln = Pln.from_formula("endog ~ 1  + labels ", data = data)
 ```
@@ -99,6 +98,7 @@ We rely on the [patsy](https://github.com/pydata/patsy) package for the formula 
 
 * by specifying the `endog`, `exog`, and `offsets` matrices directly:
 ```python
+import numpy as np
 endog = data["endog"]
 exog = data["labels"]
 offsets = np.zeros((endog.shape))
@@ -182,7 +182,7 @@ print(best_pca)
 
 ### Zero inflation with the Zero-Inflated PLN Model (aka `ZIPln` and `ZIPlnPCA`)
 
-The `ZiPln` model, a variant of the PLN model, is designed to handle zero
+The `ZIPln` model, a variant of the PLN model, is designed to handle zero
 inflation in the data. It is defined as follows:
 $$Y_{ij}\sim \mathcal W_{ij} \times  P(\exp(Z_{ij})), \quad \mathbf Z_i \sim \mathcal N(\mathbf o_i + \mathbf B ^{\top} \mathbf x_i, \mathbf \Sigma), \quad W_{ij} \sim \mathcal B(\sigma( \mathbf x_i^{0^{\top}}\mathbf B^0_j))$$
 
@@ -212,8 +212,9 @@ represent the correlation between them. The sparsity of the network is ensured
 via the `penalty` keyword. The larger the penalty, the sparser the network.
 ```python
 from pyPLNmodels import PlnNetwork
-net = PlnNetwork.from_formula("endog ~ 1  + labels ", data = data, penalty = 0.1).fit()
+net = PlnNetwork.from_formula("endog ~ 1  + labels ", data = data, penalty = 200).fit()
 net.viz_network()
+print(net.network)
 ```
 
 ### Supervised clustering with the `PlnLDA` model
