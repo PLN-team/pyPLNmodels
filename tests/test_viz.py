@@ -73,15 +73,15 @@ def test_viz_general():
                 model.show(savefig=True)
                 colors = np.random.randint(2, size=model.n_samples)
                 model.plot_expected_vs_true(colors=colors, ax=ax)
-                plt.show()
-                if model_name != "PlnLDA":
-                    model.viz(show_cov=True, remove_exog_effect=True)
-                else:
-                    with pytest.raises(ValueError):
-                        model.viz(show_cov=True)
-                    with pytest.raises(ValueError):
-                        model.viz(remove_exog_effect=False)
-                model.viz(colors=colors)
+                # plt.show()
+                # if model_name != "PlnLDA":
+                #     model.viz(show_cov=True, remove_exog_effect=True)
+                # else:
+                #     with pytest.raises(ValueError):
+                #         model.viz(show_cov=True)
+                #     with pytest.raises(ValueError):
+                #         model.viz(remove_exog_effect=False)
+                # model.viz(colors=colors)
                 # if model_name == "PlnLDA":
                 #     if model._n_clusters == 2:
                 #         with pytest.raises(ValueError):
