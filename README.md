@@ -1,3 +1,6 @@
+![PyPI](https://img.shields.io/pypi/v/pyPLNmodels)
+![GitHub](https://img.shields.io/github/license/PLN-team/pyPLNmodels)
+
 # PLNmodels: Poisson lognormal models
 
 > The Poisson lognormal model and variants can be used for analysis of multivariate count data.
