@@ -494,10 +494,14 @@ class ARModelViz(BaseModelViz):
         """
         Display a heatmap of the model covariance.
         """
-        autoreg = self._params["ar_coef"].unsqueeze(0)
-        sns.heatmap(autoreg, ax=ax)
-        ax.set_title("Autoregression coefficients")
-        _set_tick_labels_columns(ax, self.column_names)
+        autoreg = self._params["ar_coef"]
+        if autoreg.numel() == 1:
+            _display_scalar_autoreg(autoreg, ax)
+        else:
+            if autoreg.dim() == 1:
+                _display_vector_autoreg(autoreg, ax, self.column_names)
+            else:
+                _display_matrix_autoreg(autoreg, ax, self.column_names)
 
     @property
     def _relationship_matrix_title(self):
@@ -1117,3 +1121,38 @@ def _viz_lda_test(*, transformed_train, y_train, new_X_transformed, colors, ax=N
         colors=colors,
         ax=ax,
     )
+
+
+def _display_matrix_autoreg(autoreg, ax, column_names):
+    sns.heatmap(autoreg, ax=ax)
+    ax.set_title("Autoregression coefficients")
+    _set_tick_labels_columns(ax, column_names)
+
+
+def _display_vector_autoreg(autoreg, ax, column_names):
+    _display_matrix_autoreg(autoreg.unsqueeze(0), ax, column_names)
+
+
+def _display_scalar_autoreg(autoreg, ax):
+    # Ensure autoreg is a scalar between 0 and 1
+    if not 0 <= autoreg <= 1:
+        raise ValueError("autoreg must be a scalar between 0 and 1")
+
+    # Plot a horizontal line from 0 to 1
+    ax.plot([0, 1], [0, 0], "k-", lw=2)
+
+    # Plot the scalar value as a point on the line
+    ax.plot(autoreg, 0, "ro", label="Autoregressive coefficient")
+
+    # Set the x-axis limits to [0, 1]
+    ax.set_xlim(-0.1, 1.1)
+    ax.text(0, 0, "|", ha="center", va="bottom")
+    ax.text(1, 0, "|", ha="center", va="bottom")
+    ax.text(0, -0.01, "Not autoregressive", ha="center", va="top")
+    ax.text(1, -0.01, "Completely autoregressive", ha="center", va="top")
+    ax.set_ylim(-0.1, 0.1)
+    ax.set_yticks([])
+    ax.legend()
+
+    # Optionally, add labels and a title
+    ax.set_title("Autoregressive coefficient")
