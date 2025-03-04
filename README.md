@@ -159,7 +159,10 @@ pln.show()
 ### Dimension reduction with the PLN Principal Component Analysis (aka `PlnPCA` and `PlnPCAcollection`)
 
 This model excels in dimension reduction and is capable of scaling to
-high-dimensional count data ($p >> 1$), by constraining the covariance matrix $\Sigma$ to be of low rank. The user may specify the rank when creating the `PlnPCA` object:
+high-dimensional count data ($p >> 1$), by constraining the covariance matrix
+$\Sigma$ to be of low rank (the larger the rank, the slower the model but the
+better the approximation). The user may specify the rank when creating the
+`PlnPCA` object:
 ```python
 from pyPLNmodels import PlnPCA
 pca = PlnPCA.from_formula("endog ~ 1  + labels ", data = data, rank = 3).fit()

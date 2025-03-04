@@ -91,7 +91,7 @@ def test_label_mapping():
         endog, clusters=torch.nn.functional.one_hot(torch.tensor(sampler.clusters))
     ).fit()
     pred_lda = lda.predict_clusters(endog)
-    plot_confusion_matrix(pred_lda, lda._exog_clusters)
+    plot_confusion_matrix(pred_lda, lda._exog_clusters.cpu())
 
     rna = load_scrna()
     lda = PlnLDA(rna["endog"], clusters=rna["labels_1hot"])
