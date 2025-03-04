@@ -1,5 +1,7 @@
 ![PyPI](https://img.shields.io/pypi/v/pyPLNmodels)
 ![GitHub](https://img.shields.io/github/license/PLN-team/pyPLNmodels)
+![Python Versions](https://img.shields.io/badge/python-3.8%20|%203.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue)
+![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 # PLNmodels: Poisson lognormal models
 
