@@ -69,8 +69,8 @@ class _BaseSampler(ABC):  # pylint: disable=too-many-instance-attributes
         """
         prev_state = torch.random.get_rng_state()
         gaussians = self._get_gaussians(seed=seed)
-        self.latent_variables = gaussians
         endog = torch.poisson(torch.exp(self._offsets + gaussians))
+        self.latent_variables = gaussians.cpu()
         torch.random.set_rng_state(prev_state)
         return endog.cpu()
 

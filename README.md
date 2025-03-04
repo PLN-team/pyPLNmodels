@@ -3,6 +3,7 @@
 ![Python Versions](https://img.shields.io/badge/python-3.8%20|%203.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue)
 ![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![Pylint](https://img.shields.io/badge/pylint-checked-brightgreen)
+![GPU Support](https://img.shields.io/badge/GPU-Supported-brightgreen)
 
 # PLNmodels: Poisson lognormal models
 
