@@ -81,23 +81,23 @@ def test_viz_general():
                     with pytest.raises(ValueError):
                         model.viz(remove_exog_effect=False)
                 model.viz(colors=colors)
-                # if model_name == "PlnLDA":
-                #     if model._n_clusters == 2:
-                #         with pytest.raises(ValueError):
-                #             model.biplot(
-                #                 variable_names=["A", "B"], indices_of_variables=[3, 4]
-                #             )
-                #     else:
-                #         model.biplot(
-                #             variable_names=["A", "B"], indices_of_variables=[3, 4]
-                #         )
-                # else:
-                #     model.biplot(
-                #         variable_names=["A", "B"],
-                #         indices_of_variables=[3, 4],
-                #         colors=colors,
-                #         title="Test",
-                #     )
+                if model_name == "PlnLDA":
+                    if model._n_clusters == 2:
+                        with pytest.raises(ValueError):
+                            model.biplot(
+                                variable_names=["A", "B"], indices_of_variables=[3, 4]
+                            )
+                    else:
+                        model.biplot(
+                            variable_names=["A", "B"], indices_of_variables=[3, 4]
+                        )
+                else:
+                    model.biplot(
+                        variable_names=["A", "B"],
+                        indices_of_variables=[3, 4],
+                        colors=colors,
+                        title="Test",
+                    )
                 #     model.pca_pairplot()
                 #     model.pca_pairplot(n_components=2, colors=colors)
                 # with pytest.raises(ValueError):
