@@ -396,10 +396,10 @@ class PlnLDA(Pln):
             predicted_prob[:, k] = pln_pred.per_sample_elbo
             better_individuals = predicted_prob[:, k] > best_prob
             best_prob[better_individuals] = predicted_prob[better_individuals, k]
-            best_guess_gaussian[better_individuals] = pln_pred.latent_positions[
+            best_guess_gaussian[better_individuals] = pln_pred.latent_positions_device[
                 better_individuals
             ]
-        return predicted_prob, best_guess_gaussian
+        return predicted_prob.detach().cpu(), best_guess_gaussian.detach().cpu()
 
     @property
     def _additional_methods_list(self):
@@ -820,3 +820,8 @@ class _PlnPred(Pln):
 
     def _print_end_init(self):
         pass
+
+    @property
+    def latent_positions_device(self):
+        """Latent positions on the GPU device if GPU is available."""
+        return self._latent_mean - self._marginal_mean
