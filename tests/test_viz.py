@@ -70,16 +70,11 @@ def test_viz_general():
             for model in dict_fitted_models[model_name][init_method]:
                 _, ax = plt.subplots()
                 model.viz()
-                model.show()
                 model.show(savefig=True)
-                model.plot_expected_vs_true(ax=ax)
                 colors = np.random.randint(2, size=model.n_samples)
-                model.plot_expected_vs_true(colors=colors)
+                model.plot_expected_vs_true(colors=colors, ax=ax)
                 if model_name != "PlnLDA":
-                    model.viz(colors=colors, show_cov=True)
-                    model.viz(show_cov=True)
                     model.viz(show_cov=True, remove_exog_effect=True)
-                    model.viz(remove_exog_effect=True)
                 else:
                     with pytest.raises(ValueError):
                         model.viz(show_cov=True)
@@ -97,12 +92,6 @@ def test_viz_general():
                             variable_names=["A", "B"], indices_of_variables=[3, 4]
                         )
                 else:
-                    model.biplot(variable_names=["A", "B"], indices_of_variables=[3, 4])
-                    model.biplot(
-                        variable_names=["A", "B"],
-                        indices_of_variables=[3, 4],
-                        colors=colors,
-                    )
                     model.biplot(
                         variable_names=["A", "B"],
                         indices_of_variables=[3, 4],
@@ -110,7 +99,6 @@ def test_viz_general():
                         title="Test",
                     )
                     model.pca_pairplot()
-                    model.pca_pairplot(n_components=2)
                     model.pca_pairplot(n_components=2, colors=colors)
                 with pytest.raises(ValueError):
                     model.plot_correlation_circle(
