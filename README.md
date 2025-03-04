@@ -37,8 +37,7 @@ pip install pyPLNmodels
 
 For those unfamiliar with the concepts of Poisson or Gaussian random variables,
 it is not necessary to delve into these statistical descriptions. The key
-takeaway is as follows:
-This package is designed to analyze multi-dimensional count data. It
+takeaway is as follows: This package is designed to analyze multi-dimensional count data. It
 effectively extracts significant information, such as
 the mean, the relationships with covariates, and the correlation between count
 variables, in a manner appropriate for count data.
