@@ -15,7 +15,8 @@
 > - Ecology (species abundances)
 >
 > One main functionality is to normalize the count data to obtain more valuable
-> data. It also analyzes the significance of each variable and their correlation as well as the weight of
+> data. It also analyzes the significance of each variable and their
+> correlation as well as the weight of
 > covariates (if available).
 
 ## Getting started
