@@ -212,7 +212,9 @@ class Pln(BaseModel):
         )
 
     def _get_two_dim_latent_variances(self, sklearn_components):
-        _get_two_dim_latent_variances(sklearn_components, self.latent_sqrt_variance)
+        return _get_two_dim_latent_variances(
+            sklearn_components, self.latent_sqrt_variance
+        )
 
     @property
     @_add_doc(

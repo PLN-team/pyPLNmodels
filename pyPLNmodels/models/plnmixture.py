@@ -111,7 +111,7 @@ class PlnMixture(
         )
         if self._exog is not None:
             _exog_and_ones = torch.cat(
-                (self._exog, torch.ones(self.n_samples).unsqueeze(1)), dim=1
+                (self._exog, torch.ones(self.n_samples).unsqueeze(1).to(DEVICE)), dim=1
             )
             _check_full_rank_exog_and_ones(_exog_and_ones)
 
