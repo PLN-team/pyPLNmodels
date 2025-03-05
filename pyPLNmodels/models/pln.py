@@ -269,6 +269,7 @@ class Pln(BaseModel):
             ".get_confidence_interval_coef()",
             ".summary()",
             ".get_coef_p_values()",
+            ".plot_regression_forest()",
         ]
 
     @_add_doc(
