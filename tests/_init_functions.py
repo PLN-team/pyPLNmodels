@@ -10,7 +10,7 @@ from pyPLNmodels import (
     PlnLDA,
 )
 
-PENALTY = 1
+PENALTY = 200
 
 
 def _basic_init(model):
