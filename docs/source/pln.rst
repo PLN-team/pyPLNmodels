@@ -1,9 +1,14 @@
 Pln
 ===
 
+Pln Documentation
+-----------------
+
 .. autoclass:: pyPLNmodels.Pln
    :members:
    :inherited-members:
    :special-members: __init__
-   :undoc-members:
-   :show-inheritance:
+
+List of methods and attributes
+------------------------------
+.. autoclasstoc:: pyPLNmodels.Pln
