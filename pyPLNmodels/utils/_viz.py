@@ -366,11 +366,11 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         ax.set_ylabel("Criterion", fontsize=9)
         ax.legend()
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -433,11 +433,11 @@ class LDAModelViz(BaseModelViz):
         ax.legend()
         ax.set_title("Norm of each parameter.", fontsize=8)
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(3, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -466,11 +466,11 @@ class ARModelViz(BaseModelViz):
     Model visualization class for a Pln model with autoregressive.
     """
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -528,13 +528,13 @@ class ZIModelViz(BaseModelViz):
     Visualize the parameters of a ZIPln model and the optimization process.
     """
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Show the model but adds a zero inflation graph for the associated
         coefficient. Graphs are reordered so that `coef` and `coef_inflation`
         can be directly compared (compared to `show`).
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
@@ -566,14 +566,13 @@ class MixtureModelViz(BaseModelViz):
     Visualize the parameters of a MixturePln model and the optimization process.
     """
 
-    def show(self, *, savefig, name_file):
-        weights = self._params["weights"]
+    def show(self, *, savefig, name_file, figsize):
         cluster_bias = self._params["cluster_bias"]
         variances = self._params["covariances"]
 
-        n_clusters = len(weights)
+        n_clusters = len(self._params["weights"])
 
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(3, n_clusters + 2, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0:n_clusters])
@@ -583,7 +582,7 @@ class MixtureModelViz(BaseModelViz):
         ax4 = fig.add_subplot(gs[1, n_clusters : n_clusters + 2])
         ax5 = fig.add_subplot(gs[2, n_clusters : n_clusters + 2])
 
-        self._plot_weights(ax1, weights)
+        self._plot_weights(ax1, self._params["weights"])
         self._plot_cluster_biases(axes_means, cluster_bias, n_clusters)
         self._plot_variances(axes_variances, variances, n_clusters)
 
@@ -809,7 +808,7 @@ def _plot_expected_vs_true(
     return ax
 
 
-def _show_information_criterion(*, bic, aic, loglikes):
+def _show_information_criterion(*, bic, aic, loglikes, figsize):
     colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
 
     best_bic_rank = list(bic.keys())[np.argmin(list(bic.values()))]
@@ -817,6 +816,7 @@ def _show_information_criterion(*, bic, aic, loglikes):
 
     criteria = ["BIC", "AIC", "Negative log likelihood"]
     values_list = [bic, aic, loglikes]
+    _get_figure(figsize)
 
     for criterion, values in zip(criteria, values_list):
         plt.scatter(
@@ -911,8 +911,8 @@ def _set_tick_labels_columns(ax, column_names):
     ax.set_xticklabels(tick_labels, rotation=90, fontsize=6)
 
 
-def _get_figure():
-    return plt.figure(figsize=(20, 12))
+def _get_figure(figsize):
+    return plt.figure(figsize=figsize)
 
 
 def plot_confusion_matrix(
