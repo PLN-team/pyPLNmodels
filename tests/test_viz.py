@@ -66,58 +66,62 @@ def test_plot_ellipse():
 
 def test_viz_general():
     for model_name in dict_fitted_models:
-        for model in dict_fitted_models[model_name]["formula"]:
-            _, ax = plt.subplots()
-            model.viz()
-            model.show(savefig=True)
-            colors = np.random.randint(2, size=model.n_samples)
-            model.plot_expected_vs_true(colors=colors, ax=ax)
-            plt.clf()
-            plt.close("all")
-            # plt.show()
-            # if model_name != "PlnLDA":
-            #     model.viz(show_cov=True, remove_exog_effect=True)
-            # else:
-            #     with pytest.raises(ValueError):
-            #         model.viz(show_cov=True)
-            #     with pytest.raises(ValueError):
-            #         model.viz(remove_exog_effect=False)
-            # model.viz(colors=colors)
-            # if model_name == "PlnLDA":
-            #     if model._n_clusters == 2:
-            #         with pytest.raises(ValueError):
-            #             model.biplot(
-            #                 variable_names=["A", "B"], indices_of_variables=[3, 4]
-            #             )
-            #     else:
-            #         model.biplot(
-            #             variable_names=["A", "B"], indices_of_variables=[3, 4]
-            #         )
-            # else:
-            #     model.biplot(
-            #         variable_names=["A", "B"],
-            #         indices_of_variables=[3, 4],
-            #         colors=colors,
-            #         title="Test",
-            #     )
-            #     model.pca_pairplot()
-            #     model.pca_pairplot(n_components=2, colors=colors)
-            # with pytest.raises(ValueError):
-            #     model.plot_correlation_circle(
-            #         variable_names=["A", "B"], indices_of_variables=[1, 2, 3]
-            #     )
+        for init_method in ["formula", "explicit"]:
+            for model in dict_fitted_models[model_name][init_method]:
+                _, ax = plt.subplots()
+                model.viz()
+                model.show(savefig=True)
+                colors = np.random.randint(2, size=model.n_samples)
+                model.plot_expected_vs_true(colors=colors, ax=ax)
+                plt.clf()
+                plt.close("all")
+                plt.show()
+                if model_name != "PlnLDA":
+                    model.viz(show_cov=True, remove_exog_effect=True)
+                else:
+                    with pytest.raises(ValueError):
+                        model.viz(show_cov=True)
+                    with pytest.raises(ValueError):
+                        model.viz(remove_exog_effect=False)
+                model.viz(colors=colors)
+                if model_name == "PlnLDA":
+                    if model._n_clusters == 2:
+                        with pytest.raises(ValueError):
+                            model.biplot(
+                                variable_names=["A", "B"], indices_of_variables=[3, 4]
+                            )
+                    else:
+                        model.biplot(
+                            variable_names=["A", "B"], indices_of_variables=[3, 4]
+                        )
+                else:
+                    model.biplot(
+                        variable_names=["A", "B"],
+                        indices_of_variables=[3, 4],
+                        colors=colors,
+                        title="Test",
+                    )
+                    model.pca_pairplot()
+                    model.pca_pairplot(n_components=2, colors=colors)
+                with pytest.raises(ValueError):
+                    model.plot_correlation_circle(
+                        variable_names=["A", "B"], indices_of_variables=[1, 2, 3]
+                    )
+                plt.clf()
+                plt.close("all")
+                plt.show()
 
 
-def test_viz_general():
-    for model_name in dict_fitted_models:
-        for model in dict_fitted_models[model_name]["explicit"]:
-            _, ax = plt.subplots()
-            model.viz()
-            model.show(savefig=True)
-            colors = np.random.randint(2, size=model.n_samples)
-            model.plot_expected_vs_true(colors=colors, ax=ax)
-            plt.clf()
-            plt.close("all")
+# def test_viz_general():
+#     for model_name in dict_fitted_models:
+#         for model in dict_fitted_models[model_name]["explicit"]:
+#             _, ax = plt.subplots()
+#             model.viz()
+#             model.show(savefig=True)
+#             colors = np.random.randint(2, size=model.n_samples)
+#             model.plot_expected_vs_true(colors=colors, ax=ax)
+#             plt.clf()
+#             plt.close("all")
 
 
 def test_show_big_matrix():
