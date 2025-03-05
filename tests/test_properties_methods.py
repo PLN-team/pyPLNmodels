@@ -37,7 +37,7 @@ def method_test(model, method, model_name):
             result = method_to_call()
 
 
-def test_attributes_method():
+def test_attributes_formula_method():
     for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["formula"]:
             attributes = model._useful_attributes_list
@@ -49,6 +49,10 @@ def test_attributes_method():
             for method in methods:  # pylint: disable=protected-access
                 method_test(model, method, model_name)
             print(model)
+
+
+def test_attributes_formula_method():
+    for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["explicit"]:
             attributes = (
                 model._useful_attributes_list + model._additional_attributes_list
