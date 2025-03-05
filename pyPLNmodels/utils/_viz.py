@@ -978,7 +978,7 @@ def plot_confusion_matrix(
 
 
 def _show_mat(mat, xlabels, ylabels, ax):
-    _ = ax.imshow(mat)
+    _ = ax.imshow(mat, cmap="Blues")
     ax.set_xticks(
         range(len(xlabels)),
         labels=xlabels,
@@ -1167,3 +1167,114 @@ def _display_scalar_autoreg(autoreg, ax):
 
     # Optionally, add labels and a title
     ax.set_title("Autoregressive coefficient")
+
+
+def _plot_regression_forest(coef_left, coef_right, column_names, exog_names):
+    """
+    Creates a forest plot for regression coefficients with confidence intervals.
+
+    Parameters:
+        coef_left np.array : Lower confidence interval values.
+        coef_right np.array: Upper confidence interval values.
+        column_names (list): List of gene names (column names in the dataset).
+        exog_names (list): List of group names.
+
+    Returns:
+        None (displays the plot).
+    """
+
+    # Create DataFrame for plotting
+    df_list = []
+    for i, group in enumerate(exog_names):
+        temp_df = pd.DataFrame(
+            {
+                "Gene": column_names,
+                "Coefficient": (coef_left[i] + coef_right[i]) / 2,  # Midpoint estimate
+                "Lower CI": coef_left[i],
+                "Upper CI": coef_right[i],
+                "CI Lower": (coef_left[i] + coef_right[i]) / 2
+                - coef_left[i],  # Distance to lower bound
+                "CI Upper": coef_right[i]
+                - (coef_left[i] + coef_right[i]) / 2,  # Distance to upper bound
+                "Group": group,
+            }
+        )
+        df_list.append(temp_df)
+
+    df = pd.concat(df_list, ignore_index=True)
+
+    # Define significance classification
+    df["Significance"] = df.apply(
+        lambda x: (
+            "Significantly positive"
+            if x["Lower CI"] > 0
+            else ("Significantly negative" if x["Upper CI"] < 0 else "Not Significant")
+        ),
+        axis=1,
+    )
+
+    # Ensure genes are aligned across facets
+    df["Gene"] = pd.Categorical(
+        df["Gene"], categories=column_names[::-1], ordered=True
+    )  # Reverse order for correct alignment
+
+    # fig = _get_figure(figsize)
+    sns.set_style("whitegrid")
+    # ax = fig.add_subplot(111)
+
+    # Facet plot for each cell type
+    g = sns.FacetGrid(
+        df, col="Group", sharex=True, sharey=True, height=6, aspect=1.2, despine=False
+    )
+
+    # Scatter plot with confidence intervals
+    g.map_dataframe(
+        sns.scatterplot,
+        x="Coefficient",
+        y="Gene",
+        hue="Significance",
+        palette={
+            "Not Significant": "purple",
+            "Significantly negative": "teal",
+            "Significantly positive": "gold",
+        },
+        edgecolor="black",
+        s=50,
+    )
+
+    # Add confidence intervals (horizontal error bars)
+    for ax, label in zip(g.axes.flat, exog_names):
+        subset = df[df["Group"] == label]
+
+        # Add alternating row colors for readability
+        y_positions = np.arange(len(column_names))
+        for i in range(0, len(y_positions), 2):  # Shade every second row
+            ax.axhspan(
+                y_positions[i] - 0.5,
+                y_positions[i] + 0.5,
+                color="lightblue",
+                alpha=0.4,
+                zorder=-1,
+            )
+
+        ax.errorbar(
+            subset["Coefficient"],
+            subset["Gene"],
+            xerr=[subset["CI Lower"], subset["CI Upper"]],
+            fmt="none",
+            ecolor="black",
+            elinewidth=1,
+            capsize=3,
+        )
+
+    # Adjust aesthetics
+    g.add_legend(title="")
+    for ax in g.axes.flat:
+        ax.axvline(x=0, color="black", linestyle="dashed", linewidth=1)
+
+    for ax, label in zip(g.axes.flat, exog_names):
+        ax.set_title(label)
+
+    g.set_axis_labels("95% CI of regression parameter coef", "Column")
+    # fig.canvas.draw()
+    plt.show()
