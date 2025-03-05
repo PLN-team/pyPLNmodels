@@ -49,9 +49,11 @@ def test_attributes_formula_method():
             for method in methods:  # pylint: disable=protected-access
                 method_test(model, method, model_name)
             print(model)
+            plt.clf()
+            plt.close("all")
 
 
-def test_attributes_formula_method():
+def test_attributes_explicit_method():
     for model_name in dict_fitted_models.keys():
         for model in dict_fitted_models[model_name]["explicit"]:
             attributes = (
@@ -65,6 +67,8 @@ def test_attributes_formula_method():
             for method in methods:  # pylint: disable=protected-access
                 method_test(model, method, model_name)
             print(model)
+            plt.clf()
+            plt.close("all")
 
 
 def test_properties_pln():

@@ -72,6 +72,8 @@ def test_viz_general():
             model.show(savefig=True)
             colors = np.random.randint(2, size=model.n_samples)
             model.plot_expected_vs_true(colors=colors, ax=ax)
+            plt.clf()
+            plt.close("all")
             # plt.show()
             # if model_name != "PlnLDA":
             #     model.viz(show_cov=True, remove_exog_effect=True)
@@ -114,6 +116,8 @@ def test_viz_general():
             model.show(savefig=True)
             colors = np.random.randint(2, size=model.n_samples)
             model.plot_expected_vs_true(colors=colors, ax=ax)
+            plt.clf()
+            plt.close("all")
 
 
 def test_show_big_matrix():
