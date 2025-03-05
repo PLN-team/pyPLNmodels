@@ -1,5 +1,4 @@
 import torch
-from tqdm import tqdm
 
 
 class SandwichPln:  # pylint: disable=too-many-instance-attributes
@@ -69,7 +68,7 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
         mat_cn = torch.zeros(self.nb_cov * self.dim, self.nb_cov * self.dim).to(
             self._endog.device
         )
-        for i in tqdm(range(self.n_samples)):
+        for i in range(self.n_samples):
             mat_i = self._get_mat_i_cn(i)
             big_mat = torch.zeros(mat_i.shape).to(self._endog.device)
             big_mat[:] = mat_i[:]
