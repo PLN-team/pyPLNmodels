@@ -361,10 +361,9 @@ class BaseModel(
             )
         else:
             print(
-                "Maximum number of iterations reached : ",
-                self._elbo_criterion_monitor.iteration_number,
-                ".\nLast criterion = ",
-                np.round(self._elbo_criterion_monitor.criterion, 8),
+                f"Maximum number of iterations ({self._elbo_criterion_monitor.iteration_number})",
+                f" reached in {self._time_recorder.running_times[-1]:.1f} seconds.\nLast ",
+                f"criterion = {np.round(self._elbo_criterion_monitor.criterion, 8)}",
                 f". Required tolerance = {tol}",
             )
 
