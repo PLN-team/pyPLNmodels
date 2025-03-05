@@ -1,48 +1,68 @@
 import importlib.metadata
 
+from .load_data import (
+    load_oaks,
+    load_scrna,
+    load_microcosm,
+    load_crossover,
+    load_crossover_per_chromosom,
+)
+
 from .models import (
-    PlnPCAcollection,
     Pln,
     PlnPCA,
+    PlnPCAcollection,
     ZIPln,
-    Brute_ZIPln,
-)  # pylint:disable=[C0114]
-from .oaks import load_oaks
-from .elbos import profiled_elbo_pln, elbo_plnpca, elbo_pln
-from .sampling import (
-    PlnParameters,
-    ZIPlnParameters,
-    sample_pln,
-    sample_zipln,
-    get_pln_simulated_count_data,
-    get_zipln_simulated_count_data,
-    get_simulation_parameters,
+    ZIPlnPCA,
+    PlnNetwork,
+    PlnDiag,
+    PlnMixture,
+    PlnAR,
+    PlnLDA,
 )
 
-from .scrna import load_scrna
-from .microcosm import load_microcosm
 
-from .load import load_model, load_plnpcacollection, load_pln, load_plnpca
+from .sampling import (
+    PlnSampler,
+    PlnPCASampler,
+    ZIPlnSampler,
+    ZIPlnPCASampler,
+    PlnNetworkSampler,
+    PlnDiagSampler,
+    PlnMixtureSampler,
+    PlnARSampler,
+    PlnLDASampler,
+)
 
-from ._initialization import log_posterior
+from .utils import get_confusion_matrix, get_label_mapping, plot_confusion_matrix
 
-__all__ = (
-    "PlnPCAcollection",
+__version__ = importlib.metadata.version("pyplnmodels")
+
+__all__ = [
     "Pln",
     "PlnPCA",
-    "profiled_elbo_pln",
-    "elbo_plnpca",
-    "elbo_pln",
-    "get_pln_simulated_count_data",
-    "get_zipln_simulated_count_data",
+    "PlnPCAcollection",
+    "PlnMixture",
+    "PlnSampler",
+    "PlnPCASampler",
+    "ZIPlnSampler",
+    "ZIPln",
+    "PlnNetwork",
+    "PlnNetworkSampler",
+    "PlnDiag",
+    "PlnDiagSampler",
+    "ZIPlnPCASampler",
+    "ZIPlnPCA",
+    "PlnARSampler",
+    "PlnAR",
+    "PlnLDA",
+    "PlnLDASampler",
+    "get_confusion_matrix",
+    "plot_confusion_matrix",
+    "get_label_mapping",
+    "load_microcosm",
+    "load_oaks",
+    "load_crossover_per_chromosom",
+    "load_crossover",
     "load_scrna",
-    "load_model",
-    "load_plnpcacollection",
-    "load_pln",
-    "load_plnpca",
-    "sample_pln",
-    "log_posterior",
-    "get_simulation_parameters",
-    "PlnParameters",
-)
-__version__ = importlib.metadata.version("pyPLNmodels")
+]
