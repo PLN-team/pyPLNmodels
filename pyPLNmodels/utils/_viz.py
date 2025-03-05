@@ -283,6 +283,7 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         self._name = pln._name
         self.column_names = pln.column_names_endog
         self.n_samples = pln.n_samples
+        self.column_names_exog = pln.column_names_exog
 
     def display_relationship_matrix(self, *, ax: matplotlib.axes.Axes):
         """
@@ -302,7 +303,9 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
                 cov_to_show = relationship_matrix
         sns.heatmap(cov_to_show, ax=ax)
         ax.set_title(self._relationship_matrix_title)
-        _set_tick_labels_columns(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names)
+        if is_diagonal is False:
+            _set_tick_labels(ax, self.column_names, x_or_y="y")
 
     def _get_relationship_matrix(self):
         return self._params["covariance"]
@@ -329,7 +332,8 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
             )
 
         ax.set_title("Regression Coefficient Matrix", fontsize=9)
-        _set_tick_labels_columns(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names_exog, x_or_y="y")
 
     def display_norm_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -558,7 +562,7 @@ class ZIModelViz(BaseModelViz):
         coef_inflation = self._params["coef_inflation"]
         sns.heatmap(coef_inflation, ax=ax)
         ax.set_title("Zero inflation Regression Coefficient Matrix")
-        _set_tick_labels_columns(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names)
 
 
 class MixtureModelViz(BaseModelViz):
@@ -901,14 +905,21 @@ def _viz_dims(*, variables, indices_of_variables, variable_names, colors, displa
     plt.show()
 
 
-def _set_tick_labels_columns(ax, column_names):
-    tick_positions = ax.get_xticks()
+def _set_tick_labels(ax, column_names, x_or_y="x"):
+    if x_or_y == "x":
+        tick_positions = ax.get_xticks()
+    else:
+        tick_positions = ax.get_yticks()
+
     tick_labels = [
         column_names[int(pos)] for pos in tick_positions if int(pos) < len(column_names)
     ]
-
-    ax.set_xticks(tick_positions)
-    ax.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+    if x_or_y == "x":
+        ax.set_xticks(tick_positions)
+        ax.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+    else:
+        ax.set_yticks(tick_positions)
+        ax.set_yticklabels(tick_labels, rotation=45, fontsize=6)
 
 
 def _get_figure(figsize):
@@ -1126,7 +1137,7 @@ def _viz_lda_test(*, transformed_train, y_train, new_X_transformed, colors, ax=N
 def _display_matrix_autoreg(autoreg, ax, column_names):
     sns.heatmap(autoreg, ax=ax)
     ax.set_title("Autoregression coefficients")
-    _set_tick_labels_columns(ax, column_names)
+    _set_tick_labels(ax, column_names)
 
 
 def _display_vector_autoreg(autoreg, ax, column_names):
