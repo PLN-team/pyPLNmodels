@@ -40,36 +40,37 @@ def method_test(model, method, model_name):
 
 def test_attributes_formula_method():
     for model_name in dict_fitted_models.keys():
-        for model in dict_fitted_models[model_name]["formula"]:
-            attributes = model._useful_attributes_list
-            methods = get_methods_model(model)
-            for attribute in attributes:  # pylint: disable=protected-access
-                attribute = attribute[1:]
-                assert hasattr(model, attribute)
-                attribute_value = getattr(model, attribute)
-            for method in methods:  # pylint: disable=protected-access
-                method_test(model, method, model_name)
-            print(model)
-            plt.clf()
-            plt.close("all")
+        for init_method in ["formula", "explicit"]:
+            for model in dict_fitted_models[model_name][init_method]:
+                attributes = model._useful_attributes_list
+                methods = get_methods_model(model)
+                for attribute in attributes:  # pylint: disable=protected-access
+                    attribute = attribute[1:]
+                    assert hasattr(model, attribute)
+                    attribute_value = getattr(model, attribute)
+                for method in methods:  # pylint: disable=protected-access
+                    method_test(model, method, model_name)
+                print(model)
+                plt.clf()
+                plt.close("all")
 
 
-def test_attributes_explicit_method():
-    for model_name in dict_fitted_models.keys():
-        for model in dict_fitted_models[model_name]["explicit"]:
-            attributes = (
-                model._useful_attributes_list + model._additional_attributes_list
-            )
-            methods = get_methods_model(model)
-            for attribute in attributes:  # pylint: disable=protected-access
-                attribute = attribute[1:]
-                assert hasattr(model, attribute)
-                attribute_value = getattr(model, attribute)
-            for method in methods:  # pylint: disable=protected-access
-                method_test(model, method, model_name)
-            print(model)
-            plt.clf()
-            plt.close("all")
+# def test_attributes_explicit_method():
+#     for model_name in dict_fitted_models.keys():
+#         for model in dict_fitted_models[model_name]["explicit"]:
+#             attributes = (
+#                 model._useful_attributes_list + model._additional_attributes_list
+#             )
+#             methods = get_methods_model(model)
+#             for attribute in attributes:  # pylint: disable=protected-access
+#                 attribute = attribute[1:]
+#                 assert hasattr(model, attribute)
+#                 attribute_value = getattr(model, attribute)
+#             for method in methods:  # pylint: disable=protected-access
+#                 method_test(model, method, model_name)
+#             print(model)
+#             plt.clf()
+#             plt.close("all")
 
 
 def test_properties_pln():
