@@ -112,18 +112,6 @@ def test_viz_general():
                 plt.show()
 
 
-# def test_viz_general():
-#     for model_name in dict_fitted_models:
-#         for model in dict_fitted_models[model_name]["explicit"]:
-#             _, ax = plt.subplots()
-#             model.viz()
-#             model.show(savefig=True)
-#             colors = np.random.randint(2, size=model.n_samples)
-#             model.plot_expected_vs_true(colors=colors, ax=ax)
-#             plt.clf()
-#             plt.close("all")
-
-
 def test_show_big_matrix():
     sampler = PlnPCASampler(dim=500)
     endog = sampler.sample()
@@ -144,7 +132,7 @@ def test_display_norm_no_ax():
     pln = Pln(rna["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
-    modviz.show(savefig=True, name_file="Test")
+    modviz.show(savefig=True, name_file="Test", figsize=(10, 12))
 
 
 def test_display_norm_no_ax_zi():
@@ -152,7 +140,7 @@ def test_display_norm_no_ax_zi():
     pln = ZIPln(rna["endog"])
     pln.fit()
     modviz = pln._get_model_viz()
-    modviz.show(savefig=True, name_file="Test")
+    modviz.show(savefig=True, name_file="Test", figsize=(10, 12))
 
 
 def test_plot_correlation_circle_pandas():
