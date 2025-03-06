@@ -21,6 +21,8 @@ from pyPLNmodels.utils._utils import calculate_correlation, get_confusion_matrix
 
 DEFAULT_TOL = 1e-6
 
+PALETTE = None
+
 
 def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float:
     """
@@ -128,16 +130,16 @@ def _viz_variables(
         nb_colors = len(np.unique(colors))
         if nb_colors > 15:
             sns.scatterplot(
-                x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis", legend=False
+                x=x, y=y, hue=colors, ax=ax, s=80, palette=PALETTE, legend=False
             )
             norm = plt.Normalize(0, nb_colors)
-            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm = plt.cm.ScalarMappable(cmap=PALETTE, norm=norm)
             sm.set_array([])  # Required for colorbar
             plt.colorbar(sm, label="Value", ax=ax)
         else:
-            sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
+            sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette=PALETTE)
     else:
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette=PALETTE)
     if covariances is not None:
         for i in range(covariances.shape[0]):
             _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
@@ -681,7 +683,7 @@ def _plot_pairplot(data, colors):
                             y=data[jcol],
                             ax=ax[j][i],
                             hue=colors,
-                            palette="viridis",
+                            palette=PALETTE,
                             legend=False,
                         )
                     if i == 0:
@@ -692,13 +694,13 @@ def _plot_pairplot(data, colors):
                         ax[j][i].set_xlabel(icol)
                     else:
                         ax[j][i].set_xlabel("")
-            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm = plt.cm.ScalarMappable(cmap=PALETTE, norm=norm)
             sm.set_array([])  # Required for colorbar
             fig.colorbar(sm, ax=ax, orientation="vertical", label="Value")
         else:
             colors = np.array(colors)
             data["labels"] = pd.Categorical(colors, categories=pd.unique(colors))
-            sns.pairplot(data, hue="labels", palette="viridis")
+            sns.pairplot(data, hue="labels", palette=PALETTE)
     else:
         sns.pairplot(data, diag_kind="kde")
     plt.show()
@@ -999,7 +1001,7 @@ def _plot_lda_2d_projection(
         x=transformed_lda_test[:, 0],
         y=transformed_lda_test[:, 1],
         hue=colors,
-        palette="viridis",
+        palette=PALETTE,
         edgecolor="black",
         ax=ax,
     )
@@ -1021,7 +1023,7 @@ def _plot_lda_1d_projection(
         label="Class 0 (train data)",
         alpha=0.5,
         ax=ax,
-        palette="viridis",
+        palette=PALETTE,
     )
     sns.kdeplot(
         transformed_lda_train[y_train == 1].ravel(),
@@ -1029,7 +1031,7 @@ def _plot_lda_1d_projection(
         label="Class 1 (train data)",
         alpha=0.5,
         ax=ax,
-        palette="viridis",
+        palette=PALETTE,
     )
     ax.axvline(boundary, color="black", linestyle="--", label="Decision Boundary")
 
@@ -1038,7 +1040,7 @@ def _plot_lda_1d_projection(
         x=transformed_lda_test.squeeze(),
         y=jitter.squeeze(),
         hue=colors,
-        palette="viridis",
+        palette=PALETTE,
         edgecolor="k",
         s=80,
         alpha=0.7,
@@ -1068,7 +1070,7 @@ def _plot_contour_lda(transformed_lda_train, y_train, ax):
     lda_2d.fit(transformed_lda_train_2d, y_train)
     prediction = lda_2d.predict(np.c_[xx.ravel(), yy.ravel()])
     prediction = prediction.reshape(xx.shape)
-    cmap = ListedColormap(sns.color_palette("viridis", 3).as_hex())
+    cmap = ListedColormap(sns.color_palette(PALETTE, 3).as_hex())
     ax.contourf(xx, yy, prediction, alpha=0.3, cmap=cmap)
 
 
@@ -1169,7 +1171,7 @@ def _display_scalar_autoreg(autoreg, ax):
     ax.set_title("Autoregressive coefficient")
 
 
-def _plot_regression_forest(coef_left, coef_right, column_names, exog_names):
+def _plot_regression_forest(coef_left, coef_right, column_names, exog_names, figsize):
     """
     Creates a forest plot for regression coefficients with confidence intervals.
 
@@ -1178,6 +1180,7 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names):
         coef_right np.array: Upper confidence interval values.
         column_names (list): List of gene names (column names in the dataset).
         exog_names (list): List of group names.
+        figsize (tuple): Size of the figure.
 
     Returns:
         None (displays the plot).
@@ -1218,32 +1221,17 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names):
         df["Gene"], categories=column_names[::-1], ordered=True
     )  # Reverse order for correct alignment
 
-    # fig = _get_figure(figsize)
-    sns.set_style("whitegrid")
-    # ax = fig.add_subplot(111)
-
-    # Facet plot for each cell type
-    g = sns.FacetGrid(
-        df, col="Group", sharex=True, sharey=True, height=6, aspect=1.2, despine=False
-    )
+    # Create subplots
+    fig, axes = plt.subplots(1, len(exog_names), figsize=figsize, sharey=True)
 
     # Scatter plot with confidence intervals
-    g.map_dataframe(
-        sns.scatterplot,
-        x="Coefficient",
-        y="Gene",
-        hue="Significance",
-        palette={
-            "Not Significant": "purple",
-            "Significantly negative": "teal",
-            "Significantly positive": "gold",
-        },
-        edgecolor="black",
-        s=50,
-    )
+    colors = {
+        "Not Significant": "purple",
+        "Significantly negative": "teal",
+        "Significantly positive": "gold",
+    }
 
-    # Add confidence intervals (horizontal error bars)
-    for ax, label in zip(g.axes.flat, exog_names):
+    for ax, label in zip(axes, exog_names):
         subset = df[df["Group"] == label]
 
         # Add alternating row colors for readability
@@ -1257,6 +1245,15 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names):
                 zorder=-1,
             )
 
+        scatter = ax.scatter(
+            subset["Coefficient"],
+            subset["Gene"],
+            c=subset["Significance"].map(colors),
+            edgecolor="black",
+            s=50,
+        )
+
+        # Add confidence intervals (horizontal error bars)
         ax.errorbar(
             subset["Coefficient"],
             subset["Gene"],
@@ -1267,14 +1264,28 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names):
             capsize=3,
         )
 
-    # Adjust aesthetics
-    g.add_legend(title="")
-    for ax in g.axes.flat:
+        # Adjust aesthetics
         ax.axvline(x=0, color="black", linestyle="dashed", linewidth=1)
+        ax.set_title(f"Group: {label}")
+        ax.set_ylabel("Column")
 
-    for ax, label in zip(g.axes.flat, exog_names):
-        ax.set_title(label)
+    # Set common x-label
+    fig.text(0.5, 0.04, "95% CI of regression parameter coef", ha="center")
 
-    g.set_axis_labels("95% CI of regression parameter coef", "Column")
-    # fig.canvas.draw()
+    # Set y-label for the leftmost subplot
+    fig.text(0.04, 0.5, "Gene", va="center", rotation="vertical")
+
+    # Adjust layout
+    fig.tight_layout(rect=[0.05, 0.05, 1, 1])
+
+    # Add legend
+    handles = [
+        plt.Line2D(
+            [0], [0], marker="o", color="w", markerfacecolor=color, markersize=10
+        )
+        for color in colors.values()
+    ]
+    labels = list(colors.keys())
+    fig.legend(handles, labels, title="Significance", loc="lower left", ncols=3)
+
     plt.show()

@@ -553,7 +553,7 @@ class Pln(BaseModel):
                 p_val = p_val if p_val > 1e-16 else 1e-16
                 print(f"{exog_name:<20} {coef.item():>15.6f} {p_val:>15.2g}")
 
-    def plot_regression_forest(self, alpha: float = 0.05):
+    def plot_regression_forest(self, alpha: float = 0.05, figsize: tuple = (10, 10)):
         """
         Creates a forest plot for regression coefficients with confidence intervals (5%).
 
@@ -561,6 +561,8 @@ class Pln(BaseModel):
         ----------
         alpha: float
             The confidence parameter.
+        figsize: tuple
+            The size of the figure.
         """
         if self.nb_cov == 0:
             print("No exog in the model, so no coefficients. Returning None")
@@ -571,4 +573,5 @@ class Pln(BaseModel):
             coef_right,
             self.column_names_endog,
             self.column_names_exog,
+            figsize=figsize,
         )
