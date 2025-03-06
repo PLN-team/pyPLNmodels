@@ -562,8 +562,11 @@ class Pln(BaseModel):
         alpha: float
             The confidence parameter.
         """
+        if self.nb_cov == 0:
+            print("No exog in the model, so no coefficients. Returning None")
+            return None
         coef_left, coef_right = self.get_confidence_interval_coef(alpha=alpha)
-        _plot_regression_forest(
+        return _plot_regression_forest(
             coef_left,
             coef_right,
             self.column_names_endog,
