@@ -18,6 +18,9 @@ from pyPLNmodels.utils._utils import _add_doc
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+REGULARIZATION = 0.0001
+
+
 class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     """
     Zero-Inflated Pln Principal Component Analysis (ZIPlnPCA) class.
@@ -466,6 +469,9 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
             marginal_mean_inflation=self._marginal_mean_inflation,
             dirac=self._dirac,
         )
+
+    def _compute_loss(self, elbo):
+        return -elbo
 
     @property
     def _covariance(self):
