@@ -55,24 +55,6 @@ def test_attributes_formula_method():
                 plt.close("all")
 
 
-# def test_attributes_explicit_method():
-#     for model_name in dict_fitted_models.keys():
-#         for model in dict_fitted_models[model_name]["explicit"]:
-#             attributes = (
-#                 model._useful_attributes_list + model._additional_attributes_list
-#             )
-#             methods = get_methods_model(model)
-#             for attribute in attributes:  # pylint: disable=protected-access
-#                 attribute = attribute[1:]
-#                 assert hasattr(model, attribute)
-#                 attribute_value = getattr(model, attribute)
-#             for method in methods:  # pylint: disable=protected-access
-#                 method_test(model, method, model_name)
-#             print(model)
-#             plt.clf()
-#             plt.close("all")
-
-
 def test_properties_pln():
     pln = get_fitted_model("Pln", "formula", {"nb_cov": 0, "add_const": False})
     assert pln.precision.shape == (pln.dim, pln.dim)
