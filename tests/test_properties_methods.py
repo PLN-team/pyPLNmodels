@@ -21,6 +21,7 @@ def get_methods_model(model):
             ".transform_new()",
             ".viz_transformed()",
             ".viz_dims()",
+            ".plot_regression_forest()",
         ]
     ]
     return methods
