@@ -38,9 +38,7 @@ tests:
     # - rm docstrings_examples/models/*.py
     - pytest .
   only:
-    - main
     - dev
-    - tags
 
 
 build_package:

@@ -18,6 +18,7 @@ from pyPLNmodels.utils._utils import (
     _none_if_no_exog,
     _get_two_dim_latent_variances,
 )
+from pyPLNmodels.utils._viz import _plot_regression_forest
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -268,6 +269,7 @@ class Pln(BaseModel):
             ".get_confidence_interval_coef()",
             ".summary()",
             ".get_coef_p_values()",
+            ".plot_regression_forest()",
         ]
 
     @_add_doc(
@@ -550,3 +552,26 @@ class Pln(BaseModel):
             ):
                 p_val = p_val if p_val > 1e-16 else 1e-16
                 print(f"{exog_name:<20} {coef.item():>15.6f} {p_val:>15.2g}")
+
+    def plot_regression_forest(self, alpha: float = 0.05, figsize: tuple = (10, 10)):
+        """
+        Creates a forest plot for regression coefficients with confidence intervals (5%).
+
+        Parameters
+        ----------
+        alpha: float
+            The confidence parameter.
+        figsize: tuple
+            The size of the figure.
+        """
+        if self.nb_cov == 0:
+            print("No exog in the model, so no coefficients. Returning None")
+            return None
+        coef_left, coef_right = self.get_confidence_interval_coef(alpha=alpha)
+        return _plot_regression_forest(
+            coef_left,
+            coef_right,
+            self.column_names_endog,
+            self.column_names_exog,
+            figsize=figsize,
+        )
