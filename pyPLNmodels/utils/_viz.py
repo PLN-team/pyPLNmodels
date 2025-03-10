@@ -21,6 +21,8 @@ from pyPLNmodels.utils._utils import calculate_correlation, get_confusion_matrix
 
 DEFAULT_TOL = 1e-6
 
+PALETTE = None
+
 
 def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float:
     """
@@ -128,16 +130,16 @@ def _viz_variables(
         nb_colors = len(np.unique(colors))
         if nb_colors > 15:
             sns.scatterplot(
-                x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis", legend=False
+                x=x, y=y, hue=colors, ax=ax, s=80, palette=PALETTE, legend=False
             )
             norm = plt.Normalize(0, nb_colors)
-            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm = plt.cm.ScalarMappable(cmap=PALETTE, norm=norm)
             sm.set_array([])  # Required for colorbar
             plt.colorbar(sm, label="Value", ax=ax)
         else:
-            sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
+            sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette=PALETTE)
     else:
-        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette="viridis")
+        sns.scatterplot(x=x, y=y, hue=colors, ax=ax, s=80, palette=PALETTE)
     if covariances is not None:
         for i in range(covariances.shape[0]):
             _plot_ellipse(x[i], y[i], cov=covariances[i], ax=ax)
@@ -173,7 +175,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     _, ax = plt.subplots(figsize=(10, 10))
     standardized_data = StandardScaler().fit_transform(data_matrix)
     pca_transformed_data, _ = _perform_pca(standardized_data, 2)
-    pca_transformed_data = _normalize_2D(pca_transformed_data)
+    pca_transformed_data = _normalize_2d(pca_transformed_data)
 
     _viz_variables(pca_transformed_data, ax=ax, colors=colors)
     plot_correlation_circle(
@@ -182,7 +184,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     plt.show()
 
 
-def _normalize_2D(variables):
+def _normalize_2d(variables):
     xs, ys = variables[:, 0], variables[:, 1]
     scalex, scaley = 1.0 / (xs.max() - xs.min()), 1.0 / (ys.max() - ys.min())
     variables[:, 0] *= scalex
@@ -195,7 +197,7 @@ def _biplot_lda(
 ):  # pylint: disable = too-many-arguments
     _, ax = plt.subplots(figsize=(10, 10))
     transformed_lda = _get_lda_projection(latent_variables, clusters)
-    transformed_lda = _normalize_2D(transformed_lda)
+    transformed_lda = _normalize_2d(transformed_lda)
     _viz_variables(transformed_lda, ax=ax, colors=colors)
     data_matrix = torch.cat((latent_variables, clusters.unsqueeze(1)), dim=1)
     plot_correlation_circle(
@@ -283,6 +285,7 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         self._name = pln._name
         self.column_names = pln.column_names_endog
         self.n_samples = pln.n_samples
+        self.column_names_exog = pln.column_names_exog
 
     def display_relationship_matrix(self, *, ax: matplotlib.axes.Axes):
         """
@@ -302,7 +305,9 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
                 cov_to_show = relationship_matrix
         sns.heatmap(cov_to_show, ax=ax)
         ax.set_title(self._relationship_matrix_title)
-        _set_tick_labels_columns(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names)
+        if is_diagonal is False:
+            _set_tick_labels(ax, self.column_names, x_or_y="y")
 
     def _get_relationship_matrix(self):
         return self._params["covariance"]
@@ -329,7 +334,8 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
             )
 
         ax.set_title("Regression Coefficient Matrix", fontsize=9)
-        _set_tick_labels_columns(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names_exog, x_or_y="y")
 
     def display_norm_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -366,11 +372,11 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         ax.set_ylabel("Criterion", fontsize=9)
         ax.legend()
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -433,11 +439,11 @@ class LDAModelViz(BaseModelViz):
         ax.legend()
         ax.set_title("Norm of each parameter.", fontsize=8)
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(3, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -466,11 +472,11 @@ class ARModelViz(BaseModelViz):
     Model visualization class for a Pln model with autoregressive.
     """
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Display the model parameters and the norm of the parameters.
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -528,13 +534,13 @@ class ZIModelViz(BaseModelViz):
     Visualize the parameters of a ZIPln model and the optimization process.
     """
 
-    def show(self, *, savefig, name_file):
+    def show(self, *, savefig, name_file, figsize):
         """
         Show the model but adds a zero inflation graph for the associated
         coefficient. Graphs are reordered so that `coef` and `coef_inflation`
         can be directly compared (compared to `show`).
         """
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
@@ -558,7 +564,7 @@ class ZIModelViz(BaseModelViz):
         coef_inflation = self._params["coef_inflation"]
         sns.heatmap(coef_inflation, ax=ax)
         ax.set_title("Zero inflation Regression Coefficient Matrix")
-        _set_tick_labels_columns(ax, self.column_names)
+        _set_tick_labels(ax, self.column_names)
 
 
 class MixtureModelViz(BaseModelViz):
@@ -566,14 +572,13 @@ class MixtureModelViz(BaseModelViz):
     Visualize the parameters of a MixturePln model and the optimization process.
     """
 
-    def show(self, *, savefig, name_file):
-        weights = self._params["weights"]
+    def show(self, *, savefig, name_file, figsize):
         cluster_bias = self._params["cluster_bias"]
         variances = self._params["covariances"]
 
-        n_clusters = len(weights)
+        n_clusters = len(self._params["weights"])
 
-        fig = _get_figure()
+        fig = _get_figure(figsize)
         gs = gridspec.GridSpec(3, n_clusters + 2, figure=fig, wspace=0.3)
 
         ax1 = fig.add_subplot(gs[0, 0:n_clusters])
@@ -583,7 +588,7 @@ class MixtureModelViz(BaseModelViz):
         ax4 = fig.add_subplot(gs[1, n_clusters : n_clusters + 2])
         ax5 = fig.add_subplot(gs[2, n_clusters : n_clusters + 2])
 
-        self._plot_weights(ax1, weights)
+        self._plot_weights(ax1, self._params["weights"])
         self._plot_cluster_biases(axes_means, cluster_bias, n_clusters)
         self._plot_variances(axes_variances, variances, n_clusters)
 
@@ -678,7 +683,7 @@ def _plot_pairplot(data, colors):
                             y=data[jcol],
                             ax=ax[j][i],
                             hue=colors,
-                            palette="viridis",
+                            palette=PALETTE,
                             legend=False,
                         )
                     if i == 0:
@@ -689,13 +694,13 @@ def _plot_pairplot(data, colors):
                         ax[j][i].set_xlabel(icol)
                     else:
                         ax[j][i].set_xlabel("")
-            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm = plt.cm.ScalarMappable(cmap=PALETTE, norm=norm)
             sm.set_array([])  # Required for colorbar
             fig.colorbar(sm, ax=ax, orientation="vertical", label="Value")
         else:
             colors = np.array(colors)
             data["labels"] = pd.Categorical(colors, categories=pd.unique(colors))
-            sns.pairplot(data, hue="labels", palette="viridis")
+            sns.pairplot(data, hue="labels", palette=PALETTE)
     else:
         sns.pairplot(data, diag_kind="kde")
     plt.show()
@@ -809,7 +814,7 @@ def _plot_expected_vs_true(
     return ax
 
 
-def _show_information_criterion(*, bic, aic, loglikes):
+def _show_information_criterion(*, bic, aic, loglikes, figsize):
     colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
 
     best_bic_rank = list(bic.keys())[np.argmin(list(bic.values()))]
@@ -817,6 +822,7 @@ def _show_information_criterion(*, bic, aic, loglikes):
 
     criteria = ["BIC", "AIC", "Negative log likelihood"]
     values_list = [bic, aic, loglikes]
+    _get_figure(figsize)
 
     for criterion, values in zip(criteria, values_list):
         plt.scatter(
@@ -901,18 +907,25 @@ def _viz_dims(*, variables, indices_of_variables, variable_names, colors, displa
     plt.show()
 
 
-def _set_tick_labels_columns(ax, column_names):
-    tick_positions = ax.get_xticks()
+def _set_tick_labels(ax, column_names, x_or_y="x"):
+    if x_or_y == "x":
+        tick_positions = ax.get_xticks()
+    else:
+        tick_positions = ax.get_yticks()
+
     tick_labels = [
         column_names[int(pos)] for pos in tick_positions if int(pos) < len(column_names)
     ]
+    if x_or_y == "x":
+        ax.set_xticks(tick_positions)
+        ax.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+    else:
+        ax.set_yticks(tick_positions)
+        ax.set_yticklabels(tick_labels, rotation=45, fontsize=6)
 
-    ax.set_xticks(tick_positions)
-    ax.set_xticklabels(tick_labels, rotation=90, fontsize=6)
 
-
-def _get_figure():
-    return plt.figure(figsize=(20, 12))
+def _get_figure(figsize):
+    return plt.figure(figsize=figsize)
 
 
 def plot_confusion_matrix(
@@ -967,7 +980,7 @@ def plot_confusion_matrix(
 
 
 def _show_mat(mat, xlabels, ylabels, ax):
-    _ = ax.imshow(mat)
+    _ = ax.imshow(mat, cmap="Blues")
     ax.set_xticks(
         range(len(xlabels)),
         labels=xlabels,
@@ -988,7 +1001,7 @@ def _plot_lda_2d_projection(
         x=transformed_lda_test[:, 0],
         y=transformed_lda_test[:, 1],
         hue=colors,
-        palette="viridis",
+        palette=PALETTE,
         edgecolor="black",
         ax=ax,
     )
@@ -1010,7 +1023,7 @@ def _plot_lda_1d_projection(
         label="Class 0 (train data)",
         alpha=0.5,
         ax=ax,
-        palette="viridis",
+        palette=PALETTE,
     )
     sns.kdeplot(
         transformed_lda_train[y_train == 1].ravel(),
@@ -1018,7 +1031,7 @@ def _plot_lda_1d_projection(
         label="Class 1 (train data)",
         alpha=0.5,
         ax=ax,
-        palette="viridis",
+        palette=PALETTE,
     )
     ax.axvline(boundary, color="black", linestyle="--", label="Decision Boundary")
 
@@ -1027,7 +1040,7 @@ def _plot_lda_1d_projection(
         x=transformed_lda_test.squeeze(),
         y=jitter.squeeze(),
         hue=colors,
-        palette="viridis",
+        palette=PALETTE,
         edgecolor="k",
         s=80,
         alpha=0.7,
@@ -1057,7 +1070,7 @@ def _plot_contour_lda(transformed_lda_train, y_train, ax):
     lda_2d.fit(transformed_lda_train_2d, y_train)
     prediction = lda_2d.predict(np.c_[xx.ravel(), yy.ravel()])
     prediction = prediction.reshape(xx.shape)
-    cmap = ListedColormap(sns.color_palette("viridis", 3).as_hex())
+    cmap = ListedColormap(sns.color_palette(PALETTE, 3).as_hex())
     ax.contourf(xx, yy, prediction, alpha=0.3, cmap=cmap)
 
 
@@ -1126,7 +1139,7 @@ def _viz_lda_test(*, transformed_train, y_train, new_X_transformed, colors, ax=N
 def _display_matrix_autoreg(autoreg, ax, column_names):
     sns.heatmap(autoreg, ax=ax)
     ax.set_title("Autoregression coefficients")
-    _set_tick_labels_columns(ax, column_names)
+    _set_tick_labels(ax, column_names)
 
 
 def _display_vector_autoreg(autoreg, ax, column_names):
@@ -1156,3 +1169,131 @@ def _display_scalar_autoreg(autoreg, ax):
 
     # Optionally, add labels and a title
     ax.set_title("Autoregressive coefficient")
+
+
+# renaming _plot_forest_coef
+def _plot_regression_forest(
+    coef_left, coef_right, column_names, exog_names, figsize
+):  # pylint: disable = too-many-locals
+    """
+    Creates a forest plot for regression coefficients with confidence intervals.
+
+    Parameters
+    ----------
+    coef_left : np.array
+        Lower confidence interval values.
+    coef_right : np.array
+        Upper confidence interval values.
+    column_names : list
+        List of gene names (column names in the dataset).
+    exog_names : list
+        List of group names.
+    figsize : tuple
+        Size of the figure.
+
+    Returns
+    -------
+    None
+        Displays the plot.
+    """
+
+    # Create DataFrame for plotting
+    df_list = []
+    for i, group in enumerate(exog_names):
+        temp_df = pd.DataFrame(
+            {
+                "Gene": column_names,
+                "Coefficient": (coef_left[i] + coef_right[i]) / 2,  # Midpoint estimate
+                "Lower CI": coef_left[i],
+                "Upper CI": coef_right[i],
+                "CI Lower": (coef_left[i] + coef_right[i]) / 2
+                - coef_left[i],  # Distance to lower bound
+                "CI Upper": coef_right[i]
+                - (coef_left[i] + coef_right[i]) / 2,  # Distance to upper bound
+                "Group": group,
+            }
+        )
+        df_list.append(temp_df)
+
+    df = pd.concat(df_list, ignore_index=True)
+
+    # Define significance classification
+    df["Significance"] = df.apply(
+        lambda x: (
+            "Significantly positive"
+            if x["Lower CI"] > 0
+            else ("Significantly negative" if x["Upper CI"] < 0 else "Not Significant")
+        ),
+        axis=1,
+    )
+
+    df["Gene"] = pd.Categorical(
+        df["Gene"], categories=column_names[::-1], ordered=True
+    )  # Reverse order for correct alignment
+
+    fig, axes = plt.subplots(1, len(exog_names), figsize=figsize, sharey=True)
+
+    colors = {
+        "Not Significant": "purple",
+        "Significantly negative": "teal",
+        "Significantly positive": "gold",
+    }
+
+    for ax, label in zip(axes, exog_names):
+        subset = df[df["Group"] == label]
+
+        # Add alternating row colors for readability
+        y_positions = np.arange(len(column_names))
+        for i in range(0, len(y_positions), 2):  # Shade every second row
+            ax.axhspan(
+                y_positions[i] - 0.5,
+                y_positions[i] + 0.5,
+                color="lightblue",
+                alpha=0.4,
+                zorder=-1,
+            )
+
+        _ = ax.scatter(
+            subset["Coefficient"],
+            subset["Gene"],
+            c=subset["Significance"].map(colors),
+            edgecolor="black",
+            s=50,
+        )
+
+        # Add confidence intervals (horizontal error bars)
+        ax.errorbar(
+            subset["Coefficient"],
+            subset["Gene"],
+            xerr=[subset["CI Lower"], subset["CI Upper"]],
+            fmt="none",
+            ecolor="black",
+            elinewidth=1,
+            capsize=3,
+        )
+
+        # Adjust aesthetics
+        ax.axvline(x=0, color="black", linestyle="dashed", linewidth=1)
+        ax.set_title(f"Group: {label}")
+        ax.set_ylabel("Column")
+
+    # Set common x-label
+    fig.text(0.5, 0.04, "95% CI of regression parameter coef", ha="center")
+
+    fig.text(0.04, 0.5, "Column names", va="center", rotation="vertical")
+
+    # Adjust layout
+    fig.tight_layout(rect=[0.05, 0.05, 1, 1])
+
+    # Add legend
+    handles = [
+        plt.Line2D(
+            [0], [0], marker="o", color="w", markerfacecolor=color, markersize=10
+        )
+        for color in colors.values()
+    ]
+    fig.legend(
+        handles, list(colors.keys()), title="Significance", loc="lower left", ncols=3
+    )
+
+    plt.show()

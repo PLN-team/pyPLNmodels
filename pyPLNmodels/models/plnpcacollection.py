@@ -535,11 +535,18 @@ class PlnPCAcollection:
         """
         return {model.rank: model.loglike for model in self.values()}
 
-    def show(self):
+    def show(self, figsize: tuple = (10, 10)):
         """
         Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+
+        Parameters
+        ----------
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,10)
         """
-        _show_information_criterion(bic=self.BIC, aic=self.AIC, loglikes=self.loglike)
+        _show_information_criterion(
+            bic=self.BIC, aic=self.AIC, loglikes=self.loglike, figsize=figsize
+        )
 
     @property
     def _useful_methods_strings(self) -> str:

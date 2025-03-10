@@ -193,7 +193,7 @@ class BaseModel(
         self._fitted = True
         return self
 
-    def show(self, savefig=False, name_file=""):
+    def show(self, savefig=False, name_file="", figsize: tuple = (10, 10)):
         """
         Display the model parameters, norm evolution of the parameters and the criterion.
 
@@ -204,10 +204,12 @@ class BaseModel(
         name_file : str, optional
             The name of the file to save the figure. Only used if savefig is `True`.
             Default is an empty string.
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,10)
 
         """
         model_viz = self._get_model_viz()
-        model_viz.show(savefig=savefig, name_file=name_file)
+        model_viz.show(savefig=savefig, name_file=name_file, figsize=figsize)
 
     def _get_model_viz(self):
         return self._ModelViz(self)
@@ -361,10 +363,9 @@ class BaseModel(
             )
         else:
             print(
-                "Maximum number of iterations reached : ",
-                self._elbo_criterion_monitor.iteration_number,
-                ".\nLast criterion = ",
-                np.round(self._elbo_criterion_monitor.criterion, 8),
+                f"Maximum number of iterations ({self._elbo_criterion_monitor.iteration_number})",
+                f" reached in {self._time_recorder.running_times[-1]:.1f} seconds.\nLast ",
+                f"criterion = {np.round(self._elbo_criterion_monitor.criterion, 8)}",
                 f". Required tolerance = {tol}",
             )
 
