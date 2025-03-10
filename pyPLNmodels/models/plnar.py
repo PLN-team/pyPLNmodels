@@ -8,6 +8,7 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.calculations.elbos import (
     elbo_plnar_diag,
     elbo_plnar_full,
+    elbo_plnar_full_full,
 )
 from pyPLNmodels.calculations._initialization import (
     _init_coef,
@@ -25,7 +26,7 @@ from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class PlnAR(BaseModel):
+class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     """
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
@@ -57,6 +58,8 @@ class PlnAR(BaseModel):
     __coef: torch.Tensor
     _sqrt_precision: torch.Tensor
     _components_prec: torch.Tensor
+    _diff_ortho_components: torch.Tensor
+    _diff_diag_cov: torch.Tensor
 
     _ModelViz = ARModelViz
 
@@ -71,11 +74,12 @@ class PlnAR(BaseModel):
         """,
         params="""
         ar_type: str (optional)
-            The autregression type. Can be either "diagonal" or "spherical".
+            The autregression type. Can be either "diagonal", "spherical" or "full".
             If "diagonal", the covariance must be diagonal and the model
             boils down to individual independant 1D AR models. If "spherical",
             covariance is full (dependence between variables) but the
             autoregression is shared along the variables as the ar_coef is of size 1.
+            If "full", both the covariance and autoregression is full.
             Default is "spherical"
         """,
         returns="""
@@ -95,10 +99,10 @@ class PlnAR(BaseModel):
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
-        ar_type: {"spherical", "diagonal"} = "spherical",
+        ar_type: {"spherical", "diagonal", "full"} = "spherical",
     ):  # pylint: disable=too-many-arguments
-        if ar_type not in ["spherical", "diagonal"]:
-            msg = "`ar_type` keyword should be either 'spherical' or 'diagonal', got "
+        if ar_type not in ["spherical", "diagonal", "full"]:
+            msg = "`ar_type` keyword should be either 'spherical' or 'diagonal' or 'full', got "
             msg += ar_type
             raise AttributeError(msg)
         self._ar_type = ar_type
@@ -204,7 +208,17 @@ class PlnAR(BaseModel):
                 precision=self._precision,
                 ar_coef=self._ar_coef,
             )
-        return elbo_plnar_full(
+        if self._ar_type == "spherical":
+            return elbo_plnar_full(
+                endog=self._endog,
+                marginal_mean=self._marginal_mean,
+                offsets=self._offsets,
+                latent_mean=self._latent_mean,
+                latent_sqrt_variance=self._latent_sqrt_variance,
+                precision=self._precision,
+                ar_coef=self._ar_coef,
+            )
+        return elbo_plnar_full_full(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
             offsets=self._offsets,
@@ -218,7 +232,9 @@ class PlnAR(BaseModel):
     def _precision(self):
         if self._ar_type == "diagonal":
             return self._sqrt_precision**2
-        return self._components_prec @ (self._components_prec.T)
+        if self._ar_type == "spherical":
+            return self._components_prec @ (self._components_prec.T)
+        return torch.inverse(self._covariance)
 
     def _init_model_parameters(self):
         self.__coef = _init_coef(
@@ -229,9 +245,21 @@ class PlnAR(BaseModel):
         if self._ar_type == "diagonal":
             self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
             self._sqrt_precision = torch.ones(self.dim).to(DEVICE) / 2
-        else:
-            self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
+        elif self._ar_type == "spherical":
             self._components_prec = _init_components_prec(self._endog).to(DEVICE)
+            self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
+        else:
+            self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
+            self._diff_ortho_components = torch.eye(self.dim)
+            self._diff_diag_cov = torch.ones(self.dim).to(DEVICE) / (
+                self.dim ** (3 / 2)
+            )
+
+    @property
+    def _diag_cov(self):
+        if self._ar_type != "full":
+            raise ValueError("diag cov is only callable with full ar type.")
+        return torch.cumsum(self._diff_diag_cov**2, dim=0)
 
     @property
     @_add_doc(
@@ -381,11 +409,21 @@ class PlnAR(BaseModel):
     def _covariance(self):
         if self._ar_type == "diagonal":
             return 1 / self._precision
-        return torch.inverse(self._precision)
+        if self._ar_type == "spherical":
+            return torch.inverse(self._precision)
+        ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
+        return ortho_components @ torch.diag(self._diag_cov) @ (ortho_components.T)
 
     @property
     def _ar_coef(self):
-        return 1 / (1 + self._ar_diff_coef**2)
+        if self._ar_type != "full":
+            return 1 / (1 + self._ar_diff_coef**2)
+        ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
+        return (
+            ortho_components
+            @ torch.diag(1 / (1 + self._ar_diff_coef**2))
+            @ (ortho_components.T)
+        )
 
     @property
     def ar_coef(self):
@@ -406,8 +444,11 @@ class PlnAR(BaseModel):
         ]
         if self._ar_type == "diagonal":
             list_param.append(self._sqrt_precision)
-        else:
+        elif self._ar_type == "spherical":
             list_param.append(self._components_prec)
+        else:
+            list_param.append(self._diff_ortho_components)
+            list_param.append(self._diff_diag_cov)
         if self.__coef is not None:
             return list_param + [self.__coef]
         return list_param
@@ -427,7 +468,9 @@ class PlnAR(BaseModel):
         indices_of_variables: np.ndarray = None,
         display: {"stretch", "keep"} = "stretch",
         colors: np.ndarray = None,
-    ):
+        *,
+        figsize: tuple = (10, 7),
+    ):  # pylint: disable=too-many-arguments
         """
         Parameters
         ----------
@@ -449,6 +492,8 @@ class PlnAR(BaseModel):
             - "keep": Shorter time series will be displayed shorter.
         colors : list, optional, keyword-only
             The labels to color the samples, of size `n_samples`.
+        figsize : tuple of floats.
+            The height end width of the matplotlib figsize.
         """
         indices_of_variables = _process_indices_of_variables(
             variable_names, indices_of_variables, self.column_names_endog
@@ -463,6 +508,7 @@ class PlnAR(BaseModel):
             variable_names=variable_names,
             colors=colors,
             display=display,
+            figsize=figsize,
         )
 
     @property
@@ -490,7 +536,9 @@ class PlnAR(BaseModel):
     def number_of_parameters(self):
         if self._ar_type == "diagonal":
             return self.dim * (self.nb_cov + 2)
-        return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
+        if self._ar_type == "spherical":
+            return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
+        return self.dim * (self.dim + self.nb_cov + 1)
 
     def _get_two_dim_latent_variances(self, sklearn_components):
         return _get_two_dim_latent_variances(
