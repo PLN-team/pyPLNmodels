@@ -175,7 +175,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     _, ax = plt.subplots(figsize=(10, 10))
     standardized_data = StandardScaler().fit_transform(data_matrix)
     pca_transformed_data, _ = _perform_pca(standardized_data, 2)
-    pca_transformed_data = _normalize_2D(pca_transformed_data)
+    pca_transformed_data = _normalize_2d(pca_transformed_data)
 
     _viz_variables(pca_transformed_data, ax=ax, colors=colors)
     plot_correlation_circle(
@@ -184,7 +184,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     plt.show()
 
 
-def _normalize_2D(variables):
+def _normalize_2d(variables):
     xs, ys = variables[:, 0], variables[:, 1]
     scalex, scaley = 1.0 / (xs.max() - xs.min()), 1.0 / (ys.max() - ys.min())
     variables[:, 0] *= scalex
@@ -197,7 +197,7 @@ def _biplot_lda(
 ):  # pylint: disable = too-many-arguments
     _, ax = plt.subplots(figsize=(10, 10))
     transformed_lda = _get_lda_projection(latent_variables, clusters)
-    transformed_lda = _normalize_2D(transformed_lda)
+    transformed_lda = _normalize_2d(transformed_lda)
     _viz_variables(transformed_lda, ax=ax, colors=colors)
     data_matrix = torch.cat((latent_variables, clusters.unsqueeze(1)), dim=1)
     plot_correlation_circle(
@@ -1171,19 +1171,30 @@ def _display_scalar_autoreg(autoreg, ax):
     ax.set_title("Autoregressive coefficient")
 
 
-def _plot_regression_forest(coef_left, coef_right, column_names, exog_names, figsize):
+# renaming _plot_forest_coef
+def _plot_regression_forest(
+    coef_left, coef_right, column_names, exog_names, figsize
+):  # pylint: disable = too-many-locals
     """
     Creates a forest plot for regression coefficients with confidence intervals.
 
-    Parameters:
-        coef_left np.array : Lower confidence interval values.
-        coef_right np.array: Upper confidence interval values.
-        column_names (list): List of gene names (column names in the dataset).
-        exog_names (list): List of group names.
-        figsize (tuple): Size of the figure.
+    Parameters
+    ----------
+    coef_left : np.array
+        Lower confidence interval values.
+    coef_right : np.array
+        Upper confidence interval values.
+    column_names : list
+        List of gene names (column names in the dataset).
+    exog_names : list
+        List of group names.
+    figsize : tuple
+        Size of the figure.
 
-    Returns:
-        None (displays the plot).
+    Returns
+    -------
+    None
+        Displays the plot.
     """
 
     # Create DataFrame for plotting
@@ -1216,15 +1227,12 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names, fig
         axis=1,
     )
 
-    # Ensure genes are aligned across facets
     df["Gene"] = pd.Categorical(
         df["Gene"], categories=column_names[::-1], ordered=True
     )  # Reverse order for correct alignment
 
-    # Create subplots
     fig, axes = plt.subplots(1, len(exog_names), figsize=figsize, sharey=True)
 
-    # Scatter plot with confidence intervals
     colors = {
         "Not Significant": "purple",
         "Significantly negative": "teal",
@@ -1245,7 +1253,7 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names, fig
                 zorder=-1,
             )
 
-        scatter = ax.scatter(
+        _ = ax.scatter(
             subset["Coefficient"],
             subset["Gene"],
             c=subset["Significance"].map(colors),
@@ -1272,8 +1280,7 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names, fig
     # Set common x-label
     fig.text(0.5, 0.04, "95% CI of regression parameter coef", ha="center")
 
-    # Set y-label for the leftmost subplot
-    fig.text(0.04, 0.5, "Gene", va="center", rotation="vertical")
+    fig.text(0.04, 0.5, "Column names", va="center", rotation="vertical")
 
     # Adjust layout
     fig.tight_layout(rect=[0.05, 0.05, 1, 1])
@@ -1285,7 +1292,8 @@ def _plot_regression_forest(coef_left, coef_right, column_names, exog_names, fig
         )
         for color in colors.values()
     ]
-    labels = list(colors.keys())
-    fig.legend(handles, labels, title="Significance", loc="lower left", ncols=3)
+    fig.legend(
+        handles, list(colors.keys()), title="Significance", loc="lower left", ncols=3
+    )
 
     plt.show()
