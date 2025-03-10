@@ -892,8 +892,10 @@ def _build_graph(precision, node_labels=None):
     return graph, connections
 
 
-def _viz_dims(*, variables, indices_of_variables, variable_names, colors, display):
-    _, axes = plt.subplots(len(variable_names))
+def _viz_dims(
+    *, variables, indices_of_variables, variable_names, colors, display, figsize
+):  # pylint: disable = too-many-arguments
+    _, axes = plt.subplots(len(variable_names), figsize=figsize)
     absc = np.arange(variables.shape[0])
     min_y = torch.min(torch.nan_to_num(variables))
     max_y = torch.max(torch.nan_to_num(variables))
