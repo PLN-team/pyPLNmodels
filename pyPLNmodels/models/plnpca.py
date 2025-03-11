@@ -386,16 +386,14 @@ class PlnPCA(BaseModel):
         >>> data = load_scrna()
         >>> pca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> pca.fit()
-        >>> pca.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> pca.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> pca.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> pca.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -406,21 +404,21 @@ class PlnPCA(BaseModel):
         >>> data = load_scrna()
         >>> pca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> pca.fit()
-        >>> pca.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> pca.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> pca.biplot(column_names=["MALAT1", "ACTB"])
+        >>> pca.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )

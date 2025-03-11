@@ -18,7 +18,7 @@ from pyPLNmodels.utils._utils import (
     _none_if_no_exog,
     _get_two_dim_latent_variances,
 )
-from pyPLNmodels.utils._viz import _plot_regression_forest
+from pyPLNmodels.utils._viz import _plot_forest_coef
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -279,16 +279,14 @@ class Pln(BaseModel):
         >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> pln.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> pln.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> pln.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -299,21 +297,21 @@ class Pln(BaseModel):
         >>> data = load_scrna()
         >>> pln = Pln.from_formula("endog ~ 1", data=data)
         >>> pln.fit()
-        >>> pln.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> pln.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> pln.biplot(column_names=["MALAT1", "ACTB"])
+        >>> pln.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -568,7 +566,7 @@ class Pln(BaseModel):
             print("No exog in the model, so no coefficients. Returning None")
             return None
         coef_left, coef_right = self.get_confidence_interval_coef(alpha=alpha)
-        return _plot_regression_forest(
+        return _plot_forest_coef(
             coef_left,
             coef_right,
             self.column_names_endog,

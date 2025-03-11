@@ -381,16 +381,14 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.plot_correlation_circle(variable_names = ["ASV_315", "ASV_749"])
-        >>> zi.plot_correlation_circle(variable_names = ["A", "B"], indices_of_variables = [0,2])
+        >>> zi.plot_correlation_circle(column_names = ["ASV_315", "ASV_749"])
+        >>> zi.plot_correlation_circle(column_names = ["A", "B"], column_index = [0,2])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -401,21 +399,21 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.biplot(variable_names = ["ASV_315", "ASV_749"])
-        >>> zi.biplot(variable_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
+        >>> zi.biplot(column_names = ["ASV_315", "ASV_749"])
+        >>> zi.biplot(column_names = ["A", "B"], column_index = [0,2], colors = data["time"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )

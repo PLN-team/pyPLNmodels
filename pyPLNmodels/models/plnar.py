@@ -17,7 +17,7 @@ from pyPLNmodels.calculations._initialization import (
 )
 from pyPLNmodels.utils._utils import (
     _add_doc,
-    _process_indices_of_variables,
+    _process_column_index,
     _get_two_dim_latent_variances,
 )
 from pyPLNmodels.utils._viz import _viz_dims, ARModelViz
@@ -43,7 +43,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
-    >>> ar.viz_dims(variable_names = ["nco_Lacaune_M", "nco_Soay_M"])
+    >>> ar.viz_dims(column_names = ["nco_Lacaune_M", "nco_Soay_M"])
 
     >>> from pyPLNmodels import PlnAR, load_crossover
     >>> data = load_crossover()
@@ -51,7 +51,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
-    >>> ar.viz_dims(variable_names = ["nco_Lacaune_F", "nco_Soay_F"])
+    >>> ar.viz_dims(column_names = ["nco_Lacaune_F", "nco_Soay_F"])
     """
 
     _ar_diff_coef: torch.Tensor
@@ -80,7 +80,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
             If "spherical", covariance is full (dependence between variables) but the
             autoregression is shared along the variables as the ar_coef is of size 1.
             If "full", both the covariance and autoregression is full.
-            Default is "spherical"
+            Default is "full".
         """,
         returns="""
             PlnAR
@@ -99,7 +99,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
-        ar_type: {"spherical", "diagonal", "full"} = "spherical",
+        ar_type: {"spherical", "diagonal", "full"} = "full",
     ):  # pylint: disable=too-many-arguments
         if ar_type not in ["spherical", "diagonal", "full"]:
             msg = "`ar_type` keyword should be either 'spherical' or 'diagonal' or 'full', got "
@@ -127,12 +127,13 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         """,
         params="""
         ar_type: str (optional)
-            The autregression type. Can be either "diagonal" or "spherical".
+            The autregression type. Can be either "diagonal", "spherical" or "full".
             If "diagonal", the covariance must be diagonal and the model
-            boils down to individual independant 1D AR models. If "spherical",
-            covariance is full (dependence between variables) but the
+            boils down to individual independant 1D AR models.
+            If "spherical", covariance is full (dependence between variables) but the
             autoregression is shared along the variables as the ar_coef is of size 1.
-            Default is "spherical"
+            If "full", both the covariance and autoregression is full.
+            Default is "full".
         """,
         see_also="""
         :class:`pyPLNmodels.PlnAR`
@@ -145,7 +146,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        ar_type: {"spherical", "diagonal"} = "spherical",
+        ar_type: {"spherical", "diagonal", "full"} = "full",
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -218,6 +219,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
                 precision=self._precision,
                 ar_coef=self._ar_coef,
             )
+        # full autoregressive structure
         return smart_elbo_plnar_full_autoreg(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
@@ -289,15 +291,13 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.plot_correlation_circle(variable_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.plot_correlation_circle(column_names=["nco_Lacaune_M", "nco_Soay_M"])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -308,21 +308,21 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.biplot(variable_names=["nco_Lacaune_M", "nco_Soay_M"])
-        >>> ar.biplot(variable_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
+        >>> ar.biplot(column_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.biplot(column_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -468,8 +468,8 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def viz_dims(
         self,
-        variable_names,
-        indices_of_variables: np.ndarray = None,
+        column_names,
+        column_index: np.ndarray = None,
         display: {"stretch", "keep"} = "stretch",
         colors: np.ndarray = None,
         *,
@@ -478,17 +478,17 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         """
         Parameters
         ----------
-        variable_names : List[str]
+        column_names : List[str]
             A list of variable names to visualize.
-            If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variable_names`. If `indices_of_variables`
+            If `column_index` is `None`, the variables plotted
+            are the ones in `column_names`. If `column_index`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
-        indices_of_variables : Optional[List[int]], optional keyword-only
+        column_index : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variable_names`, by default `None`.
-            If not None, should have the same length as `variable_names`.
+            given the `column_names`, by default `None`.
+            If not None, should have the same length as `column_names`.
         display : str (Optional)
             How to display the time series when nan are at stake.
             - "stretch": stretch the time serie so that all time series
@@ -499,8 +499,8 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         figsize : tuple of floats.
             The height end width of the matplotlib figsize.
         """
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         if display not in ["stretch", "keep"]:
             msg = "`display` keyword have only two possible values: 'stretch' and 'keep', got"
@@ -508,8 +508,8 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
             raise ValueError(msg)
         _viz_dims(
             variables=self.latent_variables,
-            indices_of_variables=indices_of_variables,
-            variable_names=variable_names,
+            column_index=column_index,
+            column_names=column_names,
             colors=colors,
             display=display,
             figsize=figsize,

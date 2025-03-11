@@ -18,7 +18,7 @@ from pyPLNmodels.utils._criterion import _ElboCriterionMonitor
 from pyPLNmodels.utils._utils import (
     _TimeRecorder,
     _nice_string_of_dict,
-    _process_indices_of_variables,
+    _process_column_index,
     _shouldbefitted,
 )
 from pyPLNmodels.utils._viz import (
@@ -215,75 +215,73 @@ class BaseModel(
         return self._ModelViz(self)
 
     @abstractmethod
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         """
         Visualizes variables using PCA and plots a correlation circle. If the `endog` has been
         given as a pd.DataFrame, the `column_names` have been stored and may be indicated with the
-        `variable_names` argument. Else, one should provide the indices of variables.
+        `column_names` argument. Else, one should provide the indices of variables.
 
         Parameters
         ----------
-        variable_names : List[str]
+        column_names : List[str]
             A list of variable names to visualize.
-            If `indices_of_variables` is `None`, the variables plotted are the
-            ones in `variable_names`. If `indices_of_variables` is not `None`,
+            If `column_index` is `None`, the variables plotted are the
+            ones in `column_names`. If `column_index` is not `None`,
             this only serves as a legend.
             Check the attribute `column_names_endog`.
-        indices_of_variables : Optional[List[int]], optional
+        column_index : Optional[List[int]], optional
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variable_names`, by default None.
-            If not None, should have the same length as `variable_names`.
+            given the `column_names`, by default None.
+            If not None, should have the same length as `column_names`.
         title : str
             An additional title for the plot.
 
         Raises
         ------
         ValueError
-            If `indices_of_variables` is None and `column_names_endog` is not set,
+            If `column_index` is None and `column_names_endog` is not set,
             that has been set if the model has been initialized with a pd.DataFrame as `endog`.
         ValueError
-            If the length of `indices_of_variables` is different from the length
-            of `variable_names`.
+            If the length of `column_index` is different from the length
+            of `column_names`.
 
         """
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         plot_correlation_circle(
-            self.transform(), variable_names, indices_of_variables, title=title
+            self.transform(), column_names, column_index, title=title
         )
 
     @abstractmethod
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
-        may be indicated with the `variable_names` argument. Else, one should provide the
+        may be indicated with the `column_names` argument. Else, one should provide the
         indices of variables.
 
         Parameters
         ----------
-        variable_names : List[str]
+        column_names : List[str]
             A list of variable names to visualize.
-            If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variable_names`. If `indices_of_variables`
+            If `column_index` is `None`, the variables plotted
+            are the ones in `column_names`. If `column_index`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
-        indices_of_variables : Optional[List[int]], optional keyword-only
+        column_index : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variable_names`, by default `None`.
-            If not None, should have the same length as `variable_names`.
+            given the `column_names`, by default `None`.
+            If not None, should have the same length as `column_names`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
@@ -292,20 +290,20 @@ class BaseModel(
         Raises
         ------
         ValueError
-            If `indices_of_variables` is None and `column_names_endog` is not set,
+            If `column_index` is None and `column_names_endog` is not set,
             that has been set if the model has been initialized with a pd.DataFrame as `endog`.
         ValueError
-            If the length of `indices_of_variables` is different
-            from the length of `variable_names`.
+            If the length of `column_index` is different
+            from the length of `column_names`.
 
         """
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         return _biplot(
             self.transform(),
-            variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
