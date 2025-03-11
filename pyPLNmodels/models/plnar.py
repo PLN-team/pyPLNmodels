@@ -6,9 +6,9 @@ import numpy as np
 
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.calculations.elbos import (
-    elbo_plnar_diag,
-    elbo_plnar_full,
-    elbo_plnar_full_full,
+    elbo_plnar_diag_autoreg,
+    elbo_plnar_scalar_autoreg,
+    smart_elbo_plnar_full_autoreg,
 )
 from pyPLNmodels.calculations._initialization import (
     _init_coef,
@@ -76,8 +76,8 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         ar_type: str (optional)
             The autregression type. Can be either "diagonal", "spherical" or "full".
             If "diagonal", the covariance must be diagonal and the model
-            boils down to individual independant 1D AR models. If "spherical",
-            covariance is full (dependence between variables) but the
+            boils down to individual independant 1D AR models.
+            If "spherical", covariance is full (dependence between variables) but the
             autoregression is shared along the variables as the ar_coef is of size 1.
             If "full", both the covariance and autoregression is full.
             Default is "spherical"
@@ -199,7 +199,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     )
     def compute_elbo(self):
         if self._ar_type == "diagonal":
-            return elbo_plnar_diag(
+            return elbo_plnar_diag_autoreg(
                 endog=self._endog,
                 marginal_mean=self._marginal_mean,
                 offsets=self._offsets,
@@ -209,7 +209,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
                 ar_coef=self._ar_coef,
             )
         if self._ar_type == "spherical":
-            return elbo_plnar_full(
+            return elbo_plnar_scalar_autoreg(
                 endog=self._endog,
                 marginal_mean=self._marginal_mean,
                 offsets=self._offsets,
@@ -218,14 +218,15 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
                 precision=self._precision,
                 ar_coef=self._ar_coef,
             )
-        return elbo_plnar_full_full(
+        return smart_elbo_plnar_full_autoreg(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
             offsets=self._offsets,
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
-            precision=self._precision,
-            ar_coef=self._ar_coef,
+            ortho_components=self._ortho_components,
+            diag_covariance=self._diag_cov,
+            diag_ar_coef=self._diag_ar_coef,
         )
 
     @property
@@ -257,8 +258,6 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     @property
     def _diag_cov(self):
-        if self._ar_type != "full":
-            raise ValueError("diag cov is only callable with full ar type.")
         return torch.cumsum(self._diff_diag_cov**2, dim=0)
 
     @property
@@ -411,19 +410,24 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
             return 1 / self._precision
         if self._ar_type == "spherical":
             return torch.inverse(self._precision)
-        ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
+        ortho_components = self._ortho_components
         return ortho_components @ torch.diag(self._diag_cov) @ (ortho_components.T)
+
+    @property
+    def _ortho_components(self):
+        ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
+        return ortho_components
 
     @property
     def _ar_coef(self):
         if self._ar_type != "full":
             return 1 / (1 + self._ar_diff_coef**2)
         ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
-        return (
-            ortho_components
-            @ torch.diag(1 / (1 + self._ar_diff_coef**2))
-            @ (ortho_components.T)
-        )
+        return ortho_components * self._diag_ar_coef @ (ortho_components.T)
+
+    @property
+    def _diag_ar_coef(self):
+        return 1 / (1 + self._ar_diff_coef**2)
 
     @property
     def ar_coef(self):
