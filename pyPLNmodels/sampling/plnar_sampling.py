@@ -62,7 +62,7 @@ class PlnARSampler(PlnSampler):
         )
         if self.ar_type == "diagonal":
             ar_coef = torch.ones(dim) * 0.8
-        elif self.ar_type == "scalar":
+        elif self.ar_type == "spherical":
             ar_coef = torch.Tensor([0.5])
         else:
             diag_ar_coef = torch.abs(torch.randn(self.dim)).to(DEVICE)
