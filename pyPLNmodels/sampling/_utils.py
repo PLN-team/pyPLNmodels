@@ -49,6 +49,12 @@ def _get_full_covariance(dim, seed):
     ).to(DEVICE)
 
 
+def _get_covariance_ortho(ortho_components, seed):
+    torch.manual_seed(seed)
+    diag_cov = (torch.randn(ortho_components.shape[0]) ** 2 / 3 + 0.2).to(DEVICE)
+    return ortho_components * diag_cov @ (ortho_components.T)
+
+
 def _get_diag_covariance(dim, seed):
     torch.manual_seed(seed)
     return (
