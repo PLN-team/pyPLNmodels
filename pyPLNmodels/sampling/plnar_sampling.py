@@ -146,7 +146,10 @@ class PlnARSampler(PlnSampler):
         autoregressive_covariance = covariance - ar_coef @ covariance @ (ar_coef.T)
         autoregressive_components = torch.linalg.cholesky(autoregressive_covariance)
         for i in range(1, self.n_samples):
-            mean_noise = self._get_mean_i(i) - ar_coef @ self._get_mean_i(i - 1)
+            mean_backward = (
+                0 if self._exog is None else ar_coef @ self._get_mean_i(i - 1)
+            )
+            mean_noise = self._get_mean_i(i) - mean_backward
             noise = centered_gaussian[i] @ autoregressive_components + mean_noise
             gaussians[i] = gaussians[i - 1] @ ar_coef + noise
         return gaussians
