@@ -38,7 +38,7 @@ NB_COVS_INFLATION = [1, 2]
 ADD_CONSTS = [True, False]
 RANKS = [3, 5]
 NB_CLUSTERS = [2, 3]
-AUTOREG_TYPE = ["diagonal", "spherical"]
+AUTOREG_TYPE = ["diagonal", "spherical", "full"]
 
 # NB_COVS = [2]
 # NB_COVS_INFLATION = [2]

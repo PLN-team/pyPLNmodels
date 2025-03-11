@@ -175,20 +175,16 @@ def _log1pexp(t):
     )
 
 
-def _process_indices_of_variables(
-    variable_names, indices_of_variables, column_names_endog
-):
-    if indices_of_variables is None:
-        indices_of_variables = [
-            column_names_endog.get_loc(name) for name in variable_names
-        ]
+def _process_column_index(column_names, column_index, column_names_endog):
+    if column_index is None:
+        column_index = [column_names_endog.get_loc(name) for name in column_names]
     else:
-        if len(indices_of_variables) != len(variable_names):
+        if len(column_index) != len(column_names):
             raise ValueError(
-                f"Number of indices ({len(indices_of_variables)}) should be "
-                f"the same as the number of variable names ({len(variable_names)})."
+                f"Number of indices ({len(column_index)}) should be "
+                f"the same as the number of variable names ({len(column_names)})."
             )
-    return indices_of_variables
+    return column_index
 
 
 def _shouldbefitted(func):

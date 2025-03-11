@@ -345,16 +345,14 @@ class PlnNetwork(BaseModel):
         >>> data = load_scrna()
         >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 200)
         >>> net.fit()
-        >>> net.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> net.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> net.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> net.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -365,21 +363,21 @@ class PlnNetwork(BaseModel):
         >>> data = load_scrna()
         >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty=1)
         >>> net.fit()
-        >>> net.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> net.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> net.biplot(column_names=["MALAT1", "ACTB"])
+        >>> net.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )

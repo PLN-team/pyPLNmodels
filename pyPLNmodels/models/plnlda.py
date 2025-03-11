@@ -28,7 +28,7 @@ from pyPLNmodels.calculations.elbos import (
 from pyPLNmodels.utils._utils import (
     _add_doc,
     _raise_error_1D_viz,
-    _process_indices_of_variables,
+    _process_column_index,
 )
 from pyPLNmodels.utils._viz import (
     _viz_lda_train,
@@ -682,8 +682,8 @@ class PlnLDA(Pln):
         >>> data = load_scrna()
         >>> lda = PlnLDA.from_formula("endog ~ 0|labels", data=data)
         >>> lda.fit()
-        >>> lda.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> lda.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> lda.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> lda.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
         raises="""
         ValueError
@@ -691,13 +691,11 @@ class PlnLDA(Pln):
             and visualization is not possible.
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         if self._n_clusters == 2:
             _raise_error_1D_viz()
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         data_matrix = torch.cat(
             (
@@ -708,8 +706,8 @@ class PlnLDA(Pln):
         )
         plot_correlation_circle(
             data_matrix=data_matrix,
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
             reduction="LDA",
         )
@@ -721,8 +719,8 @@ class PlnLDA(Pln):
         >>> data = load_scrna()
         >>> lda = PlnLDA.from_formula("endog ~ 0 | labels", data=data)
         >>> lda.fit()
-        >>> lda.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> lda.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> lda.biplot(column_names=["MALAT1", "ACTB"])
+        >>> lda.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
         raises="""
         ValueError
@@ -732,23 +730,23 @@ class PlnLDA(Pln):
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         if self._n_clusters == 2:
             _raise_error_1D_viz()
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         _biplot_lda(
             self.latent_positions_clusters,
-            variable_names,
+            column_names,
             clusters=self.clusters,
             colors=self._decode_clusters(self.clusters),
-            indices_of_variables=indices_of_variables,
+            column_index=column_index,
             title=title,
         )
 
