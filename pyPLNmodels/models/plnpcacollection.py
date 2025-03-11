@@ -499,7 +499,7 @@ class PlnPCAcollection:
         """
         return {model.rank: int(model.AIC) for model in self.values()}
 
-    def best_model(self, criterion: str = "AIC") -> Any:
+    def best_model(self, criterion: str = "BIC") -> Any:
         """
         Get the best model according to the specified criterion.
 
