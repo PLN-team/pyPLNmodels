@@ -44,7 +44,7 @@ class PlnPCA(BaseModel):
 
     See also
     --------
-    :class:`pyPLNmodels.PlnPCAcollection`
+    :class:`pyPLNmodels.PlnPCACollection`
     :class:`pyPLNmodels.Pln`
     :class:`pyPLNmodels.ZIPlnPCA`
     """
@@ -158,8 +158,8 @@ class PlnPCA(BaseModel):
         return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_model_parameters(self):
-        coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)
         if not hasattr(self, "_coef"):
+            coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)
             if coef is not None:
                 self._coef = coef.detach().to(DEVICE)
             else:
@@ -169,24 +169,27 @@ class PlnPCA(BaseModel):
             self._components = _init_components(self._endog, self.rank).to(DEVICE)
 
     def _init_latent_parameters(self):
-        self._latent_mean = _init_latent_mean_pca(
-            endog=self._endog,
-            exog=self._exog,
-            offsets=self._offsets,
-            coef=self._coef,
-            components=self._components,
-        )
-        if self.n_samples * self.rank**2 > 1e8:
-            self._latent_sqrt_variance = (
-                1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
-            )
-        else:
-            self._latent_sqrt_variance = _init_latent_sqrt_variance_pca(
-                marginal_mean=self._marginal_mean,
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = _init_latent_mean_pca(
+                endog=self._endog,
+                exog=self._exog,
                 offsets=self._offsets,
+                coef=self._coef,
                 components=self._components,
-                mode=self._latent_mean,
             )
+
+        if not hasattr(self, "_latent_sqrt_variance"):
+            if self.n_samples * self.rank**2 > 1e8:
+                self._latent_sqrt_variance = (
+                    1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
+                )
+            else:
+                self._latent_sqrt_variance = _init_latent_sqrt_variance_pca(
+                    marginal_mean=self._marginal_mean,
+                    offsets=self._offsets,
+                    components=self._components,
+                    mode=self._latent_mean,
+                )
 
     @property
     def rank(self):
@@ -491,3 +494,7 @@ class PlnPCA(BaseModel):
             show_cov=show_cov,
             remove_exog_effect=remove_exog_effect,
         )
+
+    @property
+    def _latent_dim(self):
+        return self.rank

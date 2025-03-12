@@ -12,7 +12,7 @@ from pyPLNmodels.utils._utils import _add_doc
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class PlnPCAcollection(Collection):
+class PlnPCACollection(Collection):
     """
     A collection of `PlnPCA` models, each with a different number of components.
     The number of components can also be referred to as the number of PCs, or the
@@ -22,9 +22,9 @@ class PlnPCAcollection(Collection):
 
     Examples
     --------
-    >>> from pyPLNmodels import PlnPCAcollection, load_scrna
+    >>> from pyPLNmodels import PlnPCACollection, load_scrna
     >>> data = load_scrna()
-    >>> plnpcas = PlnPCAcollection.from_formula("endog ~ 1", data = data, ranks = [5,8, 12])
+    >>> plnpcas = PlnPCACollection.from_formula("endog ~ 1", data = data, ranks = [5,8, 12])
     >>> plnpcas.fit()
     >>> print(plnpcas)
     >>> plnpcas.show()
@@ -34,8 +34,8 @@ class PlnPCAcollection(Collection):
     See also
     --------
     :class:`~pyPLNmodels.PlnPCA`
-    :func:`pyPLNmodels.PlnPCAcollection.from_formula`
-    :func:`pyPLNmodels.PlnPCAcollection.__init__`
+    :func:`pyPLNmodels.PlnPCACollection.from_formula`
+    :func:`pyPLNmodels.PlnPCACollection.__init__`
     :class:`~pyPLNmodels.PlnNetworkCollection`
     :class:`~pyPLNmodels.PlnMixtureCollection`
     """
@@ -51,17 +51,17 @@ class PlnPCAcollection(Collection):
                 The range of ranks, by default `(3, 5)`.
             """,
         example="""
-            >>> from pyPLNmodels import PlnPCAcollection, load_scrna
+            >>> from pyPLNmodels import PlnPCACollection, load_scrna
             >>> data = load_scrna()
-            >>> pcas = PlnPCAcollection(endog = data["endog"], ranks = [4,6,8])
+            >>> pcas = PlnPCACollection(endog = data["endog"], ranks = [4,6,8])
             >>> pcas.fit()
             >>> print(pcas.best_model())
         """,
         returns="""
-            PlnPCAcollection
+            PlnPCACollection
         """,
         see_also="""
-        :func:`pyPLNmodels.PlnPCAcollection.from_formula`
+        :func:`pyPLNmodels.PlnPCACollection.from_formula`
         """,
     )
     def __init__(
@@ -87,8 +87,9 @@ class PlnPCAcollection(Collection):
     @_add_doc(
         BaseModel,
         params="""
-              rank : Iterable[int], optional(keyword-only)
+              ranks : Iterable[int], optional(keyword-only)
                 The ranks (or number of PCs) that needs to be tested.
+                By default (3, 5)
               """,
     )
     def from_formula(
@@ -118,20 +119,18 @@ class PlnPCAcollection(Collection):
     def _init_next_model_with_current_model(
         self, next_model: PlnPCA, current_model: PlnPCA
     ):
-        """
-        Initialize the next `PlnModel` model with the parameters of the current `PlnModel` model.
-
-        Parameters
-        ----------
-        next_model : PlnModel
-            The next model to initialize.
-        current_model : PlnModel
-            The current model.
-        """
         next_model.coef = current_model.coef
-        new_components = torch.zeros(self.dim, next_model.rank).to(DEVICE)
-        new_components[:, : current_model.rank] = (current_model.components).to(DEVICE)
+        new_components = torch.zeros(self.dim, next_model.rank)
+        new_components[:, : current_model.rank] = current_model.components
         next_model.components = new_components
+        new_latent_mean = torch.zeros(self.n_samples, next_model.rank)
+        new_latent_mean[:, : current_model.rank] = current_model.latent_mean
+        next_model.latent_mean = new_latent_mean
+        new_latent_sqrt_variance = torch.ones(self.n_samples, next_model.rank) / 10
+        new_latent_sqrt_variance[:, : current_model.rank] = (
+            current_model.latent_sqrt_variance
+        )
+        next_model.latent_sqrt_variance = new_latent_sqrt_variance
 
     @property
     def components(self) -> Dict[float, torch.Tensor]:
@@ -160,13 +159,13 @@ class PlnPCAcollection(Collection):
     @_add_doc(
         Collection,
         example="""
-            >>> from pyPLNmodels import PlnPCAcollection, load_scrna
+            >>> from pyPLNmodels import PlnPCACollection, load_scrna
             >>> data = load_scrna()
-            >>> pcas = PlnPCAcollection(endog = data["endog"], ranks = [4,6,8])
+            >>> pcas = PlnPCACollection(endog = data["endog"], ranks = [4,6,8])
             >>> pcas.fit()
         """,
         returns="""
-        PlnPCAcollection
+        PlnPCACollection
         """,
     )
     def fit(
@@ -205,14 +204,14 @@ class PlnPCAcollection(Collection):
     @_add_doc(
         Collection,
         example="""
-            >>> from pyPLNmodels import PlnPCAcollection, load_scrna
+            >>> from pyPLNmodels import PlnPCACollection, load_scrna
             >>> data = load_scrna()
-            >>> pcas = PlnPCAcollection(endog = data["endog"], ranks = [4,6,8])
+            >>> pcas = PlnPCACollection(endog = data["endog"], ranks = [4,6,8])
             >>> pcas.fit()
             >>> print(pcas.best_model())
         """,
         returns="""
-        PlnPCAcollection
+        PlnPCACollection
         """,
     )
     def best_model(self, criterion: str = "BIC") -> PlnPCA:

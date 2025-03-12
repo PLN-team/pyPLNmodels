@@ -63,7 +63,7 @@ The PLN model described in the PLN-equation is the building block of many
 different statistical tasks adequate for count data, by modifying the $Z_i$ latent variables. The package implements:
 
 - Covariance analysis (`Pln`)
-- Dimension reduction (`PlnPCA` and `PlnPCAcollection`)
+- Dimension reduction (`PlnPCA` and `PlnPCACollection`)
 - Zero-inflation (`ZIPln`)
 - Autoregressive models (`PlnAR`)
 - Supervised clustering (`PlnLDA`)
@@ -157,7 +157,7 @@ transformed_data = pln.transform()
 pln.show()
 ```
 
-### Dimension reduction with the PLN Principal Component Analysis (aka `PlnPCA` and `PlnPCAcollection`)
+### Dimension reduction with the PLN Principal Component Analysis (aka `PlnPCA` and `PlnPCACollection`)
 
 This model excels in dimension reduction and is capable of scaling to
 high-dimensional count data ($p >> 1$), by constraining the covariance matrix
@@ -170,10 +170,10 @@ pca = PlnPCA.from_formula("endog ~ 1  + labels ", data = data, rank = 3).fit()
 ```
 
 Multiple ranks can be simultaneously tested
-within a single object (`PlnPCAcollection`), and select the optimal model.
+within a single object (`PlnPCACollection`), and select the optimal model.
 ```python
-from pyPLNmodels import PlnPCAcollection
-pca_col = PlnPCAcollection.from_formula("endog ~ 1  + labels ", data = data, ranks = [3,4,5])
+from pyPLNmodels import PlnPCACollection
+pca_col = PlnPCACollection.from_formula("endog ~ 1  + labels ", data = data, ranks = [3,4,5])
 pca_col.fit()
 print(pca_col)
 pca_col.show()

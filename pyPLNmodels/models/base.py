@@ -1025,3 +1025,55 @@ class BaseModel(
     @abstractmethod
     def _endog_predictions(self):
         """Abstract method the predict the endog variables."""
+
+    @property
+    def _latent_dim(self):
+        return self.dim
+
+    @latent_sqrt_variance.setter
+    @_array2tensor
+    def latent_sqrt_variance(
+        self, latent_sqrt_variance: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the latent_sqrt_variance.
+
+        Parameters
+        ----------
+        latent_sqrt_variance : torch.Tensor
+            The latent_sqrt_variance to set.
+
+        Raises
+        ------
+        ValueError
+            If the latent_sqrt_variance have an invalid shape ( different than (n_samples,rank)).
+        """
+        if latent_sqrt_variance.shape != (self.n_samples, self._latent_dim):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.n_samples, self._latent_dim}), "
+                f"got {latent_sqrt_variance.shape}"
+            )
+        self._latent_sqrt_variance = latent_sqrt_variance
+
+    @latent_mean.setter
+    @_array2tensor
+    def latent_mean(self, latent_mean: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the latent_mean.
+
+        Parameters
+        ----------
+        latent_mean : torch.Tensor
+            The latent_mean to set.
+
+        Raises
+        ------
+        ValueError
+            If the latent_mean have an invalid shape ( different than (n_samples,rank)).
+        """
+        if latent_mean.shape != (self.n_samples, self._latent_dim):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.n_samples, self._latent_dim}), "
+                f"got {latent_mean.shape}"
+            )
+        self._latent_mean = latent_mean

@@ -1,23 +1,23 @@
 # pylint: skip-file
 import pytest
 
-from pyPLNmodels import PlnPCAcollection, load_scrna
+from pyPLNmodels import PlnPCACollection, load_scrna
 
 
 def test_ranks():
     rna = load_scrna()
     with pytest.raises(TypeError):
-        col = PlnPCAcollection(rna["endog"], ranks=[3, 4.5])
+        col = PlnPCACollection(rna["endog"], ranks=[3, 4.5])
     with pytest.raises(TypeError):
-        col = PlnPCAcollection(rna["endog"], ranks=load_scrna)
+        col = PlnPCACollection(rna["endog"], ranks=load_scrna)
     with pytest.raises(TypeError):
-        col = PlnPCAcollection(rna["endog"], ranks=[3.5])
-    col = PlnPCAcollection(rna["endog"], ranks=[4])
+        col = PlnPCACollection(rna["endog"], ranks=[3.5])
+    col = PlnPCACollection(rna["endog"], ranks=[4])
 
 
 def test_attributes():
     rna = load_scrna()
-    col = PlnPCAcollection(rna["endog"])
+    col = PlnPCACollection(rna["endog"])
     col.fit()
     col.exog
     col.endog
