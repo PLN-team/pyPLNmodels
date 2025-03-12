@@ -21,6 +21,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 class PlnPCA(BaseModel):
     """Principal Component Analysis on top of a PLN model, that is a PLN
     model with low-rank covariance, adapted to datasets with lots of features.
+    The rank of the model can also be referred to as the number of components
+    or the number of PCs.
     For more details, see Chiquet, J., Mariadassou, M., Robin, S.
     “Variational inference for probabilistic Poisson PCA.” Annals of applied stats.
 
