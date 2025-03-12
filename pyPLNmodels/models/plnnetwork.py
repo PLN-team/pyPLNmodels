@@ -9,7 +9,7 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.calculations.elbos import elbo_pln
 from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz, _build_graph
-from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
 from pyPLNmodels.calculations._closed_forms import _closed_formula_coef
 from pyPLNmodels.calculations._initialization import (
     _init_components_prec,
@@ -21,9 +21,15 @@ THRESHOLD = 1e-5
 
 
 class PlnNetwork(BaseModel):
-    """Pln model with regularization on the number of parameters
+    """
+    Pln model with regularization on the number of parameters
     of the precision matrix (inverse covariance matrix) representing correlation
     between variables.
+
+    For more details, see:
+    J. Chiquet, S. Robin, M. Mariadassou: "Variational Inference for sparse network
+    reconstruction from count data"
+
 
     Examples
     --------
@@ -223,7 +229,9 @@ class PlnNetwork(BaseModel):
         return torch.sum((torch.abs(self._precision) < THRESHOLD).float()) / 2
 
     def _init_model_parameters(self):
-        self._components_prec = _init_components_prec(self._endog)
+        if not hasattr(self, "_components_prec"):
+            self._components_prec = _init_components_prec(self._endog)
+            print("Initializing components")
 
     @property
     @_add_doc(BaseModel)
@@ -469,7 +477,49 @@ class PlnNetwork(BaseModel):
 
     @property
     def _description(self):
-        return f"with penalty {self.penalty}"
+        return f"with penalty {self.penalty}."
 
     def _init_latent_parameters(self):
-        self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(self._endog)
+        if not hasattr(self, "_latent_mean") or not hasattr(
+            self, "_latent_sqrt_variance"
+        ):
+            self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(
+                self._endog
+            )
+            print("Initializing mean and sqrt var")
+
+    @property
+    def components_prec(self):
+        """
+        Returns an unorthogonal square root of the precision matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            The components of the precision with size (dim, dim)
+        """
+        return self._components_prec.detach().cpu()
+
+    @components_prec.setter
+    @_array2tensor
+    def components_prec(
+        self, components_prec: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the components_prec, that is an unorthogonal square root of the precision matrix.
+
+        Parameters
+        ----------
+        components_prec : torch.Tensor
+            The components_prec to set.
+
+        Raises
+        ------
+        ValueError
+            If the components_prec have an invalid shape.
+        """
+        if components_prec.shape != (self.dim, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.dim, self.dim}), got {components_prec.shape}"
+            )
+        self._components_prec = components_prec

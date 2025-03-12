@@ -1,5 +1,6 @@
 from typing import Dict, Any, Union, Iterable, Optional, List
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 
 import torch
 import pandas as pd
@@ -97,6 +98,7 @@ class Collection(ABC):
                         f"Please instantiate `{self._grid_value_name}` with a list "
                         f"of {self._type_grid}."
                     )
+            self._dict_models = OrderedDict(sorted(self._dict_models.items()))
         else:
             raise TypeError(
                 f"Please instantiate the `{self._grid_value_name}` with an iterable"
@@ -163,6 +165,11 @@ class Collection(ABC):
             The `endog`.
         """
         return self[self.grid[0]].endog
+
+    @property
+    def n_samples(self):
+        """Number of samples in the dataset."""
+        return self[self.grid[0]].n_samples
 
     @property
     def grid(self) -> List[float]:

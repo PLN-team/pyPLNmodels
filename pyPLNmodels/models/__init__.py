@@ -1,6 +1,5 @@
 from .pln import Pln
 from .plnpca import PlnPCA
-from .plnpcacollection import PlnPCAcollection
 from .zipln import ZIPln
 from .ziplnpca import ZIPlnPCA
 from .plnnetwork import PlnNetwork
@@ -8,3 +7,5 @@ from .plndiag import PlnDiag
 from .plnmixture import PlnMixture
 from .plnar import PlnAR
 from .plnlda import PlnLDA
+from .plnpcacollection import PlnPCACollection
+from .plnnetworkcollection import PlnNetworkCollection

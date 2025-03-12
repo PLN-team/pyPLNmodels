@@ -17,7 +17,7 @@ Models
 - :doc:`Pln <pln>` (Poisson-Lognormal)
 - :doc:`ZIPln <zipln>` (Zero-Inflated Pln)
 - :doc:`PlnPCA <plnpca>` (Dimension reduction)
-- :doc:`PlnPCAcollection <plnpcacollection>` (Dimension reduction)
+- :doc:`PlnPCACollection <plnpcacollection>` (Dimension reduction)
 - :doc:`PlnAR <plnar>` (AutoRegressive Pln)
 - :doc:`PlnLDA <plnlda>` (supervised clustering)
 - :doc:`PlnMixture <plnmixture>` (Unsupervised clustering)
