@@ -119,7 +119,7 @@ class BaseModel(
         compute_offsets_method: {"zero", "logsum"} = "zero",
     ):
         """
-        Create a model instance from a formula and data.
+        Create an instance from a formula and data.
 
         Parameters
         ----------
@@ -134,7 +134,6 @@ class BaseModel(
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
             Overridden (useless) if data["offsets"] is not `None`.
-
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -807,9 +806,6 @@ class BaseModel(
 
     @property
     def _useful_methods_list(self):
-        """
-        Useful methods of the model.
-        """
         return [
             ".transform()",
             ".show()",
@@ -825,9 +821,6 @@ class BaseModel(
 
     @property
     def _useful_attributes_list(self):
-        """
-        Useful attributes of the model.
-        """
         return [
             ".latent_variables",
             ".latent_positions",

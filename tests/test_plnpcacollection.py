@@ -10,7 +10,9 @@ def test_ranks():
         col = PlnPCAcollection(rna["endog"], ranks=[3, 4.5])
     with pytest.raises(TypeError):
         col = PlnPCAcollection(rna["endog"], ranks=load_scrna)
-    col = PlnPCAcollection(rna["endog"], ranks=4)
+    with pytest.raises(TypeError):
+        col = PlnPCAcollection(rna["endog"], ranks=[3.5])
+    col = PlnPCAcollection(rna["endog"], ranks=[4])
 
 
 def test_attributes():
@@ -28,8 +30,7 @@ def test_attributes():
     for pca in col:
         print(pca)
     assert 3 in col
-    not_in_col = 4 in col
-    assert not_in_col is False
+    assert (4 in col) is False
     col.keys()
     col.get(3, None)
     col.get(4, None)
