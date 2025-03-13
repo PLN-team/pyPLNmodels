@@ -1,7 +1,15 @@
 # pylint: skip-file
 import pytest
 
-from pyPLNmodels import PlnPCACollection, load_scrna
+from .generate_models import get_dict_collections_fitted
+
+
+def test_best_model():
+    dict_collections = get_dict_collections_fitted()
+    for collection_name in dict_collections:
+        for init_method in ["formula", "explicit"]:
+            for collection in dict_collections[collection_name][init_method]:
+                print("best model", collection.best_model())
 
 
 def test_ranks():
