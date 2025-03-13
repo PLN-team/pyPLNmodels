@@ -9,6 +9,7 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plnnetwork import PlnNetwork
 from pyPLNmodels.models.plnpcacollection import PlnPCACollection
 from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 
 
 class PlnNetworkCollection(Collection):
@@ -27,7 +28,7 @@ class PlnNetworkCollection(Collection):
     >>> print(nets)
     >>> nets.show()
     >>> print(nets.best_model())
-    >>> print(nets[5])
+    >>> print(nets[10])
 
     See also
     --------
@@ -99,11 +100,14 @@ class PlnNetworkCollection(Collection):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         penalties: Optional[Iterable[int]] = (1, 10, 100, 1000),
     ):  # pylint: disable=missing-function-docstring, arguments-differ
-        return super().from_formula(
-            formula=formula,
-            data=data,
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
             compute_offsets_method=compute_offsets_method,
-            grid=penalties,
+            penalties=penalties,
+            add_const=False,
         )
 
     def _instantiate_model(self, grid_value):
