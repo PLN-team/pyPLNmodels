@@ -5,13 +5,14 @@ import numpy as np
 import pandas as pd
 
 from pyPLNmodels.models.collection import Collection
-from pyPLNmodels.models.base import DEFAULT_TOL
+from pyPLNmodels.models.base import DEFAULT_TOL, BaseModel
 from pyPLNmodels.models.ziplnpca import ZIPlnPCA
 from pyPLNmodels.models.plnpcacollection import PlnPCACollection
 from pyPLNmodels.utils._utils import _add_doc, _init_next_model_pca
 from pyPLNmodels.utils._data_handler import (
     _handle_inflation_data,
     _format_data,
+    _extract_data_inflation_from_formula,
 )
 
 
@@ -103,6 +104,39 @@ class ZIPlnPCACollection(
             offsets=offsets,
             compute_offsets_method=compute_offsets_method,
             add_const=add_const,
+        )
+
+    @classmethod
+    @_add_doc(
+        BaseModel,
+        params="""
+              ranks : Iterable[int], optional(keyword-only)
+                The ranks (or number of PCs) that needs to be tested.
+                By default (3, 5)
+              """,
+    )
+    def from_formula(
+        cls,
+        formula: str,
+        data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
+        *,
+        compute_offsets_method: {"zero", "logsum"} = "zero",
+        ranks: Optional[Iterable[int]] = (3, 5),
+        use_closed_form_prob: bool = True,
+    ):  # pylint: disable=missing-function-docstring, arguments-differ, too-many-arguments
+        endog, exog, offsets, exog_inflation = _extract_data_inflation_from_formula(
+            formula, data
+        )
+        return cls(
+            endog=endog,
+            exog=exog,
+            exog_inflation=exog_inflation,
+            offsets=offsets,
+            compute_offsets_method=compute_offsets_method,
+            ranks=ranks,
+            add_const=False,
+            add_const_inflation=False,
+            use_closed_form_prob=use_closed_form_prob,
         )
 
     def _instantiate_model(self, grid_value):
