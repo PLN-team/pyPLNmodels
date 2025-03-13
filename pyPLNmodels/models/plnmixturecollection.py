@@ -8,6 +8,7 @@ from pyPLNmodels.models.collection import Collection
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plnmixture import PlnMixture
 from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 
 
 class PlnMixtureCollection(Collection):
@@ -69,7 +70,7 @@ class PlnMixtureCollection(Collection):
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        add_const: bool = True,
+        add_const: bool = False,
         n_clusters: Optional[Iterable[int]] = (2, 3, 4),
     ):  # pylint: disable=too-many-arguments
         super().__init__(
@@ -98,11 +99,14 @@ class PlnMixtureCollection(Collection):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         n_clusters: Optional[Iterable[int]] = (2, 3, 4),
     ):  # pylint: disable=missing-function-docstring, arguments-differ
-        return super().from_formula(
-            formula=formula,
-            data=data,
+        endog, exog, offsets = _extract_data_from_formula(formula, data)
+        return cls(
+            endog=endog,
+            exog=exog,
+            offsets=offsets,
             compute_offsets_method=compute_offsets_method,
-            grid=n_clusters,
+            n_clusters=n_clusters,
+            add_const=False,
         )
 
     def _instantiate_model(self, grid_value):
