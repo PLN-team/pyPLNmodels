@@ -9,3 +9,5 @@ from .plnar import PlnAR
 from .plnlda import PlnLDA
 from .plnpcacollection import PlnPCACollection
 from .plnnetworkcollection import PlnNetworkCollection
+from .plnmixturecollection import PlnMixtureCollection
+from .ziplnpcacollection import ZIPlnPCACollection

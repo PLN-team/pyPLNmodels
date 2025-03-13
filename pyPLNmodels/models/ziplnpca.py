@@ -12,8 +12,11 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_sqrt_variance_pca,
     _init_latent_mean_pca,
 )
-from pyPLNmodels.utils._data_handler import _extract_data_inflation_from_formula
-from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._data_handler import (
+    _extract_data_inflation_from_formula,
+    _array2tensor,
+)
+from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -188,13 +191,18 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         )
 
     def _init_model_parameters(self):
-        self.__coef, self._coef_inflation = _init_coef_coef_inflation(
-            endog=self._endog,
-            exog=self._exog,
-            exog_inflation=self._exog_inflation,
-            offsets=self._offsets,
-        )
-        self._components = _init_components(self._endog, self.rank).to(DEVICE)
+        if (
+            hasattr(self, "__coef")
+            or hasattr(self, "_coef_inflation")
+            or hasattr(self, "_components")
+        ) is False:
+            self.__coef, self._coef_inflation = _init_coef_coef_inflation(
+                endog=self._endog,
+                exog=self._exog,
+                exog_inflation=self._exog_inflation,
+                offsets=self._offsets,
+            )
+            self._components = _init_components(self._endog, self.rank).to(DEVICE)
 
     @_add_doc(
         BaseModel,
@@ -285,6 +293,105 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
             The components with size (dim, rank)
         """
         return self._components.detach().cpu()
+
+    @components.setter
+    @_array2tensor
+    def components(self, components: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the components.
+
+        Parameters
+        ----------
+        components : torch.Tensor
+            The components to set, of size (dim, rank).
+
+        Raises
+        ------
+        ValueError
+            If the components have an invalid shape (i.e. not (dim, rank)).
+        """
+        _check_array_size(components, self.dim, self.rank, "components")
+        self._components = components
+
+    @property  # Here only to be able to define a setter.
+    @_add_doc(ZIPln)
+    def coef_inflation(self):
+        return super().coef_inflation
+
+    @property  # Here only to be able to define a setter.
+    @_add_doc(ZIPln)
+    def latent_prob(self):
+        return self._latent_prob.detach().cpu()
+
+    @property  # Here only to be able to define a setter.
+    @_add_doc(BaseModel)
+    def coef(self):
+        return super().coef
+
+    @latent_prob.setter
+    @_array2tensor
+    def latent_prob(self, latent_prob: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the `latent_prob` property.
+
+        Parameters
+        ----------
+        latent_prob : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (n_samples, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the `latent_prob` is incorrect.
+        """
+        if self._use_closed_form_prob is True:
+            raise ValueError(
+                "Can not set the latent prob if `use_closed_form_prob` is `True`"
+            )
+        _check_array_size(latent_prob, self.n_samples, self.dim, "latent_prob")
+        self._latent_prob = latent_prob
+
+    @coef.setter
+    @_array2tensor
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the `coef` property.
+
+        Parameters
+        ----------
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (nb_cov, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the coef is incorrect.
+        """
+        _check_array_size(coef, self.nb_cov, self.dim, "coef")
+        self.__coef = coef
+
+    @coef_inflation.setter
+    @_array2tensor
+    def coef_inflation(
+        self, coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the `coef_inflation` property.
+
+        Parameters
+        ----------
+        coef_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (nb_cov_inflation, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the `coef_inflation` is incorrect.
+        """
+        _check_array_size(
+            coef_inflation, self.nb_cov_inflation, self.dim, "coef_inflation"
+        )
+        self._coef_inflation = coef_inflation
 
     @property
     def number_of_parameters(self):
@@ -540,3 +647,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     def _project_parameters(self):
         if self._use_closed_form_prob is False:
             super()._project_parameters()
+
+    @property
+    def _latent_dim(self):
+        return self.rank

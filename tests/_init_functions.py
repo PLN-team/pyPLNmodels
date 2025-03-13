@@ -46,7 +46,7 @@ def _PlnDiag_init(init_method, **kwargs):
 
 
 def _PlnMixture_init(init_method, **kwargs):
-    n_clusters = kwargs.get("n_clusters", None)
+    n_cluster = kwargs.get("n_cluster", None)
     if init_method == "explicit":
         endog = kwargs.get("endog", None)
         exog = kwargs.get("exog", None)
@@ -56,12 +56,12 @@ def _PlnMixture_init(init_method, **kwargs):
             exog=exog,
             offsets=offsets,
             add_const=False,
-            n_clusters=n_clusters,
+            n_cluster=n_cluster,
         )
     if init_method == "formula":
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
-        return PlnMixture.from_formula(formula, data=data, n_clusters=n_clusters)
+        return PlnMixture.from_formula(formula, data=data, n_cluster=n_cluster)
     raise ValueError('init_method must be "explicit" or "formula"')
 
 

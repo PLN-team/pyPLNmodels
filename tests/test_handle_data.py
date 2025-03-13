@@ -73,7 +73,7 @@ def test_check_full_rank_exog_invalid():
         pln = PlnLDA.from_formula("endog~ 1| site ", data)
 
     with pytest.raises(ValueError):
-        pln = PlnMixture.from_formula("endog~ 1", data, n_clusters=3)
+        pln = PlnMixture.from_formula("endog~ 1", data, n_cluster=3)
 
 
 def test_check_data_shapes_valid():

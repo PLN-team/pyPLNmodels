@@ -374,12 +374,12 @@ class PlnLDA(Pln):
     def _estimate_prob_and_latent_positions(self, endog, *, exog, offsets):
         endog = _format_data(endog)
         best_guess_gaussian = torch.zeros(endog.shape).to(self._endog.device)
-        predicted_prob = torch.zeros((endog.shape[0], self._n_clusters)).to(
+        predicted_prob = torch.zeros((endog.shape[0], self._n_cluster)).to(
             self._endog.device
         )
         best_prob = torch.zeros(endog.shape[0]).to(self._endog.device) - torch.inf
         coef = self._coef.detach() if self._coef is not None else None
-        for k in range(self._n_clusters):
+        for k in range(self._n_cluster):
             pln_pred = _PlnPred(
                 endog=endog,
                 exog=exog,
@@ -518,9 +518,9 @@ class PlnLDA(Pln):
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
         >>> ntrain, ntest = 300, 200
-        >>> nb_cov, n_clusters = 1,3
+        >>> nb_cov, n_cluster = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -555,9 +555,9 @@ class PlnLDA(Pln):
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
         >>> ntrain, ntest = 300, 200
-        >>> nb_cov, n_clusters = 1,3
+        >>> nb_cov, n_cluster = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -607,9 +607,9 @@ class PlnLDA(Pln):
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
         >>> ntrain, ntest = 3000, 200
-        >>> nb_cov, n_clusters = 1,3
+        >>> nb_cov, n_cluster = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -672,7 +672,7 @@ class PlnLDA(Pln):
         raise NotImplementedError("pca pairplot not implemented for LDA models.")
 
     @property
-    def _n_clusters(self):
+    def _n_cluster(self):
         return self._exog_clusters.shape[1]
 
     @_add_doc(
@@ -692,7 +692,7 @@ class PlnLDA(Pln):
         """,
     )
     def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
-        if self._n_clusters == 2:
+        if self._n_cluster == 2:
             _raise_error_1D_viz()
         column_index = _process_column_index(
             column_names, column_index, self.column_names_endog
@@ -736,7 +736,7 @@ class PlnLDA(Pln):
         colors: np.ndarray = None,
         title: str = "",
     ):
-        if self._n_clusters == 2:
+        if self._n_cluster == 2:
             _raise_error_1D_viz()
         column_index = _process_column_index(
             column_names, column_index, self.column_names_endog

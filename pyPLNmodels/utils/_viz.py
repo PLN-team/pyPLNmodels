@@ -574,21 +574,21 @@ class MixtureModelViz(BaseModelViz):
         cluster_bias = self._params["cluster_bias"]
         variances = self._params["covariances"]
 
-        n_clusters = len(self._params["weights"])
+        n_cluster = len(self._params["weights"])
 
         fig = _get_figure(figsize)
-        gs = gridspec.GridSpec(3, n_clusters + 2, figure=fig, wspace=0.3)
+        gs = gridspec.GridSpec(3, n_cluster + 2, figure=fig, wspace=0.3)
 
-        ax1 = fig.add_subplot(gs[0, 0:n_clusters])
-        axes_means = [fig.add_subplot(gs[1, i]) for i in range(n_clusters)]
-        axes_variances = [fig.add_subplot(gs[2, i]) for i in range(n_clusters)]
-        ax3 = fig.add_subplot(gs[0, n_clusters : n_clusters + 2])
-        ax4 = fig.add_subplot(gs[1, n_clusters : n_clusters + 2])
-        ax5 = fig.add_subplot(gs[2, n_clusters : n_clusters + 2])
+        ax1 = fig.add_subplot(gs[0, 0:n_cluster])
+        axes_means = [fig.add_subplot(gs[1, i]) for i in range(n_cluster)]
+        axes_variances = [fig.add_subplot(gs[2, i]) for i in range(n_cluster)]
+        ax3 = fig.add_subplot(gs[0, n_cluster : n_cluster + 2])
+        ax4 = fig.add_subplot(gs[1, n_cluster : n_cluster + 2])
+        ax5 = fig.add_subplot(gs[2, n_cluster : n_cluster + 2])
 
         self._plot_weights(ax1, self._params["weights"])
-        self._plot_cluster_biases(axes_means, cluster_bias, n_clusters)
-        self._plot_variances(axes_variances, variances, n_clusters)
+        self._plot_cluster_biases(axes_means, cluster_bias, n_cluster)
+        self._plot_variances(axes_variances, variances, n_cluster)
 
         self.display_norm_evolution(ax=ax3)
         self.display_criterion_evolution(ax=ax4)
@@ -615,20 +615,20 @@ class MixtureModelViz(BaseModelViz):
                 va="bottom",
             )
 
-    def _plot_cluster_biases(self, axes, cluster_bias, n_clusters):
+    def _plot_cluster_biases(self, axes, cluster_bias, n_cluster):
         y_indices = self.column_names
         x_min, x_max = torch.min(cluster_bias), torch.max(cluster_bias)
-        for k in range(n_clusters):
+        for k in range(n_cluster):
             axes[k].barh(y_indices, cluster_bias[k], label=f"Cluster {k}", color="blue")
             axes[k].set_xlim(x_min, x_max)
             axes[k].set_xlabel(f"Mean of Cluster {k}", fontsize=10)
             if k > 0:
                 axes[k].set_yticklabels([])
 
-    def _plot_variances(self, axes, variances, n_clusters):
+    def _plot_variances(self, axes, variances, n_cluster):
         y_indices = self.column_names
         x_max = torch.max(variances)
-        for k in range(n_clusters):
+        for k in range(n_cluster):
             axes[k].barh(y_indices, variances[k], label=f"Cluster {k}", color="blue")
             axes[k].set_xlim(0, x_max)
             axes[k].set_xlabel(f"Variance of Cluster {k}", fontsize=10)

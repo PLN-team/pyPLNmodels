@@ -235,7 +235,7 @@ plot_confusion_matrix(pred_test, labels_test)
 
 ```python
 from pyPLNmodels import PlnMixture
-mixture = PlnMixture.from_formula("endog ~ 0 ", data = data, n_clusters=3).fit()
+mixture = PlnMixture.from_formula("endog ~ 0 ", data = data, n_cluster=3).fit()
 mixture.show()
 clusters = mixture.clusters
 plot_confusion_matrix(clusters, data["labels"])

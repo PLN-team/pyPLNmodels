@@ -16,9 +16,9 @@ class PlnLDASampler(PlnSampler):
     >>> import torch
     >>> from pyPLNmodels import PlnLDA, PlnLDASampler
     >>> ntrain, ntest = 300, 200
-    >>> nb_cov, n_clusters = 1,3
+    >>> nb_cov, n_cluster = 1,3
     >>> sampler = PlnLDASampler(
-    >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+    >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
     >>> endog = sampler.sample()
     >>> known_exog = sampler.known_exog
     >>> clusters = sampler.clusters
@@ -48,13 +48,13 @@ class PlnLDASampler(PlnSampler):
         dim: int = 20,
         *,
         nb_cov: int = 1,
-        n_clusters: int = 2,
+        n_cluster: int = 2,
         add_const: bool = False,
         add_offsets: bool = False,
         marginal_mean_mean: int = 2,
         seed: int = 0,
     ):  # pylint: disable=too-many-arguments
-        self.n_clusters = n_clusters
+        self.n_cluster = n_cluster
         if add_const is True:
             raise ValueError(
                 "`add_const` can not be set to `True` (for inversibility purposes)"
@@ -62,20 +62,20 @@ class PlnLDASampler(PlnSampler):
         super().__init__(
             n_samples=n_samples,
             dim=dim,
-            nb_cov=nb_cov + n_clusters,
+            nb_cov=nb_cov + n_cluster,
             add_const=add_const,
             add_offsets=add_offsets,
             marginal_mean_mean=marginal_mean_mean,
             seed=seed,
         )
         self._params["coef_clusters"] = torch.clone(
-            self._params["coef"][(-self.n_clusters) :]
+            self._params["coef"][(-self.n_cluster) :]
         )
         if self._exog is None:
             self._params["coef"] = None
         else:
             self._params["coef"] = torch.clone(
-                self._params["coef"][: (-self.n_clusters)]
+                self._params["coef"][: (-self.n_cluster)]
             )
 
     @property
@@ -88,13 +88,13 @@ class PlnLDASampler(PlnSampler):
     def _get_exog(self, *, n_samples, nb_cov, will_add_const, seed):
         known_exog = _get_exog(
             n_samples=n_samples,
-            nb_cov=nb_cov - self.n_clusters,
+            nb_cov=nb_cov - self.n_cluster,
             will_add_const=True,
             seed=seed,
         )
         cluster_exog = _get_exog(
             n_samples=n_samples,
-            nb_cov=self.n_clusters,
+            nb_cov=self.n_cluster,
             will_add_const=False,
             seed=seed + 1,
         )
@@ -105,14 +105,14 @@ class PlnLDASampler(PlnSampler):
     def _get_coef(
         self, *, nb_cov, dim, mean, add_const, seed
     ):  # pylint:disable = too-many-arguments
-        nb_cov = nb_cov - self.n_clusters
+        nb_cov = nb_cov - self.n_cluster
         coef_known = super()._get_coef(
             nb_cov=nb_cov, dim=dim, mean=mean, add_const=add_const, seed=seed
         )
         coef_clusters = super()._get_coef(
-            nb_cov=self.n_clusters, dim=dim, mean=0, add_const=False, seed=seed + 1
+            nb_cov=self.n_cluster, dim=dim, mean=0, add_const=False, seed=seed + 1
         )
-        for i in range(self.n_clusters):
+        for i in range(self.n_cluster):
             coef_clusters[i] += i
         if nb_cov == 0:
             return coef_clusters
@@ -125,9 +125,9 @@ class PlnLDASampler(PlnSampler):
 
     @property
     def _known_exog(self):
-        if self._exog.shape[1] == self.n_clusters:
+        if self._exog.shape[1] == self.n_cluster:
             return None
-        return self._exog[:, : -(self.n_clusters)]
+        return self._exog[:, : -(self.n_cluster)]
 
     @property
     def known_exog(self):
@@ -151,7 +151,7 @@ class PlnLDASampler(PlnSampler):
         """
         Clusters given in initialization.
         """
-        return self._exog[:, -(self.n_clusters) :]
+        return self._exog[:, -(self.n_cluster) :]
 
     @property
     def clusters(self):

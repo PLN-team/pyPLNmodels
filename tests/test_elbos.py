@@ -119,7 +119,7 @@ def test_closed_formula():
 
 def test_weighted_elbo_pln_diag():
     data = load_scrna(n_samples=30)
-    mixt = PlnMixture(data["endog"], n_clusters=2)
+    mixt = PlnMixture(data["endog"], n_cluster=2)
     mixt.fit()
     elbo_full = per_sample_elbo_pln_mixture_diag(
         endog=mixt._endog,
@@ -131,7 +131,7 @@ def test_weighted_elbo_pln_diag():
     )
     elbo_full = torch.sum(elbo_full * (mixt._latent_prob.T))
     elbo_each = 0
-    for k in range(mixt.n_clusters):
+    for k in range(mixt.n_cluster):
         elbo_k = weighted_elbo_pln_diag(
             endog=mixt._endog,
             marginal_mean=mixt._marginal_means[k],

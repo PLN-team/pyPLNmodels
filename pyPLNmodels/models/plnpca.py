@@ -12,7 +12,7 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_sqrt_variance_pca,
 )
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
-from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -261,17 +261,14 @@ class PlnPCA(BaseModel):
         Parameters
         ----------
         components : torch.Tensor
-            The components to set.
+            The components to set, of size (dim, rank).
 
         Raises
         ------
         ValueError
-            If the components have an invalid shape.
+            If the components have an invalid shape (i.e. not (dim, rank)).
         """
-        if components.shape != (self.dim, self.rank):
-            raise ValueError(
-                f"Wrong shape. Expected ({self.dim, self.rank}), got {components.shape}"
-            )
+        _check_array_size(components, self.dim, self.rank, "components")
         self._components = components
 
     @property  # Here only to be able to define a setter.
@@ -295,10 +292,7 @@ class PlnPCA(BaseModel):
         ValueError
             If the shape of the coef is incorrect.
         """
-        if coef.shape != (self.nb_cov, self.dim):
-            raise ValueError(
-                f"Wrong shape for the coef. Expected ({(self.nb_cov, self.dim)}), got {coef.shape}"
-            )
+        _check_array_size(coef, self.nb_cov, self.dim, "coef")
         self._coef = coef
 
     @property

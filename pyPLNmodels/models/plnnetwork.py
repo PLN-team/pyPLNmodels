@@ -231,7 +231,6 @@ class PlnNetwork(BaseModel):
     def _init_model_parameters(self):
         if not hasattr(self, "_components_prec"):
             self._components_prec = _init_components_prec(self._endog)
-            print("Initializing components")
 
     @property
     @_add_doc(BaseModel)
@@ -486,7 +485,6 @@ class PlnNetwork(BaseModel):
             self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(
                 self._endog
             )
-            print("Initializing mean and sqrt var")
 
     @property
     def components_prec(self):

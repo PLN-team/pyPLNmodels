@@ -246,8 +246,8 @@ def get_label_mapping(cluster_labels: ArrayLike, true_labels: ArrayLike):
     cluster_labels = np.array(cluster_labels)
     true_labels = np.array(true_labels)
     label_mapping = {}
-    n_clusters = len(np.unique(cluster_labels))
-    for cluster in range(n_clusters):
+    n_cluster = len(np.unique(cluster_labels))
+    for cluster in range(n_cluster):
         mask = cluster_labels == cluster
         if np.sum(mask) > 0:  # Check if there are any true labels for this cluster
             majority_class = mode(true_labels[mask], keepdims=True)[0][0]
@@ -319,3 +319,26 @@ def _raise_error_1D_viz():
     msg = "There is only 2 clusters, so LDA transformation is 1D"
     msg += " and visualization is not possible."
     raise ValueError(msg)
+
+
+def _init_next_model_pca(next_model, current_model):
+    next_model.coef = current_model.coef
+    new_components = torch.zeros(current_model.dim, next_model.rank)
+    new_components[:, : current_model.rank] = current_model.components
+    next_model.components = new_components
+    new_latent_mean = torch.zeros(current_model.n_samples, next_model.rank)
+    new_latent_mean[:, : current_model.rank] = current_model.latent_mean
+    next_model.latent_mean = new_latent_mean
+    new_latent_sqrt_variance = torch.ones(current_model.n_samples, next_model.rank) / 10
+    new_latent_sqrt_variance[:, : current_model.rank] = (
+        current_model.latent_sqrt_variance
+    )
+    next_model.latent_sqrt_variance = new_latent_sqrt_variance
+    return next_model
+
+
+def _check_array_size(array, dim1, dim2, array_name):
+    if array.shape != (dim1, dim2):
+        raise ValueError(
+            f"Wrong shape for the {array_name}. Expected ({(dim1, dim2)}), got {array.shape}"
+        )
