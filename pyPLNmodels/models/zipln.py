@@ -131,7 +131,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             self.column_names_exog_inflation = column_names_exog_inflation
         else:
             self.column_names_exog_inflation = [
-                f"Exog_infl_{i+1}" for i in range(self.nb_cov)
+                f"Exog_infl_{i+1}" for i in range(self.nb_cov_inflation)
             ]
 
     @classmethod

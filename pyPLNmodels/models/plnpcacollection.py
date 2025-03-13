@@ -7,7 +7,7 @@ import pandas as pd
 from pyPLNmodels.models.collection import Collection
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plnpca import PlnPCA
-from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._utils import _add_doc, _init_next_model_pca
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -37,6 +37,7 @@ class PlnPCACollection(Collection):
     :func:`pyPLNmodels.PlnPCACollection.from_formula`
     :func:`pyPLNmodels.PlnPCACollection.__init__`
     :class:`~pyPLNmodels.PlnNetworkCollection`
+    :class:`~pyPLNmodels.ZIPlnPCACollection`
     :class:`~pyPLNmodels.PlnMixtureCollection`
     """
 
@@ -119,18 +120,7 @@ class PlnPCACollection(Collection):
     def _init_next_model_with_current_model(
         self, next_model: PlnPCA, current_model: PlnPCA
     ):
-        next_model.coef = current_model.coef
-        new_components = torch.zeros(self.dim, next_model.rank)
-        new_components[:, : current_model.rank] = current_model.components
-        next_model.components = new_components
-        new_latent_mean = torch.zeros(self.n_samples, next_model.rank)
-        new_latent_mean[:, : current_model.rank] = current_model.latent_mean
-        next_model.latent_mean = new_latent_mean
-        new_latent_sqrt_variance = torch.ones(self.n_samples, next_model.rank) / 10
-        new_latent_sqrt_variance[:, : current_model.rank] = (
-            current_model.latent_sqrt_variance
-        )
-        next_model.latent_sqrt_variance = new_latent_sqrt_variance
+        next_model = _init_next_model_pca(next_model, current_model)
 
     @property
     def components(self) -> Dict[float, torch.Tensor]:
@@ -192,7 +182,7 @@ class PlnPCACollection(Collection):
     @property
     def latent_variance(self) -> Dict[int, torch.Tensor]:
         """
-        Property representing the latent mean, for each model in the collection.
+        Property representing the latent variance, for each model in the collection.
 
         Returns
         -------

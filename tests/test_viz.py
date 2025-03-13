@@ -85,7 +85,7 @@ def test_viz_general():
                         model.viz(remove_exog_effect=False)
                 model.viz(colors=colors)
                 if model_name == "PlnLDA":
-                    if model._n_clusters == 2:
+                    if model._n_cluster == 2:
                         with pytest.raises(ValueError):
                             model.biplot(column_names=["A", "B"], column_index=[3, 4])
                     else:

@@ -82,7 +82,7 @@ DICT_INIT_FUNCTIONS = {
     "PlnAR": _PlnAR_init,
 }
 DICT_KWARGS = {
-    "PlnLDA": {"nb_cov": NB_COVS, "add_const": [False], "n_clusters": NB_CLUSTERS},
+    "PlnLDA": {"nb_cov": NB_COVS, "add_const": [False], "n_cluster": NB_CLUSTERS},
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
     "PlnPCA": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS, "rank": RANKS},
     "ZIPln": {
@@ -92,7 +92,7 @@ DICT_KWARGS = {
     },
     "PlnDiag": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
     "PlnNetwork": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
-    "PlnMixture": {"nb_cov": NB_COVS, "add_const": [False], "n_clusters": NB_CLUSTERS},
+    "PlnMixture": {"nb_cov": NB_COVS, "add_const": [False], "n_cluster": NB_CLUSTERS},
     "ZIPlnPCA": {
         "nb_cov": NB_COVS,
         "add_const": ADD_CONSTS,

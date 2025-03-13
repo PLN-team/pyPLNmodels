@@ -11,7 +11,6 @@ from .load_data import (
 from .models import (
     Pln,
     PlnPCA,
-    PlnPCACollection,
     ZIPln,
     ZIPlnPCA,
     PlnNetwork,
@@ -19,7 +18,10 @@ from .models import (
     PlnMixture,
     PlnAR,
     PlnLDA,
+    PlnPCACollection,
     PlnNetworkCollection,
+    PlnMixtureCollection,
+    ZIPlnPCACollection,
 )
 
 

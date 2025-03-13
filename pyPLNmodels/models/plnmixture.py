@@ -34,7 +34,7 @@ class PlnMixture(
     >>> import seaborn as sns
     >>> from pyPLNmodels import PlnMixture, load_scrna, plot_confusion_matrix
     >>> data = load_scrna()
-    >>> mixture = PlnMixture(data["endog"],n_clusters = 3)
+    >>> mixture = PlnMixture(data["endog"],n_cluster = 3)
     >>> mixture.fit()
     >>> print(mixture)
     >>> plot_confusion_matrix(mixture.clusters, data["labels"])
@@ -62,13 +62,13 @@ class PlnMixture(
     @_add_doc(
         BaseModel,
         params="""
-            n_clusters : int
+            n_cluster : int
                 The number of clusters in the model.
             """,
         example="""
             >>> from pyPLNmodels import PlnMixture, load_scrna
             >>> data = load_scrna()
-            >>> mixture = PlnMixture(data["endog"],n_clusters = 3)
+            >>> mixture = PlnMixture(data["endog"],n_cluster = 3)
             >>> mixture.fit()
             >>> print(mixture)
         """,
@@ -86,7 +86,7 @@ class PlnMixture(
     def __init__(
         self,
         endog: Union[torch.Tensor, np.ndarray, pd.DataFrame],
-        n_clusters: int,
+        n_cluster: int,
         *,
         exog: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         add_const: bool = False,
@@ -98,7 +98,7 @@ class PlnMixture(
             msg += "an intercept in the covariates results in non-identifiable coefficients. "
             msg += "This is ignored."
             warnings.warn(msg)
-        self._n_clusters = n_clusters
+        self._n_cluster = n_cluster
         self._compute_offsets_method = (
             compute_offsets_method  # store it for prediction after.
         )
@@ -119,13 +119,13 @@ class PlnMixture(
     @_add_doc(
         BaseModel,
         params="""
-            n_clusters : int
+            n_cluster : int
                 The number of clusters in the model.
             """,
         example="""
             >>> from pyPLNmodels import PlnMixture, load_scrna
             >>> data = load_scrna()
-            >>> mixture = PlnMixture.from_formula("endog ~ 0",data, n_clusters = 3)
+            >>> mixture = PlnMixture.from_formula("endog ~ 0",data, n_cluster = 3)
             >>> mixture.fit()
             >>> print(mixture)
         """,
@@ -140,7 +140,7 @@ class PlnMixture(
         cls,
         formula: str,
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
-        n_clusters: int,
+        n_cluster: int,
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
     ):  # pylint: disable = arguments-differ
@@ -150,7 +150,7 @@ class PlnMixture(
             exog=exog,
             offsets=offsets,
             compute_offsets_method=compute_offsets_method,
-            n_clusters=n_clusters,
+            n_cluster=n_cluster,
         )
 
     @_add_doc(
@@ -158,13 +158,13 @@ class PlnMixture(
         example="""
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_cluster = 3)
         >>> mixture.fit()
         >>> print(mixture)
 
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_cluster = 3)
         >>> mixture.fit(maxiter=500, verbose=True)
         >>> print(mixture)
         """,
@@ -193,7 +193,7 @@ class PlnMixture(
     @property
     def covariances(self):
         """
-        Tensor of covariances of shape (n_clusters, dim).
+        Tensor of covariances of shape (n_cluster, dim).
         Each vector corresponds to the (diagonal) covariance of each cluster.
         """
         return self._covariances.detach().cpu()
@@ -202,7 +202,7 @@ class PlnMixture(
     def weights(self):
         """
         Probability of a sample to belong to each cluster.
-        Tensor of size (n_clusters).
+        Tensor of size (n_cluster).
         """
         return self._weights.cpu()
 
@@ -233,7 +233,7 @@ class PlnMixture(
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster = 3)
         >>> mixture.fit()
         >>> mixture.viz()
         >>> mixture.viz(colors=data["labels"])
@@ -256,7 +256,7 @@ class PlnMixture(
                 )
             )
             covariances = torch.zeros(self.n_samples, 2, 2)
-            for k in range(self.n_clusters):
+            for k in range(self.n_cluster):
                 indices = clusters == k
                 covariances[indices] = covariances_per_cluster[k][indices]
         else:
@@ -289,7 +289,7 @@ class PlnMixture(
             _coef = None
 
         _cluster_bias, _sqrt_covariances, _weights, _latent_prob = _init_gmm(
-            positions_with_mean, self.n_clusters
+            positions_with_mean, self.n_cluster
         )
         if not (
             hasattr(self, "_cluster_bias")
@@ -313,7 +313,7 @@ class PlnMixture(
             )
 
         self._latent_sqrt_variances = torch.randn(
-            self.n_clusters, self.n_samples, self.dim
+            self.n_cluster, self.n_samples, self.dim
         ).to(DEVICE)
 
     def _init_latent_parameters(self):
@@ -324,7 +324,7 @@ class PlnMixture(
 
     @property
     def _description(self):
-        return f"diagonal covariances and {self.n_clusters} clusters."
+        return f"diagonal covariances and {self.n_cluster} clusters."
 
     @property
     def _endog_predictions(self):
@@ -385,7 +385,7 @@ class PlnMixture(
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster = 3)
         >>> mixture.fit()
         >>> mixture.biplot(column_names=["MALAT1", "ACTB"])
         >>> mixture.biplot(
@@ -478,7 +478,7 @@ class PlnMixture(
         example="""
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_cluster = 3)
         >>> mixture.fit()
         >>> print("Shape latent positions: ", mixture.latent_positions.shape)
         >>> mixture.viz(remove_exog_effect=True) # Visualize the latent positions
@@ -496,7 +496,7 @@ class PlnMixture(
         example="""
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data, n_cluster = 3)
         >>> mixture.fit()
         >>> print("Shape latent variables: ", mixture.latent_variables.shape)
         >>> mixture.viz() # Visualize the latent variables
@@ -509,7 +509,7 @@ class PlnMixture(
         """Latent variables."""
         variables = torch.zeros(self.n_samples, self.dim).to(DEVICE)
         clusters = self._clusters
-        for k in range(self.n_clusters):
+        for k in range(self.n_cluster):
             indices = clusters == k
             variables[indices] += self._latent_means[k, indices]
         # return torch.sum(self.latent_means * (self.latent_prob.T).unsqueeze(2), dim = 0)
@@ -518,7 +518,7 @@ class PlnMixture(
     @property
     def latent_means(self):
         """
-        Tensor of latent_means of shape (n_clusters, n_samples, dim).
+        Tensor of latent_means of shape (n_cluster, n_samples, dim).
         Each vector corresponds to the latent_mean of each cluster.
         """
         return self._latent_means.detach().cpu()
@@ -526,7 +526,7 @@ class PlnMixture(
     @property
     def latent_sqrt_variances(self):
         """
-        Tensor of latent_sqrt_variances of shape (n_clusters, n_samples, dim).
+        Tensor of latent_sqrt_variances of shape (n_cluster, n_samples, dim).
         Each vector corresponds to the latent_sqrt_variance of each cluster.
         """
         return self._latent_sqrt_variances.detach().cpu()
@@ -535,7 +535,7 @@ class PlnMixture(
     def latent_prob(self):
         """
         Latent probability that sample i corresponds to cluster k.
-        Returns a torch.Tensor of size (n_samples, n_clusters).
+        Returns a torch.Tensor of size (n_samples, n_cluster).
         """
         return self._latent_prob.detach().cpu()
 
@@ -556,7 +556,7 @@ class PlnMixture(
     @property
     def number_of_parameters(self):
         """Number of parameters."""
-        return (2 * self.n_clusters + self.nb_cov) * self.dim
+        return (2 * self.n_cluster + self.nb_cov) * self.dim
 
     def pca_pairplot(self, n_components: bool = 3, colors=None):
         """
@@ -581,7 +581,7 @@ class PlnMixture(
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster = 3)
         >>> mixture.fit()
         >>> mixture.pca_pairplot(n_components=5)
         >>> mixture.pca_pairplot(n_components=5, colors=data["labels"])
@@ -601,7 +601,7 @@ class PlnMixture(
         example="""
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_clusters = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster = 3)
         >>> mixture.fit()
         >>> mixture.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
         >>> mixture.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
@@ -615,14 +615,14 @@ class PlnMixture(
         )
 
     @property
-    def n_clusters(self):
+    def n_cluster(self):
         """Number of clusters in the model."""
-        return self._n_clusters
+        return self._n_cluster
 
     @property
     def cluster_bias(self):
         """
-        The mean that is associated to each cluster, of size (n_clusters, dim).
+        The mean that is associated to each cluster, of size (n_cluster, dim).
         This does not encompass the mean that does not depend on each cluster.
         Each vector cluster_bias[k] is the bias associated to cluster k.
         """
@@ -655,7 +655,7 @@ class PlnMixture(
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture(data["endog"], n_clusters = 3).fit()
+        >>> mixture = PlnMixture(data["endog"], n_cluster = 3).fit()
         >>> pred = mixture.predict_clusters(data["endog"])
         >>> print('pred', pred)
         """
@@ -681,7 +681,7 @@ class PlnMixture(
             ".covariances",
             ".cluster_bias",
             ".latent_prob",
-            ".n_clusters",
+            ".n_cluster",
             ".weights",
         ]
 
@@ -694,8 +694,8 @@ class PlnMixture(
         return [".predict_clusters()"]
 
     def _get_two_dim_latent_variances(self, sklearn_components):
-        latent_variances = torch.zeros(self.n_clusters, self.n_samples, 2, 2)
-        for k in range(self.n_clusters):
+        latent_variances = torch.zeros(self.n_cluster, self.n_samples, 2, 2)
+        for k in range(self.n_cluster):
             latent_variances[k] = torch.from_numpy(
                 _get_two_dim_latent_variances(
                     sklearn_components, self.latent_sqrt_variances[k]
@@ -718,7 +718,7 @@ class _PlnMixturePredict(PlnMixture):
         sqrt_covariances: torch.Tensor,
         weights: torch.Tensor,
     ):  # pylint: disable=too-many-arguments
-        n_clusters = cluster_bias.shape[0]
+        n_cluster = cluster_bias.shape[0]
         self._cluster_bias = cluster_bias.detach()
         if coef is None:
             self._coef = None
@@ -728,7 +728,7 @@ class _PlnMixturePredict(PlnMixture):
         self._weights = weights.detach()
         super().__init__(
             endog=endog,
-            n_clusters=n_clusters,
+            n_cluster=n_cluster,
             exog=exog,
             add_const=False,
             offsets=offsets,

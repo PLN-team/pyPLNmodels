@@ -23,6 +23,13 @@ class Collection(ABC):
     This allows to tests a grid of hyperparameter.
     The better hyperparameter is given by minimizing the
     BIC criterion.
+
+    See also
+    --------
+    :class:`~pyPLNmodels.PlnPCACollection`
+    :class:`~pyPLNmodels.ZIPlnPCACollection`
+    :class:`~pyPLNmodels.PlnNetworkCollection`
+    :class:`~pyPLNmodels.PlnMixtureCollection`
     """
 
     _type_grid = type
@@ -91,8 +98,9 @@ class Collection(ABC):
         """
         if isinstance(grid, Iterable):
             for grid_value in grid:
-                if isinstance(grid_value, self._type_grid):
+                if self._is_right_instance(grid_value):
                     self._dict_models[grid_value] = self._instantiate_model(grid_value)
+                    self._set_column_names(self._dict_models[grid_value])
                 else:
                     raise TypeError(
                         f"Please instantiate `{self._grid_value_name}` with a list "
@@ -104,6 +112,13 @@ class Collection(ABC):
                 f"Please instantiate the `{self._grid_value_name}` with an iterable"
                 f" (such as a list of {self._type_grid})."
             )
+
+    def _is_right_instance(self, grid_value):
+        return isinstance(grid_value, self._type_grid)
+
+    def _set_column_names(self, model):
+        model.column_names_endog = self.column_names_endog
+        model.column_names_exog = self.column_names_exog
 
     @classmethod
     @_add_doc(

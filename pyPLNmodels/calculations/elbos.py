@@ -121,7 +121,7 @@ def per_sample_elbo_pln_mixture_diag(
     endog : torch.Tensor
         Counts with size (n, p).
     marginal_means : torch.Tensor
-        Marginal mean for each cluster with size (n_clusters, n, p).
+        Marginal mean for each cluster with size (n_cluster, n, p).
     offsets : torch.Tensor
         Offset with size (n, p).
     latent_means : torch.Tensor

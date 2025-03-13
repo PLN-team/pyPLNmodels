@@ -32,14 +32,15 @@ class PlnNetworkCollection(Collection):
     See also
     --------
     :class:`~pyPLNmodels.PlnNetwork`
-    :func:`pyPLNmodels.PlnNetworkcollection.from_formula`
-    :func:`pyPLNmodels.PlnNetworkcollection.__init__`
+    :func:`pyPLNmodels.PlnNetworkCollection.from_formula`
+    :func:`pyPLNmodels.PlnNetworkCollection.__init__`
     :class:`~pyPLNmodels.PlnPCACollection`
+    :class:`~pyPLNmodels.ZIPlnPCACollection`
     :class:`~pyPLNmodels.PlnMixtureCollection`
     """
 
     _type_grid = float
-    _grid_value_name = "penaly"
+    _grid_value_name = "penalty"
     PlnModel = PlnNetwork
 
     @_add_doc(
@@ -113,6 +114,9 @@ class PlnNetworkCollection(Collection):
             penalty=grid_value,
             add_const=False,
         )
+
+    def _is_right_instance(self, grid_value):
+        return isinstance(grid_value, (int, float))
 
     def _init_next_model_with_current_model(
         self, next_model: PlnNetwork, current_model: PlnNetwork
