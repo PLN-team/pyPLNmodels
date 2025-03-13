@@ -292,7 +292,12 @@ class PlnPCA(BaseModel):
         ValueError
             If the shape of the coef is incorrect.
         """
-        _check_array_size(coef, self.nb_cov, self.dim, "coef")
+        if coef is not None and self.nb_cov == 0:
+            raise ValueError(
+                "coef is not None but no coef in the model. Instantiate a new model."
+            )
+        if coef is not None:
+            _check_array_size(coef, self.nb_cov, self.dim, "coef")
         self._coef = coef
 
     @property

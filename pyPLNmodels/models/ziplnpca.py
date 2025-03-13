@@ -367,7 +367,12 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         ValueError
             If the shape of the coef is incorrect.
         """
-        _check_array_size(coef, self.nb_cov, self.dim, "coef")
+        if coef is not None and self.nb_cov == 0:
+            raise ValueError(
+                "coef is not None but no coef in the model. Instantiate a new model."
+            )
+        if coef is not None:
+            _check_array_size(coef, self.nb_cov, self.dim, "coef")
         self.__coef = coef
 
     @coef_inflation.setter
