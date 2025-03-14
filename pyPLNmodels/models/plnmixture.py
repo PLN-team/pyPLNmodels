@@ -11,6 +11,7 @@ from pyPLNmodels.utils._data_handler import (
     _extract_data_from_formula,
     _check_dimensions_for_prediction,
     _check_full_rank_exog_and_ones,
+    _check_int,
 )
 from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels.calculations._initialization import _init_gmm
@@ -93,6 +94,7 @@ class PlnMixture(
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
     ):  # pylint: disable=too-many-arguments
+        _check_int(n_cluster)
         if add_const is True:
             msg = "You shall not use the add_const keyword for PlnMixture. Adding "
             msg += "an intercept in the covariates results in non-identifiable coefficients. "

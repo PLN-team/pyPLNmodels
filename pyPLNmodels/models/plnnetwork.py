@@ -85,6 +85,8 @@ class PlnNetwork(BaseModel):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
     ):  # pylint: disable=too-many-arguments
+        if penalty < 0:
+            raise AttributeError(f"Penalty should be positive. Got {penalty}")
         self.penalty = penalty
         super().__init__(
             endog,
