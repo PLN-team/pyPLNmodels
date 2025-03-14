@@ -135,7 +135,8 @@ def get_dict_models_unfit():
     dict_models = {
         model_name: {"formula": [], "explicit": []} for model_name in DICT_MODELS
     }
-    for model_name, init_model_function in DICT_INIT_FUNCTIONS.items():
+    for model_name in DICT_MODELS:
+        init_model_function = DICT_INIT_FUNCTIONS[model_name]
         for kwargs in DICT_KWARGS[model_name]:
             current_sampler = DICT_SAMPLERS[model_name](**kwargs)
             endog = current_sampler.sample()
