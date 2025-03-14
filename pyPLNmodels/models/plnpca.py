@@ -11,7 +11,11 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_mean_pca,
     _init_latent_sqrt_variance_pca,
 )
-from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
+from pyPLNmodels.utils._data_handler import (
+    _extract_data_from_formula,
+    _array2tensor,
+    _check_int,
+)
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
 
@@ -81,6 +85,7 @@ class PlnPCA(BaseModel):
         add_const: bool = True,
         rank: int = 5,
     ):  # pylint: disable=too-many-arguments
+        _check_int(rank)
         self._rank = rank
         super().__init__(
             endog,

@@ -206,3 +206,16 @@ class PlnNetworkCollection(Collection):
     )
     def best_model(self, criterion: str = "BIC") -> PlnNetwork:
         return super().best_model(criterion=criterion)
+
+    @property
+    def components_prec(self) -> Dict[float, torch.Tensor]:
+        """
+        Property representing the components of the precision matrix for each model
+        in the collection.
+
+        Returns
+        -------
+        Dict[int, torch.Tensor]
+            The components of the precision.
+        """
+        return {key: value.components_prec for key, value in self.items()}

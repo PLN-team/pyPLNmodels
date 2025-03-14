@@ -15,6 +15,7 @@ from pyPLNmodels.calculations._initialization import (
 from pyPLNmodels.utils._data_handler import (
     _extract_data_inflation_from_formula,
     _array2tensor,
+    _check_int,
 )
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
@@ -124,6 +125,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> print(zi)
 
         """
+        _check_int(rank)
         self._rank = rank
         self._use_closed_form_prob = use_closed_form_prob
         super().__init__(

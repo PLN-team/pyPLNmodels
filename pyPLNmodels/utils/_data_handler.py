@@ -640,3 +640,10 @@ def _get_dummies(input_tensor):
     one_hot_tensor.scatter_(1, input_tensor.unsqueeze(1), 1)
 
     return one_hot_tensor
+
+
+def _check_int(rank):
+    if rank < 1:
+        raise AttributeError(f"The rank should be an int >= 1. Got {rank}")
+    if isinstance(rank, int) is False:
+        raise AttributeError(f"The rank should be an int. Got {rank}")
