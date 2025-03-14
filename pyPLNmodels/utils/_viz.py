@@ -812,14 +812,20 @@ def _plot_expected_vs_true(
     return ax
 
 
-def _show_information_criterion(*, bic, aic, loglikes, figsize):
-    colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
+def _show_information_criterion(*, bic, aic, icl, loglikes, figsize):
+    colors = {
+        "BIC": "blue",
+        "AIC": "red",
+        "Negative log likelihood": "orange",
+        "ICL": "green",
+    }
 
     best_bic_rank = list(bic.keys())[np.argmin(list(bic.values()))]
     best_aic_rank = list(aic.keys())[np.argmin(list(aic.values()))]
+    best_icl_rank = list(icl.keys())[np.argmin(list(icl.values()))]
 
-    criteria = ["BIC", "AIC", "Negative log likelihood"]
-    values_list = [bic, aic, loglikes]
+    criteria = ["BIC", "AIC", "ICL", "Negative log likelihood"]
+    values_list = [bic, aic, icl, loglikes]
     _get_figure(figsize)
 
     for criterion, values in zip(criteria, values_list):
@@ -835,6 +841,8 @@ def _show_information_criterion(*, bic, aic, loglikes, figsize):
             plt.axvline(best_bic_rank, c=colors[criterion], linestyle="dotted")
         elif criterion == "AIC":
             plt.axvline(best_aic_rank, c=colors[criterion], linestyle="dotted")
+        elif criterion == "ICL":
+            plt.axvline(best_icl_rank, c=colors[criterion], linestyle="dotted")
 
         plt.xticks(list(values.keys()))
 

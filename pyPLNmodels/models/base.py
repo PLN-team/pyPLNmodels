@@ -880,6 +880,13 @@ class BaseModel(
         return -self.loglike + self.number_of_parameters / 2 * np.log(self.n_samples)
 
     @property
+    def ICL(self):
+        """
+        Integrated Completed Likelihood criterion.
+        """
+        return self.BIC - self.entropy
+
+    @property
     def AIC(self):
         """
         Akaike Information Criterion (AIC).
@@ -891,6 +898,13 @@ class BaseModel(
     def number_of_parameters(self):
         """
         Returns the number of parameters of the model.
+        """
+
+    @property
+    @abstractmethod
+    def entropy(self):
+        """
+        Entropy of the latent variables.
         """
 
     @_array2tensor

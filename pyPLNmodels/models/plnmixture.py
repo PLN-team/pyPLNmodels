@@ -15,6 +15,7 @@ from pyPLNmodels.utils._data_handler import (
 )
 from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels.calculations._initialization import _init_gmm
+from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_clusters
 from pyPLNmodels.calculations.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.utils._viz import MixtureModelViz, _viz_variables
 
@@ -704,6 +705,16 @@ class PlnMixture(
                 )
             )
         return latent_variances
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return (
+            entropy_gaussian(self._latent_sqrt_variances**2, self._latent_prob)
+            .detach()
+            .cpu()
+            + entropy_clusters(self._latent_prob, self._weights).detach().cpu()
+        )
 
 
 class _PlnMixturePredict(PlnMixture):

@@ -412,6 +412,18 @@ class Collection(ABC):
         return {grid_value: int(self[grid_value].BIC) for grid_value in self.grid}
 
     @property
+    def ICL(self) -> Dict[int, int]:
+        """
+        Property representing the ICL scores of the models in the collection.
+
+        Returns
+        -------
+        Dict[float, int]
+            The ICL scores of the models.
+        """
+        return {grid_value: int(self[grid_value].ICL) for grid_value in self.grid}
+
+    @property
     def AIC(self) -> Dict[int, int]:
         """
         Property representing the AIC scores of the models in the collection.
@@ -470,7 +482,11 @@ class Collection(ABC):
             Size of the figure that will be created. By default (10,10)
         """
         _show_information_criterion(
-            bic=self.BIC, aic=self.AIC, loglikes=self.loglike, figsize=figsize
+            bic=self.BIC,
+            aic=self.AIC,
+            icl=self.ICL,
+            loglikes=self.loglike,
+            figsize=figsize,
         )
 
     @property
