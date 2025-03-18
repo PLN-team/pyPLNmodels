@@ -21,7 +21,7 @@ def entropy_gaussian(latent_variance, latent_prob=None):
     is for a mixture of gaussians.
     """
     if latent_prob is None:
-        latent_prob = torch.ones((latent_variance.T).shape)
+        latent_prob = torch.ones((latent_variance).shape)
     product_dimensions = torch.prod(torch.tensor(list(latent_variance.shape[-2:])))
     return (
         1 / 2 * torch.sum((latent_prob.T).unsqueeze(2) * latent_variance)
