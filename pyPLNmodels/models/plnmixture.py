@@ -315,9 +315,9 @@ class PlnMixture(
                 self.n_samples, dim=1
             )
 
-        self._latent_sqrt_variances = torch.randn(
-            self.n_cluster, self.n_samples, self.dim
-        ).to(DEVICE)
+        self._latent_sqrt_variances = (
+            torch.randn(self.n_cluster, self.n_samples, self.dim).to(DEVICE) / 100
+        )
 
     def _init_latent_parameters(self):
         """Everything is done in the _init_parameters method."""

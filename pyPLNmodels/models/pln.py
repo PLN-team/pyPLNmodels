@@ -12,6 +12,7 @@ from pyPLNmodels.calculations._closed_forms import (
 from pyPLNmodels.calculations.elbos import profiled_elbo_pln
 from pyPLNmodels.calculations.sandwich import SandwichPln
 from pyPLNmodels.calculations._initialization import _init_latent_pln
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import (
     _add_doc,
     _shouldbefitted,
@@ -24,7 +25,7 @@ from pyPLNmodels.utils._viz import _plot_forest_coef
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class Pln(BaseModel):
+class Pln(BaseModel):  # pylint: disable=too-many-public-methods
     """Simplest model, that is the original PLN model from
     Aitchison, J., and C. H. Ho. “The Multivariate Poisson-Log Normal Distribution.” Biometrika.
     Variance estimation of regression coefficients are available,
@@ -573,3 +574,8 @@ class Pln(BaseModel):
             self.column_names_exog,
             figsize=figsize,
         )
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self._latent_sqrt_variance**2)

@@ -1,20 +1,24 @@
 #!/bin/sh
-for file in docstrings_examples/*
+set -e
+
+for dir in docstrings_examples/*/
 do
-    python $file
+    if [ "$(basename "$dir")" != "__pycache__" ]; then
+        for file in "$dir"*.py
+        do
+            if [ -f "$file" ]; then
+                python "$file"
+            fi
+        done
+    fi
 done
 
-for file in docstrings_examples/test_load_data/*
+for file in readme_examples/*.py
 do
-    python $file
+    python "$file"
 done
 
-for file in readme_examples/*
+for file in getting_started/*.py
 do
-    python $file
-done
-
-for file in getting_started/*
-do
-    python $file
+    python "$file"
 done
