@@ -25,6 +25,7 @@ from pyPLNmodels.calculations.elbos import (
     profiled_elbo_pln,
     per_sample_elbo_pln,
 )
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import (
     _add_doc,
     _raise_error_1D_viz,
@@ -823,3 +824,8 @@ class _PlnPred(Pln):
     def latent_positions_device(self):
         """Latent positions on the GPU device if GPU is available."""
         return self._latent_mean - self._marginal_mean
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self.latent_variance)
