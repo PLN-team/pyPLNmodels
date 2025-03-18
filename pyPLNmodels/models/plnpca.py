@@ -16,6 +16,7 @@ from pyPLNmodels.utils._data_handler import (
     _array2tensor,
     _check_int,
 )
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
 
@@ -502,3 +503,8 @@ class PlnPCA(BaseModel):
     @property
     def _latent_dim(self):
         return self.rank
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()

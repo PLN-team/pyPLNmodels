@@ -12,6 +12,7 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_sqrt_variance_pca,
     _init_latent_mean_pca,
 )
+from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_bernoulli
 from pyPLNmodels.utils._data_handler import (
     _extract_data_inflation_from_formula,
     _array2tensor,
@@ -25,7 +26,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 REGULARIZATION = 0.0001
 
 
-class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
+class ZIPlnPCA(
+    ZIPln
+):  # pylint: disable= too-many-instance-attributes, too-many-public-methods
     """
     Zero-Inflated Pln Principal Component Analysis (ZIPlnPCA) class.
     Like a PlnPCA but adds zero-inflation. For more details,
@@ -658,3 +661,10 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     @property
     def _latent_dim(self):
         return self.rank
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(
+            self._latent_sqrt_variance**2
+        ).detach().cpu() + entropy_bernoulli(self.latent_prob)

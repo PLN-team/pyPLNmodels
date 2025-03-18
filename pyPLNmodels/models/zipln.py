@@ -14,6 +14,7 @@ from pyPLNmodels.calculations._closed_forms import (
 from pyPLNmodels.calculations.elbos import profiled_elbo_zipln
 from pyPLNmodels.utils._utils import _add_doc
 from pyPLNmodels.utils._viz import _viz_variables, _pca_pairplot, ZIModelViz
+from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_bernoulli
 from pyPLNmodels.utils._data_handler import (
     _handle_inflation_data,
     _array2tensor,
@@ -579,3 +580,10 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             self._covariance,
             self._dirac,
         )
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(
+            self._latent_sqrt_variance**2
+        ).detach().cpu() + entropy_bernoulli(self.latent_prob)

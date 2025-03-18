@@ -15,6 +15,7 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_pln,
     _init_components_prec,
 )
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import (
     _add_doc,
     _process_column_index,
@@ -566,3 +567,8 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     )
     def latent_variables(self):
         return self.latent_mean
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()

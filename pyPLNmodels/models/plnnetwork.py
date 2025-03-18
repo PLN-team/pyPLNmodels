@@ -11,6 +11,7 @@ from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz, _build_graph
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
 from pyPLNmodels.calculations._closed_forms import _closed_formula_coef
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.calculations._initialization import (
     _init_components_prec,
     _init_latent_pln,
@@ -204,13 +205,6 @@ class PlnNetwork(BaseModel):
     @property
     def _precision(self):
         return self._components_prec @ (self._components_prec.T)
-
-    @property
-    def precision(self):
-        """
-        Precision matrix of the model (i.e. inverse covariance matrix).
-        """
-        return self._precision.detach().cpu()
 
     @property
     def _covariance(self):
@@ -523,3 +517,8 @@ class PlnNetwork(BaseModel):
                 f"Wrong shape. Expected ({self.dim, self.dim}), got {components_prec.shape}"
             )
         self._components_prec = components_prec
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self.latent_variance)
