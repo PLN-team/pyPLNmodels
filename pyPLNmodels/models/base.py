@@ -87,8 +87,8 @@ class BaseModel(
             self._endog,
             self._exog,
             self._offsets,
-            column_names_endog,
-            column_names_exog,
+            self.column_names_endog,
+            self.column_names_exog,
         ) = _handle_data(
             endog,
             exog,
@@ -97,14 +97,6 @@ class BaseModel(
             add_const,
             remove_zero_columns=self.remove_zero_columns,
         )
-        if column_names_endog is not None:
-            self.column_names_endog = column_names_endog
-        else:
-            self.column_names_endog = [f"Dim_{i+1}" for i in range(self.dim)]
-        if column_names_exog is not None:
-            self.column_names_exog = column_names_exog
-        else:
-            self.column_names_exog = [f"Exog_{i+1}" for i in range(self.nb_cov)]
 
         self._elbo_criterion_monitor = _ElboCriterionMonitor()
         self._fitted = False
