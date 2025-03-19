@@ -99,13 +99,13 @@ def test_remove_column_names():
     pln = Pln(micro["endog"], exog=micro["site_1hot"], add_const=False)
 
 
-# def test_remove_column_names_exog():
-#     micro = load_microcosm()
-#     micro["site_1hot"].iloc[:, 1] *= 0
-#     micro["site_1hot"] = micro["site_1hot"].astype(np.float32)
-#     pln = Pln(micro["endog"], exog=micro["site_1hot"], add_const=False)
-#     sampler = PlnSampler()
-#     endog = sampler.sample()
-#     exog = sampler.exog
-#     exog[:, 0] *= 0
-#     pln = Pln(endog, exog=exog)
+def test_remove_column_names_exog():
+    micro = load_microcosm()
+    micro["site_1hot"].iloc[:, 1] *= 0
+    micro["site_1hot"] = micro["site_1hot"].astype(np.float32)
+    pln = Pln(micro["endog"], exog=micro["site_1hot"], add_const=False)
+    sampler = PlnSampler()
+    endog = sampler.sample()
+    exog = sampler.exog
+    exog[:, 0] *= 0
+    pln = Pln(endog, exog=exog)

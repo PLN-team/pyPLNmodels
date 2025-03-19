@@ -530,23 +530,14 @@ def _array2tensor(func):
 
 
 def _remove_useless_exog(exog, column_names_exog, is_inflation):
-    zero_columns = torch.nonzero(
-        (torch.sum(exog**2, axis=0) == 0).cpu(), as_tuple=False
-    ).squeeze()
+    zero_columns = (torch.sum(exog**2, axis=0) == 0).cpu()
     if torch.sum(zero_columns) > 0:
-        if column_names_exog is not None:
-            print("zero columns", zero_columns)
-            print("column nmaes", column_names_exog)
-            msg = (
-                f"Removing column {column_names_exog[zero_columns]} as it is only zeros"
-            )
-        else:
-            zero_column_indices = torch.nonzero(zero_columns).squeeze().tolist()
-            msg = f"Removing column {zero_column_indices} as it is only zeros"
-        if is_inflation is True:
-            msg += " for the inflation part"
-        msg += "."
-        print(msg)
+        for i, is_zero in enumerate(zero_columns):
+            if is_zero:
+                msg = f"removing column {column_names_exog[i]} as it is only zeros"
+                if is_inflation is True:
+                    msg += " for the inflation part."
+                print(msg)
         return exog[:, ~zero_columns]
     return exog
 
