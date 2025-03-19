@@ -62,5 +62,5 @@ def test_attributes():
                 with pytest.raises(ValueError):
                     col.best_model(criterion="None")
                 print(col.best_model())
-                col.best_model(criterion="AIC")
                 col.show()
+                col.best_model(criterion="AIC")
