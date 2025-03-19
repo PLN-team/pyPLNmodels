@@ -389,9 +389,9 @@ class ZIP:  # pylint: disable=too-many-instance-attributes
         return self._coef_inflation
 
 
-def _init_gmm(latent_positions, n_clusters, seed=0):
+def _init_gmm(latent_positions, n_cluster, seed=0):
     gmm = GaussianMixture(
-        n_components=n_clusters, covariance_type="diag", random_state=seed
+        n_components=n_cluster, covariance_type="diag", random_state=seed
     )
     gmm.fit(latent_positions)
     cluster_bias = torch.from_numpy(gmm.means_).to(DEVICE)

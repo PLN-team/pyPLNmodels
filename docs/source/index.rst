@@ -38,8 +38,11 @@ Overview
    plnar
    plnlda
    plnnetwork
+   plnnetworkcollection
    plnmixture
+   plnmixturecollection
    ziplnpca
+   ziplnpcacollection
    plndiag
 
 

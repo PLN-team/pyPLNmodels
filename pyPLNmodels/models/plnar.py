@@ -6,17 +6,19 @@ import numpy as np
 
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.calculations.elbos import (
-    elbo_plnar_diag,
-    elbo_plnar_full,
+    elbo_plnar_diag_autoreg,
+    elbo_plnar_scalar_autoreg,
+    smart_elbo_plnar_full_autoreg,
 )
 from pyPLNmodels.calculations._initialization import (
     _init_coef,
     _init_latent_pln,
     _init_components_prec,
 )
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import (
     _add_doc,
-    _process_indices_of_variables,
+    _process_column_index,
     _get_two_dim_latent_variances,
 )
 from pyPLNmodels.utils._viz import _viz_dims, ARModelViz
@@ -25,7 +27,7 @@ from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-class PlnAR(BaseModel):
+class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     """
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
@@ -42,7 +44,7 @@ class PlnAR(BaseModel):
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
-    >>> ar.viz_dims(variable_names = ["nco_Lacaune_M", "nco_Soay_M"])
+    >>> ar.viz_dims(column_names = ["nco_Lacaune_M", "nco_Soay_M"])
 
     >>> from pyPLNmodels import PlnAR, load_crossover
     >>> data = load_crossover()
@@ -50,13 +52,15 @@ class PlnAR(BaseModel):
     >>> ar.fit()
     >>> print(ar)
     >>> ar.viz(colors=data["chrom"])
-    >>> ar.viz_dims(variable_names = ["nco_Lacaune_F", "nco_Soay_F"])
+    >>> ar.viz_dims(column_names = ["nco_Lacaune_F", "nco_Soay_F"])
     """
 
     _ar_diff_coef: torch.Tensor
     __coef: torch.Tensor
     _sqrt_precision: torch.Tensor
     _components_prec: torch.Tensor
+    _diff_ortho_components: torch.Tensor
+    _diff_diag_cov: torch.Tensor
 
     _ModelViz = ARModelViz
 
@@ -71,12 +75,13 @@ class PlnAR(BaseModel):
         """,
         params="""
         ar_type: str (optional)
-            The autregression type. Can be either "diagonal" or "spherical".
+            The autregression type. Can be either "diagonal", "spherical" or "full".
             If "diagonal", the covariance must be diagonal and the model
-            boils down to individual independant 1D AR models. If "spherical",
-            covariance is full (dependence between variables) but the
+            boils down to individual independant 1D AR models.
+            If "spherical", covariance is full (dependence between variables) but the
             autoregression is shared along the variables as the ar_coef is of size 1.
-            Default is "spherical"
+            If "full", both the covariance and autoregression is full.
+            Default is "full".
         """,
         returns="""
             PlnAR
@@ -95,10 +100,10 @@ class PlnAR(BaseModel):
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
-        ar_type: {"spherical", "diagonal"} = "spherical",
+        ar_type: {"spherical", "diagonal", "full"} = "full",
     ):  # pylint: disable=too-many-arguments
-        if ar_type not in ["spherical", "diagonal"]:
-            msg = "`ar_type` keyword should be either 'spherical' or 'diagonal', got "
+        if ar_type not in ["spherical", "diagonal", "full"]:
+            msg = "`ar_type` keyword should be either 'spherical' or 'diagonal' or 'full', got "
             msg += ar_type
             raise AttributeError(msg)
         self._ar_type = ar_type
@@ -123,12 +128,13 @@ class PlnAR(BaseModel):
         """,
         params="""
         ar_type: str (optional)
-            The autregression type. Can be either "diagonal" or "spherical".
+            The autregression type. Can be either "diagonal", "spherical" or "full".
             If "diagonal", the covariance must be diagonal and the model
-            boils down to individual independant 1D AR models. If "spherical",
-            covariance is full (dependence between variables) but the
+            boils down to individual independant 1D AR models.
+            If "spherical", covariance is full (dependence between variables) but the
             autoregression is shared along the variables as the ar_coef is of size 1.
-            Default is "spherical"
+            If "full", both the covariance and autoregression is full.
+            Default is "full".
         """,
         see_also="""
         :class:`pyPLNmodels.PlnAR`
@@ -141,7 +147,7 @@ class PlnAR(BaseModel):
         data: dict[str : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]],
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-        ar_type: {"spherical", "diagonal"} = "spherical",
+        ar_type: {"spherical", "diagonal", "full"} = "full",
     ):
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -195,7 +201,7 @@ class PlnAR(BaseModel):
     )
     def compute_elbo(self):
         if self._ar_type == "diagonal":
-            return elbo_plnar_diag(
+            return elbo_plnar_diag_autoreg(
                 endog=self._endog,
                 marginal_mean=self._marginal_mean,
                 offsets=self._offsets,
@@ -204,21 +210,35 @@ class PlnAR(BaseModel):
                 precision=self._precision,
                 ar_coef=self._ar_coef,
             )
-        return elbo_plnar_full(
+        if self._ar_type == "spherical":
+            return elbo_plnar_scalar_autoreg(
+                endog=self._endog,
+                marginal_mean=self._marginal_mean,
+                offsets=self._offsets,
+                latent_mean=self._latent_mean,
+                latent_sqrt_variance=self._latent_sqrt_variance,
+                precision=self._precision,
+                ar_coef=self._ar_coef,
+            )
+        # full autoregressive structure
+        return smart_elbo_plnar_full_autoreg(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
             offsets=self._offsets,
             latent_mean=self._latent_mean,
             latent_sqrt_variance=self._latent_sqrt_variance,
-            precision=self._precision,
-            ar_coef=self._ar_coef,
+            ortho_components=self._ortho_components,
+            diag_covariance=self._diag_cov,
+            diag_ar_coef=self._diag_ar_coef,
         )
 
     @property
     def _precision(self):
         if self._ar_type == "diagonal":
             return self._sqrt_precision**2
-        return self._components_prec @ (self._components_prec.T)
+        if self._ar_type == "spherical":
+            return self._components_prec @ (self._components_prec.T)
+        return torch.inverse(self._covariance)
 
     def _init_model_parameters(self):
         self.__coef = _init_coef(
@@ -229,9 +249,19 @@ class PlnAR(BaseModel):
         if self._ar_type == "diagonal":
             self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
             self._sqrt_precision = torch.ones(self.dim).to(DEVICE) / 2
-        else:
-            self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
+        elif self._ar_type == "spherical":
             self._components_prec = _init_components_prec(self._endog).to(DEVICE)
+            self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
+        else:
+            self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
+            self._diff_ortho_components = torch.eye(self.dim)
+            self._diff_diag_cov = torch.ones(self.dim).to(DEVICE) / (
+                self.dim ** (3 / 2)
+            )
+
+    @property
+    def _diag_cov(self):
+        return torch.cumsum(self._diff_diag_cov**2, dim=0)
 
     @property
     @_add_doc(
@@ -262,15 +292,13 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.plot_correlation_circle(variable_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.plot_correlation_circle(column_names=["nco_Lacaune_M", "nco_Soay_M"])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -281,21 +309,21 @@ class PlnAR(BaseModel):
         >>> data = load_crossover()
         >>> ar = PlnAR.from_formula("endog ~ 1", data=data)
         >>> ar.fit()
-        >>> ar.biplot(variable_names=["nco_Lacaune_M", "nco_Soay_M"])
-        >>> ar.biplot(variable_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
+        >>> ar.biplot(column_names=["nco_Lacaune_M", "nco_Soay_M"])
+        >>> ar.biplot(column_names=["nco_Lacaune_M", "nco_Soay_M"], colors=data["chrom"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -381,10 +409,25 @@ class PlnAR(BaseModel):
     def _covariance(self):
         if self._ar_type == "diagonal":
             return 1 / self._precision
-        return torch.inverse(self._precision)
+        if self._ar_type == "spherical":
+            return torch.inverse(self._precision)
+        ortho_components = self._ortho_components
+        return ortho_components @ torch.diag(self._diag_cov) @ (ortho_components.T)
+
+    @property
+    def _ortho_components(self):
+        ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
+        return ortho_components
 
     @property
     def _ar_coef(self):
+        if self._ar_type != "full":
+            return 1 / (1 + self._ar_diff_coef**2)
+        ortho_components, _ = torch.linalg.qr(self._diff_ortho_components)
+        return ortho_components * self._diag_ar_coef @ (ortho_components.T)
+
+    @property
+    def _diag_ar_coef(self):
         return 1 / (1 + self._ar_diff_coef**2)
 
     @property
@@ -406,8 +449,11 @@ class PlnAR(BaseModel):
         ]
         if self._ar_type == "diagonal":
             list_param.append(self._sqrt_precision)
-        else:
+        elif self._ar_type == "spherical":
             list_param.append(self._components_prec)
+        else:
+            list_param.append(self._diff_ortho_components)
+            list_param.append(self._diff_diag_cov)
         if self.__coef is not None:
             return list_param + [self.__coef]
         return list_param
@@ -423,25 +469,27 @@ class PlnAR(BaseModel):
 
     def viz_dims(
         self,
-        variable_names,
-        indices_of_variables: np.ndarray = None,
+        column_names,
+        column_index: np.ndarray = None,
         display: {"stretch", "keep"} = "stretch",
         colors: np.ndarray = None,
-    ):
+        *,
+        figsize: tuple = (10, 7),
+    ):  # pylint: disable=too-many-arguments
         """
         Parameters
         ----------
-        variable_names : List[str]
+        column_names : List[str]
             A list of variable names to visualize.
-            If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variable_names`. If `indices_of_variables`
+            If `column_index` is `None`, the variables plotted
+            are the ones in `column_names`. If `column_index`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
-        indices_of_variables : Optional[List[int]], optional keyword-only
+        column_index : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variable_names`, by default `None`.
-            If not None, should have the same length as `variable_names`.
+            given the `column_names`, by default `None`.
+            If not None, should have the same length as `column_names`.
         display : str (Optional)
             How to display the time series when nan are at stake.
             - "stretch": stretch the time serie so that all time series
@@ -449,9 +497,11 @@ class PlnAR(BaseModel):
             - "keep": Shorter time series will be displayed shorter.
         colors : list, optional, keyword-only
             The labels to color the samples, of size `n_samples`.
+        figsize : tuple of floats.
+            The height end width of the matplotlib figsize.
         """
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         if display not in ["stretch", "keep"]:
             msg = "`display` keyword have only two possible values: 'stretch' and 'keep', got"
@@ -459,10 +509,11 @@ class PlnAR(BaseModel):
             raise ValueError(msg)
         _viz_dims(
             variables=self.latent_variables,
-            indices_of_variables=indices_of_variables,
-            variable_names=variable_names,
+            column_index=column_index,
+            column_names=column_names,
             colors=colors,
             display=display,
+            figsize=figsize,
         )
 
     @property
@@ -490,7 +541,9 @@ class PlnAR(BaseModel):
     def number_of_parameters(self):
         if self._ar_type == "diagonal":
             return self.dim * (self.nb_cov + 2)
-        return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
+        if self._ar_type == "spherical":
+            return self.dim * (self.dim + 2 * self.nb_cov + 1) / 2 + 1
+        return self.dim * (self.dim + self.nb_cov + 1)
 
     def _get_two_dim_latent_variances(self, sklearn_components):
         return _get_two_dim_latent_variances(
@@ -514,3 +567,8 @@ class PlnAR(BaseModel):
     )
     def latent_variables(self):
         return self.latent_mean
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()

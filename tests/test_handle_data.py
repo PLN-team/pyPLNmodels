@@ -24,7 +24,7 @@ def test_handle_data_valid():
     assert isinstance(exog, torch.Tensor)
     assert isinstance(offsets, torch.Tensor)
     assert col_names_endog is not None
-    assert col_names_exog is None
+    assert col_names_exog is not None
 
 
 def test_handle_data_invalid():
@@ -73,7 +73,7 @@ def test_check_full_rank_exog_invalid():
         pln = PlnLDA.from_formula("endog~ 1| site ", data)
 
     with pytest.raises(ValueError):
-        pln = PlnMixture.from_formula("endog~ 1", data, n_clusters=3)
+        pln = PlnMixture.from_formula("endog~ 1", data, n_cluster=3)
 
 
 def test_check_data_shapes_valid():

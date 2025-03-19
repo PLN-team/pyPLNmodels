@@ -20,7 +20,7 @@ pylint:
   script:
     - find . -type f -name "*.py" |
       xargs pylint
-          --disable=import-error,missing-module-docstring,invalid-name,not-callable
+          --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code
           --load-plugins=pylint.extensions.docparams
 
 
@@ -37,6 +37,7 @@ tests:
     - rm test_getting_started.py # remove as it has been modified and placed in a directory.
     # - rm docstrings_examples/models/*.py
     - pytest .
+    - ./run_readme_docstrings_getting_started.sh
   only:
     - dev
 

@@ -15,7 +15,7 @@ def test_right_prediction_and_confusion_matrix():
     ntest = 200
     for nb_cov in [0, 1]:
         sampler = PlnMixtureSampler(
-            nb_cov=nb_cov, n_samples=ntrain + ntest, dim=100, n_clusters=3
+            nb_cov=nb_cov, n_samples=ntrain + ntest, dim=100, n_cluster=3
         )
         endog = sampler.sample()
         endog_train = endog[:ntrain]
@@ -28,7 +28,7 @@ def test_right_prediction_and_confusion_matrix():
             exog_train = None
             exog_test = None
 
-        mixt = PlnMixture(endog_train, exog=exog_train, n_clusters=sampler.n_clusters)
+        mixt = PlnMixture(endog_train, exog=exog_train, n_cluster=sampler.n_cluster)
         mixt.fit()
 
         clusters_pred = mixt.predict_clusters(endog_test, exog=exog_test)
@@ -49,12 +49,12 @@ def test_right_prediction_and_confusion_matrix():
 
 def test_lda_right_prediction():
     ntrain, ntest = 1000, 200
-    n_clusters = 4
+    n_cluster = 4
     for nb_cov in [0, 1]:
         sampler = PlnLDASampler(
             n_samples=ntrain + ntest,
             nb_cov=nb_cov,
-            n_clusters=n_clusters,
+            n_cluster=n_cluster,
             add_const=False,
             dim=300,
         )

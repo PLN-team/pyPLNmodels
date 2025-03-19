@@ -85,19 +85,15 @@ def test_viz_general():
                         model.viz(remove_exog_effect=False)
                 model.viz(colors=colors)
                 if model_name == "PlnLDA":
-                    if model._n_clusters == 2:
+                    if model._n_cluster == 2:
                         with pytest.raises(ValueError):
-                            model.biplot(
-                                variable_names=["A", "B"], indices_of_variables=[3, 4]
-                            )
+                            model.biplot(column_names=["A", "B"], column_index=[3, 4])
                     else:
-                        model.biplot(
-                            variable_names=["A", "B"], indices_of_variables=[3, 4]
-                        )
+                        model.biplot(column_names=["A", "B"], column_index=[3, 4])
                 else:
                     model.biplot(
-                        variable_names=["A", "B"],
-                        indices_of_variables=[3, 4],
+                        column_names=["A", "B"],
+                        column_index=[3, 4],
                         colors=colors,
                         title="Test",
                     )
@@ -105,7 +101,7 @@ def test_viz_general():
                     model.pca_pairplot(n_components=2, colors=colors)
                 with pytest.raises(ValueError):
                     model.plot_correlation_circle(
-                        variable_names=["A", "B"], indices_of_variables=[1, 2, 3]
+                        column_names=["A", "B"], column_index=[1, 2, 3]
                     )
                 plt.clf()
                 plt.close("all")
@@ -148,7 +144,7 @@ def test_plot_correlation_circle_pandas():
     pca = PlnPCA(rna["endog"])
     pca.fit()
     pca.show()
-    pca.plot_correlation_circle(variable_names=["RPL41", "ACTB"])
+    pca.plot_correlation_circle(column_names=["RPL41", "ACTB"])
 
 
 def test_viz_network():

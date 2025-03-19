@@ -35,7 +35,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
     >>> sns.scatterplot(x = endog[:,0], y = endog[:,1], hue = sampler.clusters, ax = axes[1])
     >>> axes[0].set_title("Clusters in latent space")
     >>> axes[1].set_title("Clusters in integer space")
-    >>> mixture = PlnMixture(endog, exog = sampler.exog, n_clusters = sampler.n_clusters)#pylint:disable = line-too-long
+    >>> mixture = PlnMixture(endog, exog = sampler.exog, n_cluster = sampler.n_cluster)#pylint:disable = line-too-long
     >>> mixture.fit()
     >>> mixture.viz(ax = axes[2])
     >>> axes[2].set_title( "Inferred clusters and latent variables")
@@ -59,7 +59,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         nb_cov=1,
         add_const: bool = False,
         add_offsets=False,
-        n_clusters=3,
+        n_cluster=3,
         seed=0,
     ):  # pylint: disable=too-many-arguments,too-many-locals
         if add_const is True:
@@ -67,14 +67,14 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
             msg += "an intercept in the covariates results in non-identifiable coefficients."
             msg += "Set `add_const` to False."
             raise ValueError(msg)
-        self.n_clusters = n_clusters
+        self.n_cluster = n_cluster
         torch.manual_seed(seed)
         self.n_samples = n_samples
-        weights = torch.rand(n_clusters)
+        weights = torch.rand(n_cluster)
         weights /= weights.sum()
         cluster_bias = []
         covariances = []
-        for i in range(self.n_clusters):
+        for i in range(self.n_cluster):
             cluster_bias.append(_get_mean(dim=dim, mean=2 * i + 1, seed=(seed + 1) * i))
             covariances.append(_get_diag_covariance(dim, seed=(seed + 1) * i))
         cluster_bias = torch.stack(cluster_bias, dim=0)
@@ -137,7 +137,7 @@ class PlnMixtureSampler(_BaseSampler):  # pylint: disable=too-many-instance-attr
         self._clusters = torch.multinomial(
             self.weights, self.n_samples, replacement=True
         ).to(DEVICE)
-        for cluster_number in range(self.n_clusters):
+        for cluster_number in range(self.n_cluster):
             indices = self._clusters == cluster_number
             gaussians[indices] *= torch.sqrt(
                 self._params["covariances"][cluster_number]

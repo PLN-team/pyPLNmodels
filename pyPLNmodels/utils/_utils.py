@@ -106,7 +106,7 @@ def _add_doc(
     return wrapper
 
 
-def _nice_string_of_dict(dictionnary: dict, best_rank: int = None) -> str:
+def _nice_string_of_dict(dictionnary: dict, best_grid_value: int = None) -> str:
     """
     Create a nicely formatted string representation of a dictionary,
     optionally highlighting the best model.
@@ -115,8 +115,8 @@ def _nice_string_of_dict(dictionnary: dict, best_rank: int = None) -> str:
     ----------
     dictionnary : dict
         Dictionary to format.
-    best_rank : int, optional
-        The rank of the best model to highlight, by default None.
+    best_grid_value : int, optional
+        The grid value of the best model to highlight, by default None.
 
     Returns
     -------
@@ -126,7 +126,7 @@ def _nice_string_of_dict(dictionnary: dict, best_rank: int = None) -> str:
     return_string = ""
     for each_row in zip(*([i] + [j] for i, j in dictionnary.items())):
         for element in list(each_row):
-            if best_rank is not None and element == best_rank:
+            if best_grid_value is not None and element == best_grid_value:
                 return_string += f"{str(element):>12}**"
             else:
                 return_string += f"{str(element):>12}"
@@ -175,20 +175,16 @@ def _log1pexp(t):
     )
 
 
-def _process_indices_of_variables(
-    variable_names, indices_of_variables, column_names_endog
-):
-    if indices_of_variables is None:
-        indices_of_variables = [
-            column_names_endog.get_loc(name) for name in variable_names
-        ]
+def _process_column_index(column_names, column_index, column_names_endog):
+    if column_index is None:
+        column_index = [column_names_endog.get_loc(name) for name in column_names]
     else:
-        if len(indices_of_variables) != len(variable_names):
+        if len(column_index) != len(column_names):
             raise ValueError(
-                f"Number of indices ({len(indices_of_variables)}) should be "
-                f"the same as the number of variable names ({len(variable_names)})."
+                f"Number of indices ({len(column_index)}) should be "
+                f"the same as the number of variable names ({len(column_names)})."
             )
-    return indices_of_variables
+    return column_index
 
 
 def _shouldbefitted(func):
@@ -250,8 +246,8 @@ def get_label_mapping(cluster_labels: ArrayLike, true_labels: ArrayLike):
     cluster_labels = np.array(cluster_labels)
     true_labels = np.array(true_labels)
     label_mapping = {}
-    n_clusters = len(np.unique(cluster_labels))
-    for cluster in range(n_clusters):
+    n_cluster = len(np.unique(cluster_labels))
+    for cluster in range(n_cluster):
         mask = cluster_labels == cluster
         if np.sum(mask) > 0:  # Check if there are any true labels for this cluster
             majority_class = mode(true_labels[mask], keepdims=True)[0][0]
@@ -323,3 +319,26 @@ def _raise_error_1D_viz():
     msg = "There is only 2 clusters, so LDA transformation is 1D"
     msg += " and visualization is not possible."
     raise ValueError(msg)
+
+
+def _init_next_model_pca(next_model, current_model):
+    next_model.coef = current_model.coef
+    new_components = torch.zeros(current_model.dim, next_model.rank)
+    new_components[:, : current_model.rank] = current_model.components
+    next_model.components = new_components
+    new_latent_mean = torch.zeros(current_model.n_samples, next_model.rank)
+    new_latent_mean[:, : current_model.rank] = current_model.latent_mean
+    next_model.latent_mean = new_latent_mean
+    new_latent_sqrt_variance = torch.ones(current_model.n_samples, next_model.rank) / 10
+    new_latent_sqrt_variance[:, : current_model.rank] = (
+        current_model.latent_sqrt_variance
+    )
+    next_model.latent_sqrt_variance = new_latent_sqrt_variance
+    return next_model
+
+
+def _check_array_size(array, dim1, dim2, array_name):
+    if array.shape != (dim1, dim2):
+        raise ValueError(
+            f"Wrong shape for the {array_name}. Expected ({(dim1, dim2)}), got {array.shape}"
+        )
