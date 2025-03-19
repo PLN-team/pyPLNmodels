@@ -86,17 +86,11 @@ class ZIPlnPCACollection(
         use_closed_form_prob: bool = True,
     ):  # pylint: disable=too-many-arguments
         self._use_closed_form_prob = use_closed_form_prob
-        self._exog_inflation, column_names_exog_inflation, self._dirac = (
+        self._exog_inflation, self.column_names_exog_inflation, self._dirac = (
             _handle_inflation_data(
                 exog_inflation, add_const_inflation, _format_data(endog)
             )
         )
-        if column_names_exog_inflation is not None:
-            self.column_names_exog_inflation = column_names_exog_inflation
-        else:
-            self.column_names_exog_inflation = [
-                f"Exog_infl_{i+1}" for i in range(self._exog_inflation.shape[1])
-            ]
         super().__init__(
             endog=endog,
             ranks=ranks,
