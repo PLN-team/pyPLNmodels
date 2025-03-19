@@ -63,7 +63,7 @@ def _plot_ellipse(mean_x: float, mean_y: float, *, cov: np.ndarray, ax) -> float
     ax.add_patch(ellipse)
 
 
-def plot_correlation_arrows(axs, ccircle, variable_names):
+def plot_correlation_arrows(axs, ccircle, column_names):
     """
     Plot arrows representing the correlation circle.
 
@@ -73,7 +73,7 @@ def plot_correlation_arrows(axs, ccircle, variable_names):
         Axes object for plotting.
     ccircle : list of tuples
         List of tuples containing correlations with the first and second principal components.
-    variable_names : list
+    column_names : list
         List of names for the variables corresponding to columns in X.
     """
     for i, (corr1, corr2) in enumerate(ccircle):
@@ -87,7 +87,7 @@ def plot_correlation_arrows(axs, ccircle, variable_names):
             head_width=0.05,
             head_length=0.05,
         )
-        axs.text(corr1 / 2, corr2 / 2, variable_names[i])
+        axs.text(corr1 / 2, corr2 / 2, column_names[i])
 
 
 def _viz_variables(
@@ -150,7 +150,7 @@ def _viz_variables(
     return ax
 
 
-def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title):
+def _biplot(data_matrix, column_names, *, column_index, colors, title):
     """
     Create a biplot that combines a scatter plot of PCA projected variables
     and a correlation circle.
@@ -159,9 +159,9 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     ----------
     data_matrix : np.ndarray
         Input data matrix with shape (n_samples, n_features).
-    variable_names : list
+    column_names : list
         List of names for the variables corresponding to columns in data_matrix.
-    indices_of_variables : list, keyword-only
+    column_index : list, keyword-only
         List of indices of the variables to be considered in the plot.
     colors : Optional[np.ndarray], optional, keyword-only
         The labels to color the samples, of size `n_samples`.
@@ -178,9 +178,7 @@ def _biplot(data_matrix, variable_names, *, indices_of_variables, colors, title)
     pca_transformed_data = _normalize_2d(pca_transformed_data)
 
     _viz_variables(pca_transformed_data, ax=ax, colors=colors)
-    plot_correlation_circle(
-        data_matrix, variable_names, indices_of_variables, title=title, ax=ax
-    )
+    plot_correlation_circle(data_matrix, column_names, column_index, title=title, ax=ax)
     plt.show()
 
 
@@ -193,7 +191,7 @@ def _normalize_2d(variables):
 
 
 def _biplot_lda(
-    latent_variables, variable_names, *, clusters, indices_of_variables, title, colors
+    latent_variables, column_names, *, clusters, column_index, title, colors
 ):  # pylint: disable = too-many-arguments
     _, ax = plt.subplots(figsize=(10, 10))
     transformed_lda = _get_lda_projection(latent_variables, clusters)
@@ -202,8 +200,8 @@ def _biplot_lda(
     data_matrix = torch.cat((latent_variables, clusters.unsqueeze(1)), dim=1)
     plot_correlation_circle(
         data_matrix,
-        variable_names,
-        indices_of_variables,
+        column_names,
+        column_index,
         title=title,
         ax=ax,
         reduction="LDA",
@@ -213,8 +211,8 @@ def _biplot_lda(
 
 def plot_correlation_circle(
     data_matrix,
-    variable_names,
-    indices_of_variables,
+    column_names,
+    column_index,
     title="",
     ax=None,
     reduction: str = "PCA",
@@ -228,9 +226,9 @@ def plot_correlation_circle(
         Input data matrix with shape (n_samples, n_features).
         If `reduction` is "lda", the last columns should be the target
 
-    variable_names : list
+    column_names : list
         List of names for the variables corresponding to columns in data_matrix.
-    indices_of_variables : list
+    column_index : list
         List of indices of the variables to be considered in the plot.
     title : str
         Additional title on the plot.
@@ -256,11 +254,11 @@ def plot_correlation_circle(
         )
 
     correlation_circle = calculate_correlation(
-        data_matrix[:, indices_of_variables], transformed_data
+        data_matrix[:, column_index], transformed_data
     )
 
     plt.style.use("seaborn-v0_8-whitegrid")
-    plot_correlation_arrows(ax, correlation_circle, variable_names)
+    plot_correlation_arrows(ax, correlation_circle, column_names)
 
     ax.add_patch(
         Circle((0, 0), 1, facecolor="none", edgecolor="k", linewidth=1, alpha=0.5)
@@ -576,21 +574,21 @@ class MixtureModelViz(BaseModelViz):
         cluster_bias = self._params["cluster_bias"]
         variances = self._params["covariances"]
 
-        n_clusters = len(self._params["weights"])
+        n_cluster = len(self._params["weights"])
 
         fig = _get_figure(figsize)
-        gs = gridspec.GridSpec(3, n_clusters + 2, figure=fig, wspace=0.3)
+        gs = gridspec.GridSpec(3, n_cluster + 2, figure=fig, wspace=0.3)
 
-        ax1 = fig.add_subplot(gs[0, 0:n_clusters])
-        axes_means = [fig.add_subplot(gs[1, i]) for i in range(n_clusters)]
-        axes_variances = [fig.add_subplot(gs[2, i]) for i in range(n_clusters)]
-        ax3 = fig.add_subplot(gs[0, n_clusters : n_clusters + 2])
-        ax4 = fig.add_subplot(gs[1, n_clusters : n_clusters + 2])
-        ax5 = fig.add_subplot(gs[2, n_clusters : n_clusters + 2])
+        ax1 = fig.add_subplot(gs[0, 0:n_cluster])
+        axes_means = [fig.add_subplot(gs[1, i]) for i in range(n_cluster)]
+        axes_variances = [fig.add_subplot(gs[2, i]) for i in range(n_cluster)]
+        ax3 = fig.add_subplot(gs[0, n_cluster : n_cluster + 2])
+        ax4 = fig.add_subplot(gs[1, n_cluster : n_cluster + 2])
+        ax5 = fig.add_subplot(gs[2, n_cluster : n_cluster + 2])
 
         self._plot_weights(ax1, self._params["weights"])
-        self._plot_cluster_biases(axes_means, cluster_bias, n_clusters)
-        self._plot_variances(axes_variances, variances, n_clusters)
+        self._plot_cluster_biases(axes_means, cluster_bias, n_cluster)
+        self._plot_variances(axes_variances, variances, n_cluster)
 
         self.display_norm_evolution(ax=ax3)
         self.display_criterion_evolution(ax=ax4)
@@ -617,20 +615,20 @@ class MixtureModelViz(BaseModelViz):
                 va="bottom",
             )
 
-    def _plot_cluster_biases(self, axes, cluster_bias, n_clusters):
+    def _plot_cluster_biases(self, axes, cluster_bias, n_cluster):
         y_indices = self.column_names
         x_min, x_max = torch.min(cluster_bias), torch.max(cluster_bias)
-        for k in range(n_clusters):
+        for k in range(n_cluster):
             axes[k].barh(y_indices, cluster_bias[k], label=f"Cluster {k}", color="blue")
             axes[k].set_xlim(x_min, x_max)
             axes[k].set_xlabel(f"Mean of Cluster {k}", fontsize=10)
             if k > 0:
                 axes[k].set_yticklabels([])
 
-    def _plot_variances(self, axes, variances, n_clusters):
+    def _plot_variances(self, axes, variances, n_cluster):
         y_indices = self.column_names
         x_max = torch.max(variances)
-        for k in range(n_clusters):
+        for k in range(n_cluster):
             axes[k].barh(y_indices, variances[k], label=f"Cluster {k}", color="blue")
             axes[k].set_xlim(0, x_max)
             axes[k].set_xlabel(f"Variance of Cluster {k}", fontsize=10)
@@ -814,14 +812,20 @@ def _plot_expected_vs_true(
     return ax
 
 
-def _show_information_criterion(*, bic, aic, loglikes, figsize):
-    colors = {"BIC": "blue", "AIC": "red", "Negative log likelihood": "orange"}
+def _show_information_criterion(*, bic, aic, icl, loglikes, figsize):
+    colors = {
+        "BIC": "blue",
+        "AIC": "red",
+        "Negative log likelihood": "orange",
+        "ICL": "green",
+    }
 
     best_bic_rank = list(bic.keys())[np.argmin(list(bic.values()))]
     best_aic_rank = list(aic.keys())[np.argmin(list(aic.values()))]
+    best_icl_rank = list(icl.keys())[np.argmin(list(icl.values()))]
 
-    criteria = ["BIC", "AIC", "Negative log likelihood"]
-    values_list = [bic, aic, loglikes]
+    criteria = ["BIC", "AIC", "ICL", "Negative log likelihood"]
+    values_list = [bic, aic, icl, loglikes]
     _get_figure(figsize)
 
     for criterion, values in zip(criteria, values_list):
@@ -837,6 +841,8 @@ def _show_information_criterion(*, bic, aic, loglikes, figsize):
             plt.axvline(best_bic_rank, c=colors[criterion], linestyle="dotted")
         elif criterion == "AIC":
             plt.axvline(best_aic_rank, c=colors[criterion], linestyle="dotted")
+        elif criterion == "ICL":
+            plt.axvline(best_icl_rank, c=colors[criterion], linestyle="dotted")
 
         plt.xticks(list(values.keys()))
 
@@ -892,12 +898,14 @@ def _build_graph(precision, node_labels=None):
     return graph, connections
 
 
-def _viz_dims(*, variables, indices_of_variables, variable_names, colors, display):
-    _, axes = plt.subplots(len(variable_names))
+def _viz_dims(
+    *, variables, column_index, column_names, colors, display, figsize
+):  # pylint: disable = too-many-arguments
+    _, axes = plt.subplots(len(column_names), figsize=figsize)
     absc = np.arange(variables.shape[0])
     min_y = torch.min(torch.nan_to_num(variables))
     max_y = torch.max(torch.nan_to_num(variables))
-    for i, (dim, name) in enumerate(zip(indices_of_variables, variable_names)):
+    for i, (dim, name) in enumerate(zip(column_index, column_names)):
         y = variables[:, dim]
         sns.scatterplot(x=absc, y=y, ax=axes[i], hue=colors)
         axes[i].set_title(name)
@@ -1171,8 +1179,7 @@ def _display_scalar_autoreg(autoreg, ax):
     ax.set_title("Autoregressive coefficient")
 
 
-# renaming _plot_forest_coef
-def _plot_regression_forest(
+def _plot_forest_coef(
     coef_left, coef_right, column_names, exog_names, figsize
 ):  # pylint: disable = too-many-locals
     """

@@ -18,7 +18,7 @@ from pyPLNmodels.utils._criterion import _ElboCriterionMonitor
 from pyPLNmodels.utils._utils import (
     _TimeRecorder,
     _nice_string_of_dict,
-    _process_indices_of_variables,
+    _process_column_index,
     _shouldbefitted,
 )
 from pyPLNmodels.utils._viz import (
@@ -87,8 +87,8 @@ class BaseModel(
             self._endog,
             self._exog,
             self._offsets,
-            column_names_endog,
-            column_names_exog,
+            self.column_names_endog,
+            self.column_names_exog,
         ) = _handle_data(
             endog,
             exog,
@@ -97,14 +97,6 @@ class BaseModel(
             add_const,
             remove_zero_columns=self.remove_zero_columns,
         )
-        if column_names_endog is not None:
-            self.column_names_endog = column_names_endog
-        else:
-            self.column_names_endog = [f"Dim_{i+1}" for i in range(self.dim)]
-        if column_names_exog is not None:
-            self.column_names_exog = column_names_exog
-        else:
-            self.column_names_exog = [f"Exog_{i+1}" for i in range(self.nb_cov)]
 
         self._elbo_criterion_monitor = _ElboCriterionMonitor()
         self._fitted = False
@@ -119,7 +111,7 @@ class BaseModel(
         compute_offsets_method: {"zero", "logsum"} = "zero",
     ):
         """
-        Create a model instance from a formula and data.
+        Create an instance from a formula and data.
 
         Parameters
         ----------
@@ -134,7 +126,6 @@ class BaseModel(
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
             Overridden (useless) if data["offsets"] is not `None`.
-
         """
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
@@ -215,75 +206,73 @@ class BaseModel(
         return self._ModelViz(self)
 
     @abstractmethod
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         """
         Visualizes variables using PCA and plots a correlation circle. If the `endog` has been
         given as a pd.DataFrame, the `column_names` have been stored and may be indicated with the
-        `variable_names` argument. Else, one should provide the indices of variables.
+        `column_names` argument. Else, one should provide the indices of variables.
 
         Parameters
         ----------
-        variable_names : List[str]
+        column_names : List[str]
             A list of variable names to visualize.
-            If `indices_of_variables` is `None`, the variables plotted are the
-            ones in `variable_names`. If `indices_of_variables` is not `None`,
+            If `column_index` is `None`, the variables plotted are the
+            ones in `column_names`. If `column_index` is not `None`,
             this only serves as a legend.
             Check the attribute `column_names_endog`.
-        indices_of_variables : Optional[List[int]], optional
+        column_index : Optional[List[int]], optional
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variable_names`, by default None.
-            If not None, should have the same length as `variable_names`.
+            given the `column_names`, by default None.
+            If not None, should have the same length as `column_names`.
         title : str
             An additional title for the plot.
 
         Raises
         ------
         ValueError
-            If `indices_of_variables` is None and `column_names_endog` is not set,
+            If `column_index` is None and `column_names_endog` is not set,
             that has been set if the model has been initialized with a pd.DataFrame as `endog`.
         ValueError
-            If the length of `indices_of_variables` is different from the length
-            of `variable_names`.
+            If the length of `column_index` is different from the length
+            of `column_names`.
 
         """
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         plot_correlation_circle(
-            self.transform(), variable_names, indices_of_variables, title=title
+            self.transform(), column_names, column_index, title=title
         )
 
     @abstractmethod
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
-        may be indicated with the `variable_names` argument. Else, one should provide the
+        may be indicated with the `column_names` argument. Else, one should provide the
         indices of variables.
 
         Parameters
         ----------
-        variable_names : List[str]
+        column_names : List[str]
             A list of variable names to visualize.
-            If `indices_of_variables` is `None`, the variables plotted
-            are the ones in `variable_names`. If `indices_of_variables`
+            If `column_index` is `None`, the variables plotted
+            are the ones in `column_names`. If `column_index`
             is not `None`, this only serves as a legend.
             Check the attribute `column_names_endog`.
-        indices_of_variables : Optional[List[int]], optional keyword-only
+        column_index : Optional[List[int]], optional keyword-only
             A list of indices corresponding to the variables that should be plotted.
             If `None`, the indices are determined based on `column_names_endog`
-            given the `variable_names`, by default `None`.
-            If not None, should have the same length as `variable_names`.
+            given the `column_names`, by default `None`.
+            If not None, should have the same length as `column_names`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
@@ -292,20 +281,20 @@ class BaseModel(
         Raises
         ------
         ValueError
-            If `indices_of_variables` is None and `column_names_endog` is not set,
+            If `column_index` is None and `column_names_endog` is not set,
             that has been set if the model has been initialized with a pd.DataFrame as `endog`.
         ValueError
-            If the length of `indices_of_variables` is different
-            from the length of `variable_names`.
+            If the length of `column_index` is different
+            from the length of `column_names`.
 
         """
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         return _biplot(
             self.transform(),
-            variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -809,9 +798,6 @@ class BaseModel(
 
     @property
     def _useful_methods_list(self):
-        """
-        Useful methods of the model.
-        """
         return [
             ".transform()",
             ".show()",
@@ -827,9 +813,6 @@ class BaseModel(
 
     @property
     def _useful_attributes_list(self):
-        """
-        Useful attributes of the model.
-        """
         return [
             ".latent_variables",
             ".latent_positions",
@@ -889,6 +872,13 @@ class BaseModel(
         return -self.loglike + self.number_of_parameters / 2 * np.log(self.n_samples)
 
     @property
+    def ICL(self):
+        """
+        Integrated Completed Likelihood criterion.
+        """
+        return self.BIC - self.entropy
+
+    @property
     def AIC(self):
         """
         Akaike Information Criterion (AIC).
@@ -900,6 +890,13 @@ class BaseModel(
     def number_of_parameters(self):
         """
         Returns the number of parameters of the model.
+        """
+
+    @property
+    @abstractmethod
+    def entropy(self):
+        """
+        Entropy of the latent variables.
         """
 
     @_array2tensor
@@ -1034,3 +1031,55 @@ class BaseModel(
     @abstractmethod
     def _endog_predictions(self):
         """Abstract method the predict the endog variables."""
+
+    @property
+    def _latent_dim(self):
+        return self.dim
+
+    @latent_sqrt_variance.setter
+    @_array2tensor
+    def latent_sqrt_variance(
+        self, latent_sqrt_variance: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the latent_sqrt_variance.
+
+        Parameters
+        ----------
+        latent_sqrt_variance : torch.Tensor
+            The latent_sqrt_variance to set.
+
+        Raises
+        ------
+        ValueError
+            If the latent_sqrt_variance have an invalid shape ( different than (n_samples,rank)).
+        """
+        if latent_sqrt_variance.shape != (self.n_samples, self._latent_dim):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.n_samples, self._latent_dim}), "
+                f"got {latent_sqrt_variance.shape}"
+            )
+        self._latent_sqrt_variance = latent_sqrt_variance
+
+    @latent_mean.setter
+    @_array2tensor
+    def latent_mean(self, latent_mean: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the latent_mean.
+
+        Parameters
+        ----------
+        latent_mean : torch.Tensor
+            The latent_mean to set.
+
+        Raises
+        ------
+        ValueError
+            If the latent_mean have an invalid shape ( different than (n_samples,rank)).
+        """
+        if latent_mean.shape != (self.n_samples, self._latent_dim):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.n_samples, self._latent_dim}), "
+                f"got {latent_mean.shape}"
+            )
+        self._latent_mean = latent_mean

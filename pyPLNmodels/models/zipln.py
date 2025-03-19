@@ -14,6 +14,7 @@ from pyPLNmodels.calculations._closed_forms import (
 from pyPLNmodels.calculations.elbos import profiled_elbo_zipln
 from pyPLNmodels.utils._utils import _add_doc
 from pyPLNmodels.utils._viz import _viz_variables, _pca_pairplot, ZIModelViz
+from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_bernoulli
 from pyPLNmodels.utils._data_handler import (
     _handle_inflation_data,
     _array2tensor,
@@ -124,15 +125,9 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             compute_offsets_method=compute_offsets_method,
             add_const=add_const,
         )
-        self._exog_inflation, column_names_exog_inflation, self._dirac = (
+        self._exog_inflation, self.column_names_exog_inflation, self._dirac = (
             _handle_inflation_data(exog_inflation, add_const_inflation, self._endog)
         )
-        if column_names_exog_inflation is not None:
-            self.column_names_exog_inflation = column_names_exog_inflation
-        else:
-            self.column_names_exog_inflation = [
-                f"Exog_infl_{i+1}" for i in range(self.nb_cov)
-            ]
 
     @classmethod
     @_add_doc(
@@ -381,16 +376,14 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.plot_correlation_circle(variable_names = ["ASV_315", "ASV_749"])
-        >>> zi.plot_correlation_circle(variable_names = ["A", "B"], indices_of_variables = [0,2])
+        >>> zi.plot_correlation_circle(column_names = ["ASV_315", "ASV_749"])
+        >>> zi.plot_correlation_circle(column_names = ["A", "B"], column_index = [0,2])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -401,21 +394,21 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> data = load_microcosm()
         >>> zi = ZIPln.from_formula("endog ~ 1", data = data)
         >>> zi.fit()
-        >>> zi.biplot(variable_names = ["ASV_315", "ASV_749"])
-        >>> zi.biplot(variable_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
+        >>> zi.biplot(column_names = ["ASV_315", "ASV_749"])
+        >>> zi.biplot(column_names = ["A", "B"], column_index = [0,2], colors = data["time"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -581,3 +574,10 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
             self._covariance,
             self._dirac,
         )
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(
+            self._latent_sqrt_variance**2
+        ).detach().cpu() + entropy_bernoulli(self.latent_prob)

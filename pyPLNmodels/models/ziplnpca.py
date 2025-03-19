@@ -12,8 +12,13 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_sqrt_variance_pca,
     _init_latent_mean_pca,
 )
-from pyPLNmodels.utils._data_handler import _extract_data_inflation_from_formula
-from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_bernoulli
+from pyPLNmodels.utils._data_handler import (
+    _extract_data_inflation_from_formula,
+    _array2tensor,
+    _check_int,
+)
+from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -21,7 +26,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 REGULARIZATION = 0.0001
 
 
-class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
+class ZIPlnPCA(
+    ZIPln
+):  # pylint: disable= too-many-instance-attributes, too-many-public-methods
     """
     Zero-Inflated Pln Principal Component Analysis (ZIPlnPCA) class.
     Like a PlnPCA but adds zero-inflation. For more details,
@@ -121,6 +128,7 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> print(zi)
 
         """
+        _check_int(rank)
         self._rank = rank
         self._use_closed_form_prob = use_closed_form_prob
         super().__init__(
@@ -188,13 +196,18 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         )
 
     def _init_model_parameters(self):
-        self.__coef, self._coef_inflation = _init_coef_coef_inflation(
-            endog=self._endog,
-            exog=self._exog,
-            exog_inflation=self._exog_inflation,
-            offsets=self._offsets,
-        )
-        self._components = _init_components(self._endog, self.rank).to(DEVICE)
+        if (
+            hasattr(self, "__coef")
+            or hasattr(self, "_coef_inflation")
+            or hasattr(self, "_components")
+        ) is False:
+            self.__coef, self._coef_inflation = _init_coef_coef_inflation(
+                endog=self._endog,
+                exog=self._exog,
+                exog_inflation=self._exog_inflation,
+                offsets=self._offsets,
+            )
+            self._components = _init_components(self._endog, self.rank).to(DEVICE)
 
     @_add_doc(
         BaseModel,
@@ -286,6 +299,110 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         """
         return self._components.detach().cpu()
 
+    @components.setter
+    @_array2tensor
+    def components(self, components: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the components.
+
+        Parameters
+        ----------
+        components : torch.Tensor
+            The components to set, of size (dim, rank).
+
+        Raises
+        ------
+        ValueError
+            If the components have an invalid shape (i.e. not (dim, rank)).
+        """
+        _check_array_size(components, self.dim, self.rank, "components")
+        self._components = components
+
+    @property  # Here only to be able to define a setter.
+    @_add_doc(ZIPln)
+    def coef_inflation(self):
+        return super().coef_inflation
+
+    @property  # Here only to be able to define a setter.
+    @_add_doc(ZIPln)
+    def latent_prob(self):
+        return self._latent_prob.detach().cpu()
+
+    @property  # Here only to be able to define a setter.
+    @_add_doc(BaseModel)
+    def coef(self):
+        return super().coef
+
+    @latent_prob.setter
+    @_array2tensor
+    def latent_prob(self, latent_prob: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the `latent_prob` property.
+
+        Parameters
+        ----------
+        latent_prob : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (n_samples, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the `latent_prob` is incorrect.
+        """
+        if self._use_closed_form_prob is True:
+            raise ValueError(
+                "Can not set the latent prob if `use_closed_form_prob` is `True`"
+            )
+        _check_array_size(latent_prob, self.n_samples, self.dim, "latent_prob")
+        self._latent_prob = latent_prob
+
+    @coef.setter
+    @_array2tensor
+    def coef(self, coef: Union[torch.Tensor, np.ndarray, pd.DataFrame]):
+        """
+        Setter for the `coef` property.
+
+        Parameters
+        ----------
+        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (nb_cov, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the coef is incorrect.
+        """
+        if coef is not None and self.nb_cov == 0:
+            raise ValueError(
+                "coef is not None but no coef in the model. Instantiate a new model."
+            )
+        if coef is not None:
+            _check_array_size(coef, self.nb_cov, self.dim, "coef")
+        self.__coef = coef
+
+    @coef_inflation.setter
+    @_array2tensor
+    def coef_inflation(
+        self, coef_inflation: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the `coef_inflation` property.
+
+        Parameters
+        ----------
+        coef_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame]
+            The coefficients of size (nb_cov_inflation, dim).
+
+        Raises
+        ------
+        ValueError
+            If the shape of the `coef_inflation` is incorrect.
+        """
+        _check_array_size(
+            coef_inflation, self.nb_cov_inflation, self.dim, "coef_inflation"
+        )
+        self._coef_inflation = coef_inflation
+
     @property
     def number_of_parameters(self):
         return self.dim * (self.nb_cov + self.rank + self.nb_cov_inflation)
@@ -340,16 +457,14 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> data = load_microcosm()
         >>> zipca = ZIPlnPCA.from_formula("endog ~ 1", data = data)
         >>> zipca.fit()
-        >>> zipca.plot_correlation_circle(variable_names = ["ASV_315", "ASV_749"])
-        >>> zipca.plot_correlation_circle(variable_names = ["A", "B"], indices_of_variables = [0,2])
+        >>> zipca.plot_correlation_circle(column_names = ["ASV_315", "ASV_749"])
+        >>> zipca.plot_correlation_circle(column_names = ["A", "B"], column_index = [0,2])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -360,21 +475,21 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
         >>> data = load_microcosm()
         >>> zipca = ZIPlnPCA.from_formula("endog ~ 1", data = data)
         >>> zipca.fit()
-        >>> zipca.biplot(variable_names = ["ASV_315", "ASV_749"])
-        >>> zipca.biplot(variable_names = ["A", "B"], indices_of_variables = [0,2], colors = data["time"])
+        >>> zipca.biplot(column_names = ["ASV_315", "ASV_749"])
+        >>> zipca.biplot(column_names = ["A", "B"], column_index = [0,2], colors = data["time"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -542,3 +657,14 @@ class ZIPlnPCA(ZIPln):  # pylint: disable= too-many-instance-attributes
     def _project_parameters(self):
         if self._use_closed_form_prob is False:
             super()._project_parameters()
+
+    @property
+    def _latent_dim(self):
+        return self.rank
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(
+            self._latent_sqrt_variance**2
+        ).detach().cpu() + entropy_bernoulli(self.latent_prob)

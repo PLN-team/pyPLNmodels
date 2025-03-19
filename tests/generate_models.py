@@ -31,6 +31,10 @@ from tests._init_functions import (
     _PlnMixture_init,
     _PlnAR_init,
     _PlnLDA_init,
+    _ZIPlnPCACollection_init,
+    _PlnPCACollection_init,
+    _PlnMixtureCollection_init,
+    _PlnNetworkCollection_init,
 )
 
 NB_COVS = [0, 2]
@@ -38,7 +42,7 @@ NB_COVS_INFLATION = [1, 2]
 ADD_CONSTS = [True, False]
 RANKS = [3, 5]
 NB_CLUSTERS = [2, 3]
-AUTOREG_TYPE = ["diagonal", "spherical"]
+AUTOREG_TYPE = ["diagonal", "spherical", "full"]
 
 # NB_COVS = [2]
 # NB_COVS_INFLATION = [2]
@@ -47,6 +51,12 @@ AUTOREG_TYPE = ["diagonal", "spherical"]
 # NB_CLUSTERS = [2]
 # AUTOREG_TYPE = ["diagonal", "spherical"]
 
+DICT_COLLECTIONS_NAME = {
+    "PlnPCACollection",
+    "ZIPlnPCACollection",
+    "PlnMixtureCollection",
+    "PlnNetworkCollection",
+}
 
 DICT_SAMPLERS = {
     "Pln": PlnSampler,
@@ -58,6 +68,10 @@ DICT_SAMPLERS = {
     "ZIPlnPCA": ZIPlnPCASampler,
     "PlnAR": PlnARSampler,
     "PlnLDA": PlnLDASampler,
+    "ZIPlnPCACollection": ZIPlnPCASampler,
+    "PlnPCACollection": PlnPCASampler,
+    "PlnMixtureCollection": PlnMixtureSampler,
+    "PlnNetworkCollection": PlnNetworkSampler,
 }
 DICT_MODELS = {
     "PlnLDA": PlnLDA,
@@ -80,9 +94,13 @@ DICT_INIT_FUNCTIONS = {
     "PlnMixture": _PlnMixture_init,
     "ZIPlnPCA": _ZIPlnPCA_init,
     "PlnAR": _PlnAR_init,
+    "ZIPlnPCACollection": _ZIPlnPCACollection_init,
+    "PlnPCACollection": _PlnPCACollection_init,
+    "PlnMixtureCollection": _PlnMixtureCollection_init,
+    "PlnNetworkCollection": _PlnNetworkCollection_init,
 }
 DICT_KWARGS = {
-    "PlnLDA": {"nb_cov": NB_COVS, "add_const": [False], "n_clusters": NB_CLUSTERS},
+    "PlnLDA": {"nb_cov": NB_COVS, "add_const": [False], "n_cluster": NB_CLUSTERS},
     "Pln": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS},
     "PlnPCA": {"nb_cov": NB_COVS, "add_const": ADD_CONSTS, "rank": RANKS},
     "ZIPln": {
@@ -92,7 +110,7 @@ DICT_KWARGS = {
     },
     "PlnDiag": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
     "PlnNetwork": {"add_const": ADD_CONSTS, "nb_cov": NB_COVS},
-    "PlnMixture": {"nb_cov": NB_COVS, "add_const": [False], "n_clusters": NB_CLUSTERS},
+    "PlnMixture": {"nb_cov": NB_COVS, "add_const": [False], "n_cluster": NB_CLUSTERS},
     "ZIPlnPCA": {
         "nb_cov": NB_COVS,
         "add_const": ADD_CONSTS,
@@ -115,9 +133,10 @@ def get_dict_models_unfit():
     or formula, with different number of covariates.
     """
     dict_models = {
-        model_name: {"formula": [], "explicit": []} for model_name in DICT_SAMPLERS
+        model_name: {"formula": [], "explicit": []} for model_name in DICT_MODELS
     }
-    for model_name, init_model_function in DICT_INIT_FUNCTIONS.items():
+    for model_name in DICT_MODELS:
+        init_model_function = DICT_INIT_FUNCTIONS[model_name]
         for kwargs in DICT_KWARGS[model_name]:
             current_sampler = DICT_SAMPLERS[model_name](**kwargs)
             endog = current_sampler.sample()
@@ -217,3 +236,25 @@ def get_fitted_model(model_name, init_method, kwargs):
     model = get_model(model_name, init_method, kwargs)
     model.fit(maxiter=5)
     return model
+
+
+def get_dict_collections_fitted():
+    """
+    Get all the collections models fitted.
+    """
+    dict_collections = {
+        model_name: {"formula": [], "explicit": []}
+        for model_name in DICT_COLLECTIONS_NAME
+    }
+    for collection_name in DICT_COLLECTIONS_NAME:
+        for nb_cov in [0, 2]:
+            for init_method in ["formula", "explicit"]:
+                for add_const in [True, False]:
+                    kwargs = {"add_const": add_const, "nb_cov": nb_cov}
+                    if collection_name == "ZIPlnPCACollection":
+                        kwargs["nb_cov_inflation"] = 1
+                    if collection_name != "PlnMixtureCollection" or add_const is False:
+                        dict_collections[collection_name][init_method].append(
+                            get_fitted_model(collection_name, init_method, kwargs)
+                        )
+    return dict_collections

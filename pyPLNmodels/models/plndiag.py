@@ -8,6 +8,7 @@ from pyPLNmodels.models.pln import Pln
 from pyPLNmodels.models.base import BaseModel
 from pyPLNmodels.calculations._closed_forms import _closed_formula_diag_covariance
 from pyPLNmodels.calculations.elbos import profiled_elbo_pln_diag
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import _add_doc, _shouldbefitted, _none_if_no_exog
 from pyPLNmodels.utils._viz import DiagModelViz
 
@@ -225,3 +226,8 @@ class PlnDiag(Pln):
     @_add_doc(BaseModel)
     def number_of_parameters(self):
         return self.dim * (self.nb_cov + 1)
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self.latent_variance)

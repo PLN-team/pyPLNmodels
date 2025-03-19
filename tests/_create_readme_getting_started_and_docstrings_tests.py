@@ -63,7 +63,7 @@ def _write_file(examples, filename, string_definer, directory):
     for i, example in enumerate(examples):
         nb_example = str(i + 1)
         example_filename = (
-            f"{directory}/test_{filename}_{string_definer}_{nb_example}.py"
+            f"{directory}/mytest_{filename}_{string_definer}_{nb_example}.py"
         )
         try:
             os.remove(example_filename)

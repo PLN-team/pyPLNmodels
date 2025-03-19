@@ -7,6 +7,10 @@ class SandwichPln:  # pylint: disable=too-many-instance-attributes
 
     The computations are based on "Evaluating Parameter Uncertainty in the Poisson Lognormal
     Model with Corrected Variational Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
+
+    See also
+    --------
+    :class:`pyPLNmodels.Pln`
     """
 
     def __init__(self, pln):

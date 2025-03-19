@@ -11,8 +11,13 @@ from pyPLNmodels.calculations._initialization import (
     _init_latent_mean_pca,
     _init_latent_sqrt_variance_pca,
 )
-from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
-from pyPLNmodels.utils._utils import _add_doc
+from pyPLNmodels.utils._data_handler import (
+    _extract_data_from_formula,
+    _array2tensor,
+    _check_int,
+)
+from pyPLNmodels.calculations.entropies import entropy_gaussian
+from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -21,6 +26,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 class PlnPCA(BaseModel):
     """Principal Component Analysis on top of a PLN model, that is a PLN
     model with low-rank covariance, adapted to datasets with lots of features.
+    The rank of the model can also be referred to as the number of components
+    or the number of PCs.
     For more details, see Chiquet, J., Mariadassou, M., Robin, S.
     “Variational inference for probabilistic Poisson PCA.” Annals of applied stats.
 
@@ -42,7 +49,7 @@ class PlnPCA(BaseModel):
 
     See also
     --------
-    :class:`pyPLNmodels.PlnPCAcollection`
+    :class:`pyPLNmodels.PlnPCACollection`
     :class:`pyPLNmodels.Pln`
     :class:`pyPLNmodels.ZIPlnPCA`
     """
@@ -79,6 +86,7 @@ class PlnPCA(BaseModel):
         add_const: bool = True,
         rank: int = 5,
     ):  # pylint: disable=too-many-arguments
+        _check_int(rank)
         self._rank = rank
         super().__init__(
             endog,
@@ -156,8 +164,8 @@ class PlnPCA(BaseModel):
         return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     def _init_model_parameters(self):
-        coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)
         if not hasattr(self, "_coef"):
+            coef = _init_coef(endog=self._endog, exog=self._exog, offsets=self._offsets)
             if coef is not None:
                 self._coef = coef.detach().to(DEVICE)
             else:
@@ -167,24 +175,27 @@ class PlnPCA(BaseModel):
             self._components = _init_components(self._endog, self.rank).to(DEVICE)
 
     def _init_latent_parameters(self):
-        self._latent_mean = _init_latent_mean_pca(
-            endog=self._endog,
-            exog=self._exog,
-            offsets=self._offsets,
-            coef=self._coef,
-            components=self._components,
-        )
-        if self.n_samples * self.rank**2 > 1e8:
-            self._latent_sqrt_variance = (
-                1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
-            )
-        else:
-            self._latent_sqrt_variance = _init_latent_sqrt_variance_pca(
-                marginal_mean=self._marginal_mean,
+        if not hasattr(self, "_latent_mean"):
+            self._latent_mean = _init_latent_mean_pca(
+                endog=self._endog,
+                exog=self._exog,
                 offsets=self._offsets,
+                coef=self._coef,
                 components=self._components,
-                mode=self._latent_mean,
             )
+
+        if not hasattr(self, "_latent_sqrt_variance"):
+            if self.n_samples * self.rank**2 > 1e8:
+                self._latent_sqrt_variance = (
+                    1 / 2 * torch.ones((self.n_samples, self.rank)).to(DEVICE)
+                )
+            else:
+                self._latent_sqrt_variance = _init_latent_sqrt_variance_pca(
+                    marginal_mean=self._marginal_mean,
+                    offsets=self._offsets,
+                    components=self._components,
+                    mode=self._latent_mean,
+                )
 
     @property
     def rank(self):
@@ -256,17 +267,14 @@ class PlnPCA(BaseModel):
         Parameters
         ----------
         components : torch.Tensor
-            The components to set.
+            The components to set, of size (dim, rank).
 
         Raises
         ------
         ValueError
-            If the components have an invalid shape.
+            If the components have an invalid shape (i.e. not (dim, rank)).
         """
-        if components.shape != (self.dim, self.rank):
-            raise ValueError(
-                f"Wrong shape. Expected ({self.dim, self.rank}), got {components.shape}"
-            )
+        _check_array_size(components, self.dim, self.rank, "components")
         self._components = components
 
     @property  # Here only to be able to define a setter.
@@ -290,10 +298,12 @@ class PlnPCA(BaseModel):
         ValueError
             If the shape of the coef is incorrect.
         """
-        if coef.shape != (self.nb_cov, self.dim):
+        if coef is not None and self.nb_cov == 0:
             raise ValueError(
-                f"Wrong shape for the coef. Expected ({(self.nb_cov, self.dim)}), got {coef.shape}"
+                "coef is not None but no coef in the model. Instantiate a new model."
             )
+        if coef is not None:
+            _check_array_size(coef, self.nb_cov, self.dim, "coef")
         self._coef = coef
 
     @property
@@ -386,16 +396,14 @@ class PlnPCA(BaseModel):
         >>> data = load_scrna()
         >>> pca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> pca.fit()
-        >>> pca.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> pca.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> pca.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> pca.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -406,21 +414,21 @@ class PlnPCA(BaseModel):
         >>> data = load_scrna()
         >>> pca = PlnPCA.from_formula("endog ~ 1", data=data)
         >>> pca.fit()
-        >>> pca.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> pca.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> pca.biplot(column_names=["MALAT1", "ACTB"])
+        >>> pca.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -491,3 +499,12 @@ class PlnPCA(BaseModel):
             show_cov=show_cov,
             remove_exog_effect=remove_exog_effect,
         )
+
+    @property
+    def _latent_dim(self):
+        return self.rank
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()

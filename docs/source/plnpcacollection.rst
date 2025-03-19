@@ -1,14 +1,14 @@
-PlnPCAcollection
+PlnPCACollection
 ================
 
-PlnPCAcollection Documentation
+PlnPCACollection Documentation
 ------------------------------
 
-.. autoclass:: pyPLNmodels.PlnPCAcollection
+.. autoclass:: pyPLNmodels.PlnPCACollection
    :members:
    :inherited-members:
    :special-members: __init__
 
 List of methods and attributes
 ------------------------------
-.. autoclasstoc:: pyPLNmodels.PlnPCAcollection
+.. autoclasstoc:: pyPLNmodels.PlnPCACollection

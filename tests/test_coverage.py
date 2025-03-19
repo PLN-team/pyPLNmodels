@@ -64,11 +64,11 @@ def test_get_model():
 def test_label_mapping():
     sampler = PlnMixtureSampler(nb_cov=0, dim=30, n_samples=200)
     endog = sampler.sample()
-    mixt = PlnMixture(endog=endog, n_clusters=sampler.n_clusters)
+    mixt = PlnMixture(endog=endog, n_cluster=sampler.n_cluster)
     mixt.fit()
     pred = mixt.clusters
     label_mapping = get_label_mapping(torch.tensor(pred), sampler.clusters)
-    for k in range(mixt.n_clusters):
+    for k in range(mixt.n_cluster):
         moyenne = torch.mean(
             torch.abs(
                 (pred == k).float()
@@ -78,7 +78,7 @@ def test_label_mapping():
         assert moyenne < 0.1
 
     label_mapping = get_label_mapping(pred, torch.tensor(sampler.clusters))
-    for k in range(mixt.n_clusters):
+    for k in range(mixt.n_cluster):
         moyenne = torch.mean(
             torch.abs(
                 (pred == k).float()

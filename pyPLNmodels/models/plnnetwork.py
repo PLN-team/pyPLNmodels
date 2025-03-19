@@ -9,8 +9,9 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.calculations.elbos import elbo_pln
 from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
 from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz, _build_graph
-from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
 from pyPLNmodels.calculations._closed_forms import _closed_formula_coef
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.calculations._initialization import (
     _init_components_prec,
     _init_latent_pln,
@@ -21,9 +22,15 @@ THRESHOLD = 1e-5
 
 
 class PlnNetwork(BaseModel):
-    """Pln model with regularization on the number of parameters
+    """
+    Pln model with regularization on the number of parameters
     of the precision matrix (inverse covariance matrix) representing correlation
     between variables.
+
+    For more details, see:
+    J. Chiquet, S. Robin, M. Mariadassou: "Variational Inference for sparse network
+    reconstruction from count data"
+
 
     Examples
     --------
@@ -79,6 +86,8 @@ class PlnNetwork(BaseModel):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
     ):  # pylint: disable=too-many-arguments
+        if penalty < 0:
+            raise AttributeError(f"Penalty should be positive. Got {penalty}")
         self.penalty = penalty
         super().__init__(
             endog,
@@ -198,13 +207,6 @@ class PlnNetwork(BaseModel):
         return self._components_prec @ (self._components_prec.T)
 
     @property
-    def precision(self):
-        """
-        Precision matrix of the model (i.e. inverse covariance matrix).
-        """
-        return self._precision.detach().cpu()
-
-    @property
     def _covariance(self):
         return torch.linalg.inv(self._precision)
 
@@ -223,7 +225,8 @@ class PlnNetwork(BaseModel):
         return torch.sum((torch.abs(self._precision) < THRESHOLD).float()) / 2
 
     def _init_model_parameters(self):
-        self._components_prec = _init_components_prec(self._endog)
+        if not hasattr(self, "_components_prec"):
+            self._components_prec = _init_components_prec(self._endog)
 
     @property
     @_add_doc(BaseModel)
@@ -345,16 +348,14 @@ class PlnNetwork(BaseModel):
         >>> data = load_scrna()
         >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty = 200)
         >>> net.fit()
-        >>> net.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> net.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> net.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> net.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
         super().plot_correlation_circle(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
         )
 
@@ -365,21 +366,21 @@ class PlnNetwork(BaseModel):
         >>> data = load_scrna()
         >>> net = PlnNetwork.from_formula("endog ~ 1", data=data, penalty=1)
         >>> net.fit()
-        >>> net.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> net.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> net.biplot(column_names=["MALAT1", "ACTB"])
+        >>> net.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
         super().biplot(
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             colors=colors,
             title=title,
         )
@@ -471,7 +472,53 @@ class PlnNetwork(BaseModel):
 
     @property
     def _description(self):
-        return f"with penalty {self.penalty}"
+        return f"with penalty {self.penalty}."
 
     def _init_latent_parameters(self):
-        self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(self._endog)
+        if not hasattr(self, "_latent_mean") or not hasattr(
+            self, "_latent_sqrt_variance"
+        ):
+            self._latent_mean, self._latent_sqrt_variance = _init_latent_pln(
+                self._endog
+            )
+
+    @property
+    def components_prec(self):
+        """
+        Returns an unorthogonal square root of the precision matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            The components of the precision with size (dim, dim)
+        """
+        return self._components_prec.detach().cpu()
+
+    @components_prec.setter
+    @_array2tensor
+    def components_prec(
+        self, components_prec: Union[torch.Tensor, np.ndarray, pd.DataFrame]
+    ):
+        """
+        Setter for the components_prec, that is an unorthogonal square root of the precision matrix.
+
+        Parameters
+        ----------
+        components_prec : torch.Tensor
+            The components_prec to set.
+
+        Raises
+        ------
+        ValueError
+            If the components_prec have an invalid shape.
+        """
+        if components_prec.shape != (self.dim, self.dim):
+            raise ValueError(
+                f"Wrong shape. Expected ({self.dim, self.dim}), got {components_prec.shape}"
+            )
+        self._components_prec = components_prec
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self.latent_variance)

@@ -59,12 +59,21 @@ def _handle_data(
         if any of `endog`, `exog`, and `offsets` are different from `torch.Tensor`,
         `np.ndarray`, or `pd.DataFrame`. `exog` may be a `pd.Series` without launching errors.
     """
+
     column_names_endog = endog.columns if isinstance(endog, pd.DataFrame) else None
     column_names_exog = exog.columns if isinstance(exog, pd.DataFrame) else None
 
     endog, exog, offsets = _format_model_params(
         endog, exog, offsets, compute_offsets_method, add_const
     )
+    if column_names_endog is None:
+        column_names_endog = [f"Dim_{i+1}" for i in range(endog.shape[1])]
+    if column_names_exog is None:
+        nb_cov = 0 if exog is None else exog.shape[1]
+        column_names_exog = [f"Exog_{i+1}" for i in range(nb_cov)]
+        if add_const is True:
+            column_names_exog[0] = "Intercept"
+
     _check_data_shapes(endog, exog, offsets)
     if remove_zero_columns is True:
         endog, offsets, column_names_endog = _remove_zero_columns(
@@ -96,6 +105,12 @@ def _handle_inflation_data(exog_inflation, add_const_inflation, endog):
     else:
         if exog_inflation is None:
             raise ValueError("Please fit a PLN model if there is no inflation.")
+    if column_names_exog_inflation is None:
+        column_names_exog_inflation = [
+            f"Exog_infl_{i+1}" for i in range(exog_inflation.shape[1])
+        ]
+    if add_const_inflation is True:
+        column_names_exog_inflation[0] = "Intercept"
     _check_dimensions_equal(
         "endog", "exog_inflation", endog.shape[0], exog_inflation.shape[0], 0, 0
     )
@@ -517,17 +532,12 @@ def _array2tensor(func):
 def _remove_useless_exog(exog, column_names_exog, is_inflation):
     zero_columns = (torch.sum(exog**2, axis=0) == 0).cpu()
     if torch.sum(zero_columns) > 0:
-        if column_names_exog is not None:
-            msg = (
-                f"Removing column {column_names_exog[zero_columns]} as it is only zeros"
-            )
-        else:
-            zero_column_indices = torch.nonzero(zero_columns).squeeze().tolist()
-            msg = f"Removing column {zero_column_indices} as it is only zeros"
-        if is_inflation is True:
-            msg += " for the inflation part"
-        msg += "."
-        print(msg)
+        for i, is_zero in enumerate(zero_columns):
+            if is_zero:
+                msg = f"removing column {column_names_exog[i]} as it is only zeros"
+                if is_inflation is True:
+                    msg += " for the inflation part."
+                print(msg)
         return exog[:, ~zero_columns]
     return exog
 
@@ -640,3 +650,10 @@ def _get_dummies(input_tensor):
     one_hot_tensor.scatter_(1, input_tensor.unsqueeze(1), 1)
 
     return one_hot_tensor
+
+
+def _check_int(rank):
+    if rank < 1:
+        raise AttributeError(f"The rank should be an int >= 1. Got {rank}")
+    if isinstance(rank, int) is False:
+        raise AttributeError(f"The rank should be an int. Got {rank}")

@@ -25,10 +25,11 @@ from pyPLNmodels.calculations.elbos import (
     profiled_elbo_pln,
     per_sample_elbo_pln,
 )
+from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import (
     _add_doc,
     _raise_error_1D_viz,
-    _process_indices_of_variables,
+    _process_column_index,
 )
 from pyPLNmodels.utils._viz import (
     _viz_lda_train,
@@ -374,12 +375,12 @@ class PlnLDA(Pln):
     def _estimate_prob_and_latent_positions(self, endog, *, exog, offsets):
         endog = _format_data(endog)
         best_guess_gaussian = torch.zeros(endog.shape).to(self._endog.device)
-        predicted_prob = torch.zeros((endog.shape[0], self._n_clusters)).to(
+        predicted_prob = torch.zeros((endog.shape[0], self._n_cluster)).to(
             self._endog.device
         )
         best_prob = torch.zeros(endog.shape[0]).to(self._endog.device) - torch.inf
         coef = self._coef.detach() if self._coef is not None else None
-        for k in range(self._n_clusters):
+        for k in range(self._n_cluster):
             pln_pred = _PlnPred(
                 endog=endog,
                 exog=exog,
@@ -518,9 +519,9 @@ class PlnLDA(Pln):
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
         >>> ntrain, ntest = 300, 200
-        >>> nb_cov, n_clusters = 1,3
+        >>> nb_cov, n_cluster = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -555,9 +556,9 @@ class PlnLDA(Pln):
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
         >>> ntrain, ntest = 300, 200
-        >>> nb_cov, n_clusters = 1,3
+        >>> nb_cov, n_cluster = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -607,9 +608,9 @@ class PlnLDA(Pln):
         >>> import torch
         >>> from pyPLNmodels import PlnLDA, PlnLDASampler
         >>> ntrain, ntest = 3000, 200
-        >>> nb_cov, n_clusters = 1,3
+        >>> nb_cov, n_cluster = 1,3
         >>> sampler = PlnLDASampler(
-        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_clusters=n_clusters, add_const=False)
+        >>> n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)
         >>> endog = sampler.sample()
         >>> known_exog = sampler.known_exog
         >>> clusters = sampler.clusters
@@ -672,7 +673,7 @@ class PlnLDA(Pln):
         raise NotImplementedError("pca pairplot not implemented for LDA models.")
 
     @property
-    def _n_clusters(self):
+    def _n_cluster(self):
         return self._exog_clusters.shape[1]
 
     @_add_doc(
@@ -682,8 +683,8 @@ class PlnLDA(Pln):
         >>> data = load_scrna()
         >>> lda = PlnLDA.from_formula("endog ~ 0|labels", data=data)
         >>> lda.fit()
-        >>> lda.plot_correlation_circle(variable_names=["MALAT1", "ACTB"])
-        >>> lda.plot_correlation_circle(variable_names=["A", "B"], indices_of_variables=[0, 4])
+        >>> lda.plot_correlation_circle(column_names=["MALAT1", "ACTB"])
+        >>> lda.plot_correlation_circle(column_names=["A", "B"], column_index=[0, 4])
         """,
         raises="""
         ValueError
@@ -691,13 +692,11 @@ class PlnLDA(Pln):
             and visualization is not possible.
         """,
     )
-    def plot_correlation_circle(
-        self, variable_names, indices_of_variables=None, title: str = ""
-    ):
-        if self._n_clusters == 2:
+    def plot_correlation_circle(self, column_names, column_index=None, title: str = ""):
+        if self._n_cluster == 2:
             _raise_error_1D_viz()
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         data_matrix = torch.cat(
             (
@@ -708,8 +707,8 @@ class PlnLDA(Pln):
         )
         plot_correlation_circle(
             data_matrix=data_matrix,
-            variable_names=variable_names,
-            indices_of_variables=indices_of_variables,
+            column_names=column_names,
+            column_index=column_index,
             title=title,
             reduction="LDA",
         )
@@ -721,8 +720,8 @@ class PlnLDA(Pln):
         >>> data = load_scrna()
         >>> lda = PlnLDA.from_formula("endog ~ 0 | labels", data=data)
         >>> lda.fit()
-        >>> lda.biplot(variable_names=["MALAT1", "ACTB"])
-        >>> lda.biplot(variable_names=["A", "B"], indices_of_variables=[0, 4], colors=data["labels"])
+        >>> lda.biplot(column_names=["MALAT1", "ACTB"])
+        >>> lda.biplot(column_names=["A", "B"], column_index=[0, 4], colors=data["labels"])
         """,
         raises="""
         ValueError
@@ -732,23 +731,23 @@ class PlnLDA(Pln):
     )
     def biplot(
         self,
-        variable_names,
+        column_names,
         *,
-        indices_of_variables: np.ndarray = None,
+        column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
     ):
-        if self._n_clusters == 2:
+        if self._n_cluster == 2:
             _raise_error_1D_viz()
-        indices_of_variables = _process_indices_of_variables(
-            variable_names, indices_of_variables, self.column_names_endog
+        column_index = _process_column_index(
+            column_names, column_index, self.column_names_endog
         )
         _biplot_lda(
             self.latent_positions_clusters,
-            variable_names,
+            column_names,
             clusters=self.clusters,
             colors=self._decode_clusters(self.clusters),
-            indices_of_variables=indices_of_variables,
+            column_index=column_index,
             title=title,
         )
 
@@ -825,3 +824,8 @@ class _PlnPred(Pln):
     def latent_positions_device(self):
         """Latent positions on the GPU device if GPU is available."""
         return self._latent_mean - self._marginal_mean
+
+    @property
+    @_add_doc(BaseModel)
+    def entropy(self):
+        return entropy_gaussian(self.latent_variance)

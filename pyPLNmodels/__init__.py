@@ -11,7 +11,6 @@ from .load_data import (
 from .models import (
     Pln,
     PlnPCA,
-    PlnPCAcollection,
     ZIPln,
     ZIPlnPCA,
     PlnNetwork,
@@ -19,6 +18,10 @@ from .models import (
     PlnMixture,
     PlnAR,
     PlnLDA,
+    PlnPCACollection,
+    PlnNetworkCollection,
+    PlnMixtureCollection,
+    ZIPlnPCACollection,
 )
 
 
@@ -41,7 +44,7 @@ __version__ = importlib.metadata.version("pyplnmodels")
 __all__ = [
     "Pln",
     "PlnPCA",
-    "PlnPCAcollection",
+    "PlnPCACollection",
     "PlnMixture",
     "PlnSampler",
     "PlnPCASampler",
