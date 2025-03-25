@@ -48,14 +48,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install dependencies
-        run: pip install '.[tests]'
-      - name: Install package
-        run: pip install .
-      - name: Convert Jupyter Notebook
-        run: jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
-      - name: Run tests
+      - name: Install package and run tests
         run: |
+          pip install '.[tests]'
+          pip install .
+          jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
           cd tests
           python _create_readme_getting_started_and_docstrings_tests.py
           rm test_getting_started.py

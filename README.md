@@ -24,6 +24,8 @@
 > the significance of each variable, their correlations, and the
 > weight of covariates (if available).
 
+The package documentation can be found [here](https://pln-team.github.io/pyPLNmodels/).
+
 ## Getting started
 [A notebook to get started can be found here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
 If you need just a quick view of the package, see the quickstart next. Note
