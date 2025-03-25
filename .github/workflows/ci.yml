@@ -52,6 +52,8 @@ jobs:
         run: |
           pip install '.[tests]'
           pip install .
+          echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
+          echo "PYTHONPATH set to: $(pwd)"
           jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
           cd tests
           python _create_readme_getting_started_and_docstrings_tests.py
