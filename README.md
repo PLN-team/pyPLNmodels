@@ -276,7 +276,7 @@ print(ar)
 
 ## 👐 Contributing
 
-Feel free to contribute, but read the [CONTRIBUTING.md](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/blob/main/CONTRIBUTING.md) first. A public roadmap will be available soon.
+Feel free to contribute, but read the [CONTRIBUTING.md](https://github.com/PLN-team/pyPLNmodels/blob/main/CONTRIBUTING.md) first. A public roadmap will be available soon.
 
 ## ⚡️ Citations
 
