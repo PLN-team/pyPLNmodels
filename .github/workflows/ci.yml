@@ -16,9 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.9.18'
       - name: Install Black
         run: pip install black
       - name: Run Black
@@ -29,9 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.9.18'
       - name: Install Pylint
         run: pip install pylint
       - name: Run Pylint
@@ -44,9 +44,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.9.18'
       - name: Install dependencies
         run: pip install '.[tests]'
       - name: Install package
