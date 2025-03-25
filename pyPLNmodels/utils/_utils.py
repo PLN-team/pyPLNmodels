@@ -160,8 +160,8 @@ def calculate_correlation(data, transformed_data):
 
 def _trunc_log(tens: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
     integer = torch.min(
-        torch.max(tens, torch.tensor([eps], device=DEVICE)),
-        torch.tensor([1 - eps], device=DEVICE),
+        torch.max(tens, torch.tensor([eps], device=tens.device)),
+        torch.tensor([1 - eps], device=tens.device),
     )
     return torch.log(integer)
 
