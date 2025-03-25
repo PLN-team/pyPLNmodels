@@ -38,6 +38,7 @@ jobs:
           pip install pylint
           pip install pandas
           python -c """import pandas"""
+          echo "out"
 
       - name: Run Pylint
         run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
