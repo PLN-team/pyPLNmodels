@@ -39,7 +39,7 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
-    containers:
+    container:
       - image: ghcr.io/bastien-mva/docker_image:latest
     steps:
       - uses: actions/checkout@v2
