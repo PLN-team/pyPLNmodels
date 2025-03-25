@@ -36,25 +36,25 @@ jobs:
       - name: Install Pylint
         run: |
           pip install pylint
-          pip install pandas
-          python -c """import pandas"""
-          echo "out"
 
       - name: Run Pylint
         run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
 
-  # tests:
-  #   runs-on: ubuntu-22.04
-  #   container:
-  #     image: ghcr.io/bastien-mva/docker_image:latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: '3.9'
-  #     - name: Install package and run tests
-  #       run: |
+  tests:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/bastien-mva/docker_image:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install package and run tests
+        run: |
+          pip install pandas
+          python -c """import pandas"""
+          echo "out"
   #         # pip install pandas
   #         # echo "be4"
   #         # python -m pip install --no-cache-dir pandas
