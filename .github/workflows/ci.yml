@@ -52,6 +52,7 @@ jobs:
           python-version: '3.9'
       - name: Install package and run tests
         run: |
+          python -m ensurepip --default-pip
           which pip
           pip --version
           python -m pip --version
