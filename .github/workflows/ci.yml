@@ -55,7 +55,7 @@ jobs:
           # python -c "import pandas"
           # echo "afte4r"
            pip install '.[tests]'
-          pip install .
+          pip install -e .
           # echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
           # echo "PYTHONPATH set to: $(pwd)"
           jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
