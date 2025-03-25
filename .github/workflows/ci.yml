@@ -59,11 +59,9 @@ jobs:
           cd tests
           python _create_readme_getting_started_and_docstrings_tests.py
           rm test_getting_started.py
+          echo $PYTHONPATH
+          ./run_readme_docstrings_getting_started.sh
           # pytest .
-      - name: Print Python path
-        run: echo $PYTHONPATH
-      - name: Run README and docstrings tests
-        run: ./run_readme_docstrings_getting_started.sh
 
   build_package:
     runs-on: ubuntu-22.04
