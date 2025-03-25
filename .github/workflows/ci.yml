@@ -56,7 +56,7 @@ jobs:
           echo "PYTHONPATH set to: $(pwd)"
           jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
           echo "before"
-          python -c """import pyPLNmodels"""
+          python -c """import pyPLNmodes"""
           cd tests
           echo "after"
           python -c """import pyPLNmodels"""
