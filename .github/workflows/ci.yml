@@ -52,11 +52,9 @@ jobs:
         run: |
           pip install pandas
           echo "be4"
-          which python
-          python -c "import sys; print(sys.executable)"
-          python -c "import sys; print(sys.path)"
-          python -c "help('modules')"
-          python -c """import pandas"""
+          python -m pip install --no-cache-dir pandas
+          python -m pip list | grep pandas
+          python -c "import pandas"
           echo "afte4r"
           # pip install '.[tests]'
           # pip install .
