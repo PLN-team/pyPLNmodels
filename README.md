@@ -7,18 +7,22 @@
 
 # PLNmodels: Poisson lognormal models
 
-> The Poisson lognormal model and variants can be used for analysis of multivariate count data.
-> This package implements efficient algorithms extracting meaningful data from difficult to interpret
-> and complex multivariate count data. It has been built to scale on large datasets even
-> though it has memory limitations. Possible fields of applications include:
-> - Genomics/transcriptomics (number of times a gene is expressed in a cell)
-> - Ecology (species abundances)
-> - Metagenomics (number of Amplicon Sequence Variant detected in a sample)
-> - Genetics (number of crossovers (DNA exchange) along a chromosome)
+> The Poisson lognormal model and its variants are used for the
+> analysis of multivariate count data.
+> This package implements efficient algorithms to extract
+> meaningful insights from complex and difficult-to-interpret
+> multivariate count data. It is designed to scale on large
+> datasets, although it has memory limitations. Possible fields of
+> application include:
+> - Genomics/transcriptomics (e.g., the number of times a gene is expressed in a cell)
+> - Ecology (e.g., species abundances)
+> - Metagenomics (e.g., the number of Amplicon Sequence Variants detected in a sample)
+> - Genetics (e.g., the number of crossovers (DNA exchanges) along a chromosome)
 >
-> One main functionality is to normalize the count data to obtain more valuable
-> data. It also analyzes the significance of each variable and their
-> correlation as well as the weight of covariates (if available).
+> One of the main functionalities of this package is to normalize
+> count data to obtain more valuable insights. It also analyzes
+> the significance of each variable, their correlations, and the
+> weight of covariates (if available).
 
 ## Getting started
 [A notebook to get started can be found here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
