@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev
+      - pages
   pull_request:
     branches:
       - main
