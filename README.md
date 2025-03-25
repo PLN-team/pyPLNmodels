@@ -254,11 +254,11 @@ ar.show()
 ### Visualization
 
 The package is equipped with a set of visualization functions designed to help
-the user interpret the data. The `viz` function conducts PCA
+the user interpret the data. The `viz` function conducts `PCA`
 on the latent variables. The `remove_exog_effect` keyword
-removes the covariates effect specified in the model when set to `True`.
-
+removes the covariates' effect specified in the model when set to `True`.
 Much more functionalities, depending on the model, are available. One can see the full list of available functions in the documentation and by printing the model:
+
 ```python
 print(pln)
 print(pca)
