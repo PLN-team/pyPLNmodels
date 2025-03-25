@@ -37,27 +37,29 @@ jobs:
       - name: Run Pylint
         run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
 
-  # tests:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: '3.x'
-  #     - name: Install dependencies
-  #       run: pip install '.[tests]'
-  #     - name: Install package
-  #       run: pip install .
-  #     - name: Convert Jupyter Notebook
-  #       run: jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
-  #     - name: Run tests
-  #       run: |
-  #         cd tests
-  #         python _create_readme_getting_started_and_docstrings_tests.py
-  #         rm test_getting_started.py
-  #         pytest .
-  #         ./run_readme_docstrings_getting_started.sh
+  tests:
+    runs-on: ubuntu-latest
+    containers:
+      - image: ghcr.io/bastien-mva/docker_image:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: pip install '.[tests]'
+      - name: Install package
+        run: pip install .
+      - name: Convert Jupyter Notebook
+        run: jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
+      - name: Run tests
+        run: |
+          cd tests
+          python _create_readme_getting_started_and_docstrings_tests.py
+          rm test_getting_started.py
+          # pytest .
+          # ./run_readme_docstrings_getting_started.sh
 
   # build_package:
   #   runs-on: ubuntu-latest
