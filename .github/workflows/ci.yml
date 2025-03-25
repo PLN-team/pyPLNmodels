@@ -54,11 +54,19 @@ jobs:
           pip install .
           echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
           echo "PYTHONPATH set to: $(pwd)"
+          echo "path1"
+          echo $PYTHONPATH
           jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
+          echo "path2"
+          echo $PYTHONPATH
           cd tests
+          echo "path3"
+          echo $PYTHONPATH
           python _create_readme_getting_started_and_docstrings_tests.py
+          echo "path4"
+          echo $PYTHONPATH
           rm test_getting_started.py
-          echo "path"
+          echo "path5"
           echo $PYTHONPATH
           echo "outpath"
           ./run_readme_docstrings_getting_started.sh
