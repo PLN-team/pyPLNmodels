@@ -50,13 +50,17 @@ jobs:
           python-version: '3.9'
       - name: Install package and run tests
         run: |
-          pip install '.[tests]'
-          pip install .
-          echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
-          echo "PYTHONPATH set to: $(pwd)"
-          jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
-          echo "before"
-          python -c """import pyPLNmodes"""
+          pip install pandas
+          echo "be4"
+          python -c """import pandas"""
+          echo "afte4r"
+          # pip install '.[tests]'
+          # pip install .
+          # echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
+          # echo "PYTHONPATH set to: $(pwd)"
+          # jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
+          # echo "before"
+          # python -c """import pyPLNmodels"""
           cd tests
           echo "after"
           python -c """import pyPLNmodels"""
