@@ -60,10 +60,16 @@ jobs:
           python -m pip install .
           # echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
           # echo "PYTHONPATH set to: $(pwd)"
+          echo "out ls"
+          ls
+          echo "after"
           jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
           # echo "before"
           # python -c """import pyPLNmodels"""
           cd tests
+          echo "out ls after"
+          ls
+          echo "after after"
           # echo "after"
           # python -c """import pyPLNmodels"""
           # python tests/_create_readme_getting_started_and_docstrings_tests.py
