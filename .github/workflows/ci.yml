@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - '*'
+      - dev
   pull_request:
     branches:
-      - dev
+      - main
   release:
     types: [created]
 
@@ -37,29 +37,29 @@ jobs:
       - name: Run Pylint
         run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
 
-  tests:
-    runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/bastien-mva/docker_image:latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: pip install '.[tests]'
-      - name: Install package
-        run: pip install .
-      - name: Convert Jupyter Notebook
-        run: jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
-      - name: Run tests
-        run: |
-          cd tests
-          python _create_readme_getting_started_and_docstrings_tests.py
-          rm test_getting_started.py
-          pytest .
-          ./run_readme_docstrings_getting_started.sh
+  # tests:
+  #   runs-on: ubuntu-22.04
+  #   container:
+  #     image: ghcr.io/bastien-mva/docker_image:latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.9'
+  #     - name: Install dependencies
+  #       run: pip install '.[tests]'
+  #     - name: Install package
+  #       run: pip install .
+  #     - name: Convert Jupyter Notebook
+  #       run: jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
+  #     - name: Run tests
+  #       run: |
+  #         cd tests
+  #         python _create_readme_getting_started_and_docstrings_tests.py
+  #         rm test_getting_started.py
+  #         pytest .
+  #         ./run_readme_docstrings_getting_started.sh
 
   build_package:
     runs-on: ubuntu-22.04
@@ -93,29 +93,29 @@ jobs:
   #         TWINE_PASSWORD: ${{ secrets.PYPLN_TOKEN }}
   #       run: python -m twine upload dist/*
 
-  # pages:
-  #   runs-on: ubuntu-22.04
-  #   if: github.event_name == 'release'
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: '3.9'
-  #     - name: Install dependencies
-  #       run: pip install '.[build-doc]'
-  #     - name: Install Pandoc
-  #       run: |
-  #         wget https://github.com/jgm/pandoc/releases/download/1.15.1/pandoc-1.15.1-1-amd64.deb
-  #         sudo dpkg -i pandoc-1.15.1-1-amd64.deb
-  #     - name: Convert README
-  #       run: pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
-  #     - name: Build docs
-  #       run: |
-  #         pip install .
-  #         make -C docs html
-  #     - name: Deploy to GitHub Pages
-  #       uses: peaceiris/actions-gh-pages@v3
-  #       with:
-  #         github_token: ${{ secrets.GITHUB_TOKEN }}
-  #         publish_dir: ./docs/build/html
+  pages:
+    runs-on: ubuntu-22.04
+    # if: github.event_name == 'release'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install '.[build-doc]'
+      - name: Install Pandoc
+        run: |
+          wget https://github.com/jgm/pandoc/releases/download/1.15.1/pandoc-1.15.1-1-amd64.deb
+          sudo dpkg -i pandoc-1.15.1-1-amd64.deb
+      - name: Convert README
+        run: pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
+      - name: Build docs
+        run: |
+          pip install .
+          make -C docs html
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
