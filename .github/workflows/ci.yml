@@ -60,7 +60,10 @@ jobs:
           python _create_readme_getting_started_and_docstrings_tests.py
           rm test_getting_started.py
           # pytest .
-          ./run_readme_docstrings_getting_started.sh
+      - name: Print Python path
+        run: echo $PYTHONPATH
+      - name: Run README and docstrings tests
+        run: ./run_readme_docstrings_getting_started.sh
 
   build_package:
     runs-on: ubuntu-22.04
@@ -77,26 +80,26 @@ jobs:
           rm -rf dist/
           python -m build
 
-  # publish_package:
-  #   runs-on: ubuntu-22.04
-  #   if: github.event_name == 'release'
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: '3.9'
-  #     - name: Install Twine
-  #       run: pip install twine
-  #     - name: Publish package
-  #       env:
-  #         TWINE_USERNAME: __token__
-  #         TWINE_PASSWORD: ${{ secrets.PYPLN_TOKEN }}
-  #       run: python -m twine upload dist/*
+  publish_package:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'release'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install Twine
+        run: pip install twine
+      - name: Publish package
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPLN_TOKEN }}
+        run: python -m twine upload dist/*
 
   pages:
     runs-on: ubuntu-22.04
-    # if: github.event_name == 'release'
+    if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
