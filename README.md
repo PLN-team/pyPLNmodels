@@ -41,11 +41,11 @@ pip install pyPLNmodels
 
 ## Statistical description
 
-For those unfamiliar with the concepts of Poisson or Gaussian random variables,
-it is not necessary to delve into these statistical descriptions. The key
-takeaway is as follows: This package is designed to analyze multi-dimensional count data. It
-effectively extracts significant information, such as
-the mean, the relationships with covariates, and the correlation between count
+For those unfamiliar with Poisson or Gaussian random variables,
+it's not necessary to delve into these statistical concepts. The
+key takeaway is that this package analyzes multi-dimensional count
+data, extracting significant information such as the mean,
+relationships with covariates, and correlations between count
 variables, in a manner appropriate for count data.
 
 Consider $\mathbf Y$ a count matrix (denoted as `endog` in the package) consisting of $n$ rows and $p$ columns.
