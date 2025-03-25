@@ -48,31 +48,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install package and run tests
         run: |
-          # pip install pandas
-          # echo "be4"
-          # python -m pip install --no-cache-dir pandas
-          # python -m pip list | grep pandas
-          # python -c "import pandas"
-          # echo "afte4r"
-           pip install '.[tests]'
+          pip install '.[tests]'
           pip install -e .
-          # echo "PYTHONPATH=$(pwd):$PYTHONPATH" >> $GITHUB_ENV
-          # echo "PYTHONPATH set to: $(pwd)"
           jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
-          # echo "before"
-          # python -c """import pyPLNmodels"""
           cd tests
-          # echo "after"
-          # python -c """import pyPLNmodels"""
           python _create_readme_getting_started_and_docstrings_tests.py
-          # python tests/docstrings_examples/models/mytest_plnar_example_12.py
-          # echo "path4"
-          # echo $PYTHONPATH
           rm test_getting_started.py
-          # echo "github"
-          # echo $GITHUB_ENV
           ./run_readme_docstrings_getting_started.sh
-          # pytest .
+          pytest .
 
   build_package:
     runs-on: ubuntu-22.04
