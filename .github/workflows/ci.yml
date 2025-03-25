@@ -42,8 +42,6 @@ jobs:
 
   tests:
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/bastien-mva/docker_image:latest
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
