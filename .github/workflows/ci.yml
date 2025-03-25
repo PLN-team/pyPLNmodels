@@ -61,25 +61,25 @@ jobs:
           # pytest .
           # ./run_readme_docstrings_getting_started.sh
 
-  # build_package:
-  #   runs-on: ubuntu-22.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: '3.9'
-  #     - name: Install build
-  #       run: pip install build
-  #     - name: Build package
-  #       run: |
-  #         rm -rf dist/
-  #         python -m build
-  #     - name: Upload artifacts
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: dist
-  #         path: dist/
+  build_package:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Install build
+        run: pip install build
+      - name: Build package
+        run: |
+          rm -rf dist/
+          python -m build
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
 
   # publish_package:
   #   runs-on: ubuntu-22.04
