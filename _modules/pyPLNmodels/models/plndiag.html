@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyPLNmodels.models.plndiag &mdash; pyPLNmodels</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-codeautolink.css?v=125d5c1c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=ef332567"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyPLNmodels
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpca.html">PlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpcacollection.html">PlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnar.html">PlnAR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnlda.html">PlnLDA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetwork.html">PlnNetwork</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetworkcollection.html">PlnNetworkCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixture.html">PlnMixture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixturecollection.html">PlnMixtureCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpca.html">ZIPlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpcacollection.html">ZIPlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plndiag.html">PlnDiag</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">PLNmodels: Poisson lognormal models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyPLNmodels</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyPLNmodels.models.plndiag</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyPLNmodels.models.plndiag</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.pln</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pln</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._closed_forms</span><span class="w"> </span><span class="kn">import</span> <span class="n">_closed_formula_diag_covariance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="n">profiled_elbo_pln_diag</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span><span class="p">,</span> <span class="n">_shouldbefitted</span><span class="p">,</span> <span class="n">_none_if_no_exog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiagModelViz</span>
+
+
+<div class="viewcode-block" id="PlnDiag">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlnDiag</span><span class="p">(</span><span class="n">Pln</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    PLN model with diagonal covariance. Inference is faster, as well as memory requirements.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnDiag, load_scrna</span>
+<span class="sd">    &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">    &gt;&gt;&gt; pln = PlnDiag(data[&quot;endog&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">    &gt;&gt;&gt; print(pln)</span>
+<span class="sd">    &gt;&gt;&gt; pln.viz(colors=data[&quot;labels&quot;])</span>
+
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnDiag, load_scrna</span>
+<span class="sd">    &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">    &gt;&gt;&gt; pln = PlnDiag.from_formula(&quot;endog ~ 1 + labels&quot;, data=data)</span>
+<span class="sd">    &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">    &gt;&gt;&gt; print(pln)</span>
+<span class="sd">    &gt;&gt;&gt; pln.viz(colors=data[&quot;labels&quot;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ModelViz</span> <span class="o">=</span> <span class="n">DiagModelViz</span>
+
+<div class="viewcode-block" id="PlnDiag.__init__">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag.__init__">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import Pln, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pln = Pln.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">            &gt;&gt;&gt; pln.fit()</span>
+<span class="s2">            &gt;&gt;&gt; print(pln)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            Pln</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.Pln.from_formula`</span>
+<span class="s2">        :class:`pyPLNmodels.PlnPCA`</span>
+<span class="s2">        :class:`pyPLNmodels.PlnMixture`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">endog</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">exog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="n">add_const</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_diag_covariance</span><span class="p">(</span>
+            <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="n">n_samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariance</span>
+
+<div class="viewcode-block" id="PlnDiag.compute_elbo">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag.compute_elbo">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_elbo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">profiled_elbo_pln_diag</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnDiag.get_variance_coef">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag.get_variance_coef">[docs]</a>
+    <span class="nd">@_none_if_no_exog</span>
+    <span class="nd">@_shouldbefitted</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_variance_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the variance of the regression coefficients using the sandwich estimator.</span>
+<span class="sd">        Returns None if there are no exogenous variables in the model.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Variance of the regression coefficients.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the number of samples is less than the product of the</span>
+<span class="sd">            number of covariates and dimensions.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnDiag, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; rna_data = load_scrna(dim = 10)</span>
+<span class="sd">        &gt;&gt;&gt; pln = PlnDiag(rna_data[&quot;endog&quot;], exog=rna_data[&quot;labels_1hot&quot;], add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">        &gt;&gt;&gt; variance = pln.get_variance_coef()</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;variance&#39;, variance)</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.summary`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.get_coef_p_values`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_variance_coef</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PlnDiag.get_confidence_interval_coef">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag.get_confidence_interval_coef">[docs]</a>
+    <span class="nd">@_none_if_no_exog</span>
+    <span class="nd">@_shouldbefitted</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_confidence_interval_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the confidence intervals for the regression coefficients.</span>
+<span class="sd">        Returns None if there are no exogenous variables in the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        alpha : float (optional)</span>
+<span class="sd">            Significance level for the confidence intervals. Defaults to 0.05.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        interval_low, interval_high : Tuple(torch.Tensor, torch.Tensor)</span>
+<span class="sd">            Lower and upper bounds of the confidence intervals for the coefficients.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnDiag, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; rna_data = load_scrna(dim = 10)</span>
+<span class="sd">        &gt;&gt;&gt; pln = PlnDiag(rna_data[&quot;endog&quot;], exog=rna_data[&quot;labels_1hot&quot;], add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">        &gt;&gt;&gt; interval_low, interval_high = pln.get_confidence_interval_coef()</span>
+
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnDiag, PlnDiagSampler</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; sampler = PlnDiagSampler(n_samples=1500, add_const=False, nb_cov=4)</span>
+<span class="sd">        &gt;&gt;&gt; endog = sampler.sample() # Sample PlnDiag data.</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; pln = PlnDiag(endog, exog=sampler.exog, add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">        &gt;&gt;&gt; interval_low, interval_high = pln.get_confidence_interval_coef(alpha=0.05)</span>
+<span class="sd">        &gt;&gt;&gt; true_coef = sampler.coef</span>
+<span class="sd">        &gt;&gt;&gt; inside_interval = (true_coef &gt; interval_low) &amp; (true_coef &lt; interval_high)</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;Should be around 0.95:&#39;, torch.mean(inside_interval.float()).item())</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.summary`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.get_coef_p_values`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_confidence_interval_coef</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnDiag.get_coef_p_values">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag.get_coef_p_values">[docs]</a>
+    <span class="nd">@_none_if_no_exog</span>
+    <span class="nd">@_shouldbefitted</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_coef_p_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the p-values for the regression coefficients.</span>
+<span class="sd">        Returns None if there are no exogenous variables in the model.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        p_values : torch.Tensor</span>
+<span class="sd">            P-values for the regression coefficients.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnDiag, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; rna_data = load_scrna(dim = 10)</span>
+<span class="sd">        &gt;&gt;&gt; pln = PlnDiag(rna_data[&quot;endog&quot;], exog=rna_data[&quot;labels_1hot&quot;], add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">        &gt;&gt;&gt; p_values = pln.get_coef_p_values()</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;P-values: &#39;, p_values)</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.summary`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_coef_p_values</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PlnDiag.summary">
+<a class="viewcode-back" href="../../../plndiag.html#pyPLNmodels.PlnDiag.summary">[docs]</a>
+    <span class="nd">@_none_if_no_exog</span>
+    <span class="nd">@_shouldbefitted</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Print a summary of the regression coefficients and their p-values for each dimension.</span>
+<span class="sd">        Returns None if there are no exogenous variabes in the model.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnDiag, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; rna_data = load_scrna(dim = 10)</span>
+<span class="sd">        &gt;&gt;&gt; pln = PlnDiag(rna_data[&quot;endog&quot;], exog = rna_data[&quot;labels_1hot&quot;], add_const = False)</span>
+<span class="sd">        &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">        &gt;&gt;&gt; pln.summary()</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnDiag.get_confidence_interval_coef`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">number_of_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_variance</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Bastien Batardière, Julien Chiquet, Joon Kwon.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

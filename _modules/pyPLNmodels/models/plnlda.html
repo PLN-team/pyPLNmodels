@@ -1,0 +1,1000 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyPLNmodels.models.plnlda &mdash; pyPLNmodels</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-codeautolink.css?v=125d5c1c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=ef332567"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyPLNmodels
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpca.html">PlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpcacollection.html">PlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnar.html">PlnAR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnlda.html">PlnLDA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetwork.html">PlnNetwork</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetworkcollection.html">PlnNetworkCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixture.html">PlnMixture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixturecollection.html">PlnMixtureCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpca.html">ZIPlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpcacollection.html">ZIPlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plndiag.html">PlnDiag</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">PLNmodels: Poisson lognormal models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyPLNmodels</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyPLNmodels.models.plnlda</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyPLNmodels.models.plnlda</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.discriminant_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearDiscriminantAnalysis</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArrayLike</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.pln</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pln</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_format_clusters_and_encoder</span><span class="p">,</span>
+    <span class="n">_check_dimensions_equal</span><span class="p">,</span>
+    <span class="n">_extract_data_and_clusters_from_formula</span><span class="p">,</span>
+    <span class="n">_check_dimensions_for_prediction</span><span class="p">,</span>
+    <span class="n">_get_dummies</span><span class="p">,</span>
+    <span class="n">_check_full_rank_exog</span><span class="p">,</span>
+    <span class="n">_format_data</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._closed_forms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_closed_formula_coef</span><span class="p">,</span>
+    <span class="n">_closed_formula_covariance</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">profiled_elbo_pln</span><span class="p">,</span>
+    <span class="n">per_sample_elbo_pln</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_add_doc</span><span class="p">,</span>
+    <span class="n">_raise_error_1D_viz</span><span class="p">,</span>
+    <span class="n">_process_column_index</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_viz_lda_train</span><span class="p">,</span>
+    <span class="n">_viz_lda_test</span><span class="p">,</span>
+    <span class="n">LDAModelViz</span><span class="p">,</span>
+    <span class="n">_biplot_lda</span><span class="p">,</span>
+    <span class="n">plot_correlation_circle</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="PlnLDA">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlnLDA</span><span class="p">(</span><span class="n">Pln</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Supervised Pln model. The classification is based on Linear Discriminant Analysis (LDA).</span>
+<span class="sd">    This assumes the user have knowledge of clusters, and should be given in the initialization.</span>
+<span class="sd">    See J. Chiquet, M. Mariadassou, S. Robin: &quot;The Poisson-Lognormal Model as a Versatile Framework</span>
+<span class="sd">    for the Joint Analysis of Species Abundances&quot; for more information.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna, plot_confusion_matrix</span>
+<span class="sd">    &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">    &gt;&gt;&gt; endog_train, endog_test = data[&quot;endog&quot;][:100],data[&quot;endog&quot;][100:]</span>
+<span class="sd">    &gt;&gt;&gt; labels_train, labels_test = data[&quot;labels&quot;][:100], data[&quot;labels&quot;][100:]</span>
+<span class="sd">    &gt;&gt;&gt; lda = PlnLDA(endog_train, clusters = labels_train).fit()</span>
+<span class="sd">    &gt;&gt;&gt; pred_test = lda.predict_clusters(endog_test)</span>
+<span class="sd">    &gt;&gt;&gt; plot_confusion_matrix(pred_test, labels_test)</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :class:`pyPLNmodels.Pln`</span>
+<span class="sd">    :class:`pyPLNmodels.PlnPCA`</span>
+<span class="sd">    :class:`pyPLNmodels.PlnMixture`</span>
+<span class="sd">    :func:`pyPLNmodels.PlnLDA.__init__`</span>
+<span class="sd">    :func:`pyPLNmodels.PlnLDA.from_formula`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ModelViz</span> <span class="o">=</span> <span class="n">LDAModelViz</span>
+
+    <span class="n">remove_zero_columns</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="PlnLDA.__init__">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.__init__">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; lda = PlnLDA(data[&quot;endog&quot;], clusters = data[&quot;labels&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; lda.fit()</span>
+<span class="s2">            &gt;&gt;&gt; print(lda)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            PlnLDA</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.PlnLDA.from_formula`</span>
+<span class="s2">        :class:`pyPLNmodels.Pln`</span>
+<span class="s2">        :class:`pyPLNmodels.PlnMixture`</span>
+<span class="s2">        :class:`pyPLNmodels.PlnPCA`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">endog</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">exog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the model class.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]</span>
+<span class="sd">            The count data.</span>
+<span class="sd">        clusters: Union[torch.Tensor, np.ndarray, pd.DataFrame]</span>
+<span class="sd">            The known clusters to train on.</span>
+<span class="sd">        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)</span>
+<span class="sd">            The covariate data. Defaults to `None`.</span>
+<span class="sd">        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)</span>
+<span class="sd">            The offsets data. Defaults to `None`.</span>
+<span class="sd">        compute_offsets_method : str, optional(keyword-only)</span>
+<span class="sd">            Method to compute offsets if not provided. Options are:</span>
+<span class="sd">                - &quot;zero&quot; that will set the offsets to zero.</span>
+<span class="sd">                - &quot;logsum&quot; that will take the logarithm of the sum (per line) of the counts.</span>
+<span class="sd">            Overridden (useless) if `offsets` is not None.</span>
+<span class="sd">        add_const: bool, optional(keyword-only)</span>
+<span class="sd">            Whether to add a column of one in the `exog`. Defaults to `False`.</span>
+<span class="sd">            Will raise an error if False as the exognenous matrix will not be full</span>
+<span class="sd">            rank if `add_const` is set to `True`, due to clusters being full rank.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        During training, the exogenous variables are composed of</span>
+<span class="sd">        `exog` and `cluster` being stacked. As a result,</span>
+<span class="sd">        adding an intercept (`add_const=True`) will result in an error</span>
+<span class="sd">        as this will result in non-full rank exogenous variables.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnLDA.from_formula`</span>
+<span class="sd">        :class:`pyPLNmodels.Pln`</span>
+<span class="sd">        :class:`pyPLNmodels.PlnMixture`</span>
+<span class="sd">        :class:`pyPLNmodels.PlnPCA`</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(data[&quot;endog&quot;], clusters = data[&quot;labels&quot;])</span>
+<span class="sd">        &gt;&gt;&gt; lda.fit()</span>
+<span class="sd">        &gt;&gt;&gt; print(lda)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_names_clusters</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">clusters</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_encoder</span> <span class="o">=</span> <span class="n">_format_clusters_and_encoder</span><span class="p">(</span>
+            <span class="n">clusters</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span> <span class="o">=</span> <span class="n">_get_dummies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names_clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">columna_names_clusters</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;Cluster_</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_offsets_method</span> <span class="o">=</span> <span class="n">compute_offsets_method</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="n">add_const</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">_check_dimensions_equal</span><span class="p">(</span>
+            <span class="s2">&quot;endog&quot;</span><span class="p">,</span> <span class="s2">&quot;clusters&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exog_and_clusters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exog_and_clusters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="n">_check_full_rank_exog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_and_clusters</span><span class="p">,</span> <span class="n">name_mat</span><span class="o">=</span><span class="s2">&quot;(exog,clusters)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.from_formula">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.from_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_formula</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span> <span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a model instance from a formula and data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        formula : str</span>
+<span class="sd">            The formula. Must have a pipe &#39;|&#39; after the</span>
+<span class="sd">            exogenous variables to specify the clusters.</span>
+<span class="sd">        data : dict</span>
+<span class="sd">            The data dictionary. Each value can be either a torch.Tensor,</span>
+<span class="sd">            `np.ndarray`, `pd.DataFrame` or `pd.Series`. The categorical exogenous</span>
+<span class="sd">            data should be 1-dimensional.</span>
+<span class="sd">        compute_offsets_method : str, optional(keyword-only)</span>
+<span class="sd">            Method to compute offsets if not provided. Options are:</span>
+<span class="sd">                - &quot;zero&quot; that will set the offsets to zero.</span>
+<span class="sd">                - &quot;logsum&quot; that will take the logarithm of the sum (per line) of the counts.</span>
+<span class="sd">            Overridden (useless) if data[&quot;offsets&quot;] is not `None`.</span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError if the formula does not contains the pipe &quot;|&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PlnLDA object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">_extract_data_and_clusters_from_formula</span><span class="p">(</span>
+            <span class="n">formula</span><span class="p">,</span> <span class="n">data</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">clusters</span><span class="o">=</span><span class="n">clusters</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.fit">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.fit">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; lda = PlnLDA.from_formula(&quot;endog ~ 0| labels&quot;, data).fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(lda)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        PlnLDA object</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">maxiter</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_full_marginal_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Marginal mean that takes both the exog and known clusters as covariates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_and_clusters</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_and_coef_clusters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The clusters of each sample given in initialization.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_marginal_mean_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span> <span class="o">@</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coef_clusters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">marginal_mean_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Marginal mean given only by the clusters mean,</span>
+<span class="sd">        that is, the mean of each cluster.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean_clusters</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_covariance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_full_marginal_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coef_and_coef_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_coef</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_and_clusters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_coef</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coef_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_coef</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coef_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Regression coefficients for the cluster variable.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_clusters</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;coef&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coef</span><span class="p">,</span>
+            <span class="s2">&quot;coef_clusters&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coef_clusters</span><span class="p">,</span>
+            <span class="s2">&quot;covariance&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariance</span><span class="p">,</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="PlnLDA.compute_elbo">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.compute_elbo">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; lda = PlnLDA.from_formula(&quot;endog ~ 0 | labels&quot;, data)</span>
+<span class="s2">            &gt;&gt;&gt; lda.fit()</span>
+<span class="s2">            &gt;&gt;&gt; elbo = lda.compute_elbo()</span>
+<span class="s2">            &gt;&gt;&gt; print(elbo)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_elbo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">profiled_elbo_pln</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_and_clusters</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.predict_clusters">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.predict_clusters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endog</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict the clusters of the given endog and exog.</span>
+<span class="sd">        The dimensions of `endog`, `exog`, and `offsets` should match the ones given in the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]</span>
+<span class="sd">            The count data.</span>
+<span class="sd">        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)</span>
+<span class="sd">            The covariate data. Defaults to `None`.</span>
+<span class="sd">        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)</span>
+<span class="sd">            The offsets data. Defaults to `None`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the endog (or exog) has wrong shape compared to the previously fitted</span>
+<span class="sd">            endog (or exog) variables.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list: The predicted clusters</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">        &gt;&gt;&gt; endog = data[&quot;endog&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; clusters = data[&quot;labels_1hot&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; n_train, n_test = 100, 100</span>
+<span class="sd">        &gt;&gt;&gt; endog_train = endog[:n_train]</span>
+<span class="sd">        &gt;&gt;&gt; endog_test = endog[n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_train = clusters[:n_train]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_test = clusters[n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train, clusters = clusters_train)</span>
+<span class="sd">        &gt;&gt;&gt; lda.fit()</span>
+<span class="sd">        &gt;&gt;&gt; pred = lda.predict_clusters(endog_test)</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;pred&#39;, pred)</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;true&#39;, clusters_test)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prob</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_estimate_prob_and_latent_positions</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span>
+        <span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_encoder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pred</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_encoder</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_estimate_prob_and_latent_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endog</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span><span class="p">):</span>
+        <span class="n">endog</span> <span class="o">=</span> <span class="n">_format_data</span><span class="p">(</span><span class="n">endog</span><span class="p">)</span>
+        <span class="n">best_guess_gaussian</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">endog</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">predicted_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">endog</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_cluster</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">best_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">endog</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">coef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_cluster</span><span class="p">):</span>
+            <span class="n">pln_pred</span> <span class="o">=</span> <span class="n">_PlnPred</span><span class="p">(</span>
+                <span class="n">endog</span><span class="o">=</span><span class="n">endog</span><span class="p">,</span>
+                <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+                <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+                <span class="n">compute_offsets_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_compute_offsets_method</span><span class="p">,</span>
+                <span class="n">coef_k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_coef_clusters</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+                <span class="n">known_coef</span><span class="o">=</span><span class="n">coef</span><span class="p">,</span>
+                <span class="n">fixed_precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="n">_check_dimensions_for_prediction</span><span class="p">(</span>
+                <span class="n">pln_pred</span><span class="o">.</span><span class="n">endog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span> <span class="n">pln_pred</span><span class="o">.</span><span class="n">exog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog</span>
+            <span class="p">)</span>
+            <span class="n">pln_pred</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+            <span class="n">predicted_prob</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pln_pred</span><span class="o">.</span><span class="n">per_sample_elbo</span>
+            <span class="n">better_individuals</span> <span class="o">=</span> <span class="n">predicted_prob</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">best_prob</span>
+            <span class="n">best_prob</span><span class="p">[</span><span class="n">better_individuals</span><span class="p">]</span> <span class="o">=</span> <span class="n">predicted_prob</span><span class="p">[</span><span class="n">better_individuals</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+            <span class="n">best_guess_gaussian</span><span class="p">[</span><span class="n">better_individuals</span><span class="p">]</span> <span class="o">=</span> <span class="n">pln_pred</span><span class="o">.</span><span class="n">latent_positions_device</span><span class="p">[</span>
+                <span class="n">better_individuals</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="n">predicted_prob</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">best_guess_gaussian</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_methods_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;.predict_clusters()&quot;</span><span class="p">,</span> <span class="s2">&quot;.transform_new()&quot;</span><span class="p">,</span> <span class="s2">&quot;.viz_transformed()&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_attributes_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;.clusters&quot;</span><span class="p">,</span> <span class="s2">&quot;.latent_positions_clusters&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PlnLDA.viz">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.viz">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; endog = data[&quot;endog&quot;]</span>
+<span class="s2">            &gt;&gt;&gt; clusters = data[&quot;labels_1hot&quot;]</span>
+<span class="s2">            &gt;&gt;&gt; n_train, n_test = 100, 100</span>
+<span class="s2">            &gt;&gt;&gt; endog_train = endog[:n_train]</span>
+<span class="s2">            &gt;&gt;&gt; endog_test = endog[n_train:]</span>
+<span class="s2">            &gt;&gt;&gt; clusters_train = clusters[:n_train]</span>
+<span class="s2">            &gt;&gt;&gt; clusters_test = clusters[n_train:]</span>
+<span class="s2">            &gt;&gt;&gt; lda = PlnLDA(endog_train, clusters = clusters_train).fit()</span>
+<span class="s2">            &gt;&gt;&gt; lda.viz()</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">show_cov</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Visualize the endogenous data in the LDA space.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.axes.Axes, optional</span>
+<span class="sd">            The axes on which to plot, by default `None`.</span>
+<span class="sd">        colors : list, optional</span>
+<span class="sd">            The labels to color the samples, of size n_samples.</span>
+<span class="sd">        show_cov : bool, optional</span>
+<span class="sd">            Not implemented for PlnLDA.</span>
+<span class="sd">        remove_exog_effect: bool, optional</span>
+<span class="sd">            Not implemented for PlnLDA. By default, True.</span>
+<span class="sd">            the effect of exogenous variables is removed.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">        &gt;&gt;&gt; endog = data[&quot;endog&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; clusters = data[&quot;labels_1hot&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; n_train, n_test = 100, 100</span>
+<span class="sd">        &gt;&gt;&gt; endog_train = endog[:n_train]</span>
+<span class="sd">        &gt;&gt;&gt; endog_test = endog[n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_train = clusters[:n_train]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_test = clusters[n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train, clusters = clusters_train).fit()</span>
+<span class="sd">        &gt;&gt;&gt; lda.viz()</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The visualization is different when there are 2 clusters or</span>
+<span class="sd">        strictly more than 2 clusters. If 2 clusters, visualization</span>
+<span class="sd">        is only possible in 1D. A random noise is added on the y axis for visualization</span>
+<span class="sd">        purposes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_clusters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show_cov</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;show_cov&#39; is not implemented for PlnLDA.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remove_exog_effect</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;show_cov&#39; is not implemented for PlnLDA.&quot;</span><span class="p">)</span>
+        <span class="n">_viz_lda_train</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_positions_clusters</span><span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_lda_classifier_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">clf</span> <span class="o">=</span> <span class="n">LinearDiscriminantAnalysis</span><span class="p">()</span>
+        <span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">latent_positions_clusters</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">clf</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_decode_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_encoder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">clusters</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_encoder</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PlnLDA.plot_expected_vs_true">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.plot_expected_vs_true">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; lda = PlnLDA(data[&quot;endog&quot;], clusters = data[&quot;labels&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; lda.fit()</span>
+<span class="s2">            &gt;&gt;&gt; lda.plot_expected_vs_true()</span>
+<span class="s2">            &gt;&gt;&gt; lda.plot_expected_vs_true(colors=data[&quot;labels&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_expected_vs_true</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_expected_vs_true</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.transform">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform the endog into the learned LDA space. The remove_exog_effect is not</span>
+<span class="sd">        implemented for PlnLDA.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor: The transformed data</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, PlnLDASampler</span>
+<span class="sd">        &gt;&gt;&gt; ntrain, ntest = 300, 200</span>
+<span class="sd">        &gt;&gt;&gt; nb_cov, n_cluster = 1,3</span>
+<span class="sd">        &gt;&gt;&gt; sampler = PlnLDASampler(</span>
+<span class="sd">        &gt;&gt;&gt; n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; endog = sampler.sample()</span>
+<span class="sd">        &gt;&gt;&gt; known_exog = sampler.known_exog</span>
+<span class="sd">        &gt;&gt;&gt; clusters = sampler.clusters</span>
+<span class="sd">        &gt;&gt;&gt; endog_train, endog_test = endog[:ntrain], endog[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train,</span>
+<span class="sd">        &gt;&gt;&gt;    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()</span>
+<span class="sd">        &gt;&gt;&gt; transformed_endog_train = lda.transform()</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;shape&#39;, transformed_endog_train.shape)</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnLDA.transform_new`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnLDA.viz_transformed`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">remove_exog_effect</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;remove_exog_effect&#39; is not implemented for PlnLDA&quot;</span><span class="p">)</span>
+        <span class="n">clf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_lda_classifier_fitted</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">clf</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_positions_clusters</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.transform_new">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.transform_new">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform_new</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endog</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform the (unseen) endog data into the previously learned LDA space.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor: The transformed data</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, PlnLDASampler</span>
+<span class="sd">        &gt;&gt;&gt; ntrain, ntest = 300, 200</span>
+<span class="sd">        &gt;&gt;&gt; nb_cov, n_cluster = 1,3</span>
+<span class="sd">        &gt;&gt;&gt; sampler = PlnLDASampler(</span>
+<span class="sd">        &gt;&gt;&gt; n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; endog = sampler.sample()</span>
+<span class="sd">        &gt;&gt;&gt; known_exog = sampler.known_exog</span>
+<span class="sd">        &gt;&gt;&gt; clusters = sampler.clusters</span>
+<span class="sd">        &gt;&gt;&gt; endog_train, endog_test = endog[:ntrain], endog[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train,</span>
+<span class="sd">        &gt;&gt;&gt;    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()</span>
+<span class="sd">        &gt;&gt;&gt; transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)</span>
+<span class="sd">        &gt;&gt;&gt; print(transformed_endog_test.shape)</span>
+
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; data = load_scrna(n_samples = 500)</span>
+<span class="sd">        &gt;&gt;&gt; n_train = 250</span>
+<span class="sd">        &gt;&gt;&gt; endog_train, endog_test = data[&quot;endog&quot;][:n_train],data[&quot;endog&quot;][n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; labels_train, labels_test = data[&quot;labels&quot;][:n_train], data[&quot;labels&quot;][n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train, clusters = labels_train).fit()</span>
+<span class="sd">        &gt;&gt;&gt; endog_test_transformed = lda.transform_new(endog_test)</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.PlnLDA.transform`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnLDA.viz_transformed`</span>
+<span class="sd">        :func:`pyPLNmodels.PlnLDA.predict_clusters`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">latent_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_estimate_prob_and_latent_positions</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span>
+        <span class="p">)</span>
+        <span class="n">clf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_lda_classifier_fitted</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">clf</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">latent_pos</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.viz_transformed">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.viz_transformed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz_transformed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformed</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Visualize the transformed data in the LDA space.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        transformed : torch.Tensor</span>
+<span class="sd">            The transformed data.</span>
+<span class="sd">        colors : list, optional</span>
+<span class="sd">            The labels to color the samples, of size transformed.shape[0].</span>
+<span class="sd">        ax : matplotlib.axes.Axes, optional</span>
+<span class="sd">            The axes on which to plot, by default `None`.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, PlnLDASampler</span>
+<span class="sd">        &gt;&gt;&gt; ntrain, ntest = 3000, 200</span>
+<span class="sd">        &gt;&gt;&gt; nb_cov, n_cluster = 1,3</span>
+<span class="sd">        &gt;&gt;&gt; sampler = PlnLDASampler(</span>
+<span class="sd">        &gt;&gt;&gt; n_samples=ntrain + ntest, nb_cov=nb_cov, n_cluster=n_cluster, add_const=False)</span>
+<span class="sd">        &gt;&gt;&gt; endog = sampler.sample()</span>
+<span class="sd">        &gt;&gt;&gt; known_exog = sampler.known_exog</span>
+<span class="sd">        &gt;&gt;&gt; clusters = sampler.clusters</span>
+<span class="sd">        &gt;&gt;&gt; endog_train, endog_test = endog[:ntrain], endog[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; known_exog_train, known_exog_test = known_exog[:ntrain], known_exog[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; clusters_train, clusters_test = clusters[:ntrain],clusters[ntrain:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train,</span>
+<span class="sd">        &gt;&gt;&gt;    clusters = clusters_train, exog = known_exog_train, add_const = False).fit()</span>
+<span class="sd">        &gt;&gt;&gt; transformed_endog_test = lda.transform_new(endog_test, exog = known_exog_test)</span>
+<span class="sd">        &gt;&gt;&gt; lda.viz_transformed(transformed_endog_test)</span>
+
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; data = load_scrna(n_samples = 500)</span>
+<span class="sd">        &gt;&gt;&gt; n_train = 250</span>
+<span class="sd">        &gt;&gt;&gt; endog_train, endog_test = data[&quot;endog&quot;][:n_train],data[&quot;endog&quot;][n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; labels_train, labels_test = data[&quot;labels&quot;][:n_train], data[&quot;labels&quot;][n_train:]</span>
+<span class="sd">        &gt;&gt;&gt; lda = PlnLDA(endog_train, clusters = labels_train).fit()</span>
+<span class="sd">        &gt;&gt;&gt; endog_test_transformed = lda.transform_new(endog_test)</span>
+<span class="sd">        &gt;&gt;&gt; lda.viz_transformed(endog_test_transformed)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_viz_lda_test</span><span class="p">(</span>
+            <span class="n">transformed_train</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_positions_clusters</span><span class="p">,</span>
+            <span class="n">y_train</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">,</span>
+            <span class="n">new_X_transformed</span><span class="o">=</span><span class="n">transformed</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_latent_positions_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_positions_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The latent positions with effects coming only from the clusters</span>
+<span class="sd">        covariates (effects of &#39;known&#39; covariates remove).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_positions_clusters</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; pln = PlnLDA.from_formula(&quot;endog ~ 0 | labels&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; pln.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(pln.latent_variables.shape)</span>
+<span class="s2">        &gt;&gt;&gt; pln.viz() # Visualize the latent variables without exogenous effects.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.Pln.latent_positions`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span>
+
+<div class="viewcode-block" id="PlnLDA.pca_pairplot">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.pca_pairplot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;pca pairplot not implemented for LDA models.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_n_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_clusters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PlnLDA.plot_correlation_circle">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.plot_correlation_circle">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; lda = PlnLDA.from_formula(&quot;endog ~ 0|labels&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; lda.fit()</span>
+<span class="s2">        &gt;&gt;&gt; lda.plot_correlation_circle(column_names=[&quot;MALAT1&quot;, &quot;ACTB&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; lda.plot_correlation_circle(column_names=[&quot;A&quot;, &quot;B&quot;], column_index=[0, 4])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">raises</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ValueError</span>
+<span class="s2">            If the number of clusters is 2, as the latent variables will be of dimension</span>
+<span class="s2">            and visualization is not possible.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_correlation_circle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_cluster</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">_raise_error_1D_viz</span><span class="p">()</span>
+        <span class="n">column_index</span> <span class="o">=</span> <span class="n">_process_column_index</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names_endog</span>
+        <span class="p">)</span>
+        <span class="n">data_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">latent_positions_clusters</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">plot_correlation_circle</span><span class="p">(</span>
+            <span class="n">data_matrix</span><span class="o">=</span><span class="n">data_matrix</span><span class="p">,</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;LDA&quot;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnLDA.biplot">
+<a class="viewcode-back" href="../../../plnlda.html#pyPLNmodels.PlnLDA.biplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnLDA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; lda = PlnLDA.from_formula(&quot;endog ~ 0 | labels&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; lda.fit()</span>
+<span class="s2">        &gt;&gt;&gt; lda.biplot(column_names=[&quot;MALAT1&quot;, &quot;ACTB&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; lda.biplot(column_names=[&quot;A&quot;, &quot;B&quot;], column_index=[0, 4], colors=data[&quot;labels&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">raises</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ValueError</span>
+<span class="s2">            If the number of clusters is 2, as the latent variables will be of dimension</span>
+<span class="s2">            and visualization is not possible.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">biplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">column_names</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_cluster</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">_raise_error_1D_viz</span><span class="p">()</span>
+        <span class="n">column_index</span> <span class="o">=</span> <span class="n">_process_column_index</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names_endog</span>
+        <span class="p">)</span>
+        <span class="n">_biplot_lda</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">latent_positions_clusters</span><span class="p">,</span>
+            <span class="n">column_names</span><span class="p">,</span>
+            <span class="n">clusters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_decode_clusters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">),</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_PlnPred</span><span class="p">(</span><span class="n">Pln</span><span class="p">):</span>
+
+    <span class="n">per_sample_elbo</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+    <span class="n">remove_zero_columns</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">endog</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">exog</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">coef_k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">known_coef</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">fixed_precision</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coef_k</span> <span class="o">=</span> <span class="n">coef_k</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_known_coef</span> <span class="o">=</span> <span class="n">known_coef</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fixed_precision</span> <span class="o">=</span> <span class="n">fixed_precision</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_elbo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">per_sample_elbo</span> <span class="o">=</span> <span class="n">per_sample_elbo_pln</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fixed_marginal_mean</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="n">precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fixed_precision</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_sample_elbo</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_maginal_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_known_coef</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fixed_marginal_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_k</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_k</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=arguments-differ</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_print_beginning_message</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Doing a VE step.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_print_end_of_fitting_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stop_condition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_print_start_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_print_end_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_positions_device</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Latent positions on the GPU device if GPU is available.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_variance</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Bastien Batardière, Julien Chiquet, Joon Kwon.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

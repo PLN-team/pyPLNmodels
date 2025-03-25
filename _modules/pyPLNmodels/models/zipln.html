@@ -1,0 +1,749 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyPLNmodels.models.zipln &mdash; pyPLNmodels</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-codeautolink.css?v=125d5c1c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=ef332567"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyPLNmodels
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpca.html">PlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpcacollection.html">PlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnar.html">PlnAR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnlda.html">PlnLDA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetwork.html">PlnNetwork</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetworkcollection.html">PlnNetworkCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixture.html">PlnMixture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixturecollection.html">PlnMixtureCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpca.html">ZIPlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpcacollection.html">ZIPlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plndiag.html">PlnDiag</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">PLNmodels: Poisson lognormal models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyPLNmodels</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyPLNmodels.models.zipln</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyPLNmodels.models.zipln</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._initialization</span><span class="w"> </span><span class="kn">import</span> <span class="n">_init_coef_coef_inflation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._closed_forms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_closed_formula_coef</span><span class="p">,</span>
+    <span class="n">_closed_formula_covariance</span><span class="p">,</span>
+    <span class="n">_closed_formula_latent_prob</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="n">profiled_elbo_zipln</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_viz_variables</span><span class="p">,</span> <span class="n">_pca_pairplot</span><span class="p">,</span> <span class="n">ZIModelViz</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span><span class="p">,</span> <span class="n">entropy_bernoulli</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_handle_inflation_data</span><span class="p">,</span>
+    <span class="n">_array2tensor</span><span class="p">,</span>
+    <span class="n">_extract_data_inflation_from_formula</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+
+<span class="n">NULL_TENSOR</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">DEVICE</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ZIPln">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ZIPln</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>  <span class="c1"># pylint: disable=too-many-public-methods</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation.</span>
+<span class="sd">    Fitting such a model is slower than fitting a Pln. For more details,</span>
+<span class="sd">    see Batardière, Chiquet, Gindraud, Mariadassou (2024) “Zero-inflation</span>
+<span class="sd">    in the Multivariate Poisson Lognormal Family.”</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import ZIPln, Pln, load_microcosm</span>
+<span class="sd">    &gt;&gt;&gt; data = load_microcosm() # microcosm dataset is highly zero-inflated (96% of zeros)</span>
+<span class="sd">    &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1 + site&quot;, data)</span>
+<span class="sd">    &gt;&gt;&gt; zi.fit()</span>
+<span class="sd">    &gt;&gt;&gt; zi.viz(colors = data[&quot;site&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; # Here Pln is not appropriate:</span>
+<span class="sd">    &gt;&gt;&gt; pln = Pln.from_formula(&quot;endog ~ 1 + site&quot;, data)</span>
+<span class="sd">    &gt;&gt;&gt; pln.fit()</span>
+<span class="sd">    &gt;&gt;&gt; pln.viz(colors = data[&quot;site&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; # Can also give different covariates:</span>
+<span class="sd">    &gt;&gt;&gt; zi_diff = ZIPln.from_formula(&quot;endog ~ 1 + site | 1 + time&quot;, data)</span>
+<span class="sd">    &gt;&gt;&gt; zi.fit()</span>
+<span class="sd">    &gt;&gt;&gt; zi.viz(colors = data[&quot;site&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; ## Or take all the covariates</span>
+<span class="sd">    &gt;&gt;&gt; zi_all = ZIPln.from_formula(&quot;endog ~ 1 + site*time | 1 + site*time&quot;, data)</span>
+<span class="sd">    &gt;&gt;&gt; zi_all.fit()</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`pyPLNmodels.ZIPln.from_formula`</span>
+<span class="sd">    :func:`pyPLNmodels.ZIPln.__init__`</span>
+<span class="sd">    :class:`pyPLNmodels.ZIPlnPCA`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_latent_prob</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">_coef_inflation</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">_dirac</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+    <span class="n">_ModelViz</span> <span class="o">=</span> <span class="n">ZIModelViz</span>
+
+<div class="viewcode-block" id="ZIPln.__init__">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">endog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">exog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exog_inflation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">add_const_inflation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the ZIPln class, which is a Pln model with zero-inflation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        endog : Union[torch.Tensor, np.ndarray, pd.DataFrame]</span>
+<span class="sd">            The count data.</span>
+<span class="sd">        exog : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series], optional(keyword-only)</span>
+<span class="sd">            The covariate data. Defaults to `None`.</span>
+<span class="sd">        exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)</span>
+<span class="sd">            The covariate data for the inflation part. Defaults to `None`.</span>
+<span class="sd">        offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)</span>
+<span class="sd">            The offsets data. Defaults to `None`.</span>
+<span class="sd">        compute_offsets_method : str, optional(keyword-only)</span>
+<span class="sd">            Method to compute offsets if not provided. Options are:</span>
+<span class="sd">                - &quot;zero&quot; that will set the offsets to zero.</span>
+<span class="sd">                - &quot;logsum&quot; that will take the logarithm of the sum (per line) of the counts.</span>
+<span class="sd">            Overridden (useless) if `offsets` is not `None`.</span>
+<span class="sd">        add_const : bool, optional(keyword-only)</span>
+<span class="sd">            Whether to add a column of ones in the `exog`. Defaults to `True`.</span>
+<span class="sd">        add_const_inflation : bool, optional(keyword-only)</span>
+<span class="sd">            Whether to add a column of ones in the `exog_inflation`. Defaults to `True`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A `ZIPln` object</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.ZIPln.from_formula`</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; rna = load_scrna()</span>
+<span class="sd">        &gt;&gt;&gt; zi = ZIPln(rna[&quot;endog&quot;], add_const = True)</span>
+<span class="sd">        &gt;&gt;&gt; zi.fit()</span>
+<span class="sd">        &gt;&gt;&gt; print(zi)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="n">add_const</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exog_inflation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names_exog_inflation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dirac</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_handle_inflation_data</span><span class="p">(</span><span class="n">exog_inflation</span><span class="p">,</span> <span class="n">add_const_inflation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZIPln.from_formula">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.from_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="s2">            &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="s2">            &gt;&gt;&gt; # same covariates for the zero inflation and the gaussian component</span>
+<span class="s2">            &gt;&gt;&gt; zi_same = ZIPln.from_formula(&quot;endog ~ 1 + site&quot;, data = data)</span>
+<span class="s2">            &gt;&gt;&gt; # different covariates</span>
+<span class="s2">            &gt;&gt;&gt; zi_different = ZIPln.from_formula(&quot;endog ~ 1  + site | 1 + time&quot;, data = data)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            `ZIPln`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :class:`pyPLNmodels.ZIPln`</span>
+<span class="s2">        :func:`pyPLNmodels.ZIPln.__init__`</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_formula</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span> <span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span><span class="p">,</span> <span class="n">exog_inflation</span> <span class="o">=</span> <span class="n">_extract_data_inflation_from_formula</span><span class="p">(</span>
+            <span class="n">formula</span><span class="p">,</span> <span class="n">data</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">exog_inflation</span><span class="o">=</span><span class="n">exog_inflation</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">add_const_inflation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_inflation</span> <span class="o">=</span> <span class="n">_init_coef_coef_inflation</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span>
+            <span class="n">exog_inflation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog_inflation</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># coef and covariance are not initialized as defined by closed forms.</span>
+
+<div class="viewcode-block" id="ZIPln.fit">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.fit">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(zi)</span>
+
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1 | 1 + labels&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; zi.fit(maxiter = 500, verbose = True)</span>
+<span class="s2">        &gt;&gt;&gt; print(zi)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ZIPln object</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">maxiter</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span> <span class="o">==</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean_inflation</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dirac</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_covariance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_marginal_mean_inflation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_inflation</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_inflation</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The probabilities that the zero inflation variable is 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_two_dim_latent_variances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sklearn_components</span><span class="p">):</span>
+        <span class="n">components_var</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sklearn_components</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">covariances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">components_var</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sklearn_components</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">covariances</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_coef</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ZIPln.compute_elbo">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.compute_elbo">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_elbo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">profiled_elbo_zipln</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="n">latent_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="p">,</span>
+            <span class="n">marginal_mean_inflation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean_inflation</span><span class="p">,</span>
+            <span class="n">dirac</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dirac</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_endog_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">offsets</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_of_parameters_needing_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_coef_inflation</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="p">,</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_project_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="p">,</span>
+                <span class="n">NULL_TENSOR</span><span class="p">,</span>
+                <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">-</span> <span class="n">NULL_TENSOR</span><span class="p">,</span>
+                <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_prob</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dirac</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_dict_model_parameters</span>
+        <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">default</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="s2">&quot;coef_inflation&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coef_inflation</span><span class="p">}}</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_dict_latent_parameters</span>
+        <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">default</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="s2">&quot;latent_prob&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="p">}}</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">marginal_mean</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_prob_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The (conditional) probabilities of the latent probability variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span>
+
+<div class="viewcode-block" id="ZIPln.transform">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.transform">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">              &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="s2">              &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="s2">              &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1&quot;, data = data)</span>
+<span class="s2">              &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">              &gt;&gt;&gt; transformed_endog = zi.transform()</span>
+<span class="s2">              &gt;&gt;&gt; print(transformed_endog.shape)</span>
+<span class="s2">              &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">number_of_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov_inflation</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ZIPln.pca_pairplot">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.pca_pairplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="s2">        &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="s2">        &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1&quot;, data = data)</span>
+<span class="s2">        &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">        &gt;&gt;&gt; zi.pca_pairplot(n_components = 5)</span>
+<span class="s2">        &gt;&gt;&gt; zi.pca_pairplot(n_components = 5, colors = data[&quot;time&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZIPln.pca_pairplot_prob">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.pca_pairplot_prob">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates a scatter matrix plot based on Principal</span>
+<span class="sd">        Component Analysis (PCA) on the latent variables associated</span>
+<span class="sd">        with the zero inflation (i.e. the Bernoulli variables).</span>
+<span class="sd">        This may not be very informative.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n_components: int (optional)</span>
+<span class="sd">            The number of components to consider for plotting.</span>
+<span class="sd">            Defaults to 3. Cannot be greater than 6.</span>
+<span class="sd">        colors: np.ndarray (optional)</span>
+<span class="sd">            An array with one label for each</span>
+<span class="sd">            sample in the endog property of the object. Defaults to `None`.</span>
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`pyPLNmodels.ZIPln.pca_pairplot`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">min_n_components</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">n_components</span><span class="p">)</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">_pca_pairplot</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">min_n_components</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZIPln.plot_correlation_circle">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.plot_correlation_circle">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="s2">        &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="s2">        &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1&quot;, data = data)</span>
+<span class="s2">        &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">        &gt;&gt;&gt; zi.plot_correlation_circle(column_names = [&quot;ASV_315&quot;, &quot;ASV_749&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; zi.plot_correlation_circle(column_names = [&quot;A&quot;, &quot;B&quot;], column_index = [0,2])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_correlation_circle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_correlation_circle</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZIPln.biplot">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.biplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="s2">        &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="s2">        &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1&quot;, data = data)</span>
+<span class="s2">        &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">        &gt;&gt;&gt; zi.biplot(column_names = [&quot;ASV_315&quot;, &quot;ASV_749&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; zi.biplot(column_names = [&quot;A&quot;, &quot;B&quot;], column_index = [0,2], colors = data[&quot;time&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">biplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">column_names</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_attributes_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;.latent_prob&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_methods_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;.viz_prob()&quot;</span><span class="p">,</span> <span class="s2">&quot;.predict_prob_inflation()&quot;</span><span class="p">,</span> <span class="s2">&quot;.pca_pairplot_prob()&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;full covariance.&quot;</span>
+        <span class="k">return</span> <span class="n">msg</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nb_cov_inflation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of covariates associated with the zero inflation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_inflation</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exog_inflation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property representing the exogenous variables (covariates) associated</span>
+<span class="sd">        with the zero inflation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The exogenous variables of the zero inflation variable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exog_inflation</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@_array2tensor</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_prob_inflation</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">exog_inflation</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method for estimating the probability of a zero coming from the zero-inflated component.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        exog_inflation : Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series]</span>
+<span class="sd">            The exogenous variables associated with the zero inflation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The predicted values `sigmoid(exog_inflation @ coef_inflation)`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            If the shape of the `exog_inflation` is incorrect.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the exog inflation given is None.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - The mean `sigmoid(exog_inflation @ coef_inflation)` is returned.</span>
+<span class="sd">        - `exog_inflation` should have the shape `(_, nb_cov)`, where `nb_cov` is</span>
+<span class="sd">          the number of exogenous variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">exog_inflation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;exog_inflation cannot be None.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exog_inflation</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov_inflation</span><span class="p">:</span>
+            <span class="n">error_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;X has wrong shape:(</span><span class="si">{</span><span class="n">exog_inflation</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">). Should&quot;</span>
+            <span class="n">error_string</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; be (integer, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nb_cov_inflation</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">error_string</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">exog_inflation</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_inflation</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coef_inflation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property representing the regression coefficients associated with the zero-inflation</span>
+<span class="sd">        component, of size (`nb_cov_inflation`, `dim`).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The coefficients.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef_inflation</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ZIPln.viz">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.viz">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="s2">            &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="s2">            &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1 + site&quot;, data = data)</span>
+<span class="s2">            &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">            &gt;&gt;&gt; zi.viz()</span>
+<span class="s2">            &gt;&gt;&gt; zi.viz(colors = data[&quot;site&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; zi.viz(show_cov = True)</span>
+<span class="s2">            &gt;&gt;&gt; zi.viz(remove_exog_effect = True, colors = data[&quot;site&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">show_cov</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">viz</span><span class="p">(</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">show_cov</span><span class="o">=</span><span class="n">show_cov</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZIPln.viz_prob">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.viz_prob">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Visualize the latent variables.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib.axes.Axes, optional</span>
+<span class="sd">            The axes on which to plot, by default `None`.</span>
+<span class="sd">        colors : list, optional</span>
+<span class="sd">            The labels to color the samples, of size `n_samples`.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">            &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_microcosm</span>
+<span class="sd">            &gt;&gt;&gt; data = load_microcosm()</span>
+<span class="sd">            &gt;&gt;&gt; zi = ZIPln.from_formula(&quot;endog ~ 1 + site&quot;, data = data)</span>
+<span class="sd">            &gt;&gt;&gt; zi.fit()</span>
+<span class="sd">            &gt;&gt;&gt; zi.viz_prob()</span>
+<span class="sd">            &gt;&gt;&gt; zi.viz_prob(colors = data[&quot;site&quot;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_viz_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">covariances</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZIPln.plot_expected_vs_true">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.plot_expected_vs_true">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import ZIPln, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; zi = ZIPln(data[&quot;endog&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; zi.fit()</span>
+<span class="s2">            &gt;&gt;&gt; zi.plot_expected_vs_true()</span>
+<span class="s2">            &gt;&gt;&gt; zi.plot_expected_vs_true(colors = data[&quot;labels&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_expected_vs_true</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_expected_vs_true</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_variables</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">marginal_mean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_closed_latent_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_closed_formula_latent_prob</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean_inflation</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_covariance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dirac</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="o">+</span> <span class="n">entropy_bernoulli</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Bastien Batardière, Julien Chiquet, Joon Kwon.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

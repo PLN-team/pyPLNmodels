@@ -1,0 +1,670 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyPLNmodels.models.plnpca &mdash; pyPLNmodels</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-codeautolink.css?v=125d5c1c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=ef332567"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyPLNmodels
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpca.html">PlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpcacollection.html">PlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnar.html">PlnAR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnlda.html">PlnLDA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetwork.html">PlnNetwork</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetworkcollection.html">PlnNetworkCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixture.html">PlnMixture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixturecollection.html">PlnMixtureCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpca.html">ZIPlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpcacollection.html">ZIPlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plndiag.html">PlnDiag</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">PLNmodels: Poisson lognormal models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyPLNmodels</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyPLNmodels.models.plnpca</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyPLNmodels.models.plnpca</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="n">elbo_plnpca</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._initialization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_init_coef</span><span class="p">,</span>
+    <span class="n">_init_components</span><span class="p">,</span>
+    <span class="n">_init_latent_mean_pca</span><span class="p">,</span>
+    <span class="n">_init_latent_sqrt_variance_pca</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_extract_data_from_formula</span><span class="p">,</span>
+    <span class="n">_array2tensor</span><span class="p">,</span>
+    <span class="n">_check_int</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span><span class="p">,</span> <span class="n">_check_array_size</span>
+
+
+<span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+
+
+<div class="viewcode-block" id="PlnPCA">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlnPCA</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Principal Component Analysis on top of a PLN model, that is a PLN</span>
+<span class="sd">    model with low-rank covariance, adapted to datasets with lots of features.</span>
+<span class="sd">    The rank of the model can also be referred to as the number of components</span>
+<span class="sd">    or the number of PCs.</span>
+<span class="sd">    For more details, see Chiquet, J., Mariadassou, M., Robin, S.</span>
+<span class="sd">    “Variational inference for probabilistic Poisson PCA.” Annals of applied stats.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="sd">    &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">    &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data=data, rank=5)</span>
+<span class="sd">    &gt;&gt;&gt; pca.fit()</span>
+<span class="sd">    &gt;&gt;&gt; print(pca)</span>
+<span class="sd">    &gt;&gt;&gt; pca.viz(colors=data[&quot;labels&quot;])</span>
+
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="sd">    &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">    &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1 + labels&quot;, data=data, rank=5)</span>
+<span class="sd">    &gt;&gt;&gt; pca.fit()</span>
+<span class="sd">    &gt;&gt;&gt; print(pca)</span>
+<span class="sd">    &gt;&gt;&gt; pca.viz(colors=data[&quot;labels&quot;])</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :class:`pyPLNmodels.PlnPCACollection`</span>
+<span class="sd">    :class:`pyPLNmodels.Pln`</span>
+<span class="sd">    :class:`pyPLNmodels.ZIPlnPCA`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_components</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+<div class="viewcode-block" id="PlnPCA.__init__">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.__init__">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            rank : int, optional(keyword-only)</span>
+<span class="s2">                The rank of the approximation, by default 5.</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pca = PlnPCA(data[&quot;endog&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">            &gt;&gt;&gt; print(pca)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            PlnPCA</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.PlnPCA.from_formula`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">endog</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">exog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+        <span class="n">_check_int</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="n">add_const</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnPCA.from_formula">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.from_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            rank : int, optional(keyword-only)</span>
+<span class="s2">                The rank of the approximation, by default 5.</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data=data, rank=5)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            PlnPCA</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :class:`pyPLNmodels.Pln`</span>
+<span class="s2">        :func:`pyPLNmodels.PlnPCA.__init__`</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_formula</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span> <span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">_extract_data_from_formula</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnPCA.fit">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.fit">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; plnpca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; plnpca.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(plnpca)</span>
+
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; plnpca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; plnpca.fit(maxiter=500, verbose=True)</span>
+<span class="s2">        &gt;&gt;&gt; print(plnpca)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        PlnPCA object</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">maxiter</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_coef&quot;</span><span class="p">):</span>
+            <span class="n">coef</span> <span class="o">=</span> <span class="n">_init_coef</span><span class="p">(</span><span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_components&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_components</span> <span class="o">=</span> <span class="n">_init_components</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_latent_mean&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span> <span class="o">=</span> <span class="n">_init_latent_mean_pca</span><span class="p">(</span>
+                <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+                <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span>
+                <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+                <span class="n">coef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_coef</span><span class="p">,</span>
+                <span class="n">components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_latent_sqrt_variance&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">**</span><span class="mi">2</span> <span class="o">&gt;</span> <span class="mf">1e8</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span> <span class="o">=</span> <span class="n">_init_latent_sqrt_variance_pca</span><span class="p">(</span>
+                    <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+                    <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+                    <span class="n">components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+                <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rank of the covariance of the Gaussian latent variable.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="si">}</span><span class="s2"> principal components.&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_of_parameters_needing_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_param</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">list_param</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_coef</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">list_param</span>
+
+<div class="viewcode-block" id="PlnPCA.compute_elbo">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.compute_elbo">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">            &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">            &gt;&gt;&gt; elbo = pca.compute_elbo()</span>
+<span class="s2">            &gt;&gt;&gt; print(elbo)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_elbo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">elbo_plnpca</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="n">components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_dict_model_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_dict_latent_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the principal components of the PlnPCA model, i.e. the weights</span>
+<span class="sd">        of features that explain the most variance in the data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The components with size (dim, rank)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@components</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@_array2tensor</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Setter for the components.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        components : torch.Tensor</span>
+<span class="sd">            The components to set, of size (dim, rank).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the components have an invalid shape (i.e. not (dim, rank)).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_check_array_size</span><span class="p">(</span><span class="n">components</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="s2">&quot;components&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_components</span> <span class="o">=</span> <span class="n">components</span>
+
+    <span class="nd">@property</span>  <span class="c1"># Here only to be able to define a setter.</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">coef</span>
+
+    <span class="nd">@coef</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@_array2tensor</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coef</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Setter for the `coef` property.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coef : Union[torch.Tensor, np.ndarray, pd.DataFrame]</span>
+<span class="sd">            The coefficients of size (nb_cov, dim).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the shape of the coef is incorrect.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;coef is not None but no coef in the model. Instantiate a new model.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_check_array_size</span><span class="p">(</span><span class="n">coef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="s2">&quot;coef&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span> <span class="o">=</span> <span class="n">coef</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_two_dim_latent_variances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sklearn_components</span><span class="p">):</span>
+        <span class="n">transformed_components</span> <span class="o">=</span> <span class="n">sklearn_components</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">transformed_components_latent_var</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">transformed_components</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_variance</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">covariances</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">transformed_components_latent_var</span> <span class="o">@</span> <span class="n">transformed_components</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">covariances</span>
+
+<div class="viewcode-block" id="PlnPCA.transform">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.transform">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        project : bool, optional</span>
+<span class="s2">            Whether to project the latent variables onto the `rank` first PCs, by default `False`.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">            &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">            &gt;&gt;&gt; transformed_endog_low_dim = pca.transform()</span>
+<span class="s2">            &gt;&gt;&gt; transformed_endog_high_dim = pca.transform(project=False)</span>
+<span class="s2">            &gt;&gt;&gt; print(transformed_endog_low_dim.shape)</span>
+<span class="s2">            &gt;&gt;&gt; print(transformed_endog_high_dim.shape)</span>
+<span class="s2">            &gt;&gt;&gt; transformed_no_exog = pca.transform(remove_exog_effect=True, project=True)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">project</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projected_latent_variables</span><span class="p">(</span>
+                <span class="n">rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(pca.latent_variables.shape)</span>
+<span class="s2">        &gt;&gt;&gt; pca.viz() # Visualize the latent variables</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">marginal_mean</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(pca.latent_positions.shape)</span>
+<span class="s2">        &gt;&gt;&gt; pca.viz(remove_exog_effect=True) # Visualize the latent positions</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">number_of_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_attributes_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_methods_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="PlnPCA.plot_correlation_circle">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.plot_correlation_circle">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">        &gt;&gt;&gt; pca.plot_correlation_circle(column_names=[&quot;MALAT1&quot;, &quot;ACTB&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; pca.plot_correlation_circle(column_names=[&quot;A&quot;, &quot;B&quot;], column_index=[0, 4])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_correlation_circle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_correlation_circle</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnPCA.biplot">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.biplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">        &gt;&gt;&gt; pca.biplot(column_names=[&quot;MALAT1&quot;, &quot;ACTB&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; pca.biplot(column_names=[&quot;A&quot;, &quot;B&quot;], column_index=[0, 4], colors=data[&quot;labels&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">biplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">column_names</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnPCA.pca_pairplot">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.pca_pairplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; plnpca = PlnPCA.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; plnpca.fit()</span>
+<span class="s2">        &gt;&gt;&gt; plnpca.pca_pairplot(n_components=5)</span>
+<span class="s2">        &gt;&gt;&gt; plnpca.pca_pairplot(n_components=5, colors=data[&quot;labels&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_endog_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">covariance_a_posteriori</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">offsets</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_variables</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">covariance_a_posteriori</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PlnPCA.plot_expected_vs_true">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.plot_expected_vs_true">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pca = PlnPCA(data[&quot;endog&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">            &gt;&gt;&gt; pca.plot_expected_vs_true()</span>
+<span class="s2">            &gt;&gt;&gt; pca.plot_expected_vs_true(colors=data[&quot;labels&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_expected_vs_true</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_expected_vs_true</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnPCA.viz">
+<a class="viewcode-back" href="../../../plnpca.html#pyPLNmodels.PlnPCA.viz">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnPCA, load_scrna</span>
+<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">            &gt;&gt;&gt; pca = PlnPCA.from_formula(&quot;endog ~ 1 + labels&quot;, data=data)</span>
+<span class="s2">            &gt;&gt;&gt; pca.fit()</span>
+<span class="s2">            &gt;&gt;&gt; pca.viz()</span>
+<span class="s2">            &gt;&gt;&gt; pca.viz(colors=data[&quot;labels&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; pca.viz(show_cov=True)</span>
+<span class="s2">            &gt;&gt;&gt; pca.viz(remove_exog_effect=True, colors=data[&quot;labels&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">show_cov</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">viz</span><span class="p">(</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">show_cov</span><span class="o">=</span><span class="n">show_cov</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_latent_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Bastien Batardière, Julien Chiquet, Joon Kwon.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

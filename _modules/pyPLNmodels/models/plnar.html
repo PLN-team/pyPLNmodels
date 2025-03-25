@@ -1,0 +1,737 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyPLNmodels.models.plnar &mdash; pyPLNmodels</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-codeautolink.css?v=125d5c1c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=ef332567"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyPLNmodels
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpca.html">PlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnpcacollection.html">PlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnar.html">PlnAR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnlda.html">PlnLDA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetwork.html">PlnNetwork</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnnetworkcollection.html">PlnNetworkCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixture.html">PlnMixture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plnmixturecollection.html">PlnMixtureCollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpca.html">ZIPlnPCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ziplnpcacollection.html">ZIPlnPCACollection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plndiag.html">PlnDiag</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">PLNmodels: Poisson lognormal models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyPLNmodels</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyPLNmodels.models.plnar</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyPLNmodels.models.plnar</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">elbo_plnar_diag_autoreg</span><span class="p">,</span>
+    <span class="n">elbo_plnar_scalar_autoreg</span><span class="p">,</span>
+    <span class="n">smart_elbo_plnar_full_autoreg</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._initialization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_init_coef</span><span class="p">,</span>
+    <span class="n">_init_latent_pln</span><span class="p">,</span>
+    <span class="n">_init_components_prec</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_add_doc</span><span class="p">,</span>
+    <span class="n">_process_column_index</span><span class="p">,</span>
+    <span class="n">_get_two_dim_latent_variances</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_viz_dims</span><span class="p">,</span> <span class="n">ARModelViz</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="n">_extract_data_from_formula</span>
+
+<span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+
+
+<div class="viewcode-block" id="PlnAR">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlnAR</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>  <span class="c1"># pylint: disable=too-many-instance-attributes</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.</span>
+<span class="sd">    This basically assumes the latent variable of sample i depends on the latent variable</span>
+<span class="sd">    on sample i-1. The dataset given in the initialization must be ordered !</span>
+<span class="sd">    The autoregressive coefficient can be per dimension or common to each dimension.</span>
+<span class="sd">    Note that the autregressive coefficient seems to be underestimated when the covariance is low.</span>
+<span class="sd">    See ?? for more details.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="sd">    &gt;&gt;&gt; data = load_crossover()</span>
+<span class="sd">    &gt;&gt;&gt; ar = PlnAR(data[&quot;endog&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; ar.fit()</span>
+<span class="sd">    &gt;&gt;&gt; print(ar)</span>
+<span class="sd">    &gt;&gt;&gt; ar.viz(colors=data[&quot;chrom&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; ar.viz_dims(column_names = [&quot;nco_Lacaune_M&quot;, &quot;nco_Soay_M&quot;])</span>
+
+<span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="sd">    &gt;&gt;&gt; data = load_crossover()</span>
+<span class="sd">    &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1 + chrom&quot;, data=data)</span>
+<span class="sd">    &gt;&gt;&gt; ar.fit()</span>
+<span class="sd">    &gt;&gt;&gt; print(ar)</span>
+<span class="sd">    &gt;&gt;&gt; ar.viz(colors=data[&quot;chrom&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; ar.viz_dims(column_names = [&quot;nco_Lacaune_F&quot;, &quot;nco_Soay_F&quot;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ar_diff_coef</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">__coef</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">_sqrt_precision</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">_components_prec</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">_diff_ortho_components</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">_diff_diag_cov</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+    <span class="n">_ModelViz</span> <span class="o">=</span> <span class="n">ARModelViz</span>
+
+<div class="viewcode-block" id="PlnAR.__init__">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.__init__">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">            &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">            &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">            &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">            &gt;&gt;&gt; print(ar)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ar_type: str (optional)</span>
+<span class="s2">            The autregression type. Can be either &quot;diagonal&quot;, &quot;spherical&quot; or &quot;full&quot;.</span>
+<span class="s2">            If &quot;diagonal&quot;, the covariance must be diagonal and the model</span>
+<span class="s2">            boils down to individual independant 1D AR models.</span>
+<span class="s2">            If &quot;spherical&quot;, covariance is full (dependence between variables) but the</span>
+<span class="s2">            autoregression is shared along the variables as the ar_coef is of size 1.</span>
+<span class="s2">            If &quot;full&quot;, both the covariance and autoregression is full.</span>
+<span class="s2">            Default is &quot;full&quot;.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            PlnAR</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.PlnAR.from_formula`</span>
+<span class="s2">        :class:`pyPLNmodels.PlnDiag`</span>
+<span class="s2">        :class:`pyPLNmodels.Pln`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">endog</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">exog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">ar_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;spherical&quot;</span><span class="p">,</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">,</span> <span class="s2">&quot;full&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+        <span class="k">if</span> <span class="n">ar_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;spherical&quot;</span><span class="p">,</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">,</span> <span class="s2">&quot;full&quot;</span><span class="p">]:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;`ar_type` keyword should be either &#39;spherical&#39; or &#39;diagonal&#39; or &#39;full&#39;, got &quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="n">ar_type</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">=</span> <span class="n">ar_type</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="n">add_const</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.from_formula">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.from_formula">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">            &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">            &gt;&gt;&gt; pln = PlnAR.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            PlnAR</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ar_type: str (optional)</span>
+<span class="s2">            The autregression type. Can be either &quot;diagonal&quot;, &quot;spherical&quot; or &quot;full&quot;.</span>
+<span class="s2">            If &quot;diagonal&quot;, the covariance must be diagonal and the model</span>
+<span class="s2">            boils down to individual independant 1D AR models.</span>
+<span class="s2">            If &quot;spherical&quot;, covariance is full (dependence between variables) but the</span>
+<span class="s2">            autoregression is shared along the variables as the ar_coef is of size 1.</span>
+<span class="s2">            If &quot;full&quot;, both the covariance and autoregression is full.</span>
+<span class="s2">            Default is &quot;full&quot;.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :class:`pyPLNmodels.PlnAR`</span>
+<span class="s2">        :func:`pyPLNmodels.PlnAR.__init__`</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_formula</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span> <span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">ar_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;spherical&quot;</span><span class="p">,</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">,</span> <span class="s2">&quot;full&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">_extract_data_from_formula</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">endog</span><span class="p">,</span>
+            <span class="n">ar_type</span><span class="o">=</span><span class="n">ar_type</span><span class="p">,</span>
+            <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+            <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
+            <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.fit">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.fit">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">        &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(ar)</span>
+
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit(maxiter=500, verbose=True)</span>
+<span class="s2">        &gt;&gt;&gt; print(ar)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        PlnAR object</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">400</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">maxiter</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.compute_elbo">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.compute_elbo">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">            &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">            &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">            &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">            &gt;&gt;&gt; elbo = ar.compute_elbo()</span>
+<span class="s2">            &gt;&gt;&gt; print(elbo)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_elbo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">elbo_plnar_diag_autoreg</span><span class="p">(</span>
+                <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+                <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+                <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+                <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+                <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+                <span class="n">precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision</span><span class="p">,</span>
+                <span class="n">ar_coef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ar_coef</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">elbo_plnar_scalar_autoreg</span><span class="p">(</span>
+                <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+                <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+                <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+                <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+                <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+                <span class="n">precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision</span><span class="p">,</span>
+                <span class="n">ar_coef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ar_coef</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># full autoregressive structure</span>
+        <span class="k">return</span> <span class="n">smart_elbo_plnar_full_autoreg</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
+            <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
+            <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
+            <span class="n">latent_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="n">ortho_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ortho_components</span><span class="p">,</span>
+            <span class="n">diag_covariance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_diag_cov</span><span class="p">,</span>
+            <span class="n">diag_ar_coef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_diag_ar_coef</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sqrt_precision</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span> <span class="o">@</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_covariance</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="o">=</span> <span class="n">_init_coef</span><span class="p">(</span>
+            <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sqrt_precision</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span> <span class="o">=</span> <span class="n">_init_components_prec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.5</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">**</span> <span class="p">(</span><span class="mi">3</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_diag_cov</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">        &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(&quot;Shape latent positions&quot;, ar.latent_positions.shape)</span>
+<span class="s2">        &gt;&gt;&gt; ar.viz(remove_exog_effect=True) # Visualize the latent positions</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.PlnAR.latent_variables`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_variables</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">marginal_mean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span>
+
+<div class="viewcode-block" id="PlnAR.plot_correlation_circle">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.plot_correlation_circle">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">        &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">        &gt;&gt;&gt; ar.plot_correlation_circle(column_names=[&quot;nco_Lacaune_M&quot;, &quot;nco_Soay_M&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_correlation_circle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_correlation_circle</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.biplot">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.biplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">        &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">        &gt;&gt;&gt; ar.biplot(column_names=[&quot;nco_Lacaune_M&quot;, &quot;nco_Soay_M&quot;])</span>
+<span class="s2">        &gt;&gt;&gt; ar.biplot(column_names=[&quot;nco_Lacaune_M&quot;, &quot;nco_Soay_M&quot;], colors=data[&quot;chrom&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">biplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">column_names</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.pca_pairplot">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.pca_pairplot">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">        &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data=data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">        &gt;&gt;&gt; ar.pca_pairplot(n_components=3)</span>
+<span class="s2">        &gt;&gt;&gt; ar.pca_pairplot(n_components=3, colors=data[&quot;chrom&quot;])</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.transform">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.transform">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">              &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">              &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">              &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1 + chrom&quot;, data=data)</span>
+<span class="s2">              &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">              &gt;&gt;&gt; print(ar.transform().shape)</span>
+<span class="s2">              &gt;&gt;&gt; ar.viz()</span>
+<span class="s2">              &gt;&gt;&gt; transformed_no_exog = ar.transform(remove_exog_effect=True)</span>
+<span class="s2">              &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnAR.plot_expected_vs_true">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.plot_expected_vs_true">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">            &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">            &gt;&gt;&gt; ar = PlnAR(data[&quot;endog&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">            &gt;&gt;&gt; ar.plot_expected_vs_true()</span>
+<span class="s2">            &gt;&gt;&gt; ar.plot_expected_vs_true(colors=data[&quot;chrom&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_expected_vs_true</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot_expected_vs_true</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_endog_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">offsets</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PlnAR.viz">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.viz">[docs]</a>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_crossover</span>
+<span class="s2">            &gt;&gt;&gt; data = load_crossover()</span>
+<span class="s2">            &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1 + chrom&quot;, data=data)</span>
+<span class="s2">            &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">            &gt;&gt;&gt; ar.viz()</span>
+<span class="s2">            &gt;&gt;&gt; ar.viz(colors=data[&quot;chrom&quot;])</span>
+<span class="s2">            &gt;&gt;&gt; ar.viz(show_cov=True)</span>
+<span class="s2">            &gt;&gt;&gt; ar.viz(remove_exog_effect=True, colors=data[&quot;location&quot;])</span>
+<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">show_cov</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">viz</span><span class="p">(</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">show_cov</span><span class="o">=</span><span class="n">show_cov</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precision</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision</span><span class="p">)</span>
+        <span class="n">ortho_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ortho_components</span>
+        <span class="k">return</span> <span class="n">ortho_components</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diag_cov</span><span class="p">)</span> <span class="o">@</span> <span class="p">(</span><span class="n">ortho_components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ortho_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ortho_components</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ortho_components</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ar_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">!=</span> <span class="s2">&quot;full&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ortho_components</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ortho_components</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diag_ar_coef</span> <span class="o">@</span> <span class="p">(</span><span class="n">ortho_components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_diag_ar_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ar_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Autoregressive model parameters of size p. Defines the correlation</span>
+<span class="sd">        between sample i and sample i-1 for each dimension.</span>
+<span class="sd">        The greater the value, the greater the autocorrelation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_coef</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_of_parameters_needing_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">list_param</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">:</span>
+            <span class="n">list_param</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sqrt_precision</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
+            <span class="n">list_param</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_param</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span><span class="p">)</span>
+            <span class="n">list_param</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">list_param</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__coef</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">list_param</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;coef&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coef</span><span class="p">,</span>
+            <span class="s2">&quot;covariance&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariance</span><span class="p">,</span>
+            <span class="s2">&quot;ar_coef&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar_coef</span><span class="p">,</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="PlnAR.viz_dims">
+<a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR.viz_dims">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">viz_dims</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">column_names</span><span class="p">,</span>
+        <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">display</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;stretch&quot;</span><span class="p">,</span> <span class="s2">&quot;keep&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;stretch&quot;</span><span class="p">,</span>
+        <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">figsize</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        column_names : List[str]</span>
+<span class="sd">            A list of variable names to visualize.</span>
+<span class="sd">            If `column_index` is `None`, the variables plotted</span>
+<span class="sd">            are the ones in `column_names`. If `column_index`</span>
+<span class="sd">            is not `None`, this only serves as a legend.</span>
+<span class="sd">            Check the attribute `column_names_endog`.</span>
+<span class="sd">        column_index : Optional[List[int]], optional keyword-only</span>
+<span class="sd">            A list of indices corresponding to the variables that should be plotted.</span>
+<span class="sd">            If `None`, the indices are determined based on `column_names_endog`</span>
+<span class="sd">            given the `column_names`, by default `None`.</span>
+<span class="sd">            If not None, should have the same length as `column_names`.</span>
+<span class="sd">        display : str (Optional)</span>
+<span class="sd">            How to display the time series when nan are at stake.</span>
+<span class="sd">            - &quot;stretch&quot;: stretch the time serie so that all time series</span>
+<span class="sd">              seems to have the same length.</span>
+<span class="sd">            - &quot;keep&quot;: Shorter time series will be displayed shorter.</span>
+<span class="sd">        colors : list, optional, keyword-only</span>
+<span class="sd">            The labels to color the samples, of size `n_samples`.</span>
+<span class="sd">        figsize : tuple of floats.</span>
+<span class="sd">            The height end width of the matplotlib figsize.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">column_index</span> <span class="o">=</span> <span class="n">_process_column_index</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="p">,</span> <span class="n">column_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names_endog</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">display</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;stretch&quot;</span><span class="p">,</span> <span class="s2">&quot;keep&quot;</span><span class="p">]:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;`display` keyword have only two possible values: &#39;stretch&#39; and &#39;keep&#39;, got&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">display</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">_viz_dims</span><span class="p">(</span>
+            <span class="n">variables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_variables</span><span class="p">,</span>
+            <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">display</span><span class="o">=</span><span class="n">display</span><span class="p">,</span>
+            <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_methods_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;.viz_dims()&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_additional_attributes_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;.ar_coef&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;autoregressive type </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span><span class="si">}</span><span class="s2">.&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span> <span class="o">=</span> <span class="n">_init_latent_pln</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_dict_latent_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">number_of_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;diagonal&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_two_dim_latent_variances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sklearn_components</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_get_two_dim_latent_variances</span><span class="p">(</span>
+            <span class="n">sklearn_components</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_sqrt_variance</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span>
+        <span class="n">BaseModel</span><span class="p">,</span>
+        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &gt;&gt;&gt; from pyPLNmodels import PlnAR, load_scrna</span>
+<span class="s2">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="s2">        &gt;&gt;&gt; ar = PlnAR.from_formula(&quot;endog ~ 1&quot;, data)</span>
+<span class="s2">        &gt;&gt;&gt; ar.fit()</span>
+<span class="s2">        &gt;&gt;&gt; print(ar.latent_variables.shape)</span>
+<span class="s2">        &gt;&gt;&gt; ar.viz() # Visualize the latent variables</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        :func:`pyPLNmodels.PlnAR.latent_positions`</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">latent_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_mean</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Bastien Batardière, Julien Chiquet, Joon Kwon.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
