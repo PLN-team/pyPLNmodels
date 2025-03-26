@@ -27,6 +27,7 @@ jobs:
 
   pylint:
     runs-on: ubuntu-22.04
+    needs: black
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -72,14 +73,17 @@ jobs:
           rm -rf dist/
           python -m build
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
 
   publish_package:
     runs-on: ubuntu-22.04
-    needs: build_package
+    needs:
+      - build_package
+      - tests
     # if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2
@@ -97,7 +101,9 @@ jobs:
 
   pages:
     runs-on: ubuntu-22.04
+    needs: publish_package
     # if: github.event_name == 'release'
+
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
