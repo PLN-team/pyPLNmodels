@@ -92,6 +92,10 @@ jobs:
           python-version: '3.9'
       - name: Install Twine
         run: pip install twine
+      - name: download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
       - name: Publish package
         env:
           TWINE_USERNAME: __token__
