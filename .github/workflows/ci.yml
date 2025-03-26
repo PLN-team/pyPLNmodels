@@ -96,11 +96,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
+          path: dist/
+      - name: Publish package
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPLN_TOKEN }}
-        run: python -m twine upload dist/*
-      # - name: Publish package
+        run: |
+          echo "ls"
+          ls
+          python -m twine upload dist/*
 
   pages:
     runs-on: ubuntu-22.04
