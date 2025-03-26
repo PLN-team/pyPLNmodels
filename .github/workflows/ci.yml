@@ -27,7 +27,6 @@ jobs:
 
   pylint:
     runs-on: ubuntu-22.04
-    needs: black
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -83,7 +82,6 @@ jobs:
     runs-on: ubuntu-22.04
     needs:
       - build_package
-      - tests
     # if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2
