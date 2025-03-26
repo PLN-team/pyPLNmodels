@@ -2,7 +2,7 @@
 set -e
 
 run_with_probability() {
-    if [ $((RANDOM % 3)) -eq 0 ]; then
+    if [ $((RANDOM % 1)) -eq 0 ]; then
         python "$1"
     fi
 }

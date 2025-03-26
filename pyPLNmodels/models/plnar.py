@@ -254,7 +254,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
             self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
         else:
             self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
-            self._diff_ortho_components = torch.eye(self.dim)
+            self._diff_ortho_components = torch.eye(self.dim).to(DEVICE)
             self._diff_diag_cov = torch.ones(self.dim).to(DEVICE) / (
                 self.dim ** (3 / 2)
             )

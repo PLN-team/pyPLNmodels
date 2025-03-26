@@ -24,6 +24,8 @@
 > the significance of each variable, their correlations, and the
 > weight of covariates (if available).
 
+The package documentation can be found [here](https://pln-team.github.io/pyPLNmodels/).
+
 ## Getting started
 [A notebook to get started can be found here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
 If you need just a quick view of the package, see the quickstart next. Note
@@ -41,11 +43,11 @@ pip install pyPLNmodels
 
 ## Statistical description
 
-For those unfamiliar with the concepts of Poisson or Gaussian random variables,
-it is not necessary to delve into these statistical descriptions. The key
-takeaway is as follows: This package is designed to analyze multi-dimensional count data. It
-effectively extracts significant information, such as
-the mean, the relationships with covariates, and the correlation between count
+For those unfamiliar with Poisson or Gaussian random variables,
+it's not necessary to delve into these statistical concepts. The
+key takeaway is that this package analyzes multi-dimensional count
+data, extracting significant information such as the mean,
+relationships with covariates, and correlations between count
 variables, in a manner appropriate for count data.
 
 Consider $\mathbf Y$ a count matrix (denoted as `endog` in the package) consisting of $n$ rows and $p$ columns.
@@ -276,7 +278,7 @@ print(ar)
 
 ## 👐 Contributing
 
-Feel free to contribute, but read the [CONTRIBUTING.md](https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/blob/main/CONTRIBUTING.md) first. A public roadmap will be available soon.
+Feel free to contribute, but read the [CONTRIBUTING.md](https://github.com/PLN-team/pyPLNmodels/blob/main/CONTRIBUTING.md) first. A public roadmap will be available soon.
 
 ## ⚡️ Citations
 
