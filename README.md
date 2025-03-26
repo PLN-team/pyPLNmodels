@@ -4,6 +4,7 @@
 ![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![Pylint](https://img.shields.io/badge/pylint-checked-brightgreen)
 ![GPU Support](https://img.shields.io/badge/GPU-Supported-brightgreen)
+[![codecov](https://codecov.io/gh/PLN-team/pyPLNmodels/graph/badge.svg?token=TNFROMLF9Z)](https://codecov.io/gh/PLN-team/pyPLNmodels)
 
 # PLNmodels: Poisson lognormal models
 
