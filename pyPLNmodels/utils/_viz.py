@@ -393,6 +393,72 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         plt.show()
 
 
+class PCAModelViz(BaseModelViz):
+    """
+    Model vizsualization for PCA based models.
+    """
+
+    def show(self, *, savefig, name_file, figsize):
+        """
+        Display the model parameters and the norm of the parameters, as well
+        as the pourcentage of variances explained.
+        """
+        fig = _get_figure(figsize)
+        gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
+
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[0, 2])
+        ax4 = fig.add_subplot(gs[1, :2])
+        ax5 = fig.add_subplot(gs[1, 2])
+
+        self.display_relationship_matrix(ax=ax1)
+        self.display_norm_evolution(ax=ax2)
+        self.display_criterion_evolution(ax=ax3)
+        self.display_coef(ax=ax4)
+        self.display_percentage_variance(ax=ax5)
+
+        if savefig is True:
+            plt.savefig(name_file + self._name + ".pdf", format="pdf")
+        plt.show()
+
+    def __init__(self, pln):
+        """
+        Computes the variance explained in addition to the simple initialization.
+        """
+        super().__init__(pln)
+        pca = PCA(n_components=pln.rank)
+        pca.fit(pln.latent_variables)
+        self._explained_variance = pca.explained_variance_ratio_ * 100
+
+    def display_percentage_variance(self, ax):
+        """
+        Display percentage of the variance explained.
+
+        Parameters:
+            ax (matplotlib.axes.Axes): The axes on which to plot the variance explained by
+            each principal component.
+
+        Notes:
+            Comparing with another `PlnPCA` model may give different results,
+            as the `PlnPCA` model does not have nested principal components.
+        """
+        explained_variance = self._explained_variance
+
+        ax.plot(
+            range(1, len(explained_variance) + 1),
+            explained_variance,
+            marker="o",
+            linestyle="--",
+        )
+        ax.set_xticks(range(1, len(explained_variance) + 1))
+        ax.set_xticklabels(range(1, len(explained_variance) + 1))
+        ax.set_xlabel("Number of Principal Component")
+        ax.set_ylabel("Variance Explained (%)")
+        ax.set_title("PCA: Variance Explained by Each Component")
+        ax.grid()
+
+
 class DiagModelViz(BaseModelViz):
     """
     Model visualization class for a Pln model with diagonal covariance.
