@@ -80,8 +80,7 @@ jobs:
 
   publish_package:
     runs-on: ubuntu-22.04
-    needs:
-      - build_package
+    needs: build_package
     # if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2
@@ -99,7 +98,7 @@ jobs:
 
   pages:
     runs-on: ubuntu-22.04
-    needs: publish_package
+    # needs: publish_package
     # if: github.event_name == 'release'
 
     steps:
