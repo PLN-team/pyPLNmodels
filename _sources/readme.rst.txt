@@ -24,6 +24,9 @@ PLNmodels: Poisson lognormal models
     significance of each variable, their correlations, and the weight of
     covariates (if available).
 
+The package documentation can be found
+`here <https://pln-team.github.io/pyPLNmodels/>`__.
+
 Getting started
 ---------------
 
@@ -341,7 +344,7 @@ documentation and by printing the model:
 --------------
 
 Feel free to contribute, but read the
-`CONTRIBUTING.md <https://forgemia.inra.fr/bbatardiere/pyplnmodels/-/blob/main/CONTRIBUTING.md>`__
+`CONTRIBUTING.md <https://github.com/PLN-team/pyPLNmodels/blob/main/CONTRIBUTING.md>`__
 first. A public roadmap will be available soon.
 
 ⚡️ Citations
