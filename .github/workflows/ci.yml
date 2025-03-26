@@ -55,7 +55,11 @@ jobs:
           python _create_readme_getting_started_and_docstrings_tests.py
           rm test_getting_started.py
           pytest --cov --cov-branch --cov-report=xml test_ar.py
-          bash <(curl -s https://codecov.io/bash) -t {{ secrets.CODECOV_TOKEN }}
+          # bash <(curl -s https://codecov.io/bash) -t {{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
   build_package:
