@@ -15,7 +15,7 @@ jobs:
   black:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -27,8 +27,9 @@ jobs:
 
   pylint:
     runs-on: ubuntu-22.04
+    needs: black
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -45,7 +46,7 @@ jobs:
     container:
       image: ghcr.io/bastien-mva/docker_image:latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install package and run tests
         run: |
           pip install '.[tests]'
@@ -60,9 +61,9 @@ jobs:
   build_package:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install build
@@ -80,12 +81,14 @@ jobs:
 
   publish_package:
     runs-on: ubuntu-22.04
-    needs: build_package
+    needs:
+      - build_package
+      - tests
     # if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install Twine
@@ -98,13 +101,13 @@ jobs:
 
   pages:
     runs-on: ubuntu-22.04
-    # needs: publish_package
+    needs: publish_package
     # if: github.event_name == 'release'
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install dependencies
@@ -120,7 +123,7 @@ jobs:
           pip install .
           make -C docs html
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build/html
