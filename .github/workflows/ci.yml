@@ -71,9 +71,15 @@ jobs:
         run: |
           rm -rf dist/
           python -m build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
 
   publish_package:
     runs-on: ubuntu-22.04
+    needs: build_package
     # if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2
