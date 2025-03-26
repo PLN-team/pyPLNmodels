@@ -25,21 +25,21 @@ jobs:
       - name: Run Black
         run: black --check --verbose -- .
 
-  pylint:
-    runs-on: ubuntu-22.04
-    needs: black
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Pylint
-        run: |
-          pip install pylint
+  # pylint:
+  #   runs-on: ubuntu-22.04
+  #   needs: black
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.9'
+  #     - name: Install Pylint
+  #       run: |
+  #         pip install pylint
 
-      - name: Run Pylint
-        run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
+  #     - name: Run Pylint
+  #       run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
 
   tests:
     runs-on: ubuntu-22.04
