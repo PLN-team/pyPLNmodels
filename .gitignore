@@ -5,7 +5,7 @@ docs/build/
 tests/docstrings_examples/
 tests/getting_started/
 tests/readme_examples/
-tests/test_getting_started.py
+tests/untestable_getting_started.py
 .ipynb_checkpoints/
 tests/TestPln.pdf
 tests/TestZIPln.pdf
