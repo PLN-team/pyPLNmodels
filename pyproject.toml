@@ -56,7 +56,7 @@ dependencies = [
 "networkx",
 ]
 [project.optional-dependencies]
-tests = ["pytest"]
+tests = ["pytest", "pytest-cov"]
 build-doc = ["sphinx","sphinx_rtd_theme", "sphinx_copybutton", "sphinx_codeautolink", "autoclasstoc"]
 
 [project.urls]
