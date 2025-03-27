@@ -126,9 +126,11 @@ class PlnNetworkCollection(Collection):
         self, next_model: PlnNetwork, current_model: PlnNetwork
     ):
         # coef is a closed form
-        next_model.components_prec = current_model.components_prec
-        next_model.latent_mean = current_model.latent_mean
-        next_model.latent_sqrt_variance = current_model.latent_sqrt_variance
+        next_model.components_prec = torch.clone(current_model.components_prec)
+        next_model.latent_mean = torch.clone(current_model.latent_mean)
+        next_model.latent_sqrt_variance = torch.clone(
+            current_model.latent_sqrt_variance
+        )
 
     @property
     def precision(self) -> Dict[float, torch.Tensor]:

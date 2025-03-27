@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.metrics import silhouette_score
 
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plndiag import PlnDiag
@@ -13,9 +14,16 @@ from pyPLNmodels.utils._data_handler import (
     _check_full_rank_exog_and_ones,
     _check_int,
 )
-from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
+from pyPLNmodels.utils._utils import (
+    _add_doc,
+    _get_two_dim_latent_variances,
+    _calculate_wcss,
+)
 from pyPLNmodels.calculations._initialization import _init_gmm
-from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_clusters
+from pyPLNmodels.calculations.entropies import (
+    entropy_gaussian_mixture,
+    entropy_clusters,
+)
 from pyPLNmodels.calculations.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.utils._viz import MixtureModelViz, _viz_variables
 
@@ -279,6 +287,7 @@ class PlnMixture(
         )
 
     def _init_parameters(self):
+        print("Intialization ...")
         pln = PlnDiag(
             endog=self._endog, exog=self._exog, offsets=self._offsets, add_const=True
         )
@@ -318,6 +327,7 @@ class PlnMixture(
         self._latent_sqrt_variances = (
             torch.randn(self.n_cluster, self.n_samples, self.dim).to(DEVICE) / 100
         )
+        print("Finished!")
 
     def _init_latent_parameters(self):
         """Everything is done in the _init_parameters method."""
@@ -710,11 +720,35 @@ class PlnMixture(
     @_add_doc(BaseModel)
     def entropy(self):
         return (
-            entropy_gaussian(self._latent_sqrt_variances**2, self._latent_prob)
+            entropy_gaussian_mixture(self._latent_sqrt_variances**2, self._latent_prob)
             .detach()
             .cpu()
             + entropy_clusters(self._latent_prob, self._weights).detach().cpu()
-        )
+        ).item()
+
+    @property
+    def WCSS(self):
+        """
+        Compute the Within-Cluster Sum of Squares on the latent positions.
+
+        The higher the better, but increasing n_cluster can only increase the
+        metric. A trade-off (with the elbow method for example) must be applied.
+
+        Returns positive float.
+        """
+        return _calculate_wcss(self.latent_positions, self.clusters, self.n_cluster)
+
+    @property
+    def silhouette(self):
+        """
+        Compute the silhouette score on the latent_positions.
+        See scikit-learn.metrics.silhouette_score for more information.
+
+        The higher the better.
+
+        Returns float between -1 and 1.
+        """
+        return silhouette_score(self.latent_positions, self.clusters)
 
 
 class _PlnMixturePredict(PlnMixture):

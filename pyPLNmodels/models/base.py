@@ -847,6 +847,7 @@ class BaseModel(
             "Nb param": int(self.number_of_parameters),
             "BIC": np.round(self.BIC, 4),
             "AIC": np.round(self.AIC, 4),
+            "ICL": np.round(self.ICL, 2),
         }
 
     @property

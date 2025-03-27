@@ -578,6 +578,7 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(
-            self._latent_sqrt_variance**2
-        ).detach().cpu() + entropy_bernoulli(self.latent_prob)
+        return (
+            entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()
+            + entropy_bernoulli(self.latent_prob).item()
+        )

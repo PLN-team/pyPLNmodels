@@ -19,6 +19,7 @@ from pyPLNmodels.utils._data_handler import (
     _check_int,
 )
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
+from pyPLNmodels.utils._viz import ZIPCAModelViz
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -66,6 +67,8 @@ class ZIPlnPCA(
     _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
+
+    _ModelViz = ZIPCAModelViz
 
     def __init__(
         self,
@@ -665,6 +668,7 @@ class ZIPlnPCA(
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(
-            self._latent_sqrt_variance**2
-        ).detach().cpu() + entropy_bernoulli(self.latent_prob)
+        return (
+            entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()
+            + entropy_bernoulli(self.latent_prob).item()
+        )

@@ -18,6 +18,7 @@ from pyPLNmodels.utils._data_handler import (
 )
 from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
+from pyPLNmodels.utils._viz import PCAModelViz
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -53,6 +54,8 @@ class PlnPCA(BaseModel):
     :class:`pyPLNmodels.Pln`
     :class:`pyPLNmodels.ZIPlnPCA`
     """
+
+    _ModelViz = PCAModelViz
 
     _components: torch.Tensor
 
@@ -507,4 +510,4 @@ class PlnPCA(BaseModel):
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()

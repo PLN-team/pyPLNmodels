@@ -578,4 +578,4 @@ class Pln(BaseModel):  # pylint: disable=too-many-public-methods
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()

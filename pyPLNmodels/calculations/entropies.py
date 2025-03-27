@@ -15,13 +15,22 @@ def entropy_bernoulli(latent_prob):
     )
 
 
-def entropy_gaussian(latent_variance, latent_prob=None):
+def entropy_gaussian(latent_variance):
     """
-    Entropy for a gaussian variables. Weights may be given if this
-    is for a mixture of gaussians.
+    Entropy for a gaussian variables.
     """
-    if latent_prob is None:
-        latent_prob = torch.ones((latent_variance).shape).to(latent_variance.device)
+    product_dimensions = torch.prod(torch.tensor(list(latent_variance.shape)))
+    return (
+        1 / 2 * torch.sum(latent_variance)
+        + product_dimensions / 2 * math.log(2 * math.pi)
+        + product_dimensions / 2
+    )
+
+
+def entropy_gaussian_mixture(latent_variance, latent_prob):
+    """
+    Entropy for a gaussian variable when there are mixture weights (PlnMixture).
+    """
     product_dimensions = torch.prod(torch.tensor(list(latent_variance.shape[-2:])))
     return (
         1 / 2 * torch.sum((latent_prob.T).unsqueeze(2) * latent_variance)

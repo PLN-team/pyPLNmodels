@@ -472,7 +472,7 @@ class PlnNetwork(BaseModel):
 
     @property
     def _description(self):
-        return f"with penalty {self.penalty}."
+        return f" penalty {self.penalty}."
 
     def _init_latent_parameters(self):
         if not hasattr(self, "_latent_mean") or not hasattr(
@@ -521,4 +521,4 @@ class PlnNetwork(BaseModel):
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self.latent_variance)
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()

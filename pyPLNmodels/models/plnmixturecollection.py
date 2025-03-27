@@ -9,6 +9,7 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plnmixture import PlnMixture
 from pyPLNmodels.utils._utils import _add_doc
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.utils._viz import _show_collection_and_clustering_criterions
 
 
 class PlnMixtureCollection(Collection):
@@ -195,3 +196,49 @@ class PlnMixtureCollection(Collection):
     )
     def best_model(self, criterion: str = "BIC") -> PlnMixture:
         return super().best_model(criterion=criterion)
+
+    @property
+    def WCSS(self) -> Dict[int, int]:
+        """
+        Compute the Within-Cluster Sum of Squares on the latent positions
+        for each model in the collection.
+
+        The higher the better, but increasing n_cluster can only increase the
+        metric. A trade-off (with the elbow method for example) must be applied.
+
+        Returns
+        -------
+        Dict[int, float]
+            The WCSS scores of the models.
+        """
+        return {grid_value: int(self[grid_value].WCSS) for grid_value in self.grid}
+
+    @property
+    def silhouette(self) -> Dict[int, int]:
+        """
+        Compute the silhouette score on the latent_positions for each model in the collection.
+        See scikit-learn.metrics.silhouette_score for more information.
+
+        The higher the better.
+
+        Returns
+        -------
+        Dict[int, float]
+            The silhouette scores of the models.
+        """
+        return {grid_value: self[grid_value].silhouette for grid_value in self.grid}
+
+    def show(self, figsize: tuple = (15, 10)):
+        """
+        Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+        Also show two cluster criterion.
+
+        Parameters
+        ----------
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,15)
+        """
+        absc_label = ""
+        _show_collection_and_clustering_criterions(
+            self, figsize=figsize, absc_label=absc_label
+        )

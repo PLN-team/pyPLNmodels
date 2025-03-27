@@ -828,4 +828,4 @@ class _PlnPred(Pln):
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self.latent_variance)
+        return entropy_gaussian(self.latent_variance).item()
