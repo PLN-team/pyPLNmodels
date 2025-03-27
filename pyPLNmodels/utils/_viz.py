@@ -260,7 +260,6 @@ def plot_correlation_circle(
         data_matrix[:, column_index], transformed_data
     )
 
-    plt.style.use("seaborn-v0_8-whitegrid")
     plot_correlation_arrows(ax, correlation_circle, column_names)
 
     ax.add_patch(
