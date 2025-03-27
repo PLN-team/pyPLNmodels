@@ -46,7 +46,7 @@ jobs:
       image: ghcr.io/bastien-mva/docker_image:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install package and run tests
+      - name: Install package locally and run tests
         run: |
           pip install '.[tests]'
           pip install -e .
