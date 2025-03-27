@@ -322,18 +322,18 @@ def _raise_error_1D_viz():
 
 
 def _init_next_model_pca(next_model, current_model):
-    next_model.coef = current_model.coef
+    next_model.coef = torch.clone(current_model.coef)
     new_components = torch.zeros(current_model.dim, next_model.rank)
     new_components[:, : current_model.rank] = current_model.components
-    next_model.components = new_components
+    next_model.components = torch.clone(new_components)
     new_latent_mean = torch.zeros(current_model.n_samples, next_model.rank)
     new_latent_mean[:, : current_model.rank] = current_model.latent_mean
-    next_model.latent_mean = new_latent_mean
+    next_model.latent_mean = torch.clone(new_latent_mean)
     new_latent_sqrt_variance = torch.ones(current_model.n_samples, next_model.rank) / 10
     new_latent_sqrt_variance[:, : current_model.rank] = (
         current_model.latent_sqrt_variance
     )
-    next_model.latent_sqrt_variance = new_latent_sqrt_variance
+    next_model.latent_sqrt_variance = torch.clone(new_latent_sqrt_variance)
     return next_model
 
 
@@ -342,3 +342,32 @@ def _check_array_size(array, dim1, dim2, array_name):
         raise ValueError(
             f"Wrong shape for the {array_name}. Expected ({(dim1, dim2)}), got {array.shape}"
         )
+
+
+def _equal_distance_mapping(values):
+    unique_values = sorted(set(values))
+    mapping = {val: idx for idx, val in enumerate(unique_values)}
+    return [mapping[val] for val in values]
+
+
+def _calculate_wcss(data, clusters, nb_cluster):
+    """
+    Calcule la Within-Cluster Sum of Squares (WCSS) pour un clustering donné.
+
+    :param data: Tensor de taille (n_samples, n_features) contenant les données.
+    :param labels: Tensor de taille (n_samples,) contenant les labels de cluster pour chaque point.
+    :return: WCSS (float)
+    """
+    wcss = 0.0
+
+    for i in range(nb_cluster):
+        # Sélectionner les points appartenant au cluster i
+        cluster_points = data[clusters == i]
+
+        # Calculer le centroïde du cluster i
+        centroid = cluster_points.mean(dim=0)
+
+        # Calculer la somme des distances au carré entre les points et le centroïde
+        wcss += torch.sum((cluster_points - centroid) ** 2)
+
+    return wcss.item()

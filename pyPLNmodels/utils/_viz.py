@@ -17,9 +17,12 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import networkx as nx
 
-from pyPLNmodels.utils._utils import calculate_correlation, get_confusion_matrix
+from pyPLNmodels.utils._utils import (
+    calculate_correlation,
+    get_confusion_matrix,
+    _equal_distance_mapping,
+)
 
-DEFAULT_TOL = 1e-6
 
 PALETTE = None
 
@@ -275,6 +278,8 @@ def plot_correlation_circle(
 class BaseModelViz:  # pylint: disable=too-many-instance-attributes
     """Class that visualizes the parameters of a model and the optimization process."""
 
+    DEFAULT_TOL = 1e-6
+
     def __init__(self, pln):  # pylint: disable=too-many-arguments
         self._params = pln.dict_model_parameters
         self._dict_mse = pln._dict_list_mse
@@ -363,7 +368,10 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         )
 
         ax.axhline(
-            y=DEFAULT_TOL, color="r", linestyle="--", label="Tolerance threshold"
+            y=self.DEFAULT_TOL,
+            color="r",
+            linestyle="--",
+            label="Default Tolerance threshold",
         )
         ax.set_yscale("log")
         ax.set_xlabel("Seconds", fontsize=9)
@@ -427,9 +435,9 @@ class PCAModelViz(BaseModelViz):
         Computes the variance explained in addition to the simple initialization.
         """
         super().__init__(pln)
-        pca = PCA(n_components=pln.rank)
-        pca.fit(pln.latent_variables)
-        self._explained_variance = pca.explained_variance_ratio_ * 100
+
+        _, self._explained_variance = _perform_pca(pln.latent_variables, pln.rank)
+        self.rank = pln.rank
 
     def display_percentage_variance(self, ax):
         """
@@ -443,20 +451,21 @@ class PCAModelViz(BaseModelViz):
             Comparing with another `PlnPCA` model may give different results,
             as the `PlnPCA` model does not have nested principal components.
         """
-        explained_variance = self._explained_variance
+        dict_explained_variance = {
+            i + 1: self._explained_variance[i] for i in range(self.rank)
+        }
+        _display_percentage_variance(ax, dict_explained_variance)
+        plt.show()
 
-        ax.plot(
-            range(1, len(explained_variance) + 1),
-            explained_variance,
-            marker="o",
-            linestyle="--",
-        )
-        ax.set_xticks(range(1, len(explained_variance) + 1))
-        ax.set_xticklabels(range(1, len(explained_variance) + 1))
-        ax.set_xlabel("Number of Principal Component")
-        ax.set_ylabel("Variance Explained (%)")
-        ax.set_title("PCA: Variance Explained by Each Component")
-        ax.grid()
+
+def _display_percentage_variance(ax, dict_explained_variance):
+    _display_metric(
+        ax,
+        dict_explained_variance,
+        xlabel="Number of Principal Component (i.e. rank number)",
+        ylabel="Variance Explained (%)",
+        title="PCA: Variance Explained by Each Component",
+    )
 
 
 class DiagModelViz(BaseModelViz):
@@ -629,6 +638,40 @@ class ZIModelViz(BaseModelViz):
         sns.heatmap(coef_inflation, ax=ax)
         ax.set_title("Zero inflation Regression Coefficient Matrix")
         _set_tick_labels(ax, self.column_names)
+
+
+class ZIPCAModelViz(ZIModelViz, PCAModelViz):
+    """
+    Visualize the parameters of a ZIPlnPCA model and the optimization process.
+    """
+
+    DEFAULT_TOL = 1e-6 / 1000
+
+    def show(self, *, savefig, name_file, figsize):
+        """
+        Show the model but adds a zero inflation graph for the associated
+        coefficient. Graphs are reordered so that `coef` and `coef_inflation`
+        can be directly compared (compared to `show`).
+        """
+        fig = _get_figure(figsize)
+        gs = gridspec.GridSpec(2, 3, figure=fig, wspace=0.3)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[0, 2])
+        ax4 = fig.add_subplot(gs[1, 0])
+        ax5 = fig.add_subplot(gs[1, 2])
+        ax6 = fig.add_subplot(gs[1, 1])
+
+        self.display_coef_inflation(ax=ax4)
+        self.display_relationship_matrix(ax=ax2)
+        self.display_norm_evolution(ax=ax5)
+        self.display_criterion_evolution(ax=ax3)
+        self.display_coef(ax=ax1)
+        self.display_percentage_variance(ax=ax6)
+
+        if savefig is True:
+            plt.savefig(name_file + self._name + ".pdf", format="pdf")
+        plt.show()
 
 
 class MixtureModelViz(BaseModelViz):
@@ -878,41 +921,112 @@ def _plot_expected_vs_true(
     return ax
 
 
-def _show_information_criterion(*, bic, aic, icl, loglikes, figsize):
+def _show_collection_and_clustering_criterions(collection, figsize, absc_label):
+    _, axes = plt.subplots(3, figsize=figsize)
+    _show_information_criterion(
+        collection=collection, ax=axes[0], absc_label=absc_label
+    )
+    _display_metric(
+        axes[1],
+        collection.WCSS,
+        xlabel="",
+        ylabel="Within-Cluster Sum of Clusters",
+        title="",
+    )
+
+    _display_metric(
+        axes[2],
+        collection.silhouette,
+        xlabel="Number of clusters",
+        ylabel="Silhouette score",
+        title="",
+    )
+    argmax_sil = np.argmax(list(collection.silhouette.values()))
+    axes[2].axvline(
+        list(collection.keys())[argmax_sil], linestyle="dotted", linewidth=4
+    )
+    plt.show()
+
+
+def _show_information_criterion(*, collection, ax, absc_label):
+    bic = collection.BIC
+    aic = collection.AIC
+    icl = collection.ICL
+
     colors = {
         "BIC": "blue",
         "AIC": "red",
         "Negative log likelihood": "orange",
         "ICL": "green",
     }
-
-    best_bic_rank = list(bic.keys())[np.argmin(list(bic.values()))]
-    best_aic_rank = list(aic.keys())[np.argmin(list(aic.values()))]
-    best_icl_rank = list(icl.keys())[np.argmin(list(icl.values()))]
+    argmin_bic = np.argmin(list(bic.values()))
+    argmin_aic = np.argmin(list(aic.values()))
+    argmin_icl = np.argmin(list(icl.values()))
 
     criteria = ["BIC", "AIC", "ICL", "Negative log likelihood"]
-    values_list = [bic, aic, icl, loglikes]
-    _get_figure(figsize)
+    values_list = [bic, aic, icl, collection.loglike]
 
     for criterion, values in zip(criteria, values_list):
-        plt.scatter(
-            values.keys(),
+        keys_mapped = _equal_distance_mapping(values.keys())
+
+        ax.scatter(
+            keys_mapped,
             values.values(),
             label=f"{criterion} criterion",
             c=colors[criterion],
         )
-        plt.plot(values.keys(), values.values(), c=colors[criterion])
+        ax.plot(keys_mapped, values.values(), c=colors[criterion])
 
         if criterion == "BIC":
-            plt.axvline(best_bic_rank, c=colors[criterion], linestyle="dotted")
+            ax.axvline(
+                keys_mapped[argmin_bic],
+                c=colors[criterion],
+                linestyle="dotted",
+                linewidth=4,
+            )
         elif criterion == "AIC":
-            plt.axvline(best_aic_rank, c=colors[criterion], linestyle="dotted")
+            ax.axvline(
+                keys_mapped[argmin_aic],
+                c=colors[criterion],
+                linestyle="dotted",
+                linewidth=4,
+            )
         elif criterion == "ICL":
-            plt.axvline(best_icl_rank, c=colors[criterion], linestyle="dotted")
+            ax.axvline(
+                keys_mapped[argmin_icl],
+                c=colors[criterion],
+                linestyle="dotted",
+                linewidth=4,
+            )
 
-        plt.xticks(list(values.keys()))
+        ax.set_xticks(
+            np.linspace(min(keys_mapped), max(keys_mapped), num=len(values.keys()))
+        )
+        ax.set_xticklabels(list(values.keys()))
+        ax.set_xlabel(absc_label, fontsize=12)
+        ax.set_ylabel("Criterion", fontsize=12)
 
-    plt.legend()
+    ax.legend()
+
+
+def _show_collection_and_explained_variance(collection, figsize, absc_label):
+    _, axes = plt.subplots(2, figsize=figsize)
+    _show_information_criterion(
+        collection=collection, ax=axes[0], absc_label=absc_label
+    )
+
+    last_model = collection[collection.ranks[-1]]
+    _, explained_variance = _perform_pca(last_model.latent_variables, last_model.rank)
+    dict_explained_variance = {
+        i + 1: explained_variance[i] for i in range(last_model.rank)
+    }
+    _display_percentage_variance(axes[1], dict_explained_variance)
+    plt.show()
+
+
+def _show_collection(collection, figsize, absc_label):
+    _, ax = plt.subplots(figsize=figsize)
+    _show_information_criterion(collection=collection, ax=ax, absc_label=absc_label)
     plt.show()
 
 
@@ -1370,3 +1484,19 @@ def _plot_forest_coef(
     )
 
     plt.show()
+
+
+def _display_metric(ax, dict_metric, xlabel, ylabel, title):
+
+    ax.plot(
+        dict_metric.keys(),
+        dict_metric.values(),
+        marker="o",
+        linestyle="--",
+    )
+    ax.set_xticks(list(dict_metric.keys()))
+    ax.set_xticklabels(list(dict_metric.keys()))
+    ax.set_xlabel(xlabel, fontsize=12)
+    ax.set_ylabel(ylabel, fontsize=12)
+    ax.set_title(title)
+    ax.grid()
