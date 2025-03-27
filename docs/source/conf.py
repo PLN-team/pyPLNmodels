@@ -10,6 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import shutil
 import os
 import sys
 from importlib.metadata import version
@@ -82,4 +83,24 @@ exclude_patterns = []
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+# html_extra_path = ['vignettes']
 html_title = "pyPLNmodels"
+
+
+def copy_html_vignettes(app, exception):  # pylint: disable=unused-argument
+    """Copy only HTML files from vignettes/ to the build directory."""
+    source = os.path.join(app.srcdir, "vignettes")
+    destination = os.path.join(app.outdir, "vignettes")
+
+    if os.path.exists(source):
+        os.makedirs(destination, exist_ok=True)  # Ensure the target folder exists
+        for file in os.listdir(source):
+            if file.endswith(".html"):  # Only copy .html files
+                shutil.copy(os.path.join(source, file), os.path.join(destination, file))
+
+
+def setup(app):
+    """
+    Add the copying of html vignettes after the build.
+    """
+    app.connect("build-finished", copy_html_vignettes)

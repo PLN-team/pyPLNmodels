@@ -1,0 +1,30 @@
+---
+title: "Correlation Analysis with `Pln` and `PlnPCA` models"
+date: "2025-03-27"
+format:
+    html:
+        self-contained: true
+---
+
+# Introduction
+
+
+```{python}
+print("Hello, quarto!")
+```
+
+## Section 1
+
+Working fine.
+
+### Subsection 1.1
+
+Content for the first subsection.
+
+## Section 2
+
+Content for the second section.
+
+# Conclusion
+
+Write your conclusion here.

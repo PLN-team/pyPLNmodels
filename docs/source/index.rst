@@ -19,6 +19,11 @@ Otherwise, the next section is an overview of the package.
 
 
 
+.. toctree::
+   :maxdepth: 2
+
+   vignettes/index
+
 
 Overview
 ========
