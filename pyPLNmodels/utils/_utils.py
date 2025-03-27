@@ -322,7 +322,10 @@ def _raise_error_1D_viz():
 
 
 def _init_next_model_pca(next_model, current_model):
-    next_model.coef = torch.clone(current_model.coef)
+    if current_model.coef is None:
+        next_model.coef = None
+    else:
+        next_model.coef = torch.clone(current_model.coef)
     new_components = torch.zeros(current_model.dim, next_model.rank)
     new_components[:, : current_model.rank] = current_model.components
     next_model.components = torch.clone(new_components)
