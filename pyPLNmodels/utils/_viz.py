@@ -947,7 +947,9 @@ def _show_collection_and_clustering_criterions(collection, figsize, absc_label):
     plt.show()
 
 
-def _show_information_criterion(*, collection, ax, absc_label):
+def _show_information_criterion(
+    *, collection, ax, absc_label
+):  # pylint: disable=too-many-locals
     bic = collection.BIC
     aic = collection.AIC
     icl = collection.ICL
@@ -967,14 +969,17 @@ def _show_information_criterion(*, collection, ax, absc_label):
 
     for criterion, values in zip(criteria, values_list):
         keys_mapped = _equal_distance_mapping(values.keys())
-
+        if criterion == "Negative log likelihood":
+            to_plot = [-val for val in values.values()]
+        else:
+            to_plot = values.values()
         ax.scatter(
             keys_mapped,
-            values.values(),
+            to_plot,
             label=f"{criterion} criterion",
             c=colors[criterion],
         )
-        ax.plot(keys_mapped, values.values(), c=colors[criterion])
+        ax.plot(keys_mapped, to_plot, c=colors[criterion])
 
         if criterion == "BIC":
             ax.axvline(
