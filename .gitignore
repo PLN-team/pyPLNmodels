@@ -2,6 +2,7 @@
 __pycache__/
 *egg-info
 docs/build/
+docs/source/vignettes/*.html
 tests/docstrings_examples/
 tests/getting_started/
 tests/readme_examples/
