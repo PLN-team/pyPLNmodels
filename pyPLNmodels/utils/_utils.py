@@ -285,7 +285,7 @@ def get_confusion_matrix(pred_clusters: ArrayLike, true_clusters: ArrayLike):
 def _ensure_int_labels(array):
     if len(np.shape(array)) > 1:
         return np.argmax(array, axis=1), None
-    if not np.issubdtype(array.dtype, np.integer):
+    if not np.issubdtype(array.dtype, int):
         label_encoder = LabelEncoder()
         return label_encoder.fit_transform(array), label_encoder
     return array, None

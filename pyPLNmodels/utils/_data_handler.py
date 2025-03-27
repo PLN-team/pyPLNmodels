@@ -245,7 +245,7 @@ def _format_data(
 
 
 def _series_to_tensor_and_encoder(series: pd.Series) -> torch.Tensor:
-    if series.dtype in [np.int64, np.float64]:
+    if series.dtype in [int, np.float64]:
         return torch.tensor(series.values).to(DEVICE), None
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(series)
