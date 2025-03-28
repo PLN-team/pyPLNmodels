@@ -1,17 +1,77 @@
 ---
-title: "Correlation Analysis with `Pln` and `PlnPCA` models"
+title: "Multivariate count data analysis with `pyPLNmodels`"
 date: "2025-03-27"
+# format: html
 format:
     html:
-        self-contained: true
+        embed-resources: true
 ---
 
-# Introduction
 
+In this tutorial, we will explore the fundamentals of multivariate count data analysis using the
+`pyPLNmodels` package. This package includes two primary models for this purpose:
+
+* `Pln` model ([documentation](https://pln-team.github.io/pyPLNmodels/pln.html))
+* `PlnPCA` model ([documentation](https://pln-team.github.io/pyPLNmodels/plnpca.html))
+
+The `PlnPCA` model performs a similar function to the `Pln` model but is designed to
+handle high-dimensional data, albeit with a slight compromise in parameter estimation accuracy.
+
+
+# Statistical background
+
+Given a count matrix $Y$, each model assumes the following:
+
+$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
+with input data
+
+* $Y_{ij}$ (denoted `endog`) is the $j$-th count for the $i$-th observation
+* $X_i$ (denoted `exog` in the package) covariates for the $i$-th observation (if available)
+* $o_i$ (denoted `offsets`) offset for the $i$-th observation (if available)
+
+and model parameters
+
+* $B$ (denoted `coef` in the package) is a matrix of regression coefficients
+* $\Sigma$ (denoted `covariance` in the package) is the covariance matrix of the latent variables $Z_i$
+
+  The `Pln` model assumes that $\Sigma$ has full
+  rank, whereas the `PlnPCA` model assumes that
+  $\Sigma$ has a low rank, which must be
+  specified by the user. A lower rank results in
+  a greater compromise in parameter estimation.
+
+### Role
+
+The role of the `pyPLNmodels` package is to estimate the parameters $B$ and
+$\Sigma$ using the input matrix $Y$ and, if available, the covariate matrix $X$ and offsets $O$.
+
+
+# Data importation
+
+In this tutorial, we will analyse single-cell RNA-seq data available in the
+`load_scrna` function of the package. In this dataset, each column corresponds to
+a gene, and each row (i.e. individual) corresponds to a cell. Covariates are
+available, corresponding to the cell type (`labels`):
 
 ```{python}
-print("Hello, quarto!")
+from pyPLNmodels import load_scrna
+rna = load_scrna()
+print('Data: ', rna.keys())
 ```
+
+## Data structure
+
+```{python}
+endog = rna["endog"]
+print(endog.head())
+```
+
+```{python}
+cell_type = rna["labels"]
+print(cell_type.head())
+```
+
+
 
 ## Section 1
 
