@@ -107,8 +107,8 @@ jobs:
 
   pages:
     runs-on: ubuntu-22.04
-    needs: publish_package
-    if: github.event_name == 'release'
+    # needs: publish_package
+    # if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -126,6 +126,10 @@ jobs:
       - name: Build docs
         run: |
           pip install .
+          pip install quarto-cli
+          cd docs/source/vignettes/
+          quarto render correlation_analysis.qmd
+          cd ../../../
           make -C docs html
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
