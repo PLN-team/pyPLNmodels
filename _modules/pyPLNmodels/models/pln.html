@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e2a723ec"></script>
+      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,7 +44,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -722,7 +725,7 @@
     <span class="nd">@property</span>
     <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span></div>
 
 </pre></div>
 

@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e2a723ec"></script>
+      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,7 +44,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -106,6 +109,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.plnpca</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlnPCA</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span><span class="p">,</span> <span class="n">_init_next_model_pca</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="n">_extract_data_from_formula</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_show_collection_and_explained_variance</span>
 
 <span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
 
@@ -320,6 +324,24 @@
     <span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">best_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">criterion</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;BIC&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlnPCA</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">best_model</span><span class="p">(</span><span class="n">criterion</span><span class="o">=</span><span class="n">criterion</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PlnPCACollection.show">
+<a class="viewcode-back" href="../../../plnpcacollection.html#pyPLNmodels.PlnPCACollection.show">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">figsize</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.</span>
+<span class="sd">        Also show the explained variance pourcentage.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        figsize : tuple of two positive floats.</span>
+<span class="sd">            Size of the figure that will be created. By default (10,10)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">absc_label</span> <span class="o">=</span> <span class="s2">&quot;Number of Principal Component (i.e. rank number)&quot;</span>
+        <span class="n">_show_collection_and_explained_variance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">absc_label</span><span class="o">=</span><span class="n">absc_label</span>
+        <span class="p">)</span></div>
 </div>
 
 </pre></div>

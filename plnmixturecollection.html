@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=e2a723ec"></script>
+<script src="_static/documentation_options.js?v=67224d9c"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,6 +40,9 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -62,6 +65,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.latent_means"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.latent_means</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.latent_variances"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.latent_variances</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.best_model"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.best_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.WCSS"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.WCSS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.silhouette"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.silhouette</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.show"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.show()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.AIC"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.AIC</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.BIC"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.BIC</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.ICL"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.ICL</span></code></a></li>
@@ -77,7 +83,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.n_samples"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.n_samples</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.nb_cov"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.nb_cov</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.offsets"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.offsets</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.show"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.show()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection.values"><code class="docutils literal notranslate"><span class="pre">PlnMixtureCollection.values()</span></code></a></li>
 </ul>
 </li>
@@ -152,7 +157,7 @@ Framework for the Joint Analysis of Species Abundances.”</p>
 <li><p><strong>endog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em>)</p></li>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>n_clusters</strong> (<em>Iterable</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
@@ -324,6 +329,48 @@ By default (2, 3, 4)</p></li>
 </div>
 </dd></dl>
 <dl class="py property">
+<dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.WCSS">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WCSS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyPLNmodels.PlnMixtureCollection.WCSS" title="Link to this definition"></a></dt>
+<dd><p>Compute the Within-Cluster Sum of Squares on the latent positions
+for each model in the collection.</p>
+<p>The higher the better, but increasing n_cluster can only increase the
+metric. A trade-off (with the elbow method for example) must be applied.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The WCSS scores of the models.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict[int, float]</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.silhouette">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">silhouette</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyPLNmodels.PlnMixtureCollection.silhouette" title="Link to this definition"></a></dt>
+<dd><p>Compute the silhouette score on the latent_positions for each model in the collection.
+See scikit-learn.metrics.silhouette_score for more information.</p>
+<p>The higher the better.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The silhouette scores of the models.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict[int, float]</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.show">
+<span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(15,</span> <span class="pre">10)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnmixturecollection.html#PlnMixtureCollection.show"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnMixtureCollection.show" title="Link to this definition"></a></dt>
+<dd><p>Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+Also show two cluster criterion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>figsize</strong> (<em>tuple</em><em> of </em><em>two positive floats.</em>) – Size of the figure that will be created. By default (10,15)</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py property">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.AIC">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AIC</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyPLNmodels.PlnMixtureCollection.AIC" title="Link to this definition"></a></dt>
 <dd><p>Property representing the AIC scores of the models in the collection.</p>
@@ -332,7 +379,7 @@ By default (2, 3, 4)</p></li>
 <dd class="field-odd"><p>The AIC scores of the models.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict[float, int]</p>
+<dd class="field-even"><p>Dict[int, float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -345,7 +392,7 @@ By default (2, 3, 4)</p></li>
 <dd class="field-odd"><p>The BIC scores of the models.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict[float, int]</p>
+<dd class="field-even"><p>Dict[int, float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -358,7 +405,7 @@ By default (2, 3, 4)</p></li>
 <dd class="field-odd"><p>The ICL scores of the models.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict[float, int]</p>
+<dd class="field-even"><p>Dict[int, float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -502,16 +549,6 @@ given in initialization.</p>
 </dl>
 </dd></dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.show">
-<span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(10,</span> <span class="pre">10)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLNmodels.PlnMixtureCollection.show" title="Link to this definition"></a></dt>
-<dd><p>Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>figsize</strong> (<em>tuple</em><em> of </em><em>two positive floats.</em>) – Size of the figure that will be created. By default (10,10)</p>
-</dd>
-</dl>
-</dd></dl>
-<dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.values">
 <span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyPLNmodels.PlnMixtureCollection.values" title="Link to this definition"></a></dt>
 <dd><p>Models in the collection as a list.</p>
@@ -540,6 +577,12 @@ given in initialization.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">latent_variances</span></code></p></td>
 <td><p>Property representing the latent mean, for each model in the collection.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">WCSS</span></code></p></td>
+<td><p>Compute the Within-Cluster Sum of Squares on the latent positions for each model in the collection.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">silhouette</span></code></p></td>
+<td><p>Compute the silhouette score on the latent_positions for each model in the collection.</p></td>
 </tr>
 </tbody>
 </table>
@@ -602,6 +645,9 @@ given in initialization.</p>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">best_model</span></code>([criterion])</p></td>
 <td><p>Get the best model according to the specified criterion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">show</span></code>([figsize])</p></td>
+<td><p>Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.</p></td>
 </tr>
 </tbody>
 </table>

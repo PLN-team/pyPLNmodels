@@ -3,7 +3,7 @@
 ..
 
 |PyPI| |GitHub| |Python Versions| |Code Style: Black| |Pylint| |GPU
-Support|
+Support| |codecov| |last commit|
 
 PLNmodels: Poisson lognormal models
 ===================================
@@ -382,3 +382,7 @@ Please cite our work using the following references:
 .. |Code Style: Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
 .. |Pylint| image:: https://img.shields.io/badge/pylint-checked-brightgreen
 .. |GPU Support| image:: https://img.shields.io/badge/GPU-Supported-brightgreen
+.. |codecov| image:: https://codecov.io/gh/PLN-team/pyPLNmodels/graph/badge.svg?token=TNFROMLF9Z
+   :target: https://codecov.io/gh/PLN-team/pyPLNmodels
+.. |last commit| image:: https://img.shields.io/github/last-commit/PLN-team/pyPLNmodels
+   :target: https://github.com/PLN-team/pyPLNmodels

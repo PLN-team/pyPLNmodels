@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e2a723ec"></script>
+      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,7 +44,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -105,7 +108,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="n">_handle_data</span><span class="p">,</span> <span class="n">_extract_data_from_formula</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_show_information_criterion</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_show_collection</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span><span class="p">,</span> <span class="n">_nice_string_of_dict</span>
 
 
@@ -480,7 +483,9 @@
             <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">next_model</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_init_next_model_with_current_model</span><span class="p">(</span><span class="n">next_model</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_print_ending_message</span><span class="p">()</span>
+
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_print_ending_message</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -503,7 +508,7 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        Dict[float, int]</span>
+<span class="sd">        Dict[int, float]</span>
 <span class="sd">            The BIC scores of the models.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">grid_value</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">grid_value</span><span class="p">]</span><span class="o">.</span><span class="n">BIC</span><span class="p">)</span> <span class="k">for</span> <span class="n">grid_value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">}</span>
@@ -515,7 +520,7 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        Dict[float, int]</span>
+<span class="sd">        Dict[int, float]</span>
 <span class="sd">            The ICL scores of the models.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">grid_value</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">grid_value</span><span class="p">]</span><span class="o">.</span><span class="n">ICL</span><span class="p">)</span> <span class="k">for</span> <span class="n">grid_value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">}</span>
@@ -527,7 +532,7 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        Dict[float, int]</span>
+<span class="sd">        Dict[int, float]</span>
 <span class="sd">            The AIC scores of the models.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">grid_value</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">grid_value</span><span class="p">]</span><span class="o">.</span><span class="n">AIC</span><span class="p">)</span> <span class="k">for</span> <span class="n">grid_value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">}</span>
@@ -578,13 +583,7 @@
 <span class="sd">        figsize : tuple of two positive floats.</span>
 <span class="sd">            Size of the figure that will be created. By default (10,10)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_show_information_criterion</span><span class="p">(</span>
-            <span class="n">bic</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">BIC</span><span class="p">,</span>
-            <span class="n">aic</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC</span><span class="p">,</span>
-            <span class="n">icl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ICL</span><span class="p">,</span>
-            <span class="n">loglikes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loglike</span><span class="p">,</span>
-            <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">_show_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">absc_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid_value_name</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_useful_methods_strings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

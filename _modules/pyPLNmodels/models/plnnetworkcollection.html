@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e2a723ec"></script>
+      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,7 +44,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -231,9 +234,11 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">next_model</span><span class="p">:</span> <span class="n">PlnNetwork</span><span class="p">,</span> <span class="n">current_model</span><span class="p">:</span> <span class="n">PlnNetwork</span>
     <span class="p">):</span>
         <span class="c1"># coef is a closed form</span>
-        <span class="n">next_model</span><span class="o">.</span><span class="n">components_prec</span> <span class="o">=</span> <span class="n">current_model</span><span class="o">.</span><span class="n">components_prec</span>
-        <span class="n">next_model</span><span class="o">.</span><span class="n">latent_mean</span> <span class="o">=</span> <span class="n">current_model</span><span class="o">.</span><span class="n">latent_mean</span>
-        <span class="n">next_model</span><span class="o">.</span><span class="n">latent_sqrt_variance</span> <span class="o">=</span> <span class="n">current_model</span><span class="o">.</span><span class="n">latent_sqrt_variance</span>
+        <span class="n">next_model</span><span class="o">.</span><span class="n">components_prec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">current_model</span><span class="o">.</span><span class="n">components_prec</span><span class="p">)</span>
+        <span class="n">next_model</span><span class="o">.</span><span class="n">latent_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">current_model</span><span class="o">.</span><span class="n">latent_mean</span><span class="p">)</span>
+        <span class="n">next_model</span><span class="o">.</span><span class="n">latent_sqrt_variance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span>
+            <span class="n">current_model</span><span class="o">.</span><span class="n">latent_sqrt_variance</span>
+        <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">precision</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>

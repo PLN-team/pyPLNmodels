@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=e2a723ec"></script>
+<script src="_static/documentation_options.js?v=67224d9c"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,6 +40,9 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -79,6 +82,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.predict_clusters"><code class="docutils literal notranslate"><span class="pre">PlnMixture.predict_clusters()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.sigma"><code class="docutils literal notranslate"><span class="pre">PlnMixture.sigma()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.entropy"><code class="docutils literal notranslate"><span class="pre">PlnMixture.entropy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.WCSS"><code class="docutils literal notranslate"><span class="pre">PlnMixture.WCSS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.silhouette"><code class="docutils literal notranslate"><span class="pre">PlnMixture.silhouette</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.AIC"><code class="docutils literal notranslate"><span class="pre">PlnMixture.AIC</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.BIC"><code class="docutils literal notranslate"><span class="pre">PlnMixture.BIC</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.PlnMixture.ICL"><code class="docutils literal notranslate"><span class="pre">PlnMixture.ICL</span></code></a></li>
@@ -189,7 +194,7 @@ may significantly decrease with the number of covariates.</p>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -613,6 +618,22 @@ The dimensions of <cite>endog</cite>, <cite>exog</cite>, and <cite>offsets</cite
 <dd><p>Entropy of the latent variables.</p>
 </dd></dl>
 <dl class="py property">
+<dt class="sig sig-object py" id="pyPLNmodels.PlnMixture.WCSS">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">WCSS</span></span><a class="headerlink" href="#pyPLNmodels.PlnMixture.WCSS" title="Link to this definition"></a></dt>
+<dd><p>Compute the Within-Cluster Sum of Squares on the latent positions.</p>
+<p>The higher the better, but increasing n_cluster can only increase the
+metric. A trade-off (with the elbow method for example) must be applied.</p>
+<p>Returns positive float.</p>
+</dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="pyPLNmodels.PlnMixture.silhouette">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">silhouette</span></span><a class="headerlink" href="#pyPLNmodels.PlnMixture.silhouette" title="Link to this definition"></a></dt>
+<dd><p>Compute the silhouette score on the latent_positions.
+See scikit-learn.metrics.silhouette_score for more information.</p>
+<p>The higher the better.</p>
+<p>Returns float between -1 and 1.</p>
+</dd></dl>
+<dl class="py property">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixture.AIC">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AIC</span></span><a class="headerlink" href="#pyPLNmodels.PlnMixture.AIC" title="Link to this definition"></a></dt>
 <dd><p>Akaike Information Criterion (AIC).</p>
@@ -922,6 +943,12 @@ Default is <cite>False</cite>.</p>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">entropy</span></code></p></td>
 <td><p>Entropy of the latent variables.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">WCSS</span></code></p></td>
+<td><p>Compute the Within-Cluster Sum of Squares on the latent positions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">silhouette</span></code></p></td>
+<td><p>Compute the silhouette score on the latent_positions.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">optim</span></code></p></td>
 <td><p></p></td>

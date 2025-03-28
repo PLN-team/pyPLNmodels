@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=e2a723ec"></script>
+<script src="_static/documentation_options.js?v=67224d9c"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,6 +40,9 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -154,7 +157,7 @@ reconstruction from count data”</p>
 <li><p><strong>endog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em>)</p></li>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>penalties</strong> (<em>Iterable</em><em>[</em><em>float</em><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
@@ -361,7 +364,7 @@ in the collection.</p>
 <dd class="field-odd"><p>The AIC scores of the models.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict[float, int]</p>
+<dd class="field-even"><p>Dict[int, float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -374,7 +377,7 @@ in the collection.</p>
 <dd class="field-odd"><p>The BIC scores of the models.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict[float, int]</p>
+<dd class="field-even"><p>Dict[int, float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -387,7 +390,7 @@ in the collection.</p>
 <dd class="field-odd"><p>The ICL scores of the models.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict[float, int]</p>
+<dd class="field-even"><p>Dict[int, float]</p>
 </dd>
 </dl>
 </dd></dl>
