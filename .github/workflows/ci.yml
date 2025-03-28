@@ -107,8 +107,8 @@ jobs:
 
   pages:
     runs-on: ubuntu-22.04
-    # needs: publish_package
-    # if: github.event_name == 'release'
+    needs: publish_package
+    if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
