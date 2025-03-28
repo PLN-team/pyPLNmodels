@@ -1,5 +1,5 @@
-My new Vignette
-===============
+Basic analysis with `pyPLNmodels`
+=================================
 
 
-Click `here <correlation_analysis.html>`_ to view the vignette.
+See the `basic analysis <basic_analysis.html>`_.
