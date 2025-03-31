@@ -222,7 +222,7 @@ class PlnPCACollection(Collection):
         figsize : tuple of two positive floats.
             Size of the figure that will be created. By default (10,10)
         """
-        absc_label = "Number of Principal Component (i.e. rank number)"
+        absc_label = "Number of Principal Components (i.e. rank number)"
         _show_collection_and_explained_variance(
             self, figsize=figsize, absc_label=absc_label
         )

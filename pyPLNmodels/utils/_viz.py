@@ -462,8 +462,8 @@ def _display_percentage_variance(ax, dict_explained_variance):
         ax,
         dict_explained_variance,
         xlabel="Number of Principal Component (i.e. rank number)",
-        ylabel="Variance Explained (%)",
-        title="PCA: Variance Explained by Each Component",
+        ylabel="Cumulative Variance Explained (%)",
+        title="PCA: Cumulatative Variance Explained by Each Component",
     )
 
 
@@ -931,6 +931,7 @@ def _show_collection_and_clustering_criterions(collection, figsize, absc_label):
         xlabel="",
         ylabel="Within-Cluster Sum of Clusters",
         title="",
+        cumsum=False,
     )
 
     _display_metric(
@@ -939,6 +940,7 @@ def _show_collection_and_clustering_criterions(collection, figsize, absc_label):
         xlabel="Number of clusters",
         ylabel="Silhouette score",
         title="",
+        cumsum=False,
     )
     argmax_sil = np.argmax(list(collection.silhouette.values()))
     axes[2].axvline(
@@ -1490,11 +1492,16 @@ def _plot_forest_coef(
     plt.show()
 
 
-def _display_metric(ax, dict_metric, xlabel, ylabel, title):
-
+def _display_metric(
+    ax, dict_metric, xlabel, ylabel, title, cumsum=True
+):  # pylint: disable=too-many-arguments, too-many-positional-arguments
+    if cumsum is True:
+        y_values = np.cumsum(list(dict_metric.values())).squeeze()
+    else:
+        y_values = dict_metric.values()
     ax.plot(
         dict_metric.keys(),
-        dict_metric.values(),
+        y_values,
         marker="o",
         linestyle="--",
     )
