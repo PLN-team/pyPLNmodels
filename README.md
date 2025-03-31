@@ -35,8 +35,7 @@ that an `R` version of the package is available [here](https://pln-team.github.i
 
 ## 🛠 Installation
 
-**pyPLNmodels** is available on [pypi](https://pypi.org/project/pyPLNmodels/). The development
-version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels) and [GitLab](https://gitlab.com/Bastien-mva/pyplnmodels).
+**pyPLNmodels** is available on [pypi](https://pypi.org/project/pyPLNmodels/).
 
 ### Package installation
 ```sh

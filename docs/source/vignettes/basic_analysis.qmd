@@ -25,8 +25,8 @@ Given a count matrix $Y$, each model assumes the following:
 $$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
 with input data
 
-* $Y_{ij}$ (denoted `endog`) is the $j$-th count for the $i$-th observation
-* $X_i$ (denoted `exog` in the package) covariates for the $i$-th observation (if available)
+* $Y_{ij}$ (denoted `endog` in the package) is the $j$-th count for the $i$-th observation
+* $X_i$ (denoted `exog`) covariates for the $i$-th observation (if available)
 * $o_i$ (denoted `offsets`) offset for the $i$-th observation (if available)
 
 and model parameters
@@ -34,25 +34,29 @@ and model parameters
 * $B$ (denoted `coef` in the package) is a matrix of regression coefficients
 * $\Sigma$ (denoted `covariance` in the package) is the covariance matrix of the latent variables $Z_i$
 
-  The `Pln` model assumes that $\Sigma$ has full
-  rank, whereas the `PlnPCA` model assumes that
-  $\Sigma$ has a low rank, which must be
-  specified by the user. A lower rank results in
-  a greater compromise in parameter estimation.
+
+The `Pln` model assumes that $\Sigma$ has full rank, whereas the `PlnPCA` model
+assumes that $\Sigma$ has a low rank, which must be specified by the user. A
+lower rank results in a greater compromise in parameter estimation.
+
 
 ### Role
 
-The role of the `pyPLNmodels` package is to estimate the parameters $B$ and
-$\Sigma$ using the input matrix $Y$ and, if available, the covariate matrix $X$ and offsets $O$.
+The role of the `pyPLNmodels` package is to
+
+* estimate the parameters $B$ and
+$\Sigma$
+* retrieving the latent variables $Z$
+using the input matrix $Y$ and, if available, the covariate matrix $X$ (defaults to a vector of 1's) and offsets $O$ (defaults to a matrix of 0's).
 
 
 # Data importation
 
-In this tutorial, we will analyse single-cell RNA-seq data available in the
-`load_scrna` function of the package. In this dataset, each column corresponds to
-a gene, and each row (i.e. individual) corresponds to a cell. Covariates are
-available, corresponding to the cell type (`labels`). For visualization
-purposes, we will take only 20 variables (i.e. dimensions).
+In this tutorial, we will analyze single-cell RNA-seq data available through
+the `load_scrna` function of the package. In this dataset, each column
+represents a gene, and each row (i.e., individual) represents a cell.
+Covariates corresponding to the cell type (`labels`) are also available. For
+visualization purposes, we will consider only 20 variables (i.e., dimensions).
 
 ```{python}
 from pyPLNmodels import load_scrna
@@ -78,112 +82,128 @@ print(cell_type.head())
 ```
 
 
-## Model intialization and fitting
+# Model intialization and fitting
 
 
 We aim to analyze the mean values for each cell type. The following method uses
-cell type as covariates, with the `Macrophages` correspond to the reference value:
+cell type as covariates, with `Macrophages` serving as the reference value:
 
 ```{python}
 from pyPLNmodels import Pln
 pln = Pln.from_formula('endog ~ 1 + labels', data=rna).fit()
 ```
 
-### Retrieving latent variables
-
-The latent variables can be retrieved using the `latent_variables` attribute:
-
-
-```{python}
-Z = pln.latent_variables
-print('Shape', Z.shape)
-```
+For additional details on the formula syntax and model initialization, including how to account for offsets, please refer to the relevant documentation.
 
 Printing the model gives useful information about the model:
+
 ```{python}
 print(pln)
 ```
-and the `.show()` gives some insightful information:
-```{python}
-pln.show(figsize=(10, 5))
-```
-# Visualizing latent variables
-
-The latent variables may be visualized across multiple methods:
-```{python}
-pln.viz(colors = cell_type)
-```
-The effect of covariates may be removed, using the `remove_exog_effet` keyword
-of the `.viz` method (effectively visualizing the `latent_positions`):
-```{python}
-pln.viz(colors = cell_type, remove_exog_effect=True)
-```
-
-A pair plot of the first Principal Components (PCs) of the latent variables may be visualized:
+The `.show()` method provides valuable insights into the parameters and the optimization process:
 
 ```{python}
-pln.pca_pairplot(n_components = 4, colors = cell_type)
+pln.show()
 ```
 
+# Visualizing Latent Variables
 
+The latent variables \(Z\) can be accessed via the `latent_variables` attribute:
 
-# Covariates effect
+```{python}
+Z = pln.latent_variables
+print('Shape of Z:', Z.shape)
+```
 
-The model clearly shows that the mean values of the macrophages cells is higher
-than the T_cells_CD4+ and T_cells_CD8+ means.
+Several methods can be used to visualize these variables:
 
-#### Confidence intervals and p-values
+```{python}
+pln.viz(colors=cell_type)
+```
 
-A summary of the model, giving confidence interval and p-values, is available using the `summary` method:
+To remove the effect of covariates, use the `remove_exog_effect` parameter in
+the `.viz` method (effectively visualizing the `latent_positions`, corresponding to $Z - XB$):
+
+```{python}
+pln.viz(colors=cell_type, remove_exog_effect=True)
+```
+
+A pair plot of the first Principal Components (PCs) of the latent variables can be generated with:
+
+```{python}
+pln.pca_pairplot(n_components=4, colors=cell_type)
+```
+
+---
+
+# Covariate Effects
+
+The model highlights that the mean value for Macrophages cells is higher than for T_cells_CD4+ and T_cells_CD8+.
+
+### Confidence Intervals and p-values
+
+A summary of the model, including confidence intervals and p-values, can be obtained using the `summary` method:
 
 ```{python}
 pln.summary()
 ```
-Visualizing the confidence intervals can be done using the `plot_regression_forest` method:
+
+Confidence intervals can be visualized using the `plot_regression_forest` method:
+
 ```{python}
 pln.plot_regression_forest()
 ```
-# Covariance visualization
 
-The effect of each variable may be visualized using the   `plot_correlation_circle()` and `.biplot()` methods:
+---
 
-#### Correlation circle
+# Covariance and variable visualization
+
+The effect of each variable can be analyzed using the `plot_correlation_circle()` and `biplot()` methods.
+
+### Correlation Circle
 
 ```{python}
-pln.plot_correlation_circle(column_names = ["FTL", "MALAT1","FTH1"])
+pln.plot_correlation_circle(column_names=["FTL", "MALAT1", "FTH1"])
 ```
+
+### Biplot
+
+The `.biplot()` method allows simultaneous visualization of variables and latent variables ($Z$):
 
 ```{python}
-pln.plot_correlation_circle(column_names = ["FTL", "MALAT1","FTH1"], colors = cell_type)
+pln.biplot(column_names=["FTL", "MALAT1", "FTH1"], colors=cell_type)
 ```
-#### Biplot
+
+---
+
+# `PlnPCA` Model
+
+The `PlnPCA` model can be used in the same way as the `Pln` model, with the same syntax:
+
 ```{python}
-pln.biplot(column_names = ["FTL", "MALAT1","FTH1"], colors = cell_type)
+from pyPLNmodels import PlnPCA
+high_d_rna = load_scrna(dim = 1000)
+pca = PlnPCA.from_formula('endog ~ 1 + labels', data=high_d_rna, rank=5).fit()
+```
+Note that p-values are not available in the `PlnPCA` model.
+
+This model is particularly useful for high-dimensional data, as its computation time is significantly lower than that of `Pln`.
+
+```{python}
+print(pca)
 ```
 
+The number of ranks is an hyperparameter that can be user-defined. A more data-driven approach to selecting the rank can be achieved using the `PlnPCACollection` class:
 
+```{python}
+from pyPLNmodels import PlnPCACollection
+pcas = PlnPCACollection.from_formula('endog ~ 1 + labels', data=high_d_rna, ranks=[2,3,5, 10, 15]).fit()
+```
 
-## Accounting for offsets
+Calling `.show()` on the collection gives some insights on which rank to choose:
 
+```{python}
+pcas.show()
+```
 
-
-
-
-
-
-
-## Section 1
-
-Working fine.
-
-### Subsection 1.1
-
-Content for the first subsection.
-
-## Section 2
-
-Content for the second section.
-
-# Conclusion
-
-Write your conclusion here.
+The collection clearly indicates that a rank of 2 is the most appropriate for this dataset.
