@@ -51,25 +51,124 @@ $\Sigma$ using the input matrix $Y$ and, if available, the covariate matrix $X$ 
 In this tutorial, we will analyse single-cell RNA-seq data available in the
 `load_scrna` function of the package. In this dataset, each column corresponds to
 a gene, and each row (i.e. individual) corresponds to a cell. Covariates are
-available, corresponding to the cell type (`labels`):
+available, corresponding to the cell type (`labels`). For visualization
+purposes, we will take only 20 variables (i.e. dimensions).
 
 ```{python}
 from pyPLNmodels import load_scrna
-rna = load_scrna()
+rna = load_scrna(dim = 20)
 print('Data: ', rna.keys())
 ```
 
 ## Data structure
+
+### Count matrix  (`endog`)
 
 ```{python}
 endog = rna["endog"]
 print(endog.head())
 ```
 
+### Cell type
+
 ```{python}
 cell_type = rna["labels"]
+print('Possible cell types: ', cell_type.unique())
 print(cell_type.head())
 ```
+
+
+## Model intialization and fitting
+
+
+We aim to analyze the mean values for each cell type. The following method uses
+cell type as covariates, with the `Macrophages` correspond to the reference value:
+
+```{python}
+from pyPLNmodels import Pln
+pln = Pln.from_formula('endog ~ 1 + labels', data=rna).fit()
+```
+
+### Retrieving latent variables
+
+The latent variables can be retrieved using the `latent_variables` attribute:
+
+
+```{python}
+Z = pln.latent_variables
+print('Shape', Z.shape)
+```
+
+Printing the model gives useful information about the model:
+```{python}
+print(pln)
+```
+and the `.show()` gives some insightful information:
+```{python}
+pln.show(figsize=(10, 5))
+```
+# Visualizing latent variables
+
+The latent variables may be visualized across multiple methods:
+```{python}
+pln.viz(colors = cell_type)
+```
+The effect of covariates may be removed, using the `remove_exog_effet` keyword
+of the `.viz` method (effectively visualizing the `latent_positions`):
+```{python}
+pln.viz(colors = cell_type, remove_exog_effect=True)
+```
+
+A pair plot of the first Principal Components (PCs) of the latent variables may be visualized:
+
+```{python}
+pln.pca_pairplot(n_components = 4, colors = cell_type)
+```
+
+
+
+# Covariates effect
+
+The model clearly shows that the mean values of the macrophages cells is higher
+than the T_cells_CD4+ and T_cells_CD8+ means.
+
+#### Confidence intervals and p-values
+
+A summary of the model, giving confidence interval and p-values, is available using the `summary` method:
+
+```{python}
+pln.summary()
+```
+Visualizing the confidence intervals can be done using the `plot_regression_forest` method:
+```{python}
+pln.plot_regression_forest()
+```
+# Covariance visualization
+
+The effect of each variable may be visualized using the   `plot_correlation_circle()` and `.biplot()` methods:
+
+#### Correlation circle
+
+```{python}
+pln.plot_correlation_circle(column_names = ["FTL", "MALAT1","FTH1"])
+```
+
+```{python}
+pln.plot_correlation_circle(column_names = ["FTL", "MALAT1","FTH1"], colors = cell_type)
+```
+#### Biplot
+```{python}
+pln.biplot(column_names = ["FTL", "MALAT1","FTH1"], colors = cell_type)
+```
+
+
+
+## Accounting for offsets
+
+
+
+
+
 
 
 
