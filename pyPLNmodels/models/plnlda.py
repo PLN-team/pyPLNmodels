@@ -728,6 +728,9 @@ class PlnLDA(Pln):
             If the number of clusters is 2, as the latent variables will be of dimension
             and visualization is not possible.
         """,
+        notes="""
+        The effect of covariates is always removed for visualization_purposes.
+        """,
     )
     def biplot(
         self,
@@ -736,7 +739,7 @@ class PlnLDA(Pln):
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+    ):  # pylint: disable=arguments-differ
         if self._n_cluster == 2:
             _raise_error_1D_viz()
         column_index = _process_column_index(

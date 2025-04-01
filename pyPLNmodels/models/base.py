@@ -251,9 +251,10 @@ class BaseModel(
         column_names,
         *,
         column_index: np.ndarray = None,
+        remove_exog_effect: bool = False,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+    ):  # pylint:disable=too-many-arguments
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
@@ -273,6 +274,8 @@ class BaseModel(
             If `None`, the indices are determined based on `column_names_endog`
             given the `column_names`, by default `None`.
             If not None, should have the same length as `column_names`.
+        remove_exog_effect: bool, optional
+            Whether to remove or not the effect of exogenous variables. Default to `False`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
@@ -292,7 +295,7 @@ class BaseModel(
             column_names, column_index, self.column_names_endog
         )
         return _biplot(
-            self.transform(),
+            self.transform(remove_exog_effect=remove_exog_effect),
             column_names,
             column_index=column_index,
             colors=colors,
@@ -992,7 +995,7 @@ class BaseModel(
                 than the number of variables in the dataset.
         """
         min_n_components = min(6, n_components)
-        array = self.transform().numpy()
+        array = self.latent_positions.numpy()
         _pca_pairplot(array, min_n_components, colors)
 
     def plot_expected_vs_true(self, ax=None, colors=None):

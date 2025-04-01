@@ -278,7 +278,7 @@ class PlnPCA(BaseModel):
             If the components have an invalid shape (i.e. not (dim, rank)).
         """
         _check_array_size(components, self.dim, self.rank, "components")
-        self._components = components
+        self._components = torch.clone(components)
 
     @property  # Here only to be able to define a setter.
     @_add_doc(BaseModel)
@@ -428,12 +428,14 @@ class PlnPCA(BaseModel):
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         super().biplot(
             column_names=column_names,
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @_add_doc(

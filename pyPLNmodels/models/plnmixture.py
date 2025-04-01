@@ -348,13 +348,6 @@ class PlnMixture(
         )
         return torch.sum(exp_term * self.latent_prob.T.unsqueeze(2), dim=0)
 
-    @_add_doc(
-        BaseModel,
-        example="""
-        """,
-        notes="""
-        """,
-    )
     def biplot(
         self,
         column_names,
@@ -362,7 +355,8 @@ class PlnMixture(
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
@@ -386,6 +380,8 @@ class PlnMixture(
             An additional title for the plot.
         colors : list, optional, keyword-only
             The labels to color the samples, by default the inferred clusters.
+        remove_exog_effect: bool, optional
+            Whether to remove or not the effect of exogenous variables. Default to `False`.
 
         Raises
         ------
@@ -420,6 +416,7 @@ class PlnMixture(
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @property

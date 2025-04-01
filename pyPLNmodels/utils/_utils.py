@@ -326,13 +326,19 @@ def _init_next_model_pca(next_model, current_model):
         next_model.coef = None
     else:
         next_model.coef = torch.clone(current_model.coef)
-    new_components = torch.zeros(current_model.dim, next_model.rank)
+    new_components = torch.randn(current_model.dim, next_model.rank) / (
+        10 * current_model.dim
+    )
     new_components[:, : current_model.rank] = current_model.components
     next_model.components = torch.clone(new_components)
-    new_latent_mean = torch.zeros(current_model.n_samples, next_model.rank)
+    new_latent_mean = torch.randn(current_model.n_samples, next_model.rank) / (
+        10 * current_model.dim
+    )
     new_latent_mean[:, : current_model.rank] = current_model.latent_mean
     next_model.latent_mean = torch.clone(new_latent_mean)
-    new_latent_sqrt_variance = torch.ones(current_model.n_samples, next_model.rank) / 10
+    new_latent_sqrt_variance = torch.abs(
+        torch.randn(current_model.n_samples, next_model.rank)
+    ) / (10 * current_model.dim)
     new_latent_sqrt_variance[:, : current_model.rank] = (
         current_model.latent_sqrt_variance
     )

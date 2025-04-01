@@ -320,12 +320,14 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         super().biplot(
             column_names=column_names,
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @_add_doc(
