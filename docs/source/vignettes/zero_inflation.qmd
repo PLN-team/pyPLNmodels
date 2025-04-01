@@ -1,0 +1,65 @@
+---
+title: "Multivariate count data analysis of zero-inflated data with `pyPLNmodels`"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+---
+
+In this tutorial, we will analyse zero-inflated count data using the
+`pyPLNmodels` package.
+When the data is complex, simple models like Zero Inflation Poisson Regression
+([ZIP](https://www.statsmodels.org/stable/generated/statsmodels.discrete.count_model.ZeroInflatedPoisson.html))
+may lose valuable insights, such as correlation between variables.
+This package includes two primary models for this purpose, effectively dealing
+with zero-inflated data ($\approx$ percentage of 0's $>50\%$):
+
+* `ZIPln` model ([documentation](https://pln-team.github.io/pyPLNmodels/zipln.html))
+* `ZIPlnPCA` model ([documentation](https://pln-team.github.io/pyPLNmodels/ziplnpca.html))
+
+
+
+The `ZIPlnPCA` model, similar to the `ZIPln` model, is specifically designed to
+handle high-dimensional data, though it may slightly reduce parameter
+estimation accuracy. These models are analogous to the
+[`Pln`](https://pln-team.github.io/pyPLNmodels/pln.html) and
+[`PlnPCA`](https://pln-team.github.io/pyPLNmodels/plnpca.html) models but are
+capable of managing zero-inflation, albeit with an increase in computational time.
+
+# Statistical background
+
+Given a count matrix $Y$, each model assumes the following:
+
+$$ Y_{ij}| Z_{ij}, W_{ij} \sim   (1 -W_{ij})\mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma), \quad W_{ij} \sim \mathcal B(\sigma(X_i^{0^{\top}} B^0_j))$$
+The latent variable $W$ is here to model the zero-inflation part of the data.
+The input data is given by
+
+* $Y_{ij}$ (denoted `endog` in the package) is the $j$-th count for the $i$-th observation
+* $X_i$ (denoted `exog`) covariates for the $i$-th observation (if available)
+* $X^0_i$ (denoted `exog_inflation`) covariates for the $i$-th observation (if available) for the inflation part
+* $o_i$ (denoted `offsets`) offset for the $i$-th observation (if available)
+
+and model parameters
+
+* $B$ (denoted `coef` in the package) is a matrix of regression coefficients
+* $B^0$ (denoted `coef_inflation` in the package) is a matrix of regression coefficients for the inflation part
+* $\Sigma$ (denoted `covariance` in the package) is the covariance matrix of the latent variables $Z_i$
+
+
+
+
+The `ZIPln` model assumes that $\Sigma$ has full rank, whereas the `ZIPlnPCA` model
+assumes that $\Sigma$ has a low rank, which must be specified by the user. A
+lower rank results in a greater compromise in parameter estimation.
+
+
+### Role
+
+The role of the `pyPLNmodels` package is to
+
+* estimate the parameters $B$, $B^0$ and
+$\Sigma$
+* retrieving the latent variables $Z$ and $W$ using the input matrix $Y$ and,
+  if available, the covariate matrix $X$ and its zero inflation counterpart
+  $X^0$ (each defaults to a vector of 1's) and offsets $O$ (defaults to a
+  matrix of 0's).

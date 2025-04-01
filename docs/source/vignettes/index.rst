@@ -1,5 +1,5 @@
-Basic analysis with `pyPLNmodels`
-=================================
+Beyond the basics of `pyPLNmodels`
+==================================
 
 
-See the `basic analysis <basic_analysis.html>`_.
+See the `multivariate analysis <basic_analysis.html>`_.

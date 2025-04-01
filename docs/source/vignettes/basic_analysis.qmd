@@ -1,26 +1,32 @@
 ---
 title: "Multivariate count data analysis with `pyPLNmodels`"
 date: "2025-03-27"
-# format: html
 format:
     html:
         embed-resources: true
+bibliography: bibliography.bib
+bibliographystyle: apa
 ---
 
 
 In this tutorial, we will explore the fundamentals of multivariate count data analysis using the
-`pyPLNmodels` package. This package includes two primary models for this purpose:
+`pyPLNmodels` package. When the data is complex, simple models like [Poisson
+regression](https://www.statsmodels.org/dev/generated/statsmodels.discrete.discrete_model.Poisson.html)
+and Zero Inflation Poisson Regression
+([ZIP](https://www.statsmodels.org/stable/generated/statsmodels.discrete.count_model.ZeroInflatedPoisson.html))
+may lose valuable insights, such as correlation between variables.
+The `pyPLNmodels` package
+includes two primary models for this purpose:
 
 * `Pln` model ([documentation](https://pln-team.github.io/pyPLNmodels/pln.html))
 * `PlnPCA` model ([documentation](https://pln-team.github.io/pyPLNmodels/plnpca.html))
 
-The `PlnPCA` model performs a similar function to the `Pln` model but is designed to
+The `PlnPCA` model performs similarly to the `Pln` model but is designed to
 handle high-dimensional data, albeit with a slight compromise in parameter estimation accuracy.
-
 
 # Statistical background
 
-Given a count matrix $Y$, each model assumes the following:
+Given a count matrix $Y$, each model assumes the following @Aitchison1989:
 
 $$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
 with input data
@@ -33,6 +39,8 @@ and model parameters
 
 * $B$ (denoted `coef` in the package) is a matrix of regression coefficients
 * $\Sigma$ (denoted `covariance` in the package) is the covariance matrix of the latent variables $Z_i$
+
+The goal of this model is to encode the structure of the data in the latent variables $Z$.
 
 
 The `Pln` model assumes that $\Sigma$ has full rank, whereas the `PlnPCA` model
@@ -197,7 +205,7 @@ The number of ranks is an hyperparameter that can be user-defined. A more data-d
 
 ```{python}
 from pyPLNmodels import PlnPCACollection
-pcas = PlnPCACollection.from_formula('endog ~ 1 + labels', data=high_d_rna, ranks=[2,3,5, 10, 15]).fit()
+pcas = PlnPCACollection.from_formula('endog ~ 1 + labels', data=high_d_rna, ranks=[1,2,3,5, 10, 15]).fit()
 ```
 
 Calling `.show()` on the collection gives some insights on which rank to choose:
