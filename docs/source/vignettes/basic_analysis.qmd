@@ -4,8 +4,11 @@ date: "2025-03-27"
 format:
     html:
         embed-resources: true
-bibliography: bibliography.bib
+        css: styles.css
+bibliography: bib.bib
 bibliographystyle: apa
+nocite: |
+  @joss_bastien
 ---
 
 
@@ -186,11 +189,11 @@ pln.biplot(column_names=["FTL", "MALAT1", "FTH1"], colors=cell_type)
 
 # `PlnPCA` Model
 
-The `PlnPCA` model can be used in the same way as the `Pln` model, with the same syntax:
+The `PlnPCA`  (@chiquet2018variational) model can be used in the same way as the `Pln` model, with the same syntax:
 
 ```{python}
 from pyPLNmodels import PlnPCA
-high_d_rna = load_scrna(dim = 1000)
+high_d_rna = load_scrna()
 pca = PlnPCA.from_formula('endog ~ 1 + labels', data=high_d_rna, rank=5).fit()
 ```
 Note that p-values are not available in the `PlnPCA` model.
@@ -205,13 +208,13 @@ The number of ranks is an hyperparameter that can be user-defined. A more data-d
 
 ```{python}
 from pyPLNmodels import PlnPCACollection
-pcas = PlnPCACollection.from_formula('endog ~ 1 + labels', data=high_d_rna, ranks=[1,2,3,5, 10, 15]).fit()
+pcas = PlnPCACollection.from_formula('endog ~ 1 + labels', data=high_d_rna, ranks=[3,5, 10, 15]).fit()
 ```
 
-Calling `.show()` on the collection gives some insights on which rank to choose:
+Calling `.show()` on the collection tries to give some insights on which rank to choose:
 
 ```{python}
 pcas.show()
 ```
 
-The collection clearly indicates that a rank of 2 is the most appropriate for this dataset.
+Unfortunately, no rank appears as optimal, and this is often the case for the `PlnPCA` model.
