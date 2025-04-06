@@ -799,3 +799,14 @@ class _PlnMixturePredict(PlnMixture):
 
     def _print_end_init(self):
         pass
+
+    @property
+    def _useful_attributes_list(self):
+        return [
+            ".latent_variables",
+            ".latent_positions",
+            ".coef",
+            ".model_parameters",
+            ".latent_parameters",
+            ".optim_details",
+        ]

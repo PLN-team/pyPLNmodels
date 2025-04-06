@@ -646,7 +646,7 @@ class ZIPlnPCA(
         """,
     )
     def latent_positions(self):
-        return super().latent_positions
+        return torch.matmul(self.latent_mean, self.components.T)
 
     @property
     def _endog_predictions(self):

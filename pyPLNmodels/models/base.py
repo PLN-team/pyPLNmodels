@@ -819,6 +819,9 @@ class BaseModel(
         return [
             ".latent_variables",
             ".latent_positions",
+            ".coef",
+            "covariance",
+            "precision",
             ".model_parameters",
             ".latent_parameters",
             ".optim_details",

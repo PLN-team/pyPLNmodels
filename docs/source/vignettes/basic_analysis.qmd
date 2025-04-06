@@ -193,7 +193,7 @@ The `PlnPCA`  (@chiquet2018variational) model can be used in the same way as the
 
 ```{python}
 from pyPLNmodels import PlnPCA
-high_d_rna = load_scrna()
+high_d_rna = load_scrna(dim = 500)
 pca = PlnPCA.from_formula('endog ~ 1 + labels', data=high_d_rna, rank=5).fit()
 ```
 Note that p-values are not available in the `PlnPCA` model.
@@ -204,7 +204,9 @@ This model is particularly useful for high-dimensional data, as its computation 
 print(pca)
 ```
 
-The number of ranks is an hyperparameter that can be user-defined. A more data-driven approach to selecting the rank can be achieved using the `PlnPCACollection` class:
+The number of ranks is an hyperparameter that can be user-defined. A more
+data-driven approach to selecting the rank can be achieved using the
+`PlnPCACollection` class. This class fit multiple models with different ranks:
 
 ```{python}
 from pyPLNmodels import PlnPCACollection
@@ -218,3 +220,29 @@ pcas.show()
 ```
 
 Unfortunately, no rank appears as optimal, and this is often the case for the `PlnPCA` model.
+
+Although, the best model can be accessed through the `.best_model()` method. The metric
+used is the criterion, that can be either `AIC`, `BIC` or `ICL`:
+
+```{python}
+best_model = pcas.best_model(criterion = "BIC")
+print(best_model)
+```
+
+Otherwise, all individuals models can be accessed as a [python
+collection](https://docs.python.org/fr/3.13/library/collections.html):
+
+```{python}
+pca_5 = pcas[5]
+print(pca_5)
+```
+
+And one can iterate throughout the collection:
+```{python}
+for pca in pcas.values():
+    print(pca)
+```
+
+## More information
+
+Any valuable method or attribute can be accessed by printing the model.

@@ -171,9 +171,9 @@ class ZIPlnPCACollection(
     )
     def fit(
         self,
-        maxiter: int = 400,
+        maxiter: int = 1000,
         lr: float = 0.01,
-        tol: float = DEFAULT_TOL,
+        tol: float = DEFAULT_TOL / 1000,
         verbose: bool = False,
     ):
         return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)

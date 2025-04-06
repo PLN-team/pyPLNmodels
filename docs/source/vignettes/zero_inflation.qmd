@@ -155,3 +155,76 @@ zipln.show_prob()
 ```
 
 # Considering different covariates between zero-inflation and count part
+
+It is possible to consider different covariates for the zero-inflation part and
+the count part. When considering formula parsing, the zero-inflation part
+is separated by a `|` symbol. For example, if we want to consider the `site`
+covariate for the count part and the `time` covariate for the zero-inflation, we get:
+
+```{python}
+zitime_pln = ZIPln.from_formula('endog ~ 1 + site | time', data = micro).fit()
+zitime_pln.show()
+```
+
+```{python}
+zitime_pln.viz(colors = micro["time"])
+```
+
+
+# Handling high-dimensional data
+
+The `ZIPlnPCA` is the zero-inflated version of the `PlnPCA` model. It is
+designed to handle high-dimensional data. A compromise is made on the accuracy
+of the covariance matrix.
+```{python}
+from pyPLNmodels import ZIPlnPCA
+high_d_micro = load_microcosm(dim = 500)
+zipca = ZIPlnPCA.from_formula('endog ~ 1 + site', data=high_d_micro, rank=5).fit()
+```
+
+The number of ranks is an hyperparameter that can be user-defined. A more
+data-driven approach to selecting the rank can be achieved using the
+`ZIPlnPCACollection` class. This class fit multiple models with different ranks:
+
+
+```{python}
+from pyPLNmodels import ZIPlnPCACollection
+zipcas = ZIPlnPCACollection.from_formula('endog ~ 1 + site', data=high_d_micro, ranks=[3,5, 10, 15]).fit()
+```
+
+The best model can be accessed through the `.best_model()` method. The metric used is the criterion, that can be either `AIC`, `BIC` or `ICL`:
+
+
+
+```{python}
+best_zipca = zipcas.best_model(criterion = "BIC")
+print(best_zipca)
+```
+
+
+However, it might choose  a model with the largest rank, which is not desired.
+One can visualize the different models and their criteria using the `.show()` method:
+
+
+```{python}
+zipcas.show()
+```
+
+All individuals models can be accessed as a [python
+collection](https://docs.python.org/fr/3.13/library/collections.html):
+
+```{python}
+zipca_5 = zipcas[5]
+print(zipca_5)
+```
+
+And one can iterate throughout the collection:
+```{python}
+for zipca in zipcas.values():
+    print(zipca)
+```
+
+## More information
+
+Any valuable method or attribute can be viewed by printing the model.
+Some are specific to the `ZIPln` model, such as the `coef_inflation` and `latent_prob`.

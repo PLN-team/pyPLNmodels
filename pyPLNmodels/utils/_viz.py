@@ -1022,7 +1022,7 @@ def _show_collection_and_explained_variance(collection, figsize, absc_label):
     )
 
     last_model = collection[collection.ranks[-1]]
-    _, explained_variance = _perform_pca(last_model.latent_variables, last_model.rank)
+    _, explained_variance = _perform_pca(last_model.latent_positions, last_model.rank)
     dict_explained_variance = {
         i + 1: explained_variance[i] for i in range(last_model.rank)
     }
