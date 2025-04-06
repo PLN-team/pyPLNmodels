@@ -13,7 +13,7 @@ from pyPLNmodels.calculations._closed_forms import (
 )
 from pyPLNmodels.calculations.elbos import profiled_elbo_zipln
 from pyPLNmodels.utils._utils import _add_doc
-from pyPLNmodels.utils._viz import _viz_variables, _pca_pairplot, ZIModelViz
+from pyPLNmodels.utils._viz import _viz_variables, _pca_pairplot, ZIModelViz, _show_prob
 from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_bernoulli
 from pyPLNmodels.utils._data_handler import (
     _handle_inflation_data,
@@ -421,7 +421,12 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
 
     @property
     def _additional_methods_list(self):
-        return [".viz_prob()", ".predict_prob_inflation()", ".pca_pairplot_prob()"]
+        return [
+            ".viz_prob()",
+            ".show_prob()",
+            ".predict_prob_inflation()",
+            ".pca_pairplot_prob()",
+        ]
 
     @property
     def _description(self):
@@ -583,4 +588,28 @@ class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
         return (
             entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()
             + entropy_bernoulli(self.latent_prob).item()
+        )
+
+    def show_prob(self, savefig=False, name_file="", figsize: tuple = (10, 10)):
+        """
+        Display the model parameters, norm evolution of the parameters and the criterion.
+
+        Parameters
+        ----------
+        savefig : bool, optional
+            If `True`, the figure will be saved to a file. Default is `False`.
+        name_file : str, optional
+            The name of the file to save the figure. Only used if savefig is `True`.
+            Default is an empty string.
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,10)
+
+        """
+        _show_prob(
+            latent_prob=self.latent_prob,
+            column_names_endog=self.column_names_endog,
+            savefig=savefig,
+            name_file=name_file,
+            figsize=figsize,
+            model_name=self._name,
         )

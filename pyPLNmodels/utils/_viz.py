@@ -351,7 +351,7 @@ class BaseModelViz:  # pylint: disable=too-many-instance-attributes
         ax.set_xlabel("Seconds", fontsize=10)
         ax.set_yscale("log")
         ax.legend()
-        ax.set_title("Norm of each parameter.", fontsize=8)
+        ax.set_title("Norm of each parameter during optimization.", fontsize=8)
 
     def display_criterion_evolution(self, *, ax: matplotlib.axes.Axes):
         """
@@ -509,7 +509,7 @@ class LDAModelViz(BaseModelViz):
         ax.set_xlabel("Seconds", fontsize=10)
         ax.set_yscale("log")
         ax.legend()
-        ax.set_title("Norm of each parameter.", fontsize=8)
+        ax.set_title("Norm of each parameter during optimization.", fontsize=8)
 
     def show(self, *, savefig, name_file, figsize):
         """
@@ -1511,3 +1511,18 @@ def _display_metric(
     ax.set_ylabel(ylabel, fontsize=12)
     ax.set_title(title)
     ax.grid()
+
+
+def _show_prob(
+    *, latent_prob, savefig, column_names_endog, figsize, model_name, name_file
+):  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    fig = _get_figure(figsize)
+    heatmap = sns.heatmap(latent_prob, ax=fig.gca())
+    heatmap.set_xticklabels(column_names_endog, fontsize=10, rotation=45)
+    plt.title("Inferred zero-inflated probabilities")
+    plt.ylabel("Sample number (individuals)")
+    plt.xlabel("Column name (variable)")
+    plt.legend()
+    if savefig is True:
+        fig.savefig(name_file + model_name + ".pdf", format="pdf")
+    plt.show()

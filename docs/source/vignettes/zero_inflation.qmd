@@ -4,6 +4,7 @@ date: "2025-03-27"
 format:
     html:
         embed-resources: true
+        css: styles.css
 ---
 
 In this tutorial, we will analyse zero-inflated count data using the
@@ -63,3 +64,94 @@ $\Sigma$
   if available, the covariate matrix $X$ and its zero inflation counterpart
   $X^0$ (each defaults to a vector of 1's) and offsets $O$ (defaults to a
   matrix of 0's).
+
+# Data importation
+
+In this tutorial, we will analyze real count data from the microcosm
+dataset available through the NCBI BioProject
+(https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059). This
+dataset contains microbiota members from body sites of dairy cows
+throughout lactation. The data includes counts (`endog`), site
+information (`site` and `site_1hot`), time information (`time` and
+`time_1hot`), and lineage information (`lineage` and
+`lineage_1hot`). The `1_hot` variables represent the one-hot encoded versions
+of the respective categorical variables.
+ For visualization purposes, we will consider only
+20 variables (i.e. dimensions):
+
+```{python}
+from pyPLNmodels import load_microcosm
+micro = load_microcosm(dim = 20)
+print('Data: ', micro.keys())
+```
+
+The dataset is hihgly zero-inflated, with a percentage of zeros of $96\%$:
+```{python}
+endog = micro["endog"]
+print("Percentage of zeros: ", (endog == 0).sum().sum()/ endog.size * 100, "%")
+```
+
+On a log scale, here is the distribution of the counts:
+```{python}
+import matplotlib.pyplot as plt
+plt.hist(endog.values.ravel(), bins=100)
+plt.yscale('log')
+plt.show()
+```
+### Covariates
+```{python}
+site = micro["site"]
+print('Possible sites: ', site.unique())
+time = micro["time"]
+print('Possible times: ', time.unique())
+lineage = micro["lineage"]
+print('Possible lineages: ', lineage.unique())
+```
+
+# Model fitting without considering zero-inflation
+
+We will first fit a `Pln` model without zero-inflation. Check about the `Pln` model here ??
+We only consider the `site` covariates for the moment.
+
+```{python}
+from pyPLNmodels import Pln
+pln = Pln.from_formula('endog ~ 1 + site', data = micro).fit()
+pln.viz(colors = micro["site"])
+```
+
+```{python}
+print(pln)
+```
+
+# Model fitting considering zero-inflation
+
+```{python}
+from pyPLNmodels import ZIPln
+zipln = ZIPln.from_formula('endog ~ 1 + site', data = micro).fit()
+zipln.viz(colors = micro["site"])
+```
+
+Zero-inflation considerably improves the model and reduces the noise of the
+latent variables.
+
+```{python}
+print(zipln)
+```
+The log likelihood is considerably improved.
+
+
+# Zero-inflation parameters
+
+A regression parameter is available for the zero-inflation part. It can be visualized, as well as other parameters and insights through the `.show` method:
+
+```{python}
+zipln.show()
+```
+An inferred probability to be zero-inflated for each entry of `endog` can also be accessed. Naturally, the probability is null
+when the count is non zero.
+
+```{python}
+zipln.show_prob()
+```
+
+# Considering different covariates between zero-inflation and count part

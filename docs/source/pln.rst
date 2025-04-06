@@ -1,6 +1,8 @@
 Pln
 ===
 
+For an in-depth tutorial to the `Pln` model, see ??
+
 Pln Documentation
 -----------------
 
