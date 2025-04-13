@@ -1,0 +1,12 @@
+---
+title: "How to specify a model in `pyPLNmodels`"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+bibliography: bib.bib
+bibliographystyle: apa
+nocite: |
+  @joss_bastien
+---
