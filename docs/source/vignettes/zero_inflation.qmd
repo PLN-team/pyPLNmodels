@@ -5,6 +5,10 @@ format:
     html:
         embed-resources: true
         css: styles.css
+        oc: true
+        toc-location: left
+execute:
+    cache: true
 ---
 
 In this tutorial, we will analyse zero-inflated count data using the

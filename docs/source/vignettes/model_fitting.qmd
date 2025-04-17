@@ -5,8 +5,26 @@ format:
     html:
         embed-resources: true
         css: styles.css
+        toc: true
+        toc-location: left
 bibliography: bib.bib
 bibliographystyle: apa
 nocite: |
   @joss_bastien
 ---
+
+
+# Introduction
+
+This tutorial demonstrates how to specify a model in `pyPLNmodels`.
+Two primary approaches are available: using R-style formulas or directly specifying arrays.
+
+- R-style formulas (relying on the [patsy](https://patsy.readthedocs.io/en/latest/) package.)
+- direcly specifying arrays
+
+The first approach is practical, while the second gives more control over the input data.
+
+
+## R-style formulas
+
+## Specifying arrays

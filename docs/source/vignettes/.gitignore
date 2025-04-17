@@ -1,4 +1,4 @@
 *.quarto_ipynb
 
 /.quarto/
-*.ipynb
+.jupyter_cache

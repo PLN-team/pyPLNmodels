@@ -1,0 +1,10 @@
+ project:
+   title: "pyPLNmodels Documentation"
+
+ website:
+   navbar:
+     left:
+       - text: Model specifying
+         href: model_fitting.qmd
+       - text: Zero-inflation
+         href: zero_inflation.qmd

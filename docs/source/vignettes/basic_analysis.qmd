@@ -5,8 +5,12 @@ format:
     html:
         embed-resources: true
         css: styles.css
+        toc: true
+        toc-location: left
 bibliography: bib.bib
 bibliographystyle: apa
+execute:
+    cache: true
 nocite: |
   @joss_bastien
 ---
@@ -104,7 +108,9 @@ from pyPLNmodels import Pln
 pln = Pln.from_formula('endog ~ 1 + labels', data=rna).fit()
 ```
 
-For additional details on the formula syntax and model initialization, including how to account for offsets, please refer to the relevant documentation.
+For additional details on the formula syntax and model initialization,
+including how to account for offsets, please refer to the relevant
+documentation here ??.
 
 Printing the model gives useful information about the model:
 
