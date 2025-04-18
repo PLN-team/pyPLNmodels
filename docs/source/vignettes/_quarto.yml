@@ -1,10 +1,22 @@
- project:
-   title: "pyPLNmodels Documentation"
+project:
+  type: website
+  output-dir: .
 
- website:
-   navbar:
-     left:
-       - text: Model specifying
-         href: model_fitting.qmd
-       - text: Zero-inflation
-         href: zero_inflation.qmd
+website:
+  title: "pyPLNmodels"
+  sidebar:
+    style: "floating"
+    search: true
+    contents:
+      - section: "Navigation"
+        contents:
+          - basic_analysis.qmd
+          - zero_inflation.qmd
+          - model_specifying.qmd
+
+format:
+  html:
+    toc: true  # Enables per-page table of contents
+    toc-depth: 3
+    number-sections: true
+    math: true
