@@ -1,0 +1,14 @@
+.sidebar-item a::before {
+  content: "• ";
+  margin-right: 0.3em;
+  color: var(--sidebar-fg);
+}
+
+/* .toc { */
+/*   font-size: 1.2em; /1* Adjust the size as needed *1/ */
+/* } */
+
+/* /1* Optionally, increase the size of TOC headings *1/ */
+/* .toc h2, .toc h3 { */
+/*   font-size: 1.3em; /1* Adjust for headings *1/ */
+/* } */

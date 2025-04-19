@@ -1,5 +1,5 @@
 ---
-title: "Multivariate count data analysis with `pyPLNmodels`"
+title: "Basic analysis"
 date: "2025-03-27"
 format:
     html:
@@ -16,7 +16,7 @@ nocite: |
 ---
 
 
-In this tutorial, we will explore the fundamentals of multivariate count data analysis using the
+In this tutorial, we explore the fundamentals of multivariate count data analysis using the
 `pyPLNmodels` package. When the data is complex, simple models like [Poisson
 regression](https://www.statsmodels.org/dev/generated/statsmodels.discrete.discrete_model.Poisson.html)
 and Zero Inflation Poisson Regression
@@ -33,7 +33,7 @@ handle high-dimensional data, albeit with a slight compromise in parameter estim
 
 # Statistical background
 
-Given a count matrix $Y$, each model assumes the following @Aitchison1989:
+Given a count matrix $Y$, each model assumes the following [@Aitchison1989]:
 
 $$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
 with input data
@@ -67,11 +67,11 @@ using the input matrix $Y$ and, if available, the covariate matrix $X$ (defaults
 
 # Data importation
 
-In this tutorial, we will analyze single-cell RNA-seq data available through
+We analyze single-cell RNA-seq data available through
 the `load_scrna` function of the package. In this dataset, each column
 represents a gene, and each row (i.e., individual) represents a cell.
 Covariates corresponding to the cell type (`labels`) are also available. For
-visualization purposes, we will consider only 20 variables (i.e., dimensions).
+visualization purposes, we consider only 20 variables (i.e., dimensions).
 
 ```{python}
 from pyPLNmodels import load_scrna
@@ -195,7 +195,7 @@ pln.biplot(column_names=["FTL", "MALAT1", "FTH1"], colors=cell_type)
 
 # `PlnPCA` Model
 
-The `PlnPCA`  (@chiquet2018variational) model can be used in the same way as the `Pln` model, with the same syntax:
+The `PlnPCA`  [@chiquet2018variational] model can be used in the same way as the `Pln` model, with the same syntax:
 
 ```{python}
 from pyPLNmodels import PlnPCA

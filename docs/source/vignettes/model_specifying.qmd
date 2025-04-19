@@ -1,5 +1,5 @@
 ---
-title: "How to specify a model in `pyPLNmodels`"
+title: "How to specify a model"
 date: "2025-03-27"
 format:
     html:
@@ -9,6 +9,8 @@ format:
         toc-location: left
 bibliography: bib.bib
 bibliographystyle: apa
+execute:
+    cache: true
 nocite: |
   @joss_bastien
 ---
@@ -16,15 +18,94 @@ nocite: |
 
 # Introduction
 
-This tutorial demonstrates how to specify a model in `pyPLNmodels`.
+This tutorial demonstrates how to specify a model in `pyPLNmodels`. You may
+`pip install pyPLNmodels` if that is not already done.
 Two primary approaches are available: using R-style formulas or directly specifying arrays.
 
 - R-style formulas (relying on the [patsy](https://patsy.readthedocs.io/en/latest/) package.)
 - direcly specifying arrays
 
-The first approach is practical, while the second gives more control over the input data.
+The first approach is practical and more R-user-friendly, while the second
+gives more control over the input data.
 
+
+
+We consider the more basic model of `pyPLNmodels`, namely the [`Pln`
+model](https://pln-team.github.io/pyPLNmodels/pln.html)
+
+## Model
+
+
+# Statistical background
+
+Given a count matrix $Y$, the `Pln` model assumes the following [@Aitchison1989]:
+
+$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
+with input data
+
+* $Y_{ij}$ (denoted `endog` in the package) is the $j$-th count for the $i$-th observation
+* $X_i$ (denoted `exog`) covariates for the $i$-th observation (if available)
+* $o_i$ (denoted `offsets`) offset for the $i$-th observation (if available)
+
+and model parameters
+
+* $B$ (denoted `coef` in the package) is a matrix of regression coefficients
+* $\Sigma$ (denoted `covariance` in the package) is the covariance matrix of the latent variables $Z_i$
+
+The goal of this model is to encode the structure of the data in the latent variables $Z$.
+
+We review here how to create the design matrix $X$ (i.e. create the `exog` data matrix).
+
+
+# Count Data
+
+In this tutorial, we consider real count data from the microcosm
+dataset [@microcosm] available through the NCBI BioProject
+(https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059). This
+dataset contains microbiota members from body sites of dairy cows
+throughout lactation. The data includes counts (`endog`), site
+information (`site` and `site_1hot`), time information (`time` and
+`time_1hot`), and lineage information (`lineage` and
+`lineage_1hot`). The `1_hot` variables represent the one-hot encoded versions
+of the respective categorical variables.
+
+
+
+## Data importation
+
+```{python}
+from pyPLNmodels import load_microcosm
+micro = load_microcosm(dim = 20)
+print('Data: ')
+print(micro.keys())
+```
+
+The counts (`endog`) are composed of $400$ samples and $20$ variables:
+
+```{python}
+print('Endog shape: ', micro["endog"].shape)
+```
+
+On a log scale, here is the distribution of the counts:
+```{python}
+import matplotlib.pyplot as plt
+plt.hist(micro["endog"].values.ravel(), bins=100)
+plt.yscale('log')
+plt.show()
+```
+
+The counts are strongly zero-inflated here, but we do not make any
+zero-inflation hypothesis. To account for zero-inflation, please see ??.
+
+# Model specifying
 
 ## R-style formulas
+
+The model can be initialized using R-style formulas, just as in the
+[`statsmodels`](https://www.statsmodels.org/stable/example_formulas.html)
+package. Here is a quick overview
+
+
+
 
 ## Specifying arrays

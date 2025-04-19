@@ -8,11 +8,15 @@ website:
     style: "floating"
     search: true
     contents:
-      - section: "Navigation"
+      - section: "Tutorials for count data"
         contents:
+          - model_specifying.qmd
           - basic_analysis.qmd
           - zero_inflation.qmd
-          - model_specifying.qmd
+          - autoreg.qmd
+          - clustering.qmd
+          - network_analysis.qmd
+          - formulas.qmd
 
 format:
   html:
@@ -20,3 +24,5 @@ format:
     toc-depth: 3
     number-sections: true
     math: true
+    css: custom_css_yml.css
+    theme: cosme

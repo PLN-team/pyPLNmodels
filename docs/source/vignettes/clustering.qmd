@@ -1,0 +1,16 @@
+---
+title: "Clustering of count data"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---

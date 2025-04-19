@@ -1,5 +1,5 @@
 ---
-title: "Multivariate count data analysis of zero-inflated data with `pyPLNmodels`"
+title: "Zero-inflation"
 date: "2025-03-27"
 format:
     html:
@@ -11,7 +11,7 @@ execute:
     cache: true
 ---
 
-In this tutorial, we will analyse zero-inflated count data using the
+In this tutorial, we analyse zero-inflated count data using the
 `pyPLNmodels` package.
 When the data is complex, simple models like Zero Inflation Poisson Regression
 ([ZIP](https://www.statsmodels.org/stable/generated/statsmodels.discrete.count_model.ZeroInflatedPoisson.html))
@@ -58,7 +58,7 @@ assumes that $\Sigma$ has a low rank, which must be specified by the user. A
 lower rank results in a greater compromise in parameter estimation.
 
 
-### Role
+## Role
 
 The role of the `pyPLNmodels` package is to
 
@@ -71,8 +71,8 @@ $\Sigma$
 
 # Data importation
 
-In this tutorial, we will analyze real count data from the microcosm
-dataset available through the NCBI BioProject
+In this tutorial, we analyze real count data from the microcosm
+dataset [@microcosm] available through the NCBI BioProject
 (https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059). This
 dataset contains microbiota members from body sites of dairy cows
 throughout lactation. The data includes counts (`endog`), site
@@ -80,7 +80,7 @@ information (`site` and `site_1hot`), time information (`time` and
 `time_1hot`), and lineage information (`lineage` and
 `lineage_1hot`). The `1_hot` variables represent the one-hot encoded versions
 of the respective categorical variables.
- For visualization purposes, we will consider only
+ For visualization purposes, we consider only
 20 variables (i.e. dimensions):
 
 ```{python}
@@ -88,6 +88,8 @@ from pyPLNmodels import load_microcosm
 micro = load_microcosm(dim = 20)
 print('Data: ', micro.keys())
 ```
+
+## Endogenous variables
 
 The dataset is hihgly zero-inflated, with a percentage of zeros of $96\%$:
 ```{python}
@@ -102,7 +104,11 @@ plt.hist(endog.values.ravel(), bins=100)
 plt.yscale('log')
 plt.show()
 ```
-### Covariates
+
+## Exogenous variables
+
+Variables not explained by the model (called either 'exogenous' or 'covariates') are available:
+
 ```{python}
 site = micro["site"]
 print('Possible sites: ', site.unique())
@@ -114,7 +120,7 @@ print('Possible lineages: ', lineage.unique())
 
 # Model fitting without considering zero-inflation
 
-We will first fit a `Pln` model without zero-inflation. Check about the `Pln` model here ??
+We first fit a `Pln` model without zero-inflation. Check about the `Pln` model here ??
 We only consider the `site` covariates for the moment.
 
 ```{python}

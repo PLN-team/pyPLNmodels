@@ -128,7 +128,7 @@ jobs:
           pip install .
           pip install quarto-cli
           cd docs/source/vignettes/
-          quarto render basic_analysis.qmd
+          quarto render
           cd ../../../
           make -C docs html
       - name: Deploy to GitHub Pages

@@ -3,3 +3,4 @@
 /.quarto/
 .jupyter_cache
 search.json
+site_libs
