@@ -15,140 +15,154 @@ nocite: |
   @joss_bastien
 ---
 
+
 # Introduction and `Pln` model
 
-This package estimates model parameters based on a count matrix $Y$, covariates
-(also referred to as `exogenous` variables) $X$, and offsets $o$. For each
-observation (or individual $i$), the following notations are used:
+This package estimates model parameters based on a count matrix $Y$, covariates (also referred to as `exogenous` variables) $X$, and offsets $o$. For each observation (or individual $i$), the following notations are used:
 
-* $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
-* $X_i$ (`exog`): covariates for the $i$-th observation (if available)
-* $o_i$ (`offsets`): offset for the $i$-th observation (if available)
+- $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
+- $X_i$ (`exog`): covariates for the $i$-th observation (if available)
+- $o_i$ (`offsets`): offset for the $i$-th observation (if available)
 
-All models are derived from the PLN model [@Aitchison1989]:
-
+All models are derived from the Poisson log-normal (PLN) model [@Aitchison1989]:
 
 $$
 \begin{align}
-Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
+Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
 \end{align}
 $$
 
-The model parameters are given by:
+The model parameters are:
 
-* $B \in \mathbb R^{d,p}$ (`coef`): a matrix of regression coefficients
-* $\Sigma \in \mathcal S_{+}$ (`covariance`): the covariance matrix of the latent variables $Z_i$
+- $B \in \mathbb{R}^{d \times p}$ (`coef`): matrix of regression coefficients
+- $\Sigma \in \mathcal{S}_{+}$ (`covariance`): covariance matrix of the latent variables $Z_i$
 
+Below, we describe extensions of the `Pln` model implemented in this package.
 
-Below, we outline the assumptions for each model.
+## `ZIPln`: Zero-Inflated PLN
 
-# `ZIPln`
-
-The zero-inflated `Pln` (`ZIPln`) model adds a latent variable $W_i$
-accounting for zero-inflation.
+The zero-inflated PLN (`ZIPln`) model introduces a latent variable $W_i$ to account for excess zeros in the data:
 
 $$
 \begin{align}
-Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
-W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j))\\
-Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij})\mathcal{P}(\exp(Z_{ij})).
+Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
+W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(Z_{ij})),
 \end{align}
 $$
+where $\sigma$ denotes the sigmoid function.
 
-More details on the zero inflation can be found in @zeroinflation.
+The covariates of the zero-inflation $X^0$ can be different than the covariates
+$X$ of the Poisson regression.
 
-# `PlnPCA`
+This model is especially useful when zero counts arise from a mixture of
+structural and sampling zeros. More details on modeling zero-inflation can be
+found in @zeroinflation.
 
-The `PlnPCA` model is simply obtained by imposing a rank on the covariance matrix
-$\Sigma$ of the `Pln` model.
+## `PlnPCA`: Dimensionality Reduction via Rank Constraint
+
+The `PlnPCA` model imposes a low-rank constraint on the covariance matrix $\Sigma$ of the latent variables, enabling dimension reduction:
 
 $$
 \begin{align}
-Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q\\
+Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
 \end{align}
 $$
 
-The hyperparameter $q$ is unknown and needs to be tuned. More details can be found in @chiquet2018variational .
+The rank $q$ must be chosen (e.g., via cross-validation). See @chiquet2018variational for details.
 
-# `PlnAR`
+## `PlnAR`: Autoregressive Latent Dynamics
 
-A temporal structure is added thanks to an autoregression matrix $\Phi \in \mathcal S^{p}_+$:
+The `PlnAR` model introduces temporal structure in the latent space using an autoregressive matrix $\Phi \in \mathcal{S}_+^{p}$:
 
 $$
 \begin{align}
-Z_{i} & \sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
-Z_{i}|Z_{i-1} &  \sim \Phi Z_{i-1} + \mathcal N(\mu^{\epsilon}_i, \Sigma^{\epsilon}) \\
+Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
+Z_i \mid Z_{i-1} &\sim \Phi Z_{i-1} + \mathcal{N}(\mu_i^\epsilon, \Sigma^\epsilon), \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})),
 \end{align}
 $$
 
 with
 
-- $\mu^{\epsilon}_i = \mu_i - \Phi \mu_{i-1}$
-- $\Sigma^{\epsilon} = \Sigma - \Phi \Sigma \Phi$
-- $\mu_i= X_i^{\top} B$
+- $\mu_i^\epsilon = \mu_i - \Phi \mu_{i-1}$,
+- $\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top$,
+- $\mu_i = X_i^{\top} B$
 
-Note that constraints are imposed on the autoregression matrix $\Phi$ so that $\Sigma^{\epsilon}$ is positive definite.
+Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite.
 
-# `PlnLDA`
 
-When memberships $c_i$ are known, one can do a Linear Discriminant Analysis on the latent space:
+## `PlnNetwork`: Sparse Dependency Structures
 
-$$
-\begin{align}
-\mathbf{Z}_i & \sim \mathcal{N}(\sum_k {\boldsymbol\mu}_k \mathbf{1}_{\{c_i= k\}}, \boldsymbol\Sigma) \\
-Y_{ij} \mid Z_{ij} & \sim \mathcal{P}(\exp(Z_{ij})).
-\end{align}
-$$
-
-The model can infer membership of new individuals if it has been fitted on training data.
-
-# `PlnNetwork`
-
-One can do network analysis by imposing an $\ell_0$ constraint on the precision
-matrix (i.e. inverse covariance matrix) of the `Pln` model:
-
+The `PlnNetwork` model encourages sparsity in the latent dependency structure by imposing an $\ell_1$ constraint on the precision matrix $\Sigma^{-1}$:
 
 $$
 \begin{align}
-Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \left\| \Sigma^{-1} \right\|_1 \leq C \\
+Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
 \end{align}
 $$
 
-The hyperparameter $C$ is unknown and needs to be tuned. Non zero parameter
-$\Sigma^{-1}_{kj}$ indicates that variables $j$ and $k$ are linked.
+The hyperparameter $C$ controls the sparsity level. A non-zero entry in $\Sigma^{-1}_{jk}$ implies a direct dependency between variables $j$ and $k$ in the latent space.
 
-# `PlnMixture`
+## `PlnLDA`: Latent Space Discriminant Analysis
 
-
-$$\mathbf{Z}_i \mid c_i = k  \sim \mathcal{N}(\boldsymbol\mu_k, \boldsymbol\Sigma_k), \quad \text{for unknown memberships } c_i.$$
-
-
-# `ZIPlnPCA`
-
-The `ZIPlnPCA` have both the zero inflation and imposes a rank constraint on the covariance matrix $\Sigma$ of the `PlnPCA` model:
-
+When class memberships $c_i$ are known, Linear Discriminant Analysis (LDA) can be performed in the latent space:
 
 $$
 \begin{align}
-Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
-W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j))\\
-Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij})\mathcal{P}(\exp(Z_{ij})).
-\end{align}
-$$
-
-The hyperparameter $q$ is unknown and needs to be tuned.
-
-# `PlnDiag`
-
-The `PlnDiag` does not assume any correlation between variables:
-
-$$
-\begin{align}
-Z_{ij} &\sim \mathcal{N}(o_i + X_i^{\top} B_j, \Sigma_{jj})\\
+Z_i &\sim \mathcal{N} \left( \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \text{for known cluster memberships } c_i \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
 \end{align}
 $$
+
+Once fitted, the model can infer class memberships for new individuals based on their latent representations.
+
+## `PlnMixture`: Latent Class Modeling
+
+The `PlnMixture` model captures subpopulation structure in the data by modeling
+the latent variables as a mixture of Gaussians. The mixing proportions, denoted
+as $\pi = (\pi_1, \pi_2, \dots, \pi_K)$, represent the probabilities of
+belonging to each cluster, with the constraint that $\sum_{k=1}^K \pi_k = 1$.
+
+$$
+\begin{align}
+c_i | \pi & \sim \mathcal M(1, \pi),\\
+Z_i \mid c_i = k & \sim \mathcal{N}(\mu_k, \Sigma_k), \quad \text{for unknown cluster memberships } c_i,\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+This model allows automatic discovery of latent clusters or topics in the data.
+
+Model selection criteria such as BIC or ICL can be used to choose the number of
+clusters $K$.
+
+## `ZIPlnPCA`: Zero-Inflated Dimensionality Reduction
+
+The `ZIPlnPCA` model combines zero-inflation and dimensionality reduction:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
+W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+The hyperparameter $q$ controls the latent dimension and must be tuned.
+
+## `PlnDiag`: Independent Latent Components
+
+The `PlnDiag` model assumes no correlation between latent variables:
+
+$$
+\begin{align}
+Z_{ij} &\sim \mathcal{N}(o_i + X_i^{\top} B_j, \Sigma_{jj}), \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+This leads to a diagonal covariance matrix, simplifying estimation while potentially reducing model expressiveness.

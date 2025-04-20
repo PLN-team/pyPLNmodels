@@ -15,6 +15,24 @@ nocite: |
   @joss_bastien
 ---
 
+# Introduction
+
+The Pln model can be extended to incorporate temporal or spatial dependencies
+by introducing structure in the latent space, giving the `PlnAR` (PLN autoregressive). This is achieved using an
+autocorrelation matrix $\Phi$, which models how latent variables relate across
+time (or space).
+
+Depending on the application, different types of autocorrelation structures (through $\Phi$) can be considered:
+
+- `diagonal`: Each variable has its own temporal dynamics, independent of the others.
+- `full`: The temporal behavior of each variable depends on all other variables.
+- `spherical`: A common temporal pattern is shared across all variables.
+
+
+## Statistical background
+
+Here are the mathematicals details, if needed.
+
 $$
 \begin{align}
 Z_{i} & \sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
@@ -32,3 +50,86 @@ with
 
 Note that constraints are imposed on the autoregression matrix $\Phi$ such that
 $\Sigma^{\epsilon}$ is positive definite.
+
+## Purpose
+
+
+The `PlnAR` package is designed to help analyze dependencies between consecutive sites effectively.
+
+# Data
+
+The crossover dataset captures recombination patterns in sheep over time,
+focusing on the genetic determinism of this process. It provides male meiotic
+recombination maps for the Lacaune breed, combining historical data from
+Lacaune and Soay sheep to create precise crossover maps. The dataset
+offers a temporal perspective on how genetic diversity evolves. This makes it a
+
+```{python}
+from pyPLNmodels import load_crossover
+data = load_crossover(chromosome_numbers = [1,5,8,12])
+print('Data: ', data.keys())
+```
+
+
+## Endogenous variables
+
+```{python}
+print(data["endog"].head())
+```
+
+The chromosomes are available as covariates, even though we do not use it here:
+```{python}
+print(data["chrom"].unique())
+```
+
+
+
+
+
+
+# Model Initialization and Fitting
+
+We consider the `diagonal` structure:
+
+```{python}
+from pyPLNmodels import PlnAR
+ar = PlnAR.from_formula("endog ~ 1", data = data, ar_type = "diagonal").fit()
+```
+
+For more information on how to specify a model, and accounting for covariates
+and offsets, see the dedicated [tutorial](??).
+
+
+# Temporal structure
+
+```{oython}
+ar.show()
+```
+
+It shows that it depends at 80
+
+
+# Latent variables and visualization
+
+One can extract the latent variables $Z$ that have more insights:
+
+```{python}
+z = ar.latent_variables
+```
+
+The latent variables can be visualized to see the temporal structure:
+
+```{python}
+ar.viz_dims(column_names = ["nco_Lacaune_M", "nco_Lacaune_F", "nco_Soay_F", "nco_Soay_M"])
+```
+and visualize colors:
+
+```{python}
+ar.viz_dims(column_names = ["nco_Lacaune_M", "nco_Lacaune_F", "nco_Soay_F", "nco_Soay_M"], colors = data["chrom"])
+```
+
+Others attributes and method can be found by printing the model:
+
+```{python}
+print(ar)
+```
