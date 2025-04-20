@@ -14,3 +14,21 @@ execute:
 nocite: |
   @joss_bastien
 ---
+
+$$
+\begin{align}
+Z_{i} & \sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
+Z_{i}|Z_{i-1} &  \sim \Phi Z_{i-1} + \mathcal N(\mu^{\epsilon}_i, \Sigma^{\epsilon}) \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})),
+\end{align}
+$$
+
+with
+
+- $\mu^{\epsilon}_i = \mu_i - \Phi \mu_{i-1}$
+- $\Sigma^{\epsilon} = \Sigma - \Phi \Sigma \Phi$
+- $\mu_i= X_i^{\top} B$
+- $\Phi \in \mathcal S^{p}_+$
+
+Note that constraints are imposed on the autoregression matrix $\Phi$ such that
+$\Sigma^{\epsilon}$ is positive definite.

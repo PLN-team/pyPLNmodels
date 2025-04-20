@@ -15,21 +15,140 @@ nocite: |
   @joss_bastien
 ---
 
+# Introduction and `Pln` model
 
-# `Pln`
+This package estimates model parameters based on a count matrix $Y$, covariates
+(also referred to as `exogenous` variables) $X$, and offsets $o$. For each
+observation (or individual $i$), the following notations are used:
+
+* $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
+* $X_i$ (`exog`): covariates for the $i$-th observation (if available)
+* $o_i$ (`offsets`): offset for the $i$-th observation (if available)
+
+All models are derived from the PLN model [@Aitchison1989]:
+
+
+$$
+\begin{align}
+Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+The model parameters are given by:
+
+* $B \in \mathbb R^{d,p}$ (`coef`): a matrix of regression coefficients
+* $\Sigma \in \mathcal S_{+}$ (`covariance`): the covariance matrix of the latent variables $Z_i$
+
+
+Below, we outline the assumptions for each model.
 
 # `ZIPln`
 
+The zero-inflated `Pln` (`ZIPln`) model adds a latent variable $W_i$
+accounting for zero-inflation.
+
+$$
+\begin{align}
+Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
+W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j))\\
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij})\mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+More details on the zero inflation can be found in @zeroinflation.
+
 # `PlnPCA`
+
+The `PlnPCA` model is simply obtained by imposing a rank on the covariance matrix
+$\Sigma$ of the `Pln` model.
+
+$$
+\begin{align}
+Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+The hyperparameter $q$ is unknown and needs to be tuned. More details can be found in @chiquet2018variational .
 
 # `PlnAR`
 
+A temporal structure is added thanks to an autoregression matrix $\Phi \in \mathcal S^{p}_+$:
+
+$$
+\begin{align}
+Z_{i} & \sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
+Z_{i}|Z_{i-1} &  \sim \Phi Z_{i-1} + \mathcal N(\mu^{\epsilon}_i, \Sigma^{\epsilon}) \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})),
+\end{align}
+$$
+
+with
+
+- $\mu^{\epsilon}_i = \mu_i - \Phi \mu_{i-1}$
+- $\Sigma^{\epsilon} = \Sigma - \Phi \Sigma \Phi$
+- $\mu_i= X_i^{\top} B$
+
+Note that constraints are imposed on the autoregression matrix $\Phi$ so that $\Sigma^{\epsilon}$ is positive definite.
+
 # `PlnLDA`
+
+When memberships $c_i$ are known, one can do a Linear Discriminant Analysis on the latent space:
+
+$$
+\begin{align}
+\mathbf{Z}_i & \sim \mathcal{N}(\sum_k {\boldsymbol\mu}_k \mathbf{1}_{\{c_i= k\}}, \boldsymbol\Sigma) \\
+Y_{ij} \mid Z_{ij} & \sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+The model can infer membership of new individuals if it has been fitted on training data.
 
 # `PlnNetwork`
 
+One can do network analysis by imposing an $\ell_0$ constraint on the precision
+matrix (i.e. inverse covariance matrix) of the `Pln` model:
+
+
+$$
+\begin{align}
+Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \left\| \Sigma^{-1} \right\|_1 \leq C \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+The hyperparameter $C$ is unknown and needs to be tuned. Non zero parameter
+$\Sigma^{-1}_{kj}$ indicates that variables $j$ and $k$ are linked.
+
 # `PlnMixture`
+
+
+$$\mathbf{Z}_i \mid c_i = k  \sim \mathcal{N}(\boldsymbol\mu_k, \boldsymbol\Sigma_k), \quad \text{for unknown memberships } c_i.$$
+
 
 # `ZIPlnPCA`
 
+The `ZIPlnPCA` have both the zero inflation and imposes a rank constraint on the covariance matrix $\Sigma$ of the `PlnPCA` model:
+
+
+$$
+\begin{align}
+Z_{i} &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
+W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j))\\
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij})\mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+The hyperparameter $q$ is unknown and needs to be tuned.
+
 # `PlnDiag`
+
+The `PlnDiag` does not assume any correlation between variables:
+
+$$
+\begin{align}
+Z_{ij} &\sim \mathcal{N}(o_i + X_i^{\top} B_j, \Sigma_{jj})\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
