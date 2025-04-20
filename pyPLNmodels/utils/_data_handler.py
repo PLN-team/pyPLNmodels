@@ -83,7 +83,7 @@ def _handle_data(
     if exog is not None:
         exog = _remove_useless_exog(exog, column_names_exog, is_inflation=False)
         _check_full_rank_exog(exog, name_mat="exog")
-    if torch.max(offsets) > 5:
+    if torch.max(offsets) > 10:
         warnings.warn(
             "Offsets are very large. Consider taking the logarithm. NaN may appear."
         )
