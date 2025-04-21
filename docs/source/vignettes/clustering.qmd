@@ -14,3 +14,77 @@ execute:
 nocite: |
   @joss_bastien
 ---
+
+
+# Introduction
+
+The Poisson lognormal (PLN) model can be extended to look for a clustering structre. Two different approaches are available:
+
+
+- Supervised clustering: when labels are known for a set of samples (`PlnLDA`)
+- Unsupervised clustering: when no labels is known (`PlnMixture`)
+
+
+In this example, we analyze single-cell RNA-seq data provided by the
+`load_scrna` function in the package. Each column in the dataset
+represents a gene, while each row corresponds to a cell (i.e., an
+individual). Cell types (`labels`) are also included, which will be our labels for supervised clustering.
+in this example. For simplicity, we limit the analysis to 20 variables (dimensions).
+
+## Importing data
+
+```{python}
+from pyPLNmodels import load_scrna
+rna = load_scrna(dim=20)
+print('Data: ', rna.keys())
+```
+
+## Data Structure
+
+### Count Matrix (`endog`)
+
+```{python}
+endog = rna["endog"]
+print(endog.head())
+```
+
+### Cell Type
+
+```{python}
+cell_type = rna["labels"]
+print('Possible cell types: ', cell_type.unique())
+print(cell_type.head())
+```
+
+# Supervised clustering
+
+The supervised way to cluster count data through a `Pln` based model is by
+imposing a Linear Discriminant Analysis
+([LDA](https://en.wikipedia.org/wiki/Linear_discriminant_analysis)) on the
+latent layer.
+
+## Statistical background
+
+We assume the memberships $c_i$ (i.e. cell types) are known for some samples:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N} \left( \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \text{for known cluster memberships } c_i \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$
+
+
+# Unsupervised clustering
+When no labels are known, the `PlnMixture` model captures subpopulation
+structure in the data by modeling the latent variables as a mixture of Gaussians. The mixing proportions, denoted
+as $\pi = (\pi_1, \pi_2, \dots, \pi_K)$, represent the probabilities of
+belonging to each cluster, with the constraint that $\sum_{k=1}^K \pi_k = 1$.
+
+$$
+\begin{align}
+c_i | \pi & \sim \mathcal M(1, \pi),\\
+Z_i \mid c_i = k & \sim \mathcal{N}(\mu_k, \Sigma_k),\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+\end{align}
+$$

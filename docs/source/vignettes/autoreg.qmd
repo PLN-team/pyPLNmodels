@@ -2,74 +2,63 @@
 title: "Temporal count data"
 date: "2025-03-27"
 format:
-    html:
-        embed-resources: true
-        css: styles.css
-        toc: true
-        toc-location: left
+  html:
+    embed-resources: true
+    css: styles.css
+    toc: true
+    toc-location: left
 bibliography: bib.bib
 bibliographystyle: apa
 execute:
-    cache: true
+  cache: true
 nocite: |
   @joss_bastien
 ---
 
 # Introduction
 
-The Pln model can be extended to incorporate temporal or spatial dependencies
-by introducing structure in the latent space, giving the `PlnAR` (PLN autoregressive). This is achieved using an
-autocorrelation matrix $\Phi$, which models how latent variables relate across
-time (or space).
+The Poisson lognormal (PLN) model can be extended to capture temporal or spatial dependencies by structuring the latent space. This leads to the `PlnAR` (PLN autoregressive) model, where an autocorrelation matrix $\Phi$ encodes how latent variables evolve across time (or space).
 
-Depending on the application, different types of autocorrelation structures (through $\Phi$) can be considered:
+Depending on the desired complexity, several types of autocorrelation structures for $\Phi$ can be used:
 
-- `diagonal`: Each variable has its own temporal dynamics, independent of the others.
-- `full`: The temporal behavior of each variable depends on all other variables.
-- `spherical`: A common temporal pattern is shared across all variables.
-
+- `full`: Each variable depends on all others ($\Phi$ is a full matrix).
+- `diagonal`: Each variable follows its own independent temporal dynamics ($\Phi$ is diagonal).
+- `spherical`: All variables share a common temporal pattern ($\Phi$ is a scalar multiple of the identity).
 
 ## Statistical background
 
-Here are the mathematicals details, if needed.
+The mathematical model is given by:
 
 $$
 \begin{align}
 Z_{i} & \sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
-Z_{i}|Z_{i-1} &  \sim \Phi Z_{i-1} + \mathcal N(\mu^{\epsilon}_i, \Sigma^{\epsilon}) \\
+Z_{i}|Z_{i-1} &  \sim \Phi Z_{i-1} + \mathcal{N}(\mu^{\epsilon}_i, \Sigma^{\epsilon}) \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})),
 \end{align}
 $$
 
-with
+with:
 
 - $\mu^{\epsilon}_i = \mu_i - \Phi \mu_{i-1}$
 - $\Sigma^{\epsilon} = \Sigma - \Phi \Sigma \Phi$
-- $\mu_i= X_i^{\top} B$
-- $\Phi \in \mathcal S^{p}_+$
+- $\mu_i = X_i^{\top} B$
+- $\Phi \in \mathcal{S}^{p}_+$
 
-Note that constraints are imposed on the autoregression matrix $\Phi$ such that
-$\Sigma^{\epsilon}$ is positive definite.
+The matrix $\Phi$ is constrained such that $\Sigma^{\epsilon}$ remains positive definite.
 
 ## Purpose
 
-
-The `PlnAR` package is designed to help analyze dependencies between consecutive sites effectively.
+The `PlnAR` package provides tools to analyze dependencies between consecutive time points or spatial sites by estimating the autoregression matrix $\Phi$.
 
 # Data
 
-The crossover dataset captures recombination patterns in sheep over time,
-focusing on the genetic determinism of this process. It provides male meiotic
-recombination maps for the Lacaune breed, combining historical data from
-Lacaune and Soay sheep to create precise crossover maps. The dataset
-offers a temporal perspective on how genetic diversity evolves. This makes it a
+We illustrate the package using the **crossover** dataset, which contains recombination patterns in sheep over time. This dataset captures male meiotic recombination maps for the Lacaune breed, combining historical data from Lacaune and Soay sheep.
 
 ```{python}
 from pyPLNmodels import load_crossover
-data = load_crossover(chromosome_numbers = [1,5,8,12])
+data = load_crossover(chromosome_numbers=[1, 5, 8])
 print('Data: ', data.keys())
 ```
-
 
 ## Endogenous variables
 
@@ -77,59 +66,85 @@ print('Data: ', data.keys())
 print(data["endog"].head())
 ```
 
-The chromosomes are available as covariates, even though we do not use it here:
+The dataset also includes chromosome identifiers:
+
 ```{python}
 print(data["chrom"].unique())
 ```
 
-
-
-
-
-
 # Model Initialization and Fitting
 
-We consider the `diagonal` structure:
+We start by fitting a model with a **diagonal** autoregressive structure:
 
 ```{python}
 from pyPLNmodels import PlnAR
-ar = PlnAR.from_formula("endog ~ 1", data = data, ar_type = "diagonal").fit()
+ar_diag = PlnAR.from_formula("endog ~ 1", data=data, ar_type="diagonal").fit()
 ```
 
-For more information on how to specify a model, and accounting for covariates
-and offsets, see the dedicated [tutorial](??).
+For more information on how to include covariates and offsets, see the [dedicated tutorial](??).
 
+Note: A diagonal $\Phi$ implies a diagonal covariance structure $\Sigma$.
 
 # Temporal structure
 
-```{oython}
-ar.show()
+```{python}
+ar_diag.show()
 ```
 
-It shows that it depends at 80
-
+The output indicates, for instance, that the variable `nco_Soay_F` depends
+approximately 80% on its past values (see the graph on the bottom left).
 
 # Latent variables and visualization
 
-One can extract the latent variables $Z$ that have more insights:
+To explore latent dynamics, extract the latent variables $Z$:
 
 ```{python}
-z = ar.latent_variables
+z = ar_diag.latent_variables
 ```
 
-The latent variables can be visualized to see the temporal structure:
+Visualize the temporal structure:
 
 ```{python}
-ar.viz_dims(column_names = ["nco_Lacaune_M", "nco_Lacaune_F", "nco_Soay_F", "nco_Soay_M"])
+ar_diag.viz_dims(
+    column_names=["nco_Lacaune_M", "nco_Lacaune_F", "nco_Soay_F", "nco_Soay_M"],
+    colors=data["chrom"]
+)
 ```
-and visualize colors:
+
+# Full and Spherical Autoregression
+
+Other structures for $\Phi$ include:
+
+## Full autoregression
+
+Each variable depends on all others (default behavior):
 
 ```{python}
-ar.viz_dims(column_names = ["nco_Lacaune_M", "nco_Lacaune_F", "nco_Soay_F", "nco_Soay_M"], colors = data["chrom"])
+ar_full = PlnAR.from_formula("endog ~ 1", data=data, ar_type="full").fit()
+ar_full.show()
 ```
 
-Others attributes and method can be found by printing the model:
+## Spherical autoregression
+
+All variables share a common temporal trend:
 
 ```{python}
-print(ar)
+ar_spher = PlnAR.from_formula("endog ~ 1", data=data, ar_type="spherical").fit()
+ar_spher.show()
 ```
+
+These models generally yield similar outputs for this dataset.
+
+# Autoregression Coefficients
+
+Access the estimated autoregression parameters:
+
+```{python}
+print("Full autoregressive parameter:", ar_full.ar_coef.shape)
+print("Diagonal autoregressive parameter:", ar_diag.ar_coef.shape)
+print("Spherical autoregressive parameter:", ar_spher.ar_coef.shape)
+```
+
+---
+
+This concludes the introduction to temporal modeling with the `PlnAR` package. For further examples and diagnostics, see the advanced tutorials.
