@@ -120,12 +120,20 @@ pln.show()
 
 ### Exploring Latent Variables
 
-The latent variables \(Z\), which capture the underlying structure of the data, are accessible via the `latent_variables` attribute:
+The latent variables \(Z\), which capture the underlying structure of the data, are accessible via the `latent_variables` attribute, or the `.transform()` method:
 
 ```{python}
 Z = pln.latent_variables
+Z = pln.transform()
 print('Shape of Z:', Z.shape)
 ```
+
+The effect of covariates on the latent variables can be removed by using the `remove_exog_effect` keyword::
+
+```{python}
+Z_moins_XB = pln.transform(remove_exog_effect=True)
+```
+
 
 You can visualize these latent variables using the `.viz()` method:
 

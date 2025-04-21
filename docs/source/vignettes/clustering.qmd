@@ -18,8 +18,7 @@ nocite: |
 
 # Introduction
 
-The Poisson lognormal (PLN) model can be extended to look for a clustering structre. Two different approaches are available:
-
+The Poisson lognormal (PLN) model can be extended to look for a clustering structure. Two different approaches are available, based on the available data:
 
 - Supervised clustering: when clusters are known for a set of samples (`PlnLDA`)
 - Unsupervised clustering: when no clusters is known (`PlnMixture`)
@@ -109,6 +108,7 @@ print(lda)
 ## Test set prediction
 
 ```{python}
+# | echo: False
 pred_test = lda.predict_clusters(endog_test)
 ```
 
@@ -124,7 +124,7 @@ The model could easily be improved by adding more variables in the dataset.
 ## Visualization
 
 The visualization of the latent variables, adapted to the LDA model, is
-done using the `.viz_transformed` method: CHANGE HERE
+done using the `.viz_transformed` method. It creates sub spaces adapted to the LDA.
 
 
 ```{python}
@@ -132,11 +132,23 @@ transformed_test_data = lda.transform_new(endog_test)
 lda.viz_transformed(transformed_test_data, colors = cell_type_test)
 ```
 
+One can also visualize the latent variables of the training set:
 
+```{python}
+transformed_train_data = lda.transform_new(endog_train)
+lda.viz_transformed(transformed_train_data, colors = cell_type_train)
+```
 
+⚠️  Note:  One can add exogenous variables, like this:
+
+```{python}
+_ = PlnLDA(endog_train, exog = torch.randn(endog_train.shape[0], 2,) clusters=cell_type_train) # fake covariates
+```
+
+⚠️  Note: Ensure that the `exog` matrix has the correct rank, as the model includes an intercept to account for cluster membership. Using one hot encoded covariates will raise an issue.</p>
 
 Note that exogenous variables can also be used in the model, but it will not be
-used as predictors.
+used to separate clusters.
 
 
 # Unsupervised clustering
@@ -154,3 +166,91 @@ Z_i \mid c_i = k & \sim \mathcal{N}(X_i^{\top} B + \mu_k, \Sigma_k),\\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
+
+To handle high-dimensional data, the covariance matrices $\Sigma_k$ are assumed diagonal.
+
+## Model fitting
+
+We do not need to split the data into train and test sets, as the model is unsupervised. However, we need to choose the number of clusters. We use $3$ clusters for now.
+
+
+```{python}
+from pyPLNmodels import PlnMixture
+mixture = PlnMixture(endog, n_cluster=3).fit()
+print(mixture)
+```
+
+⚠️  Note:  One can add exogenous variables, like this:
+
+
+```{python}
+import torch
+_ = PlnMixture(endog, exog = torch.randn(endog.shape[0], 2), n_cluster = 3) # fake covariates
+```
+
+⚠️  Note: Ensure that the `exog` matrix has the correct rank, as the model includes an intercept to account for cluster membership. Using one hot encoded covariates will raise an issue.</p>
+
+The weights of the model are stored in the `weights` attribute:
+
+```{python}
+weights = mixture.weights
+print(weights)
+```
+
+## Visualization
+
+The inferred clusters can be accessed through the `clusters` attribute, as well as the probabilities of belonging to each cluster:
+
+```{python}
+clusters = mixture.clusters
+latent_prob = mixture.latent_prob
+```
+
+Some insights on the clusters mean and covariances can be obtained using the `.show()` method:
+
+```{python}
+mixture.show()
+```
+
+One can visualize the latent variables using the `.viz()` method. By default,
+the latent variables are colored by the inferred clusters. The `colors`
+argument can be used to use other colors.
+
+```{python}
+mixture.viz()
+```
+
+One can compare the inferred clusters with the cell types using once again the `plot_confusion_matrix` function:
+
+
+```{python}
+plot_confusion_matrix(clusters, cell_type)
+```
+
+## Inferring new samples
+
+One can infer new samples using the `.predict_clusters()` method:
+
+```{python}
+new_clusters = mixture.predict_clusters(endog)
+```
+
+
+
+## Choice of the number of clusters
+
+
+The number of clusters is a crucial parameter in the `PlnMixture` model.
+Fortunately, the package provides a way to fit multiple clusters and compare them, via the `PlnMixtureCollection` class:
+
+
+```{python}
+from pyPLNmodels import PlnMixtureCollection
+collection = PlnMixtureCollection(endog, n_clusters=range(2, 5)).fit()
+collection.show(figsize = (8,8))
+```
+
+The `silhouette` score is a good metric to assess the quality of the clusters,
+the higher the better, as opposed to the 'Within Sum of Squares' (WSS) metric.
+However, the WSS can only decrease with clusters numbers, as opposed to the
+`silhouette` score. Based on the `silhouette` score, we can choose $2$ clusters.

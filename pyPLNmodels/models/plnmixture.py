@@ -235,6 +235,7 @@ class PlnMixture(
             The axes on which to plot, by default `None`.
         colors : list, optional
             The labels to color the samples, of size `n_samples`.
+            If None, will take the inferred clusters.
         show_cov : bool, optional
             Whether to show covariances, by default False.
         remove_exog_effect: bool, optional
