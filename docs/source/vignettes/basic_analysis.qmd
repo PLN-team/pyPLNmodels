@@ -34,7 +34,7 @@ high-dimensional data, though it may slightly compromise parameter estimation ac
 
 Both models are built on the following assumptions for a given count matrix $Y$ [@Aitchison1989]:
 
-$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
+$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(o_{ij} + Z_{ij})), \quad Z_{i}\sim \mathcal N(X_i^{\top} B, \Sigma),$$
 where the input data includes:
 
 * $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation

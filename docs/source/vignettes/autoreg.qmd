@@ -31,9 +31,9 @@ The mathematical model is given by:
 
 $$
 \begin{align}
-Z_{i} & \sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma)\\
+Z_{i} & \sim \mathcal{N}(X_i^{\top} B, \Sigma)\\
 Z_{i}|Z_{i-1} &  \sim \Phi Z_{i-1} + \mathcal{N}(\mu^{\epsilon}_i, \Sigma^{\epsilon}) \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})),
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),
 \end{align}
 $$
 

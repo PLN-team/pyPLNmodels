@@ -21,14 +21,14 @@ nocite: |
 The Poisson lognormal (PLN) model can be extended to look for a clustering structre. Two different approaches are available:
 
 
-- Supervised clustering: when labels are known for a set of samples (`PlnLDA`)
-- Unsupervised clustering: when no labels is known (`PlnMixture`)
+- Supervised clustering: when clusters are known for a set of samples (`PlnLDA`)
+- Unsupervised clustering: when no clusters is known (`PlnMixture`)
 
 
 In this example, we analyze single-cell RNA-seq data provided by the
 `load_scrna` function in the package. Each column in the dataset
 represents a gene, while each row corresponds to a cell (i.e., an
-individual). Cell types (`labels`) are also included, which will be our labels for supervised clustering.
+individual). Cell types (`labels`) are also included, which will be our clusters for supervised clustering.
 in this example. For simplicity, we limit the analysis to 20 variables (dimensions).
 
 ## Importing data
@@ -48,13 +48,22 @@ endog = rna["endog"]
 print(endog.head())
 ```
 
-### Cell Type
+### Cell Type (`labels`)
 
 ```{python}
 cell_type = rna["labels"]
 print('Possible cell types: ', cell_type.unique())
 print(cell_type.head())
 ```
+
+The number of cell types is quite balanced:
+
+```{python}
+print('Number of samples per cell type: ', cell_type.value_counts())
+```
+
+
+
 
 # Supervised clustering
 
@@ -69,22 +78,79 @@ We assume the memberships $c_i$ (i.e. cell types) are known for some samples:
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N} \left( \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \text{for known cluster memberships } c_i \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i &\sim \mathcal{N} \left(X_i^{\top}B + \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \text{for known cluster memberships } c_i \\
+Y_{ij} \mid o_{ij} + Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
+## Train test split
+
+We split the data into train and test to assess the model:
+
+```{python}
+train_prop = 0.8
+endog_train = endog[:int(endog.shape[0] * train_prop)]
+endog_test = endog[int(endog.shape[0] * train_prop):]
+cell_type_train = cell_type[:int(endog.shape[0] * train_prop)]
+cell_type_test = cell_type[int(endog.shape[0] * train_prop):]
+```
+
+
+## Model fitting on train set
+
+We start by fitting the model on the train set:
+
+```{python}
+from pyPLNmodels import PlnLDA
+lda = PlnLDA(endog_train, clusters=cell_type_train).fit()
+print(lda)
+```
+
+## Test set prediction
+
+```{python}
+pred_test = lda.predict_clusters(endog_test)
+```
+
+We can now compare with the true labels:
+
+```{python}
+from pyPLNmodels import plot_confusion_matrix
+plot_confusion_matrix(pred_test, cell_type_test)
+```
+
+The model could easily be improved by adding more variables in the dataset.
+
+## Visualization
+
+The visualization of the latent variables, adapted to the LDA model, is
+done using the `.viz_transformed` method: CHANGE HERE
+
+
+```{python}
+transformed_test_data = lda.transform_new(endog_test)
+lda.viz_transformed(transformed_test_data, colors = cell_type_test)
+```
+
+
+
+
+Note that exogenous variables can also be used in the model, but it will not be
+used as predictors.
+
 
 # Unsupervised clustering
-When no labels are known, the `PlnMixture` model captures subpopulation
+When no clusters are known, the `PlnMixture` model captures subpopulation
 structure in the data by modeling the latent variables as a mixture of Gaussians. The mixing proportions, denoted
 as $\pi = (\pi_1, \pi_2, \dots, \pi_K)$, represent the probabilities of
 belonging to each cluster, with the constraint that $\sum_{k=1}^K \pi_k = 1$.
 
+## Statistical background
+
 $$
 \begin{align}
 c_i | \pi & \sim \mathcal M(1, \pi),\\
-Z_i \mid c_i = k & \sim \mathcal{N}(\mu_k, \Sigma_k),\\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i \mid c_i = k & \sim \mathcal{N}(X_i^{\top} B + \mu_k, \Sigma_k),\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$

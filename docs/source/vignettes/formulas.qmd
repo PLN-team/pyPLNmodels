@@ -28,8 +28,8 @@ All models are derived from the Poisson log-normal (PLN) model [@Aitchison1989]:
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
@@ -46,9 +46,9 @@ The zero-inflated PLN (`ZIPln`) model introduces a latent variable $W_i$ to acco
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
 W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
-Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(Z_{ij})),
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(o_{ij} + Z_{ij})),
 \end{align}
 $$
 where $\sigma$ denotes the sigmoid function.
@@ -66,8 +66,8 @@ The `PlnPCA` model imposes a low-rank constraint on the covariance matrix $\Sigm
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
@@ -79,9 +79,9 @@ The `PlnAR` model introduces temporal structure in the latent space using an aut
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \\
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
 Z_i \mid Z_{i-1} &\sim \Phi Z_{i-1} + \mathcal{N}(\mu_i^\epsilon, \Sigma^\epsilon), \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})),
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),
 \end{align}
 $$
 
@@ -100,8 +100,8 @@ The `PlnNetwork` model encourages sparsity in the latent dependency structure by
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
@@ -113,8 +113,8 @@ When class memberships $c_i$ are known, Linear Discriminant Analysis (LDA) can b
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N} \left( \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \text{for known cluster memberships } c_i \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i &\sim \mathcal{N} \left( X_i^{\top} B +  \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \text{for known cluster memberships } c_i \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
@@ -130,8 +130,8 @@ belonging to each cluster, with the constraint that $\sum_{k=1}^K \pi_k = 1$.
 $$
 \begin{align}
 c_i | \pi & \sim \mathcal M(1, \pi),\\
-Z_i \mid c_i = k & \sim \mathcal{N}(\mu_k, \Sigma_k),\\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_i \mid c_i = k & \sim \mathcal{N}(X_i^{\top} B + \mu_k, \Sigma_k),\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
@@ -146,9 +146,9 @@ The `ZIPlnPCA` model combines zero-inflation and dimensionality reduction:
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(o_i + X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
 W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
-Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(Z_{ij})).
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
@@ -160,8 +160,8 @@ The `PlnDiag` model assumes no correlation between latent variables:
 
 $$
 \begin{align}
-Z_{ij} &\sim \mathcal{N}(o_i + X_i^{\top} B_j, \Sigma_{jj}), \\
-Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(Z_{ij})).
+Z_{ij} &\sim \mathcal{N}(X_i^{\top} B_j, \Sigma_{jj}), \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 

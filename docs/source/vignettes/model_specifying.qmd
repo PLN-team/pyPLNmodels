@@ -38,7 +38,7 @@ model](https://pln-team.github.io/pyPLNmodels/pln.html)
 
 Given a count matrix $Y$, the `Pln` model assumes the following [@Aitchison1989]:
 
-$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
+$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(o_{ij} + Z_{ij})), \quad Z_{i}\sim \mathcal N(o_i + X_i^{\top} B, \Sigma),$$
 with input data
 
 * $Y_{ij}$ (denoted `endog` in the package) is the $j$-th count for the $i$-th observation

@@ -34,7 +34,7 @@ zero-inflation, albeit with increased computational requirements.
 
 Both models operate under the following assumptions for a given count matrix \(Y\):
 
-$$ Y_{ij}| Z_{ij}, W_{ij} \sim (1 - W_{ij})\mathcal P(\exp(Z_{ij})), \quad Z_{i} \sim \mathcal N(o_i + X_i^{\top} B, \Sigma), \quad W_{ij} \sim \mathcal B(\sigma(X_i^{0^{\top}} B^0_j)) $$
+$$ Y_{ij}| Z_{ij}, W_{ij} \sim (1 - W_{ij})\mathcal P(o_{ij} + \exp(Z_{ij})), \quad Z_{i} \sim \mathcal N(o_i + X_i^{\top} B, \Sigma), \quad W_{ij} \sim \mathcal B(\sigma(X_i^{0^{\top}} B^0_j)) $$
 
 Here, the latent variable \(W\) models the zero-inflation component of the data. More details can be found in @zeroinflation. The input data includes:
 
