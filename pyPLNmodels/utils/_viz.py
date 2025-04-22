@@ -968,8 +968,10 @@ def _show_information_criterion(
 
     criteria = ["BIC", "AIC", "ICL", "Negative log likelihood"]
     values_list = [bic, aic, icl, collection.loglike]
+    argmins = [argmin_bic, argmin_aic, argmin_icl]
+    offsets = [-0.01, 0, 0.01]  # Offsets for each criterion to avoid overlap
 
-    for criterion, values in zip(criteria, values_list):
+    for i, (criterion, values) in enumerate(zip(criteria, values_list)):
         keys_mapped = _equal_distance_mapping(values.keys())
         if criterion == "Negative log likelihood":
             to_plot = [-val for val in values.values()]
@@ -983,26 +985,12 @@ def _show_information_criterion(
         )
         ax.plot(keys_mapped, to_plot, c=colors[criterion])
 
-        if criterion == "BIC":
+        if criterion in ["BIC", "AIC", "ICL"]:
             ax.axvline(
-                keys_mapped[argmin_bic],
+                keys_mapped[argmins[i]] + offsets[i],  # Apply offset
                 c=colors[criterion],
                 linestyle="dotted",
-                linewidth=4,
-            )
-        elif criterion == "AIC":
-            ax.axvline(
-                keys_mapped[argmin_aic],
-                c=colors[criterion],
-                linestyle="dotted",
-                linewidth=4,
-            )
-        elif criterion == "ICL":
-            ax.axvline(
-                keys_mapped[argmin_icl],
-                c=colors[criterion],
-                linestyle="dotted",
-                linewidth=4,
+                linewidth=3,
             )
 
         ax.set_xticks(
