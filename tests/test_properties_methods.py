@@ -47,6 +47,7 @@ def test_attributes_formula_method():
                 methods = get_methods_model(model)
                 for attribute in attributes:  # pylint: disable=protected-access
                     attribute = attribute[1:]
+                    print("attribute heeeeere:", attribute)
                     assert hasattr(model, attribute)
                     attribute_value = getattr(model, attribute)
                 for method in methods:  # pylint: disable=protected-access

@@ -949,6 +949,24 @@ def _show_collection_and_clustering_criterions(collection, figsize, absc_label):
     plt.show()
 
 
+def _show_collection_and_nb_links(collection, figsize, absc_label):
+    _, axes = plt.subplots(2, figsize=figsize)
+    _show_information_criterion(
+        collection=collection, ax=axes[0], absc_label=absc_label
+    )
+
+    _display_metric(
+        axes[1],
+        collection.nb_links,
+        xlabel="",
+        ylabel="Number of links in the graph ",
+        title="",
+        cumsum=False,
+    )
+
+    plt.show()
+
+
 def _show_information_criterion(
     *, collection, ax, absc_label
 ):  # pylint: disable=too-many-locals

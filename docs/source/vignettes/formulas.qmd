@@ -94,7 +94,7 @@ with
 Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite.
 
 
-## `PlnNetwork`: Sparse Dependency Structures
+## `PlnNetwork`: Sparse Network Inference
 
 The `PlnNetwork` model encourages sparsity in the latent dependency structure by imposing an $\ell_1$ constraint on the precision matrix $\Sigma^{-1}$:
 

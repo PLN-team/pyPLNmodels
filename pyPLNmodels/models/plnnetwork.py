@@ -21,7 +21,7 @@ from pyPLNmodels.calculations._initialization import (
 THRESHOLD = 1e-5
 
 
-class PlnNetwork(BaseModel):
+class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
     """
     Pln model with regularization on the number of parameters
     of the precision matrix (inverse covariance matrix) representing correlation
@@ -468,9 +468,13 @@ class PlnNetwork(BaseModel):
     @property
     def _dict_for_printing(self):
         orig_dict = super()._dict_for_printing
-        nb_non_zeros = self.dim * (self.dim - 1) / 2 - self.nb_zeros_precision
-        orig_dict["Nb edges"] = int(nb_non_zeros)
+        orig_dict["Nb edges"] = int(self.nb_links)
         return orig_dict
+
+    @property
+    def nb_links(self):
+        """Returns the number of links in the graph."""
+        return self.dim * (self.dim - 1) / 2 - self.nb_zeros_precision
 
     @property
     def _description(self):

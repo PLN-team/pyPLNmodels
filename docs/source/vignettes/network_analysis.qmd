@@ -1,5 +1,5 @@
 ---
-title: "Network analysis"
+title: "Network inference"
 date: "2025-03-27"
 format:
     html:
@@ -16,4 +16,93 @@ nocite: |
 ---
 
 
-This tutorial
+# Introduction
+
+The PlnNetwork model in the pyPLNmodels package is designed for sparse network
+inference from multivariate count data, using a
+penalized precision matrix. It allows for network structure learning between
+variables, such as genes in single-cell RNA sequencing datasets.
+
+This tutorial demonstrates how to:
+
+- Initialize a PlnNetwork model from count data or using a formula interface
+
+- Fit the model with regularization on the precision matrix
+
+- Visualize inferred network structures and latent variables
+
+## Statistical background
+
+Compared to the `Pln` model, a constraint is imposed on the precision matrix
+$\Sigma^{-1}$ of the latent space:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),
+\end{align}
+$$
+where $C$ is a penalty parameter.
+
+## Data importation
+
+For visualization purposes, we use only 20 variables (i.e. genes).
+
+```{python}
+from pyPLNmodels import load_scrna
+data = load_scrna(dim = 20)
+endog = data["endog"]
+```
+
+# Model initialization and fitting
+
+A penalty needs to be specified for the model. The greater the penalty, the
+sparser the precision matrix will be. We use a value of $200$ for now.
+
+```{python}
+from pyPLNmodels import PlnNetwork
+net = PlnNetwork(endog, penalty=200).fit()
+```
+
+# Network visualization
+
+
+```{python}
+net.viz_network()
+```
+
+The network can be accessed through the `network` attribute:
+
+
+```{python}
+print(net.network)
+```
+
+# Use `PlnNetworkCollection` for selecting the optimal penalty
+
+
+To explore multiple penalty solutions, use `PlnNetworkCollection`:
+
+```{python}
+from pyPLNmodels import PlnNetworkCollection
+collection = PlnNetworkCollection(endog, penalties=[0.1,1,10,20,30,40,50,100,200, 300, 400,1000, 2000]).fit()
+```
+
+
+## Evaluate model quality
+
+```{python}
+collection.show(figsize=(8, 8))
+```
+
+This displays BIC, AIC, ICL,  log-likelihood for each model.
+
+## Selecting the best model
+
+
+The best model can be chosen according to the BIC, AIC, or ICL:
+
+```{python}
+best_net = collection.best_model("BIC") # Could be also BIC, AIC, or ICL.
+print(best_net)
+```
