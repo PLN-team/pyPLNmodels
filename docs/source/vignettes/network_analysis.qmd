@@ -18,18 +18,20 @@ nocite: |
 
 # Introduction
 
-The PlnNetwork model in the pyPLNmodels package is designed for sparse network
+The `PlnNetwork` model in the pyPLNmodels package is designed for sparse network
 inference from multivariate count data, using a
 penalized precision matrix. It allows for network structure learning between
 variables, such as genes in single-cell RNA sequencing datasets.
 
 This tutorial demonstrates how to:
 
-- Initialize a PlnNetwork model from count data or using a formula interface
+- Initialize a `PlnNetwork` model from count data or using a formula interface
 
 - Fit the model with regularization on the precision matrix
 
 - Visualize inferred network structures and latent variables
+
+- Gives tools for selecting the optimal penalty
 
 ## Statistical background
 

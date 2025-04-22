@@ -10,6 +10,7 @@ website:
     contents:
       - section: "Tutorials for count data"
         contents:
+          - index.qmd
           - model_specifying.qmd
           - basic_analysis.qmd
           - zero_inflation.qmd

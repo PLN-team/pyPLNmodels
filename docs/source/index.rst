@@ -14,15 +14,16 @@ Getting started
 ===============
 
 `A notebook to get started with pyPLNmodels is available here
-<https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__.
+<https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__. A more `in-depth tutorial<??>`__ is available.
 Otherwise, the next section is an overview of the package.
 
 
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
 
-   vignettes/index
+   vignettes/index.html
 
 
 Overview
