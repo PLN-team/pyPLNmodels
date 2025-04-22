@@ -451,15 +451,17 @@ class Collection(ABC):
         Any
             The best model.
         """
-        if criterion not in ("BIC", "AIC"):
-            raise ValueError(f"Unknown criterion {criterion}")
         return self[self._best_grid_value(criterion)]
 
     def _best_grid_value(self, criterion):
+        if criterion not in ("BIC", "AIC", "ICL"):
+            raise ValueError(f"Unknown criterion {criterion}")
         if criterion == "BIC":
             criterion = self.BIC
         if criterion == "AIC":
             criterion = self.AIC
+        if criterion == "ICL":
+            criterion = self.ICL
         return self.grid[np.argmin(list(criterion.values()))]
 
     @property

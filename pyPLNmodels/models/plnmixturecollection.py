@@ -181,20 +181,28 @@ class PlnMixtureCollection(Collection):
         """
         return {model.n_clusters: model.latent_variances for model in self.values()}
 
-    @_add_doc(
-        Collection,
-        example="""
-            >>> from pyPLNmodels import PlnMixtureCollection, load_scrna
-            >>> data = load_scrna()
-            >>> mixtures = PlnMixtureCollection(endog = data["endog"], n_clusters = [2,3,4])
-            >>> mixtures.fit()
-            >>> print(mixtures.best_model())
-        """,
-        returns="""
-        PlnMixtureCollection
-        """,
-    )
     def best_model(self, criterion: str = "BIC") -> PlnMixture:
+        """
+        Get the best model according to the specified criterion.
+
+        Parameters
+        ----------
+        criterion : str, optional
+            The criterion to use ('AIC', 'BIC' or 'silhouette'), by default 'silhouette'.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnMixtureCollection, load_scrna
+        >>> data = load_scrna()
+        >>> mixtures = PlnMixtureCollection(endog = data["endog"], n_clusters = [2,3,4])
+        >>> mixtures.fit()
+        >>> print(mixtures.best_model())
+
+        Returns
+        -------
+        PlnMixtureCollection
+            The best model.
+        """
         return super().best_model(criterion=criterion)
 
     @property
@@ -242,3 +250,20 @@ class PlnMixtureCollection(Collection):
         _show_collection_and_clustering_criterions(
             self, figsize=figsize, absc_label=absc_label
         )
+
+    def _best_grid_value(self, criterion):
+        possible_criterions = ("BIC", "AIC", "silhouette")
+        if criterion not in possible_criterions:
+            raise ValueError(
+                f"Unknown criterion {criterion}. Availables: {possible_criterions}."
+            )
+        if criterion == "BIC":
+            criterion = self.BIC
+        elif criterion == "AIC":
+            criterion = self.AIC
+        elif criterion == "silhouette":
+            criterion = self.silhouette
+            criterion = {
+                grid_value: -score for grid_value, score in self.silhouette.items()
+            }
+        return self.grid[np.argmin(list(criterion.values()))]

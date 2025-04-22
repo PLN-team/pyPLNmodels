@@ -341,6 +341,12 @@ class PlnMixture(
         return f"diagonal covariances and {self.n_cluster} clusters."
 
     @property
+    def _dict_for_printing(self):
+        orig_dict = super()._dict_for_printing
+        orig_dict["Silhouette"] = self.silhouette
+        return orig_dict
+
+    @property
     def _endog_predictions(self):
         exp_term = torch.exp(
             self.offsets.unsqueeze(0)
