@@ -27,3 +27,4 @@ format:
     math: true
     css: custom_css_yml.css
     theme: cosme
+    code-copy: true

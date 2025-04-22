@@ -1,5 +1,5 @@
 ---
-title: "Temporal count data"
+title: "Time-series count data"
 date: "2025-03-27"
 format:
   html:

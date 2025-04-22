@@ -13,9 +13,10 @@ Here is the :doc:`API documentation <documentation>`.
 Getting started
 ===============
 
-`A notebook to get started with pyPLNmodels is available here
-<https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__. A more `in-depth tutorial<??>`__ is available.
-Otherwise, the next section is an overview of the package.
+A notebook to get started with pyPLNmodels is `available here
+<https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`_. A
+more in-depth tutorial is `available here <./vignettes/index.html>`_.
+Otherwise, the next section is a quick overview of the package.
 
 
 

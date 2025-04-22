@@ -1,7 +1,7 @@
 PlnAR
 =====
 
-For an in-depth tutorial to the `PlnAR` model, see the `temporal
+For an in-depth tutorial to the `PlnAR` model, see the `time-series
 tutorial <./vignettes/autoreg.html>`_.
 
 PlnAR Documentation
