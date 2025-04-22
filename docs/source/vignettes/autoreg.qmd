@@ -134,7 +134,7 @@ ar_spher = PlnAR.from_formula("endog ~ 1", data=data, ar_type="spherical").fit()
 ar_spher.show()
 ```
 
-These models generally yield similar outputs for this dataset.
+These models generally yield similar latent variables, even though the estimated parameters may be different betwen `full` `ar_type` and `diagonal` and `spherical` `ar_type`.
 
 # Autoregression Coefficients
 
