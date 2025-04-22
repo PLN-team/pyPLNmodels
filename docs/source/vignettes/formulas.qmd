@@ -51,7 +51,7 @@ W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
 Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(o_{ij} + Z_{ij})),
 \end{align}
 $$
-where $\sigma$ denotes the sigmoid function.
+where $\sigma$ denotes the sigmoid function. Model parameters are given by $(B, Sigma, B^0) = $(`coef`, `covariance`, `coef_inflation`).
 
 The covariates of the zero-inflation $X^0$ can be different than the covariates
 $X$ of the Poisson regression.
@@ -71,7 +71,7 @@ Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
-The rank $q$ must be chosen (e.g., via BIC minimization). See @chiquet2018variational for details.
+The rank $q$ must be chosen (e.g., via BIC minimization). See @chiquet2018variational for details. Model parameters are given by $(B, \Sigma) = $(`coef`, `covariance`).
 
 ## `PlnAR`: Autoregressive Latent Dynamics
 
@@ -91,7 +91,7 @@ with
 - $\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top$,
 - $\mu_i = X_i^{\top} B$
 
-Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite.
+Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite. Model parameters are given by $(B, \Sigma, \Phi) = $(`coef`, `covariance`, `ar_coef`).
 
 
 ## `PlnNetwork`: Sparse Network Inference
@@ -107,6 +107,10 @@ $$
 
 The hyperparameter $C$ controls the sparsity level. A non-zero entry in $\Sigma^{-1}_{jk}$ implies a direct dependency between variables $j$ and $k$ in the latent space.
 
+Model parameters are given by $(B, \Sigma) = $(`coef`, `covariance`). The precision matrix $\Sigma^{-1}$ is denoted `precision` in the package.
+
+
+
 ## `PlnLDA`: Supervised clustering throught latent discriminant analysis
 
 When class memberships $c_i$ are known, Linear Discriminant Analysis (LDA) can be performed in the latent space:
@@ -119,6 +123,8 @@ Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 $$
 
 Once fitted, the model can infer class memberships for new individuals based on their latent representations.
+
+Model parameters are given by $(B, \Sigma, \mu) = $(`coef`, `covariance`, `coef_clusters`).
 
 ## `PlnMixture`: Unsupervised clustering through latent class modeling
 
@@ -140,6 +146,8 @@ This model allows automatic discovery of latent clusters or topics in the data.
 Model selection criteria such as BIC or ICL can be used to choose the number of
 clusters $K$.
 
+Model parameters are given by $(B, \mu_k, \Sigma_k, \pi) = $(`coef`, `cluster_bias`, `covariances`, `weights`).
+
 ## `ZIPlnPCA`: Zero-Inflated Dimensionality Reduction
 
 The `ZIPlnPCA` model combines zero-inflation and dimensionality reduction:
@@ -154,6 +162,9 @@ $$
 
 The hyperparameter $q$ controls the latent dimension and must be tuned.
 
+
+Model parameters are given by $(B, \Sigma, B^0) = $(`coef`, `covariance`, `coef_inflation`).
+
 ## `PlnDiag`: Independent Latent Components
 
 The `PlnDiag` model assumes no correlation between latent variables:
@@ -166,3 +177,5 @@ Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 $$
 
 This leads to a diagonal covariance matrix, simplifying estimation while potentially reducing model expressiveness.
+
+Model parameters are given by $(B, \Sigma) = $(`coef`, `covariance`).
