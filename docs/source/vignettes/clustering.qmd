@@ -1,5 +1,5 @@
 ---
-title: "Clustering of count data"
+title: "Clustering of count data 🔍"
 date: "2025-03-27"
 format:
   html:
