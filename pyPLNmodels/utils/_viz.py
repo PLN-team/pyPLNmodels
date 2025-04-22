@@ -990,34 +990,40 @@ def _show_information_criterion(
     offsets = [-0.01, 0, 0.01]  # Offsets for each criterion to avoid overlap
 
     for i, (criterion, values) in enumerate(zip(criteria, values_list)):
-        keys_mapped = _equal_distance_mapping(values.keys())
-        if criterion == "Negative log likelihood":
-            to_plot = [-val for val in values.values()]
+        if (
+            collection._name  # pylint: disable=protected-access
+            == "PlnNetworkCollection"
+            and criterion == "ICL"
+        ):
+            pass
         else:
-            to_plot = values.values()
-        ax.scatter(
-            keys_mapped,
-            to_plot,
-            label=f"{criterion} criterion",
-            c=colors[criterion],
-        )
-        ax.plot(keys_mapped, to_plot, c=colors[criterion])
-
-        if criterion in ["BIC", "AIC", "ICL"]:
-            ax.axvline(
-                keys_mapped[argmins[i]] + offsets[i],  # Apply offset
+            keys_mapped = _equal_distance_mapping(values.keys())
+            if criterion == "Negative log likelihood":
+                to_plot = [-val for val in values.values()]
+            else:
+                to_plot = values.values()
+            ax.scatter(
+                keys_mapped,
+                to_plot,
+                label=f"{criterion} criterion",
                 c=colors[criterion],
-                linestyle="dotted",
-                linewidth=3,
             )
+            ax.plot(keys_mapped, to_plot, c=colors[criterion])
 
-        ax.set_xticks(
-            np.linspace(min(keys_mapped), max(keys_mapped), num=len(values.keys()))
-        )
-        ax.set_xticklabels(list(values.keys()))
-        ax.set_xlabel(absc_label, fontsize=12)
-        ax.set_ylabel("Criterion", fontsize=12)
+            if criterion in ["BIC", "AIC", "ICL"]:
+                ax.axvline(
+                    keys_mapped[argmins[i]] + offsets[i],  # Apply offset
+                    c=colors[criterion],
+                    linestyle="dotted",
+                    linewidth=3,
+                )
 
+            ax.set_xticks(
+                np.linspace(min(keys_mapped), max(keys_mapped), num=len(values.keys()))
+            )
+            ax.set_xticklabels(list(values.keys()))
+            ax.set_xlabel(absc_label, fontsize=12)
+            ax.set_ylabel("Criterion", fontsize=12)
     ax.legend()
 
 

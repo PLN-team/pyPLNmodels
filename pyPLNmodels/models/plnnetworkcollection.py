@@ -232,6 +232,8 @@ class PlnNetworkCollection(Collection):
         """
         Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
         Also show the number of links in the model.
+        The AIC and BIC criteria might not always provide meaningful guidance
+        for selecting the penalty. Instead, we recommend focusing on the desired number of links.
 
         Parameters
         ----------

@@ -544,3 +544,7 @@ class Collection(ABC):
         )
 
         return to_print
+
+    @property
+    def _name(self):
+        return str(type(self).__name__)

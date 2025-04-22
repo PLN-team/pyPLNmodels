@@ -95,7 +95,10 @@ collection = PlnNetworkCollection(endog, penalties=[0.1,1,10,20,30,40,50,100,200
 collection.show(figsize=(8, 8))
 ```
 
-This displays BIC, AIC, ICL,  log-likelihood for each model.
+This displays the BIC, AIC, ICL, and log-likelihood criteria for each model,
+helping to identify the most suitable one. Additionally, the number of links
+(i.e., non-zero elements in the precision matrix) is provided. You may consider
+using the ELBOW method to select the optimal model based on the number of links.
 
 ## Selecting the best model
 
