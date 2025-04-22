@@ -1,6 +1,9 @@
 PlnAR
 =====
 
+For an in-depth tutorial to the `PlnAR` model, see the `temporal
+tutorial <./vignettes/autoreg.html>`_.
+
 PlnAR Documentation
 -------------------
 

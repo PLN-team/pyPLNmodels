@@ -11,7 +11,7 @@ execute:
     cache: true
 ---
 
-### Introduction
+# Introduction
 
 This tutorial demonstrates how to analyze zero-inflated count data using the `pyPLNmodels` package.
 Traditional models like Zero-Inflated Poisson Regression
@@ -30,30 +30,30 @@ though it may slightly compromise parameter estimation accuracy. These models ar
 [`PlnPCA`](https://pln-team.github.io/pyPLNmodels/plnpca.html) models but are specifically designed to manage
 zero-inflation, albeit with increased computational requirements.
 
-### Statistical Background
+## Statistical Background
 
-Both models operate under the following assumptions for a given count matrix \(Y\):
+Both models operate under the following assumptions for a given count matrix $Y$:
 
 $$ Y_{ij}| Z_{ij}, W_{ij} \sim (1 - W_{ij})\mathcal P(o_{ij} + \exp(Z_{ij})), \quad Z_{i} \sim \mathcal N(o_i + X_i^{\top} B, \Sigma), \quad W_{ij} \sim \mathcal B(\sigma(X_i^{0^{\top}} B^0_j)) $$
 
 Here, the latent variable \(W\) models the zero-inflation component of the data. More details can be found in @zeroinflation. The input data includes:
 
-* \(Y_{ij}\) (`endog`): the \(j\)-th count for the \(i\)-th observation
-* \(X_i\) (`exog`): covariates for the \(i\)-th observation (if available)
-* \(X^0_i\) (`exog_inflation`): covariates for the \(i\)-th observation specific to the inflation component (if available)
-* \(o_i\) (`offsets`): offset for the \(i\)-th observation (if available)
+* $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
+* $X_i$ (`exog`): covariates for the $i$-th observation (if available)
+* $X^0_i$ (`exog_inflation`): covariates for the $i$-th observation specific to the inflation component (if available)
+* $o_i$ (`offsets`): offset for the $i$-th observation (if available)
 
 The model parameters are:
 
-* \(B\) (`coef`): a matrix of regression coefficients
-* \(B^0\) (`coef_inflation`): a matrix of regression coefficients for the inflation component
-* \(\Sigma\) (`covariance`): the covariance matrix of the latent variables \(Z_i\)
+* $B$ (`coef`): a matrix of regression coefficients
+* $B^0$ (`coef_inflation`): a matrix of regression coefficients for the inflation component
+* $\Sigma$ (`covariance`): the covariance matrix of the latent variables $Z_i$
 
 
 
 
-The `ZIPln` model assumes that \(\Sigma\) has full rank, while the `ZIPlnPCA` model
-assumes a low-rank structure for \(\Sigma\), which must be specified by the user.
+The `ZIPln` model assumes that $\Sigma$ has full rank, while the `ZIPlnPCA` model
+assumes a low-rank structure for $\Sigma$, which must be specified by the user.
 A lower rank introduces a trade-off, reducing computational complexity but potentially
 compromising parameter estimation accuracy.
 
@@ -61,14 +61,14 @@ compromising parameter estimation accuracy.
 
 The `pyPLNmodels` package is designed to:
 
-* Estimate the parameters \(B\), \(B^0\), and \(\Sigma\)
-* Retrieve the latent variables \(Z\) and \(W\)
+* Estimate the parameters $B$, $B^0$, and $\Sigma$
+* Retrieve the latent variables $Z$ and $W$
 
-This is achieved using the input count matrix \(Y\), along with optional covariate matrices \(X\)
-(defaulting to a vector of 1's) and \(X^0\) (for zero-inflation, also defaulting to a vector of 1's),
-as well as offsets \(O\) (defaulting to a matrix of 0's).
+This is achieved using the input count matrix $Y$, along with optional covariate matrices $X$
+(defaulting to a vector of 1's) and $X^0$ (for zero-inflation, also defaulting to a vector of 1's),
+as well as offsets $O$ (defaulting to a matrix of 0's).
 
-## Data Import
+# Data Import
 
 In this example, we analyze real-world count data from the microcosm dataset [@microcosm],
 available via the [NCBI BioProject](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059).
@@ -200,16 +200,18 @@ high_d_micro = load_microcosm(dim=500)
 zipca = ZIPlnPCA.from_formula('endog ~ 1 + site', data=high_d_micro, rank=5).fit()
 ```
 
-### Selecting the Rank
-
-The rank is a hyperparameter that can be manually defined. Alternatively, a data-driven approach to rank selection can be performed using the `ZIPlnPCACollection` class. This class fits multiple models with different ranks:
+## `ZIPlnPCACollection` for multiple ranks
+The rank is a hyperparameter that can be manually defined. Alternatively, a
+data-driven approach to rank selection can be performed using the
+`ZIPlnPCACollection` class. This class fits multiple models with different
+ranks:
 
 ```{python}
 from pyPLNmodels import ZIPlnPCACollection
 zipcas = ZIPlnPCACollection.from_formula('endog ~ 1 + site', data=high_d_micro, ranks=[3, 5, 10, 15]).fit()
 ```
 
-### Accessing the Best Model
+## Accessing the Best Model
 
 The best model can be selected using the `.best_model()` method, based on a chosen criterion (`AIC`, `BIC`, or `ICL`):
 
@@ -224,7 +226,7 @@ Note that the best model might correspond to the largest rank, which may not alw
 zipcas.show()
 ```
 
-### Accessing Individual Models
+## Accessing Individual Models
 
 All individual models in the collection can be accessed as a Python collection:
 

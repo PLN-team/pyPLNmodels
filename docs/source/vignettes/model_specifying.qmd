@@ -92,7 +92,7 @@ plt.show()
 ```
 
 The counts are strongly zero-inflated here, but we do not make any
-zero-inflation hypothesis. To account for zero-inflation, please see ??.
+zero-inflation hypothesis. To account for zero-inflation, please see the [dedicated zero-inflation tutorial](zero_inflation.html).
 
 # Model specifying
 
@@ -191,4 +191,4 @@ pln = Pln(endog = micro["endog"]).fit()
 ```
 
 
-See the [basic analysis](??) for more insights on the output of the model.
+See the [basic analysis](basic_analysis.html) for more insights on the output of the model.

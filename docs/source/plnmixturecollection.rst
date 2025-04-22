@@ -1,6 +1,11 @@
 PlnMixtureCollection
 ====================
 
+
+For an in-depth tutorial to the `PlnMixtureCollection` model, see the
+`clustering tutorial <./vignettes/clustering.html>`_.
+
+
 PlnMixtureCollection Documentation
 ----------------------------------
 

@@ -80,6 +80,17 @@ lda = PlnLDA(endog_train, clusters=cell_type_train).fit()
 print(lda)
 ```
 
+You can also define the model using R-style formulas as follows:
+
+```{python}
+data_train = {"endog_train": endog_train, "clusters_train": cell_type_train}
+_ = PlnLDA.from_formula("endog_train ~ 0 | clusters_train", data=data_train)
+```
+
+Use a pipe `|` to separate the exogenous variables from the clusters. See the
+[dedicated tutorial](model_specifying.html) for more details on how to specify
+a model.
+
 ## Predicting on Test Set
 
 ```{python}

@@ -81,7 +81,8 @@ from pyPLNmodels import PlnAR
 ar_diag = PlnAR.from_formula("endog ~ 1", data=data, ar_type="diagonal").fit()
 ```
 
-For more information on how to include covariates and offsets, see the [dedicated tutorial](??).
+For more information on how to include covariates and offsets, see the
+[dedicated tutorial](model_specifying.html).
 
 Note: A diagonal $\Phi$ implies a diagonal covariance structure $\Sigma$.
 

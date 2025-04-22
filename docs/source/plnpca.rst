@@ -1,6 +1,9 @@
 PlnPCA
 ======
 
+For an in-depth tutorial to the `PlnPCACollection` model, see the `dedicated
+tutorial <./vignettes/basic_analysis.html>`_.
+
 PlnPCA Documentation
 --------------------
 
