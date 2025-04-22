@@ -1,5 +1,5 @@
 ---
-title: "Mathematical details"
+title: "Mathematical details  📐"
 date: "2025-03-27"
 format:
     html:
@@ -16,7 +16,7 @@ nocite: |
 ---
 
 
-# Introduction and `Pln` model
+# `Pln` model
 
 This package estimates model parameters based on a count matrix $Y$, covariates (also referred to as `exogenous` variables) $X$, and offsets $o$. For each observation (or individual $i$), the following notations are used:
 
@@ -71,7 +71,7 @@ Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
 \end{align}
 $$
 
-The rank $q$ must be chosen (e.g., via cross-validation). See @chiquet2018variational for details.
+The rank $q$ must be chosen (e.g., via BIC minimization). See @chiquet2018variational for details.
 
 ## `PlnAR`: Autoregressive Latent Dynamics
 
