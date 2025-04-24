@@ -1,5 +1,5 @@
 ---
-title: "Zero-inflation"
+title: "Zero-inflation 0️⃣ "
 date: "2025-03-27"
 format:
     html:

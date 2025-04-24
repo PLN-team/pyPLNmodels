@@ -1,5 +1,5 @@
 ---
-title: "How to specify a model"
+title: "How to specify a model 🛠️"
 date: "2025-03-27"
 format:
     html:
