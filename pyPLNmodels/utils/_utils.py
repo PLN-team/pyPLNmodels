@@ -380,3 +380,10 @@ def _calculate_wcss(data, clusters, nb_cluster):
         wcss += torch.sum((cluster_points - centroid) ** 2)
 
     return wcss.item()
+
+
+def _get_uncumsum(eigenvalues):
+    diff_diag_cov = torch.zeros_like(eigenvalues)
+    diff_diag_cov[0] = torch.sqrt(eigenvalues[0])
+    diff_diag_cov[1:] = torch.sqrt(eigenvalues[1:] - eigenvalues[:-1])
+    return diff_diag_cov
