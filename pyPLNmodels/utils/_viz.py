@@ -958,7 +958,7 @@ def _show_collection_and_nb_links(collection, figsize, absc_label):
     _display_metric(
         axes[1],
         collection.nb_links,
-        xlabel="",
+        xlabel="Penalties",
         ylabel="Number of links in the graph ",
         title="",
         cumsum=False,
