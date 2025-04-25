@@ -963,6 +963,7 @@ def _show_collection_and_nb_links(collection, figsize, absc_label):
         title="",
         cumsum=False,
     )
+    axes[1].set_xscale("log")
 
     plt.show()
 
