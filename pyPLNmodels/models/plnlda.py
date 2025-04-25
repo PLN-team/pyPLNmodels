@@ -669,7 +669,12 @@ class PlnLDA(Pln):
     def latent_variables(self):
         return self.latent_mean
 
-    def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
+    def pca_pairplot(
+        self,
+        n_components: int = 3,
+        colors: np.ndarray = None,
+        remove_exog_effect: bool = False,
+    ):
         raise NotImplementedError("pca pairplot not implemented for LDA models.")
 
     @property

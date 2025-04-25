@@ -421,8 +421,14 @@ class ZIPlnPCA(
         >>> zipca.pca_pairplot(n_components = 5, colors = data["time"])
         """,
     )
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
-        super().pca_pairplot(n_components=n_components, colors=colors)
+    def pca_pairplot(
+        self, n_components: bool = 3, colors=None, remove_exog_effect: bool = False
+    ):
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     def pca_pairplot_prob(self, n_components: int = 3, colors: np.ndarray = None):
         """

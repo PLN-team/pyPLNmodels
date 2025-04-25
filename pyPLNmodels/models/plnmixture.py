@@ -575,30 +575,38 @@ class PlnMixture(
         """Number of parameters."""
         return (2 * self.n_cluster + self.nb_cov) * self.dim
 
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
+    def pca_pairplot(
+        self,
+        n_components: int = 3,
+        colors: np.ndarray = None,
+        remove_exog_effect: bool = False,
+    ):
         """
         Generates a scatter matrix plot based on Principal
         Component Analysis (PCA) on the latent variables.
 
         Parameters
         ----------
-            n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. It Cannot be greater than 6.
-
-            colors (np.ndarray): An array with one label for each
-                sample in the endog property of the object.
-                Defaults to the inferred clusters.
+        n_components : int, optional
+            The number of components to consider for plotting.
+            Defaults to 3. It cannot be greater than 6.
+        colors : np.ndarray, optional
+            An array with one label for each sample in the `endog` property of the object.
+            Defaults to the inferred clusters.
+        remove_exog_effect : bool, optional
+            Whether to remove or not the effect of exogenous variables. Defaults to `False`.
 
         Raises
         ------
-            ValueError: If the number of components requested is greater
-                than the number of variables in the dataset.
+        ValueError
+            If the number of components requested is greater
+            than the number of variables in the dataset.
 
         Examples
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster=3)
         >>> mixture.fit()
         >>> mixture.pca_pairplot(n_components=5)
         >>> mixture.pca_pairplot(n_components=5, colors=data["labels"])
@@ -611,7 +619,11 @@ class PlnMixture(
         """
         if colors is None:
             colors = self.clusters
-        super().pca_pairplot(n_components=n_components, colors=colors)
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     @_add_doc(
         BaseModel,

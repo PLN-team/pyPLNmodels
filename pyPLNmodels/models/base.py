@@ -978,27 +978,36 @@ class BaseModel(
         return self.covariance
 
     @abstractmethod
-    def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
+    def pca_pairplot(
+        self,
+        n_components: int = 3,
+        colors: np.ndarray = None,
+        remove_exog_effect: bool = False,
+    ):
         """
         Generates a scatter matrix plot based on Principal
         Component Analysis (PCA) on the latent variables.
 
         Parameters
         ----------
-            n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. It Cannot be greater than 6.
-
-            colors (np.ndarray): An array with one label for each
-                sample in the endog property of the object.
-                Defaults to `None`.
+        n_components (int, optional): The number of components to consider for plotting.
+            Defaults to 3. It cannot be greater than 6.
+        colors (np.ndarray, optional): An array with one label for each
+            sample in the endog property of the object. If `None`, no colors are applied.
+            Defaults to `None`.
+        remove_exog_effect (bool, optional): Whether to remove the effect of exogenous
+            variables. Defaults to `False`.
 
         Raises
         ------
-            ValueError: If the number of components requested is greater
-                than the number of variables in the dataset.
+        ValueError: If the number of components requested is greater
+            than the number of variables in the dataset.
         """
         min_n_components = min(6, n_components)
-        array = self.latent_positions.numpy()
+        if remove_exog_effect is True:
+            array = self.latent_positions.numpy()
+        else:
+            array = self.latent_variables.numpy()
         _pca_pairplot(array, min_n_components, colors)
 
     def plot_expected_vs_true(self, ax=None, colors=None):
