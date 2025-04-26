@@ -25,7 +25,7 @@ variables, such as genes in single-cell RNA sequencing datasets.
 
 This tutorial demonstrates how to:
 
-- Initialize a `PlnNetwork` model from count data or using a formula interface
+- Initialize a `PlnNetwork` ([documentation](https://pln-team.github.io/pyPLNmodels/plnnetwork.html)) model from count data or using a formula interface
 
 - Fit the model with regularization on the precision matrix
 
@@ -87,7 +87,7 @@ To explore multiple penalty solutions, use `PlnNetworkCollection`:
 
 ```{python}
 from pyPLNmodels import PlnNetworkCollection
-collection = PlnNetworkCollection(endog, penalties=[0.1,1,10,20,30,40,50,100,200, 300, 400,1000, 2000]).fit()
+collection = PlnNetworkCollection(endog, penalties=[0.1,10,1000]).fit()
 ```
 
 
@@ -108,6 +108,18 @@ using the ELBOW method to select the optimal model based on the number of links.
 The best model can be chosen according to the BIC, AIC, or ICL:
 
 ```{python}
-best_net = collection.best_model("BIC") # Could be also BIC, AIC, or ICL.
+best_net = collection.best_model("BIC") # Could be also AIC, or ICL.
 print(best_net)
+```
+One can also access each individual model in the collection, using the penalty as a key:
+
+```{python}
+print(collection[10])
+```
+and loop through the collection:
+
+```{python}
+#|eval : false
+for net in collection.values():
+    print(net)
 ```

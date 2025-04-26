@@ -18,16 +18,14 @@ nocite: |
 
 # Introduction
 
-This tutorial demonstrates how to specify a model in `pyPLNmodels`. You may
-`pip install pyPLNmodels` if that is not already done.
-Two primary approaches are available: using R-style formulas or directly specifying arrays.
+This tutorial demonstrates how to specify a model in `pyPLNmodels`.
+Two primary approaches are available:
 
 - R-style formulas (relying on the [patsy](https://patsy.readthedocs.io/en/latest/) package.)
 - direcly specifying arrays
 
 The first approach is practical and more R-user-friendly, while the second
 gives more control over the input data.
-
 
 
 We consider the more basic model of `pyPLNmodels`, namely the [`Pln`
@@ -55,17 +53,18 @@ We review here how to create the design matrix $X$ (i.e. create the `exog` data 
 # Count Data
 
 Let's explore real count data from the microcosm dataset [@microcosm],
-which is accessible via the [NCBI BioProject](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059).
+introduced in the [NCBI
+BioProject](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059) and
+provided by the `load_microcsom` function in the package.
 This dataset features microbiota members sampled from various body sites of dairy cows
-throughout their lactation period. The data includes response variables (`endog`) and explanatory variables:
+throughout their lactation period. The data includes response count variables (`endog`) and explanatory variables:
 
 - Site information (`site` and `site_1hot`)
 - Time information (`time` and `time_1hot`)
 - Lineage information (`lineage` and `lineage_1hot`)
 
 The `1_hot` variables are one-hot encoded representations of the corresponding
-categorical variables. Depending on the analysis goals, you can select different
-variables to include in your model.
+categorical variables.
 
 
 ## Data importation
@@ -111,7 +110,7 @@ print('names:', pln.column_names_exog)
 ```
 
 
-This line specifies a model with an intercept (1) and the categorical covariate site.
+The formula specifies a model with an intercept (1) and the categorical covariate site.
 Internally, the formula is parsed using the patsy package, which handles categorical variables automatically by one-hot encoding them and excluding the reference level.
 
 You can specify more complex models, such as including multiple covariates:
@@ -137,6 +136,15 @@ The offset is computed automatically unless explicitly provided using the
 By default, it is set to zero unless you specify
 `compute_offsets_method="logsum"`, in which case the log of the row sums of the
 counts is used.
+
+```{python}
+import numpy as np
+tmp_micro = load_microcosm()
+print("No offsets:", Pln.from_formula("endog ~ 1", data = data).offsets)
+tmp_micro["offsets"] = np.log(tmp_micro["endog"] + 2)
+print("Dumb offsets:", Pln.from_formula("endog ~ 1", data = data).offsets)
+```
+
 
 
 ## Specifying arrays
@@ -166,13 +174,12 @@ data already includes an intercept or is one hot encoded, just like the above ca
 
 If you do not wish to include covariates at all, simply omit the exog argument:
 
-
 ```{python}
 pln = Pln(
     endog=micro["endog"]
 )
 ```
-This corresponds to a model with latent structure but no fixed effects.
+This corresponds to a model with latent structure but no fixed effects (except the intercept, which can be removed by setting `add_const` to `False`).
 
 
 # Model fitting
@@ -184,7 +191,7 @@ Once instantiate, one can simply calls `.fit()` to fit the model and infer the m
 pln.fit()
 ```
 
-One can directly fit the model after specifying it:
+It is possible to fit the model directyly after specifying it:
 
 ```{python}
 pln = Pln(endog = micro["endog"]).fit()

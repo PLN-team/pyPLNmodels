@@ -17,13 +17,19 @@ nocite: |
 
 # Introduction
 
-The Poisson lognormal (PLN) model can be extended to capture temporal or spatial dependencies by structuring the latent space. This leads to the `PlnAR` (PLN autoregressive) model, where an autocorrelation matrix $\Phi$ encodes how latent variables evolve across time (or space).
+The Poisson lognormal (PLN) model can be extended to capture temporal (or similarly,
+1D spatial dependencies) by structuring the latent space. This leads to the `PlnAR`
+(PLN autoregressive,
+[documentation](https://pln-team.github.io/pyPLNmodels/plnar.html)) model,
+where an autocorrelation matrix $\Phi$ encodes how
+latent variables evolve across time (or space).
 
 Depending on the desired complexity, several types of autocorrelation structures for $\Phi$ can be used:
 
 - `full`: Each variable depends on all others ($\Phi$ is a full matrix).
 - `diagonal`: Each variable follows its own independent temporal dynamics ($\Phi$ is diagonal).
 - `spherical`: All variables share a common temporal pattern ($\Phi$ is a scalar multiple of the identity).
+
 
 ## Statistical background
 
@@ -46,13 +52,18 @@ with:
 
 The matrix $\Phi$ is constrained such that $\Sigma^{\epsilon}$ remains positive definite.
 
+**⚠️ Note**: Setting $\Phi$ to `diagonal` enforces a diagonal covariance structure for the correlation matrix $\Sigma$.
+
 ## Purpose
 
 The `PlnAR` package provides tools to analyze dependencies between consecutive time points or spatial sites by estimating the autoregression matrix $\Phi$.
 
 # Data
 
-We illustrate the package using the **crossover** dataset, which contains recombination patterns in sheep over time. This dataset captures male meiotic recombination maps for the Lacaune breed, combining historical data from Lacaune and Soay sheep.
+We illustrate the package using the crossover dataset (@crossover), which
+contains recombination patterns in sheep over the genome. This dataset captures
+male meiotic recombination maps for the Lacaune breed, combining historical
+data from Lacaune and Soay sheep.
 
 ```{python}
 from pyPLNmodels import load_crossover
@@ -84,7 +95,7 @@ ar_diag = PlnAR.from_formula("endog ~ 1", data=data, ar_type="diagonal").fit()
 For more information on how to include covariates and offsets, see the
 [dedicated tutorial](model_specifying.html).
 
-Note: A diagonal $\Phi$ implies a diagonal covariance structure $\Sigma$.
+**⚠️ Note**: A diagonal $\Phi$ implies a diagonal covariance structure $\Sigma$.
 
 # Temporal structure
 
@@ -103,7 +114,7 @@ To explore latent dynamics, extract the latent variables $Z$:
 z = ar_diag.latent_variables
 ```
 
-Visualize the temporal structure:
+Visualize the temporal structure via the `viz_dims` method:
 
 ```{python}
 ar_diag.viz_dims(
@@ -111,10 +122,11 @@ ar_diag.viz_dims(
     colors=data["chrom"]
 )
 ```
+Column names of the endogenous variables can be accessed via the `column_names_endog` attribute.
 
 # Full and Spherical Autoregression
 
-Other structures for $\Phi$ include:
+Other structures for $\Phi$ include the `full` and `spherical` autoregression.
 
 ## Full autoregression
 
@@ -149,4 +161,4 @@ print("Full autoregressive parameter:", ar_full.ar_coef.shape)
 
 ---
 
-This concludes the introduction to temporal modeling with the `PlnAR` package. For further examples and diagnostics, see the advanced tutorials.
+This concludes the tutorial to temporal modeling with the `PlnAR` model.

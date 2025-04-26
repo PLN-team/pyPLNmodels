@@ -19,10 +19,12 @@ nocite: |
 
 The Poisson lognormal (PLN) model can be extended to uncover clustering structures in count data. Two main approaches are available:
 
-- **Supervised clustering**: when cluster labels are known for some samples (`PlnLDA`).
-- **Unsupervised clustering**: when cluster labels are unknown (`PlnMixture`).
+- **Supervised clustering**: when cluster labels are known for some samples (`PlnLDA`, [documentation](https://pln-team.github.io/pyPLNmodels/plnlda.html)).
+- **Unsupervised clustering**: when cluster labels are unknown (`PlnMixture`, [documentation](https://pln-team.github.io/pyPLNmodels/plnmixture.html)).
 
-We illustrate both using a single-cell RNA-seq dataset from the `load_scrna` function. Each row represents a cell and each column a gene. Cell types are included as labels and used in the supervised setting.
+We illustrate both using a single-cell RNA-seq dataset provided by the `load_scrna`
+function. Each row represents a cell and each column a gene. Cell types are
+included as labels and used in the supervised setting.
 
 # Data Loading and Structure
 
@@ -207,4 +209,17 @@ The silhouette score is not sensitive to the number of clusters.
 ```{python}
 best_mixture = collection.best_model("silhouette") # Could be also BIC, AIC, or ICL.
 print(best_mixture)
+```
+
+
+One can access the individual models in the collection, using the cluster number as a key:
+
+```{python}
+print(collection[3])
+```
+and loop through the collection:
+```{python}
+#|eval : false
+for mixture in collection.values():
+    print(mixture)
 ```

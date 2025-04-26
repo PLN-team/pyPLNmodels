@@ -8,7 +8,7 @@ website:
     style: "floating"
     search: true
     contents:
-      - section: "Tutorials for count data"
+      - section: "**Tutorials for count data**"
         contents:
           - index.qmd
           - model_specifying.qmd
@@ -18,6 +18,20 @@ website:
           - clustering.qmd
           - network_analysis.qmd
           - formulas.qmd
+      - section: "**Additional Resources**"
+        contents:
+          - text: "Documentation 📘"
+            href: https://pln-team.github.io/pyPLNmodels/
+            target: _blank
+          - text: "GitHub 🐙"
+            href: https://github.com/PLN-team/pyPLNmodels
+            target: _blank
+          - text: "PyPI 📦"
+            href: https://pypi.org/project/pyPLNmodels/
+            target: _blank
+          - text: "Getting started ⌨️ "
+            href: https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb
+            target: _blank
 
 format:
   html:
@@ -28,3 +42,7 @@ format:
     css: custom_css_yml.css
     theme: cosme
     code-copy: true
+    include-after: |
+      <div class="top-banner">
+        Enjoying <code>pyPLNmodels</code>? ⭐️ Star the <a href="https://github.com/PLN-team/pyPLNmodels" target="_blank">repo</a> ⭐️!
+      </div>
