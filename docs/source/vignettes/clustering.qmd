@@ -23,7 +23,7 @@ The Poisson lognormal (PLN) model can be extended to uncover clustering structur
 - **Unsupervised clustering**: when cluster labels are unknown (`PlnMixture`, [documentation](https://pln-team.github.io/pyPLNmodels/plnmixture.html)).
 
 We illustrate both using a single-cell RNA-seq dataset provided by the `load_scrna`
-function. Each row represents a cell and each column a gene. Cell types are
+function of the package. Each row represents a cell and each column a gene. Cell types are
 included as labels and used in the supervised setting.
 
 # Data Loading and Structure
@@ -56,7 +56,7 @@ This method performs a Poisson lognormal discriminant analysis (PLN-LDA), simila
 
 ## Model Formulation
 
-Let $c_i$ denote the known cluster label for sample $i$:
+Let $c_i$ denote the **known** cluster label for sample $i$:
 
 $$
 \begin{align}
@@ -66,6 +66,8 @@ Y_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij}))
 $$
 
 ## Train-Test Split
+
+We separate the data into training and test sets. The training set is used to fit the model, while the test set is used for evaluation.
 
 ```{python}
 train_prop = 0.8
@@ -112,14 +114,21 @@ The `.transform_new()` method transforms unseen endogenous data into the latent 
 
 ```{python}
 lda.viz_transformed(lda.transform_new(endog_test), colors=cell_type_test)
+```
+
+```{python}
 lda.viz_transformed(lda.transform_new(endog_train), colors=cell_type_train)
 ```
 
 ### Optional: Exogenous Variables
+You can include exogenous variables in the model; however, they will not be used
+for making predictions. When predicting on new data, ensure that the corresponding
+covariates for the samples are provided.
 
 ```{python}
 import torch
-_ = PlnLDA(endog_train, exog=torch.randn(endog_train.shape[0], 2), clusters=cell_type_train)
+dumb_lda = PlnLDA(endog_train, exog=torch.randn(endog_train.shape[0], 2), clusters=cell_type_train).fit()
+dumb_lda.predict_clusters(endog_test, exog=torch.randn(endog_test.shape[0], 2))
 ```
 
 ⚠️ Exogenous variables must be full rank, and an intercept will be added to
@@ -127,7 +136,8 @@ account for the cluser bias.. Avoid one-hot encodings without intercept removal.
 
 # Unsupervised Clustering with `PlnMixture`
 
-`PlnMixture` fits a latent mixture model to identify subpopulations without labels.
+When no labels are known, `PlnMixture` fits a latent mixture model to identify
+subpopulations in an **unsupervised** way.
 
 ## Model Formulation
 
@@ -155,8 +165,8 @@ print(mixture)
 _ = PlnMixture(endog, exog=torch.randn(endog.shape[0], 2), n_cluster=3)
 ```
 
-⚠️ Exogenous variables must be full rank, and an intercept will be added to
-account for the cluser bias. Avoid one-hot encodings without intercept removal.
+⚠️ exogenous variables must be full rank, and an intercept will be added to
+account for the cluser bias. avoid one-hot encodings without intercept removal.
 
 ### Extracting Weights
 
