@@ -140,9 +140,9 @@ counts is used.
 ```{python}
 import numpy as np
 tmp_micro = load_microcosm()
-print("No offsets:", Pln.from_formula("endog ~ 1", data = data).offsets)
+print("No offsets:", Pln.from_formula("endog ~ 1", data = tmp_micro).offsets)
 tmp_micro["offsets"] = np.log(tmp_micro["endog"] + 2)
-print("Dumb offsets:", Pln.from_formula("endog ~ 1", data = data).offsets)
+print("Dumb offsets:", Pln.from_formula("endog ~ 1", data = tmp_micro).offsets)
 ```
 
 

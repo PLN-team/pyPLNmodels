@@ -1,6 +1,7 @@
 # pylint: disable=too-many-lines
 import warnings
 
+
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
@@ -23,6 +24,7 @@ from pyPLNmodels.utils._utils import (
     _equal_distance_mapping,
 )
 
+warnings.filterwarnings("ignore", message="This figure incl")
 
 PALETTE = None
 

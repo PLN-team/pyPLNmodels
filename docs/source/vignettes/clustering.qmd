@@ -34,14 +34,14 @@ rna = load_scrna(dim=20)
 print("Data keys:", rna.keys())
 ```
 
-### Count Matrix (`endog`)
+## Count Matrix (`endog`)
 
 ```{python}
 endog = rna["endog"]
 print(endog.head())
 ```
 
-### Cell Types (`labels`)
+## Cell Types (`labels`)
 
 ```{python}
 cell_type = rna["labels"]
@@ -128,11 +128,11 @@ covariates for the samples are provided.
 ```{python}
 import torch
 dumb_lda = PlnLDA(endog_train, exog=torch.randn(endog_train.shape[0], 2), clusters=cell_type_train).fit()
-dumb_lda.predict_clusters(endog_test, exog=torch.randn(endog_test.shape[0], 2))
+_ = dumb_lda.predict_clusters(endog_test, exog=torch.randn(endog_test.shape[0], 2))
 ```
 
 ⚠️ Exogenous variables must be full rank, and an intercept will be added to
-account for the cluser bias.. Avoid one-hot encodings without intercept removal.
+account for the cluster bias.. Avoid one-hot encodings without intercept removal.
 
 # Unsupervised Clustering with `PlnMixture`
 
@@ -166,7 +166,7 @@ _ = PlnMixture(endog, exog=torch.randn(endog.shape[0], 2), n_cluster=3)
 ```
 
 ⚠️ exogenous variables must be full rank, and an intercept will be added to
-account for the cluser bias. avoid one-hot encodings without intercept removal.
+account for the cluster bias. Avoid one-hot encodings without intercept removal.
 
 ### Extracting Weights
 
@@ -176,18 +176,48 @@ print(mixture.weights)
 
 ## Visualizing and Evaluating Clusters
 
+One can access the clusters of the samples using the `.clusters` attribute:
+
 ```{python}
 clusters = mixture.clusters
+```
+
+Some useful visualization and information about clusters are displayed using the `.show()` method:
+```{python}
 mixture.show()
+```
+
+One can visualize the latent variables using the `.viz()` method. By default,
+the latent variables are colored by the inferred clusters, but other colors can
+be specified using the `colors` argument.
+
+```{python}
 mixture.viz()
+```
+
+You can compare the inferred clusters with the actual cell types, although
+retrieving the exact cell types is not expected since the method is unsupervised.
+
+
+To visualize the clustering results, use the following:
+```{python}
+mixture.viz(colors=cell_type)
+```
+You can also assess the clustering performance with a confusion matrix:
+```{python}
 plot_confusion_matrix(clusters, cell_type)
 ```
 
 ## Predicting on New Data
 
+You can predict unseen data using the `.predict_clusters()` method.
+
 ```{python}
 new_clusters = mixture.predict_clusters(endog)
 ```
+
+The number of clusters has been arbitrary set to $3$. A more data-driven
+approach is given by the `PlnMixtureCollection` in the next section.
 
 ## Use `PlnMixtureCollection` for selecting the optimal number of clusters
 
@@ -210,19 +240,19 @@ Use the silhouette score (higher is better) or WCSS (lower is better) to
 determine the optimal number of clusters. In this example, 2 clusters may be
 appropriate.
 
-⚠️  WSS always decreases with the number of clusters, so that an [ELBOW
-method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) must be used.
+⚠️  WCSS always decreases with the number of clusters, so that an [ELBOW
+method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) must be used. Based on the graph and the WCSS metric, I would suggest 4 clusters.
+
 The silhouette score is not sensitive to the number of clusters.
 
 ### Select the best model
-
+One can directly access the best model using the `best_model` method, with the metric of choice:
 ```{python}
-best_mixture = collection.best_model("silhouette") # Could be also BIC, AIC, or ICL.
+best_mixture = collection.best_model("silhouette") # Could be also BIC, AIC, or WCSS.
 print(best_mixture)
 ```
 
-
-One can access the individual models in the collection, using the cluster number as a key:
+You can access specific models within the collection by using the cluster number as a key:
 
 ```{python}
 print(collection[3])

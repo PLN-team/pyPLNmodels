@@ -748,7 +748,7 @@ class BaseModel(
                 remove_exog_effect=remove_exog_effect
             )
             covariances = None
-        return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
+        _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @abstractmethod
     def _get_two_dim_latent_variances(self, sklearn_components):

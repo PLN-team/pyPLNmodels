@@ -276,7 +276,7 @@ class PlnMixture(
                 remove_exog_effect=remove_exog_effect
             )
             covariances = None
-        return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
+        _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @property
     def covariance(self):
