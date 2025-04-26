@@ -1535,7 +1535,6 @@ def _show_prob(
     plt.title("Inferred zero-inflated probabilities")
     plt.ylabel("Sample number (individuals)")
     plt.xlabel("Column name (variable)")
-    plt.legend()
     if savefig is True:
         fig.savefig(name_file + model_name + ".pdf", format="pdf")
     plt.show()

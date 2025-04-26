@@ -33,8 +33,10 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
     on sample i-1. The dataset given in the initialization must be ordered !
-    The autoregressive coefficient can be per dimension or common to each dimension.
-    Note that the autregressive coefficient seems to be underestimated when the covariance is low.
+    The autoregressive coefficient can be per dimension (`diagonal` ar_type) or
+    common to each dimension (`spherical` ar type) or depend on all
+    the previous dimensions (`full` ar type). Note that the autregressive coefficient seems
+    to be underestimated when the covariance is low.
     See ?? for more details.
 
     Examples
