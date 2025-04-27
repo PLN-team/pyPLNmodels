@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=67224d9c"></script>
+<script src="_static/documentation_options.js?v=46dfa7f5"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,9 +40,6 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
-</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -131,6 +128,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 </div>
 </div>
@@ -160,6 +158,8 @@ the <cite>.clusters</cite> attribute after fitting the model (<cite>.fit()</cite
 possible, but the regression coefficient is shared among all clusters. The performance may decrease significantly with the number of covariates.
 Note that the number of clusters is a hyperparameter that needs to be set by the
 user.</p>
+<p>For an in-depth tutorial to the <cite>PlnMixture</cite> model, see the
+<a class="reference external" href="./vignettes/clustering.html">clustering tutorial</a>.</p>
 <section id="plnmixture-documentation">
 <h2>PlnMixture Documentation<a class="headerlink" href="#plnmixture-documentation" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -194,7 +194,7 @@ may significantly decrease with the number of covariates.</p>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -339,7 +339,8 @@ with the <cite>remove_exog_effect</cite> boolean variable.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em><em>, </em><em>optional</em>) – The axes on which to plot, by default <cite>None</cite>.</p></li>
-<li><p><strong>colors</strong> (<em>list</em><em>, </em><em>optional</em>) – The labels to color the samples, of size <cite>n_samples</cite>.</p></li>
+<li><p><strong>colors</strong> (<em>list</em><em>, </em><em>optional</em>) – The labels to color the samples, of size <cite>n_samples</cite>.
+If None, will take the inferred clusters.</p></li>
 <li><p><strong>show_cov</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to show covariances, by default False.</p></li>
 <li><p><strong>remove_exog_effect</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove or not the effect of exogenous variables. Default to <cite>False</cite>.</p></li>
 </ul>
@@ -369,7 +370,7 @@ You may call .covariances.</p>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixture.biplot">
-<span class="sig-name descname"><span class="pre">biplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnmixture.html#PlnMixture.biplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnMixture.biplot" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">biplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_exog_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnmixture.html#PlnMixture.biplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnMixture.biplot" title="Link to this definition"></a></dt>
 <dd><p>Visualizes variables using the correlation circle along with the pca transformed samples.
 If the <cite>endog</cite> has been given as a pd.DataFrame, the <cite>column_names</cite> have been stored and
 may be indicated with the <cite>column_names</cite> argument. Else, one should provide the
@@ -387,20 +388,32 @@ If <cite>None</cite>, the indices are determined based on <cite>column_names_end
 given the <cite>column_names</cite>, by default <cite>None</cite>.
 If not None, should have the same length as <cite>column_names</cite>.</p></li>
 <li><p><strong>title</strong> (<em>str optional</em><em>, </em><em>keyword-only</em>) – An additional title for the plot.</p></li>
-<li><p><strong>colors</strong> (<em>list</em><em>, </em><em>optional</em><em>, </em><em>keyword-only</em>) – The labels to color the samples, of size <cite>n_samples</cite>.</p></li>
+<li><p><strong>colors</strong> (<em>list</em><em>, </em><em>optional</em><em>, </em><em>keyword-only</em>) – The labels to color the samples, by default the inferred clusters.</p></li>
+<li><p><strong>remove_exog_effect</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove or not the effect of exogenous variables. Default to <cite>False</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – If <cite>column_index</cite> is None and <cite>column_names_endog</cite> is not set,
-    that has been set if the model has been initialized with a pd.DataFrame as <cite>endog</cite>.</p></li>
-<li><p><strong>ValueError</strong> – If the length of <cite>column_index</cite> is different
-    from the length of <cite>column_names</cite>.</p></li>
-</ul>
+<dd class="field-even"><p><strong>ValueError</strong> – If <cite>column_index</cite>  is not None and
+    the length of <cite>column_index</cite> is different
+    from the length of <cite>column_names</cite>.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p class="rubric">Notes</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels</span><span class="w"> </span><span class="kn">import</span> <a class="sphinx-codeautolink-a" href="plnmixture.html#pyPLNmodels.PlnMixture" title="pyPLNmodels.models.plnmixture.PlnMixture"><span class="n">PlnMixture</span></a><span class="p">,</span> <span class="n">load_scrna</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load_scrna</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span> <span class="o">=</span> <span class="n">PlnMixture</span><span class="o">.</span><span class="n">from_formula</span><span class="p">(</span><span class="s2">"endog ~ 0"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">n_cluster</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span><span class="n">column_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"MALAT1"</span><span class="p">,</span> <span class="s2">"ACTB"</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">column_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">column_index</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">colors</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"labels"</span><span class="p">],)</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#pyPLNmodels.PlnMixture.viz" title="pyPLNmodels.PlnMixture.viz"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnMixture.viz()</span></code></a>, <a class="reference internal" href="#pyPLNmodels.PlnMixture.predict_clusters" title="pyPLNmodels.PlnMixture.predict_clusters"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnMixture.predict_clusters()</span></code></a>, <a class="reference internal" href="#pyPLNmodels.PlnMixture.pca_pairplot" title="pyPLNmodels.PlnMixture.pca_pairplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnMixture.pca_pairplot()</span></code></a></p>
+</div>
 </dd></dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixture.clusters">
@@ -491,27 +504,28 @@ Returns a torch.Tensor of size (n_samples, n_cluster).</p>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixture.pca_pairplot">
-<span class="sig-name descname"><span class="pre">pca_pairplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnmixture.html#PlnMixture.pca_pairplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnMixture.pca_pairplot" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">pca_pairplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_exog_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnmixture.html#PlnMixture.pca_pairplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnMixture.pca_pairplot" title="Link to this definition"></a></dt>
 <dd><p>Generates a scatter matrix plot based on Principal
 Component Analysis (PCA) on the latent variables.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>(</strong><strong>int</strong> (<em>n_components</em>) – Defaults to 3. It Cannot be greater than 6.</p></li>
-<li><p><strong>optional</strong><strong>)</strong> (<em>The number</em><em> of </em><em>components to consider for plotting.</em>) – Defaults to 3. It Cannot be greater than 6.</p></li>
-<li><p><strong>(</strong><strong>np.ndarray</strong><strong>)</strong> (<em>colors</em>) – sample in the endog property of the object.
+<li><p><strong>n_components</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of components to consider for plotting.
+Defaults to 3. It cannot be greater than 6.</p></li>
+<li><p><strong>colors</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – An array with one label for each sample in the <cite>endog</cite> property of the object.
 Defaults to the inferred clusters.</p></li>
-<li><p><strong>n_components</strong> (<em>bool</em>)</p></li>
+<li><p><strong>remove_exog_effect</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove or not the effect of exogenous variables. Defaults to <cite>False</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the number of components requested is greater: than the number of variables in the dataset.</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If the number of components requested is greater
+    than the number of variables in the dataset.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels</span><span class="w"> </span><span class="kn">import</span> <a class="sphinx-codeautolink-a" href="plnmixture.html#pyPLNmodels.PlnMixture" title="pyPLNmodels.models.plnmixture.PlnMixture"><span class="n">PlnMixture</span></a><span class="p">,</span> <span class="n">load_scrna</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load_scrna</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span> <span class="o">=</span> <span class="n">PlnMixture</span><span class="o">.</span><span class="n">from_formula</span><span class="p">(</span><span class="s2">"endog ~ 0"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">n_cluster</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span> <span class="o">=</span> <span class="n">PlnMixture</span><span class="o">.</span><span class="n">from_formula</span><span class="p">(</span><span class="s2">"endog ~ 0"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">n_cluster</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mixture</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"labels"</span><span class="p">])</span>
@@ -1072,7 +1086,7 @@ Default is <cite>False</cite>.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_elbo</span></code>()</p></td>
 <td><p>Compute the elbo of the current parameters.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors, ...])</p></td>
 <td><p>Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_correlation_circle</span></code>(column_names[, ...])</p></td>
@@ -1127,7 +1141,7 @@ Default is <cite>False</cite>.</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code>()</p></td>
 <td><p>Covariance of the model.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors, ...])</p></td>
 <td><p>Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_expected_vs_true</span></code>([ax, colors])</p></td>
@@ -1149,58 +1163,61 @@ Default is <cite>False</cite>.</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_description</span></code></p></td>
 <td><p>Description of the model.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_endog_predictions</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_dict_for_printing</span></code></p></td>
+<td><p>Property representing the dictionary for printing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_endog_predictions</span></code></p></td>
 <td><p>Abstract method the predict the endog variables.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_clusters</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_clusters</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_marginal_means</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_marginal_means</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_additional_attributes_list</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_additional_attributes_list</span></code></p></td>
 <td><p>The attributes that are specific to this model.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_additional_methods_list</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_additional_methods_list</span></code></p></td>
 <td><p>The methods that are specific to this model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_abc_impl</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_abc_impl</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_weights</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_weights</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_cluster_bias</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_cluster_bias</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_prob</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_prob</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_means</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_means</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_sqrt_variances</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_sqrt_variances</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_sqrt_covariances</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_sqrt_covariances</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_per_sample_per_cluster_elbo</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_per_sample_per_cluster_elbo</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_time_recorder</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_time_recorder</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_dict_list_mse</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_dict_list_mse</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_mean</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_mean</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_sqrt_variance</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_latent_sqrt_variance</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_coef</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_coef</span></code></p></td>
 <td><p></p></td>
 </tr>
 </tbody>

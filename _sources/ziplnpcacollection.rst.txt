@@ -1,8 +1,15 @@
 ZIPlnPCACollection
 ==================
 
+
+For an in-depth tutorial to the `ZIPlnPCACollection` model, see the `zero-inflation
+tutorial <./vignettes/zero_inflation.html>`_.
+
+
 ZIPlnPCACollection Documentation
 --------------------------------
+
+
 
 .. autoclass:: pyPLNmodels.ZIPlnPCACollection
    :members:

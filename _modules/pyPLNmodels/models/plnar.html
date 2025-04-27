@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
+      <script src="../../../_static/documentation_options.js?v=46dfa7f5"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,10 +44,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -71,6 +68,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 
         </div>
@@ -114,6 +112,7 @@
     <span class="n">_init_coef</span><span class="p">,</span>
     <span class="n">_init_latent_pln</span><span class="p">,</span>
     <span class="n">_init_components_prec</span><span class="p">,</span>
+    <span class="n">_init_components</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -134,8 +133,10 @@
 <span class="sd">    AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.</span>
 <span class="sd">    This basically assumes the latent variable of sample i depends on the latent variable</span>
 <span class="sd">    on sample i-1. The dataset given in the initialization must be ordered !</span>
-<span class="sd">    The autoregressive coefficient can be per dimension or common to each dimension.</span>
-<span class="sd">    Note that the autregressive coefficient seems to be underestimated when the covariance is low.</span>
+<span class="sd">    The autoregressive coefficient can be per dimension (`diagonal` ar_type) or</span>
+<span class="sd">    common to each dimension (`spherical` ar type) or depend on all</span>
+<span class="sd">    the previous dimensions (`full` ar type). Note that the autregressive coefficient seems</span>
+<span class="sd">    to be underestimated when the covariance is low.</span>
 <span class="sd">    See ?? for more details.</span>
 
 <span class="sd">    Examples</span>
@@ -333,7 +334,7 @@
                 <span class="n">precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision</span><span class="p">,</span>
                 <span class="n">ar_coef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ar_coef</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="c1"># full autoregressive structure</span>
+
         <span class="k">return</span> <span class="n">smart_elbo_plnar_full_autoreg</span><span class="p">(</span>
             <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span>
             <span class="n">marginal_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_marginal_mean</span><span class="p">,</span>
@@ -367,11 +368,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span> <span class="o">=</span> <span class="n">_init_components_prec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.5</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">**</span> <span class="p">(</span><span class="mi">3</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">components</span> <span class="o">=</span> <span class="n">_init_components</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span>
+                <span class="n">components</span> <span class="o">@</span> <span class="p">(</span><span class="n">components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
             <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_diag_cov</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -439,12 +441,14 @@
         <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="p">):</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint:disable=too-many-arguments</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span>
             <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
             <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
             <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
             <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -461,8 +465,14 @@
 <span class="s2">        &gt;&gt;&gt; ar.pca_pairplot(n_components=3, colors=data[&quot;chrom&quot;])</span>
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span>
+            <span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PlnAR.transform">
@@ -544,7 +554,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ar_type</span> <span class="o">==</span> <span class="s2">&quot;spherical&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision</span><span class="p">)</span>
         <span class="n">ortho_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ortho_components</span>
-        <span class="k">return</span> <span class="n">ortho_components</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diag_cov</span><span class="p">)</span> <span class="o">@</span> <span class="p">(</span><span class="n">ortho_components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ortho_components</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diag_cov</span> <span class="o">@</span> <span class="p">(</span><span class="n">ortho_components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_ortho_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

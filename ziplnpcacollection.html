@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=67224d9c"></script>
+<script src="_static/documentation_options.js?v=46dfa7f5"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,9 +40,6 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
-</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -105,6 +102,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 </div>
 </div>
@@ -129,6 +127,8 @@
 <div itemprop="articleBody">
 <section id="ziplnpcacollection">
 <h1>ZIPlnPCACollection<a class="headerlink" href="#ziplnpcacollection" title="Link to this heading"></a></h1>
+<p>For an in-depth tutorial to the <cite>ZIPlnPCACollection</cite> model, see the <a class="reference external" href="./vignettes/zero_inflation.html">zero-inflation
+tutorial</a>.</p>
 <section id="ziplnpcacollection-documentation">
 <h2>ZIPlnPCACollection Documentation<a class="headerlink" href="#ziplnpcacollection-documentation" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -160,7 +160,7 @@ For more details, see B. Bricout ?</p>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>Series</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>exog_inflation</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>Series</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>add_const_inflation</strong> (<em>bool</em>)</p></li>
 <li><p><strong>ranks</strong> (<em>Iterable</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
@@ -245,7 +245,7 @@ By default (3, 5)</p></li>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.ZIPlnPCACollection.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/ziplnpcacollection.html#ZIPlnPCACollection.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.ZIPlnPCACollection.fit" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9.999999999999999e-10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/ziplnpcacollection.html#ZIPlnPCACollection.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.ZIPlnPCACollection.fit" title="Link to this definition"></a></dt>
 <dd><p>Fit each model in the collection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -776,7 +776,10 @@ Also show the explained variance pourcentage.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_useful_attributes_string</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_abc_impl</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_name</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_abc_impl</span></code></p></td>
 <td><p></p></td>
 </tr>
 </tbody>

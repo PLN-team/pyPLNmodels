@@ -32,18 +32,16 @@ Getting started
 
 `A notebook to get started can be found
 here <https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`__.
-If you need just a quick view of the package, see the quickstart next.
-Note that an ``R`` version of the package is available
+A more in-depth tutorial is available `here <??>`__. If you need just a
+quick view of the package, see the quickstart next. Note that an ``R``
+version of the package is available
 `here <https://pln-team.github.io/PLNmodels/>`__.
 
 🛠 Installation
 --------------
 
 **pyPLNmodels** is available on
-`pypi <https://pypi.org/project/pyPLNmodels/>`__. The development
-version is available on
-`GitHub <https://github.com/PLN-team/pyPLNmodels>`__ and
-`GitLab <https://gitlab.com/Bastien-mva/pyplnmodels>`__.
+`pypi <https://pypi.org/project/pyPLNmodels/>`__.
 
 Package installation
 ~~~~~~~~~~~~~~~~~~~~

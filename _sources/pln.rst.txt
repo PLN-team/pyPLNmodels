@@ -1,6 +1,9 @@
 Pln
 ===
 
+For an in-depth tutorial to the `Pln` model, see the `dedicated tutorial
+<./vignettes/basic_analysis.html>`_.
+
 Pln Documentation
 -----------------
 

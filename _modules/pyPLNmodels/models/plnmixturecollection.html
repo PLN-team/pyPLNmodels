@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
+      <script src="../../../_static/documentation_options.js?v=46dfa7f5"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,10 +44,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -71,6 +68,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 
         </div>
@@ -294,20 +292,28 @@
 
 <div class="viewcode-block" id="PlnMixtureCollection.best_model">
 <a class="viewcode-back" href="../../../plnmixturecollection.html#pyPLNmodels.PlnMixtureCollection.best_model">[docs]</a>
-    <span class="nd">@_add_doc</span><span class="p">(</span>
-        <span class="n">Collection</span><span class="p">,</span>
-        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnMixtureCollection, load_scrna</span>
-<span class="s2">            &gt;&gt;&gt; data = load_scrna()</span>
-<span class="s2">            &gt;&gt;&gt; mixtures = PlnMixtureCollection(endog = data[&quot;endog&quot;], n_clusters = [2,3,4])</span>
-<span class="s2">            &gt;&gt;&gt; mixtures.fit()</span>
-<span class="s2">            &gt;&gt;&gt; print(mixtures.best_model())</span>
-<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
-        <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">        PlnMixtureCollection</span>
-<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">best_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">criterion</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;BIC&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlnMixture</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the best model according to the specified criterion.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        criterion : str, optional</span>
+<span class="sd">            The criterion to use (&#39;AIC&#39;, &#39;BIC&#39; or &#39;silhouette&#39;), by default &#39;silhouette&#39;.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnMixtureCollection, load_scrna</span>
+<span class="sd">        &gt;&gt;&gt; data = load_scrna()</span>
+<span class="sd">        &gt;&gt;&gt; mixtures = PlnMixtureCollection(endog = data[&quot;endog&quot;], n_clusters = [2,3,4])</span>
+<span class="sd">        &gt;&gt;&gt; mixtures.fit()</span>
+<span class="sd">        &gt;&gt;&gt; print(mixtures.best_model())</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PlnMixtureCollection</span>
+<span class="sd">            The best model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">best_model</span><span class="p">(</span><span class="n">criterion</span><span class="o">=</span><span class="n">criterion</span><span class="p">)</span></div>
 
 
@@ -358,7 +364,24 @@
         <span class="n">_show_collection_and_clustering_criterions</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">absc_label</span><span class="o">=</span><span class="n">absc_label</span>
         <span class="p">)</span></div>
-</div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_best_grid_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">criterion</span><span class="p">):</span>
+        <span class="n">possible_criterions</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;BIC&quot;</span><span class="p">,</span> <span class="s2">&quot;AIC&quot;</span><span class="p">,</span> <span class="s2">&quot;silhouette&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">criterion</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">possible_criterions</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unknown criterion </span><span class="si">{</span><span class="n">criterion</span><span class="si">}</span><span class="s2">. Availables: </span><span class="si">{</span><span class="n">possible_criterions</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s2">&quot;BIC&quot;</span><span class="p">:</span>
+            <span class="n">criterion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BIC</span>
+        <span class="k">elif</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s2">&quot;AIC&quot;</span><span class="p">:</span>
+            <span class="n">criterion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AIC</span>
+        <span class="k">elif</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s2">&quot;silhouette&quot;</span><span class="p">:</span>
+            <span class="n">criterion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">silhouette</span>
+            <span class="n">criterion</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">grid_value</span><span class="p">:</span> <span class="o">-</span><span class="n">score</span> <span class="k">for</span> <span class="n">grid_value</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">silhouette</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">criterion</span><span class="o">.</span><span class="n">values</span><span class="p">()))]</span></div>
 
 </pre></div>
 

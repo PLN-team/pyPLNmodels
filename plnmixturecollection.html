@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=67224d9c"></script>
+<script src="_static/documentation_options.js?v=46dfa7f5"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,9 +40,6 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
-</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -103,6 +100,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 </div>
 </div>
@@ -127,6 +125,8 @@
 <div itemprop="articleBody">
 <section id="plnmixturecollection">
 <h1>PlnMixtureCollection<a class="headerlink" href="#plnmixturecollection" title="Link to this heading"></a></h1>
+<p>For an in-depth tutorial to the <cite>PlnMixtureCollection</cite> model, see the
+<a class="reference external" href="./vignettes/clustering.html">clustering tutorial</a>.</p>
 <section id="plnmixturecollection-documentation">
 <h2>PlnMixtureCollection Documentation<a class="headerlink" href="#plnmixturecollection-documentation" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -157,7 +157,7 @@ Framework for the Joint Analysis of Species Abundances.”</p>
 <li><p><strong>endog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em>)</p></li>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>n_clusters</strong> (<em>Iterable</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
@@ -307,16 +307,10 @@ By default (2, 3, 4)</p></li>
 <dd><p>Get the best model according to the specified criterion.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>criterion</strong> (<em>str</em><em>, </em><em>optional</em>) – The criterion to use (‘AIC’ or ‘BIC’), by default ‘BIC’.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The best model.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Any</p>
+<dd class="field-odd"><p><strong>criterion</strong> (<em>str</em><em>, </em><em>optional</em>) – The criterion to use (‘AIC’, ‘BIC’ or ‘silhouette’), by default ‘silhouette’.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection" title="pyPLNmodels.PlnMixtureCollection">PlnMixtureCollection</a></p>
+<dd class="field-even"><p><a class="reference internal" href="plnmixture.html#pyPLNmodels.PlnMixture" title="pyPLNmodels.models.plnmixture.PlnMixture"><em>PlnMixture</em></a></p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
@@ -327,6 +321,17 @@ By default (2, 3, 4)</p></li>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mixtures</span><span class="o">.</span><span class="n">best_model</span><span class="p">())</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The best model.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyPLNmodels.PlnMixtureCollection" title="pyPLNmodels.PlnMixtureCollection">PlnMixtureCollection</a></p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>criterion</strong> (<em>str</em>)</p>
+</dd>
+</dl>
 </dd></dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnMixtureCollection.WCSS">
@@ -718,7 +723,10 @@ given in initialization.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_useful_attributes_string</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_abc_impl</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_name</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_abc_impl</span></code></p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -740,6 +748,9 @@ given in initialization.</p>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_init_next_model_with_current_model</span></code>(...)</p></td>
 <td><p>Initialize the next <cite>PlnModel</cite> model with the parameters of the current <cite>PlnModel</cite> model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_best_grid_value</span></code>(criterion)</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>

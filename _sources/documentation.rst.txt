@@ -7,10 +7,6 @@ PLN models encompass a range of models designed to analyze count data, all
 based on the Poisson-Lognormal distribution. Each model has unique
 characteristics and serves different purposes. Covariates and offsets may be included in the models.
 
-The `.transform()` method is
-available for all models, extracting variables with more signal than the
-counts.
-
 
 Models
 ======
@@ -30,9 +26,3 @@ Models
 .. toctree::
    :maxdepth: 1
    :caption: Sampling PLN data
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`

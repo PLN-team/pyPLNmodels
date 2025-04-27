@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=67224d9c"></script>
+<script src="_static/documentation_options.js?v=46dfa7f5"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -40,9 +40,6 @@
 </form>
 </div>
 </div><div aria-label="Navigation menu" class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="vignettes/index.html">My new Vignette</a></li>
-</ul>
 <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="pln.html">Pln</a></li>
@@ -109,6 +106,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.projected_latent_variables"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.projected_latent_variables()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.remove_zero_columns"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.remove_zero_columns</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.show"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.show()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.show_prob"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.show_prob()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.sigma"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.sigma()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.optim"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.optim</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pyPLNmodels.ZIPlnPCA.entropy"><code class="docutils literal notranslate"><span class="pre">ZIPlnPCA.entropy</span></code></a></li>
@@ -130,6 +128,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 </div>
 </div>
@@ -154,6 +153,7 @@
 <div itemprop="articleBody">
 <section id="ziplnpca">
 <h1>ZIPlnPCA<a class="headerlink" href="#ziplnpca" title="Link to this heading"></a></h1>
+<p>For an in-depth tutorial to the <cite>ZIPlnPCA</cite> model, see the <a class="reference external" href="./vignettes/zero_inflation.html">zero-inflation tutorial</a>.</p>
 <section id="ziplnpca-documentation">
 <h2>ZIPlnPCA Documentation<a class="headerlink" href="#ziplnpca-documentation" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -192,7 +192,7 @@ see Bricout, Barbara, Robin, Donnet (2024) ??</p>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>Series</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>exog_inflation</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>Series</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>add_const_inflation</strong> (<em>bool</em>)</p></li>
 <li><p><strong>rank</strong> (<em>int</em>)</p></li>
@@ -394,17 +394,22 @@ component, of size (<cite>nb_cov_inflation</cite>, <cite>dim</cite>).</p>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.ZIPlnPCA.pca_pairplot">
-<span class="sig-name descname"><span class="pre">pca_pairplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/ziplnpca.html#ZIPlnPCA.pca_pairplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.ZIPlnPCA.pca_pairplot" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">pca_pairplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_exog_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/ziplnpca.html#ZIPlnPCA.pca_pairplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.ZIPlnPCA.pca_pairplot" title="Link to this definition"></a></dt>
 <dd><p>Generates a scatter matrix plot based on Principal
 Component Analysis (PCA) on the latent variables.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>(</strong><strong>int</strong> (<em>n_components</em>) – Defaults to 3. It Cannot be greater than 6.</p></li>
-<li><p><strong>optional</strong><strong>)</strong> (<em>The number</em><em> of </em><em>components to consider for plotting.</em>) – Defaults to 3. It Cannot be greater than 6.</p></li>
-<li><p><strong>(</strong><strong>np.ndarray</strong><strong>)</strong> (<em>colors</em>) – sample in the endog property of the object.
+<li><p><strong>(</strong><strong>int</strong> (<em>n_components</em>) – Defaults to 3. It cannot be greater than 6.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>Whether to remove the effect</em><em> of </em><em>exogenous</em>) – Defaults to 3. It cannot be greater than 6.</p></li>
+<li><p><strong>(</strong><strong>np.ndarray</strong> (<em>colors</em>) – sample in the endog property of the object. If <cite>None</cite>, no colors are applied.
 Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – sample in the endog property of the object. If <cite>None</cite>, no colors are applied.
+Defaults to <cite>None</cite>.</p></li>
+<li><p><strong>(</strong><strong>bool</strong> (<em>remove_exog_effect</em>) – variables. Defaults to <cite>False</cite>.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – variables. Defaults to <cite>False</cite>.</p></li>
 <li><p><strong>n_components</strong> (<em>bool</em>)</p></li>
+<li><p><strong>remove_exog_effect</strong> (<em>bool</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -494,7 +499,7 @@ If not None, should have the same length as <cite>column_names</cite>.</p></li>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.ZIPlnPCA.biplot">
-<span class="sig-name descname"><span class="pre">biplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/ziplnpca.html#ZIPlnPCA.biplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.ZIPlnPCA.biplot" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">biplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_exog_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/ziplnpca.html#ZIPlnPCA.biplot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.ZIPlnPCA.biplot" title="Link to this definition"></a></dt>
 <dd><p>Visualizes variables using the correlation circle along with the pca transformed samples.
 If the <cite>endog</cite> has been given as a pd.DataFrame, the <cite>column_names</cite> have been stored and
 may be indicated with the <cite>column_names</cite> argument. Else, one should provide the
@@ -511,6 +516,7 @@ Check the attribute <cite>column_names_endog</cite>.</p></li>
 If <cite>None</cite>, the indices are determined based on <cite>column_names_endog</cite>
 given the <cite>column_names</cite>, by default <cite>None</cite>.
 If not None, should have the same length as <cite>column_names</cite>.</p></li>
+<li><p><strong>remove_exog_effect</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove or not the effect of exogenous variables. Default to <cite>False</cite>.</p></li>
 <li><p><strong>title</strong> (<em>str optional</em><em>, </em><em>keyword-only</em>) – An additional title for the plot.</p></li>
 <li><p><strong>colors</strong> (<em>list</em><em>, </em><em>optional</em><em>, </em><em>keyword-only</em>) – The labels to color the samples, of size <cite>n_samples</cite>.</p></li>
 </ul>
@@ -923,6 +929,21 @@ Default is an empty string.</p></li>
 </dl>
 </dd></dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="pyPLNmodels.ZIPlnPCA.show_prob">
+<span class="sig-name descname"><span class="pre">show_prob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">savefig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(10,</span> <span class="pre">10)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLNmodels.ZIPlnPCA.show_prob" title="Link to this definition"></a></dt>
+<dd><p>Display the model parameters, norm evolution of the parameters and the criterion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>savefig</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, the figure will be saved to a file. Default is <cite>False</cite>.</p></li>
+<li><p><strong>name_file</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the file to save the figure. Only used if savefig is <cite>True</cite>.
+Default is an empty string.</p></li>
+<li><p><strong>figsize</strong> (<em>tuple</em><em> of </em><em>two positive floats.</em>) – Size of the figure that will be created. By default (10,10)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.ZIPlnPCA.sigma">
 <span class="sig-name descname"><span class="pre">sigma</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyPLNmodels.ZIPlnPCA.sigma" title="Link to this definition"></a></dt>
 <dd><p>Covariance of the model.</p>
@@ -1130,7 +1151,7 @@ Default is an empty string.</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit</span></code>(*[, maxiter, lr, tol, verbose])</p></td>
 <td><p>Fit the model using variational inference.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors, ...])</p></td>
 <td><p>Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot_prob</span></code>([n_components, colors])</p></td>
@@ -1176,7 +1197,7 @@ Default is an empty string.</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform</span></code>([remove_exog_effect])</p></td>
 <td><p>Returns the latent variables.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors, ...])</p></td>
 <td><p>Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot_prob</span></code>([n_components, colors])</p></td>
@@ -1199,6 +1220,9 @@ Default is an empty string.</p></li>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_expected_vs_true</span></code>([ax, colors])</p></td>
 <td><p>Plot the predicted value of the <cite>endog</cite> against the <cite>endog</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_prob</span></code>([savefig, name_file, figsize])</p></td>
+<td><p>Display the model parameters, norm evolution of the parameters and the criterion.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1243,7 +1267,7 @@ Default is an empty string.</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigma</span></code>()</p></td>
 <td><p>Covariance of the model.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pca_pairplot</span></code>([n_components, colors, ...])</p></td>
 <td><p>Generates a scatter matrix plot based on Principal Component Analysis (PCA) on the latent variables.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_expected_vs_true</span></code>([ax, colors])</p></td>

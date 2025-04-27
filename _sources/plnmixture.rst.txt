@@ -7,6 +7,8 @@ possible, but the regression coefficient is shared among all clusters. The perfo
 Note that the number of clusters is a hyperparameter that needs to be set by the
 user.
 
+For an in-depth tutorial to the `PlnMixture` model, see the
+`clustering tutorial <./vignettes/clustering.html>`_.
 
 PlnMixture Documentation
 ------------------------

@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
+      <script src="../../../_static/documentation_options.js?v=46dfa7f5"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,10 +44,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -71,6 +68,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 
         </div>
@@ -348,6 +346,7 @@
 <span class="sd">            The axes on which to plot, by default `None`.</span>
 <span class="sd">        colors : list, optional</span>
 <span class="sd">            The labels to color the samples, of size `n_samples`.</span>
+<span class="sd">            If None, will take the inferred clusters.</span>
 <span class="sd">        show_cov : bool, optional</span>
 <span class="sd">            Whether to show covariances, by default False.</span>
 <span class="sd">        remove_exog_effect: bool, optional</span>
@@ -388,7 +387,7 @@
                 <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span>
             <span class="p">)</span>
             <span class="n">covariances</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="n">_viz_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">covariances</span><span class="o">=</span><span class="n">covariances</span><span class="p">)</span></div>
+        <span class="n">_viz_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">covariances</span><span class="o">=</span><span class="n">covariances</span><span class="p">)</span></div>
 
 
     <span class="nd">@property</span>
@@ -454,6 +453,12 @@
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;diagonal covariances and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cluster</span><span class="si">}</span><span class="s2"> clusters.&quot;</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_dict_for_printing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">orig_dict</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_dict_for_printing</span>
+        <span class="n">orig_dict</span><span class="p">[</span><span class="s2">&quot;Silhouette&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">silhouette</span>
+        <span class="k">return</span> <span class="n">orig_dict</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_endog_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">exp_term</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">offsets</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -464,13 +469,6 @@
 
 <div class="viewcode-block" id="PlnMixture.biplot">
 <a class="viewcode-back" href="../../../plnmixture.html#pyPLNmodels.PlnMixture.biplot">[docs]</a>
-    <span class="nd">@_add_doc</span><span class="p">(</span>
-        <span class="n">BaseModel</span><span class="p">,</span>
-        <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
-        <span class="n">notes</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">biplot</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">column_names</span><span class="p">,</span>
@@ -478,7 +476,8 @@
         <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="p">):</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint:disable=too-many-arguments</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Visualizes variables using the correlation circle along with the pca transformed samples.</span>
 <span class="sd">        If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and</span>
@@ -502,6 +501,8 @@
 <span class="sd">            An additional title for the plot.</span>
 <span class="sd">        colors : list, optional, keyword-only</span>
 <span class="sd">            The labels to color the samples, by default the inferred clusters.</span>
+<span class="sd">        remove_exog_effect: bool, optional</span>
+<span class="sd">            Whether to remove or not the effect of exogenous variables. Default to `False`.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
@@ -536,6 +537,7 @@
             <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
             <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
             <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -693,30 +695,38 @@
 
 <div class="viewcode-block" id="PlnMixture.pca_pairplot">
 <a class="viewcode-back" href="../../../plnmixture.html#pyPLNmodels.PlnMixture.pca_pairplot">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_components</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Generates a scatter matrix plot based on Principal</span>
 <span class="sd">        Component Analysis (PCA) on the latent variables.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">            n_components (int, optional): The number of components to consider for plotting.</span>
-<span class="sd">                Defaults to 3. It Cannot be greater than 6.</span>
-
-<span class="sd">            colors (np.ndarray): An array with one label for each</span>
-<span class="sd">                sample in the endog property of the object.</span>
-<span class="sd">                Defaults to the inferred clusters.</span>
+<span class="sd">        n_components : int, optional</span>
+<span class="sd">            The number of components to consider for plotting.</span>
+<span class="sd">            Defaults to 3. It cannot be greater than 6.</span>
+<span class="sd">        colors : np.ndarray, optional</span>
+<span class="sd">            An array with one label for each sample in the `endog` property of the object.</span>
+<span class="sd">            Defaults to the inferred clusters.</span>
+<span class="sd">        remove_exog_effect : bool, optional</span>
+<span class="sd">            Whether to remove or not the effect of exogenous variables. Defaults to `False`.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
-<span class="sd">            ValueError: If the number of components requested is greater</span>
-<span class="sd">                than the number of variables in the dataset.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the number of components requested is greater</span>
+<span class="sd">            than the number of variables in the dataset.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; from pyPLNmodels import PlnMixture, load_scrna</span>
 <span class="sd">        &gt;&gt;&gt; data = load_scrna()</span>
-<span class="sd">        &gt;&gt;&gt; mixture = PlnMixture.from_formula(&quot;endog ~ 0&quot;, data=data, n_cluster = 3)</span>
+<span class="sd">        &gt;&gt;&gt; mixture = PlnMixture.from_formula(&quot;endog ~ 0&quot;, data=data, n_cluster=3)</span>
 <span class="sd">        &gt;&gt;&gt; mixture.fit()</span>
 <span class="sd">        &gt;&gt;&gt; mixture.pca_pairplot(n_components=5)</span>
 <span class="sd">        &gt;&gt;&gt; mixture.pca_pairplot(n_components=5, colors=data[&quot;labels&quot;])</span>
@@ -729,7 +739,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span>
+            <span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PlnMixture.plot_correlation_circle">
@@ -935,6 +949,17 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_print_end_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_useful_attributes_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;.latent_variables&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.latent_positions&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.coef&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.model_parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.latent_parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.optim_details&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
 </pre></div>
 
            </div>

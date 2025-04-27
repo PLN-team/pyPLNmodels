@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=67224d9c"></script>
+      <script src="../../../_static/documentation_options.js?v=46dfa7f5"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -44,10 +44,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignettes/index.html">My new Vignette</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Models</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Models</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../pln.html">Pln</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../zipln.html">ZIPln</a></li>
@@ -71,6 +68,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pypi.org/project/pyPLNmodels/">↪ PyPI</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels">↪ GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pln-team.github.io/pyPLNmodels/vignettes/index.html">↪ Tutorials</a></li>
 </ul>
 
         </div>
@@ -113,7 +111,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="n">profiled_elbo_zipln</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_viz_variables</span><span class="p">,</span> <span class="n">_pca_pairplot</span><span class="p">,</span> <span class="n">ZIModelViz</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_viz_variables</span><span class="p">,</span> <span class="n">_pca_pairplot</span><span class="p">,</span> <span class="n">ZIModelViz</span><span class="p">,</span> <span class="n">_show_prob</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.entropies</span><span class="w"> </span><span class="kn">import</span> <span class="n">entropy_gaussian</span><span class="p">,</span> <span class="n">entropy_bernoulli</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_handle_inflation_data</span><span class="p">,</span>
@@ -462,8 +460,14 @@
 <span class="s2">        &gt;&gt;&gt; zi.pca_pairplot(n_components = 5, colors = data[&quot;time&quot;])</span>
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pca_pairplot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pca_pairplot</span><span class="p">(</span>
+            <span class="n">n_components</span><span class="o">=</span><span class="n">n_components</span><span class="p">,</span>
+            <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ZIPln.pca_pairplot_prob">
@@ -533,12 +537,14 @@
         <span class="n">column_index</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">colors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="p">):</span>
+        <span class="n">remove_exog_effect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint:disable=too-many-arguments</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">biplot</span><span class="p">(</span>
             <span class="n">column_names</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
             <span class="n">column_index</span><span class="o">=</span><span class="n">column_index</span><span class="p">,</span>
             <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span>
             <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">remove_exog_effect</span><span class="o">=</span><span class="n">remove_exog_effect</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -548,7 +554,12 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_additional_methods_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;.viz_prob()&quot;</span><span class="p">,</span> <span class="s2">&quot;.predict_prob_inflation()&quot;</span><span class="p">,</span> <span class="s2">&quot;.pca_pairplot_prob()&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;.viz_prob()&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.show_prob()&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.predict_prob_inflation()&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.pca_pairplot_prob()&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -719,7 +730,34 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
             <span class="o">+</span> <span class="n">entropy_bernoulli</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ZIPln.show_prob">
+<a class="viewcode-back" href="../../../zipln.html#pyPLNmodels.ZIPln.show_prob">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">savefig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name_file</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Display the model parameters, norm evolution of the parameters and the criterion.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        savefig : bool, optional</span>
+<span class="sd">            If `True`, the figure will be saved to a file. Default is `False`.</span>
+<span class="sd">        name_file : str, optional</span>
+<span class="sd">            The name of the file to save the figure. Only used if savefig is `True`.</span>
+<span class="sd">            Default is an empty string.</span>
+<span class="sd">        figsize : tuple of two positive floats.</span>
+<span class="sd">            Size of the figure that will be created. By default (10,10)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_show_prob</span><span class="p">(</span>
+            <span class="n">latent_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_prob</span><span class="p">,</span>
+            <span class="n">column_names_endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_names_endog</span><span class="p">,</span>
+            <span class="n">savefig</span><span class="o">=</span><span class="n">savefig</span><span class="p">,</span>
+            <span class="n">name_file</span><span class="o">=</span><span class="n">name_file</span><span class="p">,</span>
+            <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
         <span class="p">)</span></div>
+</div>
 
 </pre></div>
 
