@@ -16,11 +16,13 @@
 > multivariate count data. It is designed to scale on large
 > datasets, although it has memory limitations. Possible fields of
 > application include:
+
 > - Genomics/transcriptomics (e.g., the number of times a gene is expressed in a cell)
 > - Ecology (e.g., species abundances)
 > - Metagenomics (e.g., the number of Amplicon Sequence Variants detected in a sample)
 > - Genetics (e.g., the number of crossovers (DNA exchanges) along a chromosome)
 >
+
 > One of the main functionalities of this package is to normalize
 > count data to obtain more valuable insights. It also analyzes
 > the significance of each variable, their correlations, and the
