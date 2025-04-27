@@ -15,7 +15,7 @@ Getting started
 
 A notebook to get started with pyPLNmodels is `available here
 <https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb>`_.
-In-depth tutorial are `available here <./tutorials/index.html>`_.
+In-depth tutorials are `available here <https://pln-team.github.io/pyPLNmodels/tutorials`_.
 Otherwise, the next section is a quick overview of the package.
 
 
@@ -66,4 +66,4 @@ Overview
 
    ↪ PyPI <https://pypi.org/project/pyPLNmodels/>
    ↪ GitHub <https://github.com/PLN-team/pyPLNmodels>
-   ↪ Tutorials <https://pln-team.github.io/pyPLNmodels/tutorials/index.html>
+   ↪ Tutorials <https://pln-team.github.io/pyPLNmodels/tutorials/>
