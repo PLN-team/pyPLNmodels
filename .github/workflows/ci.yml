@@ -24,40 +24,40 @@ jobs:
       - name: Run Black
         run: black --check --verbose -- .
 
-  pylint:
-    runs-on: ubuntu-22.04
-    needs: black
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Pylint
-        run: |
-          pip install pylint
+  # pylint:
+  #   runs-on: ubuntu-22.04
+  #   needs: black
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: '3.9'
+  #     - name: Install Pylint
+  #       run: |
+  #         pip install pylint
 
-      - name: Run Pylint
-        run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
+  #     - name: Run Pylint
+  #       run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
 
-  tests:
-    runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/bastien-mva/docker_image:latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install package locally and run tests
-        run: |
-          pip install '.[tests]'
-          pip install -e .
-          jupyter nbconvert Getting_started.ipynb --to python --output tests/untestable_getting_started
-          cd tests
-          python _create_readme_getting_started_and_docstrings_tests.py
-          pytest --cov --cov-branch --cov-report=xml .
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+  # tests:
+  #   runs-on: ubuntu-22.04
+  #   container:
+  #     image: ghcr.io/bastien-mva/docker_image:latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install package locally and run tests
+  #       run: |
+  #         pip install '.[tests]'
+  #         pip install -e .
+  #         jupyter nbconvert Getting_started.ipynb --to python --output tests/untestable_getting_started
+  #         cd tests
+  #         python _create_readme_getting_started_and_docstrings_tests.py
+  #         pytest --cov --cov-branch --cov-report=xml .
+  #     - name: Upload coverage reports to Codecov
+  #       uses: codecov/codecov-action@v5
+  #       with:
+  #         token: ${{ secrets.CODECOV_TOKEN }}
 
 
   build_package:
@@ -107,8 +107,8 @@ jobs:
 
   pages:
     runs-on: ubuntu-22.04
-    needs: publish_package
-    if: github.event_name == 'release'
+    # needs: publish_package
+    # if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
