@@ -9,6 +9,7 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plnpca import PlnPCA
 from pyPLNmodels.utils._utils import _add_doc, _init_next_model_pca
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.utils._viz import _show_collection_and_explained_variance
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -210,3 +211,18 @@ class PlnPCACollection(Collection):
     )
     def best_model(self, criterion: str = "BIC") -> PlnPCA:
         return super().best_model(criterion=criterion)
+
+    def show(self, figsize: tuple = (10, 10)):
+        """
+        Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+        Also show the explained variance pourcentage.
+
+        Parameters
+        ----------
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,10)
+        """
+        absc_label = "Number of Principal Components (i.e. rank number)"
+        _show_collection_and_explained_variance(
+            self, figsize=figsize, absc_label=absc_label
+        )

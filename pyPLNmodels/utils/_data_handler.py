@@ -83,7 +83,7 @@ def _handle_data(
     if exog is not None:
         exog = _remove_useless_exog(exog, column_names_exog, is_inflation=False)
         _check_full_rank_exog(exog, name_mat="exog")
-    if torch.max(offsets) > 5:
+    if torch.max(offsets) > 10:
         warnings.warn(
             "Offsets are very large. Consider taking the logarithm. NaN may appear."
         )
@@ -245,7 +245,7 @@ def _format_data(
 
 
 def _series_to_tensor_and_encoder(series: pd.Series) -> torch.Tensor:
-    if series.dtype in [np.int64, np.float64]:
+    if series.dtype in [int, np.float64]:
         return torch.tensor(series.values).to(DEVICE), None
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(series)

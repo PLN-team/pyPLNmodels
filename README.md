@@ -4,6 +4,8 @@
 ![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![Pylint](https://img.shields.io/badge/pylint-checked-brightgreen)
 ![GPU Support](https://img.shields.io/badge/GPU-Supported-brightgreen)
+[![codecov](https://codecov.io/gh/PLN-team/pyPLNmodels/graph/badge.svg?token=TNFROMLF9Z)](https://codecov.io/gh/PLN-team/pyPLNmodels)
+[![last commit](https://img.shields.io/github/last-commit/PLN-team/pyPLNmodels)](https://github.com/PLN-team/pyPLNmodels)
 
 # PLNmodels: Poisson lognormal models
 
@@ -27,14 +29,13 @@
 The package documentation can be found [here](https://pln-team.github.io/pyPLNmodels/).
 
 ## Getting started
-[A notebook to get started can be found here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb).
+[A notebook to get started can be found here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb). A more in-depth tutorial is available [here](??).
 If you need just a quick view of the package, see the quickstart next. Note
 that an `R` version of the package is available [here](https://pln-team.github.io/PLNmodels/).
 
 ## 🛠 Installation
 
-**pyPLNmodels** is available on [pypi](https://pypi.org/project/pyPLNmodels/). The development
-version is available on [GitHub](https://github.com/PLN-team/pyPLNmodels) and [GitLab](https://gitlab.com/Bastien-mva/pyplnmodels).
+**pyPLNmodels** is available on [pypi](https://pypi.org/project/pyPLNmodels/).
 
 ### Package installation
 ```sh

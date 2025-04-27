@@ -1,0 +1,186 @@
+---
+title: "Mathematical details  📐"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---
+
+
+# `Pln` model
+
+This package estimates model parameters based on a count matrix $Y$, covariates (also referred to as `exogenous` variables) $X$, and offsets $o$. For each observation (or individual $i$), the following notations are used:
+
+- $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
+- $X_i$ (`exog`): covariates for the $i$-th observation (if available)
+- $o_i$ (`offsets`): offset for the $i$-th observation (if available)
+
+All models are derived from the Poisson log-normal (PLN) model [@Aitchison1989]:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})). \tag{\href{https://pln-team.github.io/pyPLNmodels/pln.html}{\texttt{Pln}}}
+\end{align}
+$$
+
+The model parameters are:
+
+- $B \in \mathbb{R}^{d \times p}$ (`coef`): matrix of regression coefficients
+- $\Sigma \in \mathcal{S}_{+}^{p}$ (`covariance`): covariance matrix of the latent variables $Z_i$
+with $p$ the number of variables and $d$ the number of covariates.
+
+
+Below, we describe extensions of the `Pln` model implemented in this package.
+
+## `ZIPln`: Zero-Inflated PLN
+
+The zero-inflated PLN (`ZIPln`) model introduces a latent variable $W_i$ to account for excess zeros in the data:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(o_{ij} + Z_{ij})),\tag{\href{https://pln-team.github.io/pyPLNmodels/zipln.html}{\texttt{ZIPln}}}
+\end{align}
+$$
+where $\sigma$ denotes the sigmoid function. Model parameters are given by $(B, \Sigma, B^0) =$ (`coef`, `covariance`, `coef_inflation`).
+
+The covariates of the zero-inflation $X^0$ can be different than the covariates
+$X$ of the Poisson regression.
+
+This model is especially useful when zero counts arise from a mixture of
+structural and sampling zeros. More details can be
+found in @zeroinflation.
+
+## `PlnPCA`: Dimensionality Reduction via Rank Constraint
+
+The `PlnPCA` model imposes a low-rank constraint on the covariance matrix $\Sigma$ of the latent variables, enabling dimension reduction:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).\tag{\href{https://pln-team.github.io/pyPLNmodels/plnpca.html}{\texttt{PlnPCA}}}
+\end{align}
+$$
+
+The rank $q$ must be chosen (e.g., via BIC minimization). See @chiquet2018variational for details. Model parameters are given by $(B, \Sigma) =$ (`coef`, `covariance`).
+
+## `PlnAR`: Autoregressive Latent Dynamics
+
+The `PlnAR` model introduces temporal structure in the latent space using an autoregressive matrix $\Phi \in \mathcal{S}_+^{p}$:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+Z_i \mid Z_{i-1} &\sim \Phi Z_{i-1} + \mathcal{N}(\mu_i^\epsilon, \Sigma^\epsilon), \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),\tag{\href{https://pln-team.github.io/pyPLNmodels/plnar.html}{\texttt{PlnAR}}}
+\end{align}
+$$
+
+with
+
+- $\mu_i^\epsilon = \mu_i - \Phi \mu_{i-1}$,
+- $\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top$,
+- $\mu_i = X_i^{\top} B$
+
+Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite. Model parameters are given by $(B, \Sigma, \Phi) =$ (`coef`, `covariance`, `ar_coef`).
+
+
+## `PlnNetwork`: Sparse Network Inference
+
+The `PlnNetwork` model encourages sparsity in the latent dependency structure by imposing an $\ell_1$ constraint on the precision matrix $\Sigma^{-1}$:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).\tag{\href{https://pln-team.github.io/pyPLNmodels/plnnetwork.html}{\texttt{PlnNetwork}}}
+\end{align}
+$$
+
+The hyperparameter $C$ controls the sparsity level. A non-zero entry in
+$\Sigma^{-1}_{jk}$ implies a direct dependency between variables $j$ and $k$ in
+the latent space.
+
+Model parameters are given by $(B, \Sigma) =$ (`coef`, `covariance`). The precision matrix $\Sigma^{-1}$ is denoted `precision` in the package.
+
+
+
+## `PlnLDA`: Supervised clustering throught latent discriminant analysis
+
+When class memberships $c_i$ **are known**, Linear Discriminant Analysis ([LDA](https://en.wikipedia.org/wiki/Linear_discriminant_analysis)) can be performed in the latent space:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N} \left( X_i^{\top} B +  \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \quad \quad \quad \quad \quad \text{for known } c_i \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})). \tag{\href{https://pln-team.github.io/pyPLNmodels/plnlda.html}{\texttt{PlnLDA}}}
+\end{align}
+$$
+
+Once fitted, the model can infer class memberships for new individuals based on their latent representations.
+
+Model parameters are given by $(B, \Sigma, \mu_k) =$ (`coef`, `covariance`, `coef_clusters`).
+
+## `PlnMixture`: Unsupervised clustering through latent class modeling
+When class memberships $c_i$ **are unknown**, the `PlnMixture` model captures subpopulation structure in the data by modeling
+the latent variables as a mixture of Gaussians. The mixing proportions, denoted
+as $\pi = (\pi_1, \pi_2, \dots, \pi_K)$, represent the probabilities of
+belonging to each cluster, with the constraint that $\sum_{k=1}^K \pi_k = 1$.
+
+$$
+\begin{align}
+c_i | \pi & \sim \mathcal M(1, \pi), \quad \quad \quad \quad \quad \quad \text{for unknown } c_i \\
+Z_i \mid c_i = k & \sim \mathcal{N}(X_i^{\top} B + \mu_k, \Sigma_k),\\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})). \tag{\href{https://pln-team.github.io/pyPLNmodels/plnmixture.html}{\texttt{PlnMixture}}}
+\end{align}
+$$
+
+This model allows automatic discovery of latent clusters or topics in the data.
+
+Model selection criteria such as BIC or ICL can be used to choose the number of
+clusters $K$.
+
+Model parameters are given by $(B, \mu_k, \Sigma_k, \pi) =$ (`coef`,
+`cluster_bias`, `covariances`, `weights`). Note that the covariances matrices
+are assumed diagonal in the package.
+
+## `ZIPlnPCA`: Zero-Inflated Dimensionality Reduction
+
+The `ZIPlnPCA` model combines zero-inflation and dimensionality reduction:
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigma) = q \\
+W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
+Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1 - W_{ij}) \cdot \mathcal{P}(\exp(o_{ij} + Z_{ij})). \tag{\href{https://pln-team.github.io/pyPLNmodels/ziplnpca.html}{\texttt{ZIPlnPCA}}}
+\end{align}
+$$
+
+The hyperparameter $q$ controls the latent dimension and must be tuned.
+
+
+Model parameters are given by $(B, \Sigma, B^0) =$ (`coef`, `covariance`, `coef_inflation`).
+
+## `PlnDiag`: Independent Latent Components
+
+The `PlnDiag` model assumes no correlation between latent variables:
+
+$$
+\begin{align}
+Z_{ij} &\sim \mathcal{N}(X_i^{\top} B_j, \Sigma_{jj}), \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})). \tag{\href{https://pln-team.github.io/pyPLNmodels/plndiag.html}{\texttt{PlnDiag}}}
+\end{align}
+$$
+
+This leads to a diagonal covariance matrix, simplifying estimation while potentially reducing model expressiveness.
+
+Model parameters are given by $(B, \Sigma) =$ (`coef`, `covariance`).

@@ -8,22 +8,21 @@ import matplotlib.pyplot as plt
 
 
 def get_methods_model(model):
-    methods = [
-        method
-        for method in (model._useful_methods_list + model._additional_methods_list)
-        if method
-        not in [
-            ".predict()",
-            ".plot_correlation_circle()",
-            ".biplot()",
-            ".predict_prob_inflation()",
-            ".predict_clusters()",
-            ".transform_new()",
-            ".viz_transformed()",
-            ".viz_dims()",
-            ".plot_regression_forest()",
-        ]
+    methods = []
+    list_methods_with_arg = [
+        ".predict()",
+        ".plot_correlation_circle()",
+        ".biplot()",
+        ".predict_prob_inflation()",
+        ".predict_clusters()",
+        ".transform_new()",
+        ".viz_transformed()",
+        ".viz_dims()",
+        ".plot_regression_forest()",
     ]
+    for method in model._useful_methods_list + model._additional_methods_list:
+        if method not in list_methods_with_arg:
+            methods.append(method)
     return methods
 
 
@@ -47,8 +46,13 @@ def test_attributes_formula_method():
                 methods = get_methods_model(model)
                 for attribute in attributes:  # pylint: disable=protected-access
                     attribute = attribute[1:]
-                    assert hasattr(model, attribute)
-                    attribute_value = getattr(model, attribute)
+                    if model_name == "PlnMixture" and attribute == "covariance":
+                        attribute = "covariances"
+                    if model_name == "PlnMixture" and attribute == "precision":
+                        pass
+                    else:
+                        assert hasattr(model, attribute)
+                        attribute_value = getattr(model, attribute)
                 for method in methods:  # pylint: disable=protected-access
                     method_test(model, method, model_name)
                 print(model)

@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
+from sklearn.metrics import silhouette_score
 
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plndiag import PlnDiag
@@ -13,9 +14,16 @@ from pyPLNmodels.utils._data_handler import (
     _check_full_rank_exog_and_ones,
     _check_int,
 )
-from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
+from pyPLNmodels.utils._utils import (
+    _add_doc,
+    _get_two_dim_latent_variances,
+    _calculate_wcss,
+)
 from pyPLNmodels.calculations._initialization import _init_gmm
-from pyPLNmodels.calculations.entropies import entropy_gaussian, entropy_clusters
+from pyPLNmodels.calculations.entropies import (
+    entropy_gaussian_mixture,
+    entropy_clusters,
+)
 from pyPLNmodels.calculations.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.utils._viz import MixtureModelViz, _viz_variables
 
@@ -227,6 +235,7 @@ class PlnMixture(
             The axes on which to plot, by default `None`.
         colors : list, optional
             The labels to color the samples, of size `n_samples`.
+            If None, will take the inferred clusters.
         show_cov : bool, optional
             Whether to show covariances, by default False.
         remove_exog_effect: bool, optional
@@ -267,7 +276,7 @@ class PlnMixture(
                 remove_exog_effect=remove_exog_effect
             )
             covariances = None
-        return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
+        _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @property
     def covariance(self):
@@ -279,6 +288,7 @@ class PlnMixture(
         )
 
     def _init_parameters(self):
+        print("Intialization ...")
         pln = PlnDiag(
             endog=self._endog, exog=self._exog, offsets=self._offsets, add_const=True
         )
@@ -318,6 +328,7 @@ class PlnMixture(
         self._latent_sqrt_variances = (
             torch.randn(self.n_cluster, self.n_samples, self.dim).to(DEVICE) / 100
         )
+        print("Finished!")
 
     def _init_latent_parameters(self):
         """Everything is done in the _init_parameters method."""
@@ -330,6 +341,12 @@ class PlnMixture(
         return f"diagonal covariances and {self.n_cluster} clusters."
 
     @property
+    def _dict_for_printing(self):
+        orig_dict = super()._dict_for_printing
+        orig_dict["Silhouette"] = self.silhouette
+        return orig_dict
+
+    @property
     def _endog_predictions(self):
         exp_term = torch.exp(
             self.offsets.unsqueeze(0)
@@ -338,13 +355,6 @@ class PlnMixture(
         )
         return torch.sum(exp_term * self.latent_prob.T.unsqueeze(2), dim=0)
 
-    @_add_doc(
-        BaseModel,
-        example="""
-        """,
-        notes="""
-        """,
-    )
     def biplot(
         self,
         column_names,
@@ -352,7 +362,8 @@ class PlnMixture(
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
@@ -376,6 +387,8 @@ class PlnMixture(
             An additional title for the plot.
         colors : list, optional, keyword-only
             The labels to color the samples, by default the inferred clusters.
+        remove_exog_effect: bool, optional
+            Whether to remove or not the effect of exogenous variables. Default to `False`.
 
         Raises
         ------
@@ -410,6 +423,7 @@ class PlnMixture(
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @property
@@ -561,30 +575,38 @@ class PlnMixture(
         """Number of parameters."""
         return (2 * self.n_cluster + self.nb_cov) * self.dim
 
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
+    def pca_pairplot(
+        self,
+        n_components: int = 3,
+        colors: np.ndarray = None,
+        remove_exog_effect: bool = False,
+    ):
         """
         Generates a scatter matrix plot based on Principal
         Component Analysis (PCA) on the latent variables.
 
         Parameters
         ----------
-            n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. It Cannot be greater than 6.
-
-            colors (np.ndarray): An array with one label for each
-                sample in the endog property of the object.
-                Defaults to the inferred clusters.
+        n_components : int, optional
+            The number of components to consider for plotting.
+            Defaults to 3. It cannot be greater than 6.
+        colors : np.ndarray, optional
+            An array with one label for each sample in the `endog` property of the object.
+            Defaults to the inferred clusters.
+        remove_exog_effect : bool, optional
+            Whether to remove or not the effect of exogenous variables. Defaults to `False`.
 
         Raises
         ------
-            ValueError: If the number of components requested is greater
-                than the number of variables in the dataset.
+        ValueError
+            If the number of components requested is greater
+            than the number of variables in the dataset.
 
         Examples
         --------
         >>> from pyPLNmodels import PlnMixture, load_scrna
         >>> data = load_scrna()
-        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster = 3)
+        >>> mixture = PlnMixture.from_formula("endog ~ 0", data=data, n_cluster=3)
         >>> mixture.fit()
         >>> mixture.pca_pairplot(n_components=5)
         >>> mixture.pca_pairplot(n_components=5, colors=data["labels"])
@@ -597,7 +619,11 @@ class PlnMixture(
         """
         if colors is None:
             colors = self.clusters
-        super().pca_pairplot(n_components=n_components, colors=colors)
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     @_add_doc(
         BaseModel,
@@ -710,11 +736,35 @@ class PlnMixture(
     @_add_doc(BaseModel)
     def entropy(self):
         return (
-            entropy_gaussian(self._latent_sqrt_variances**2, self._latent_prob)
+            entropy_gaussian_mixture(self._latent_sqrt_variances**2, self._latent_prob)
             .detach()
             .cpu()
             + entropy_clusters(self._latent_prob, self._weights).detach().cpu()
-        )
+        ).item()
+
+    @property
+    def WCSS(self):
+        """
+        Compute the Within-Cluster Sum of Squares on the latent positions.
+
+        The higher the better, but increasing n_cluster can only increase the
+        metric. A trade-off (with the elbow method for example) must be applied.
+
+        Returns positive float.
+        """
+        return _calculate_wcss(self.latent_positions, self.clusters, self.n_cluster)
+
+    @property
+    def silhouette(self):
+        """
+        Compute the silhouette score on the latent_positions.
+        See scikit-learn.metrics.silhouette_score for more information.
+
+        The higher the better.
+
+        Returns float between -1 and 1.
+        """
+        return silhouette_score(self.latent_positions, self.clusters)
 
 
 class _PlnMixturePredict(PlnMixture):
@@ -768,3 +818,14 @@ class _PlnMixturePredict(PlnMixture):
 
     def _print_end_init(self):
         pass
+
+    @property
+    def _useful_attributes_list(self):
+        return [
+            ".latent_variables",
+            ".latent_positions",
+            ".coef",
+            ".model_parameters",
+            ".latent_parameters",
+            ".optim_details",
+        ]

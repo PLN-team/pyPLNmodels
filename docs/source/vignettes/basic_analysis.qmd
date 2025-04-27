@@ -1,0 +1,273 @@
+---
+title: "Basic analysis 🍼"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---
+
+
+This guide introduces the basics of multivariate count data analysis using the
+`pyPLNmodels` package. For complex datasets, traditional models like [Poisson
+regression](https://www.statsmodels.org/dev/generated/statsmodels.discrete.discrete_model.Poisson.html)
+and Zero-Inflated Poisson Regression
+([ZIP](https://www.statsmodels.org/stable/generated/statsmodels.discrete.count_model.ZeroInflatedPoisson.html))
+may fail to capture important insights, such as correlations between counts (i.e. variables).
+The `pyPLNmodels` package provides two key models to address these challenges:
+
+* `Pln` model ([documentation](https://pln-team.github.io/pyPLNmodels/pln.html))
+* `PlnPCA` model ([documentation](https://pln-team.github.io/pyPLNmodels/plnpca.html))
+
+The `PlnPCA` model extends the functionality of the `Pln` model to handle
+high-dimensional data, though it may slightly compromise parameter estimation accuracy.
+
+# Statistical Overview
+
+Both models are built on the following assumptions for a given count matrix $Y$ [@Aitchison1989]:
+
+$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(o_{ij} + Z_{ij})), \quad Z_{i}\sim \mathcal N(X_i^{\top} B, \Sigma),$$
+where the input data includes:
+
+* $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
+* $X_i$ (`exog`): covariates for the $i$-th observation (if available)
+* $o_i$ (`offsets`): offset for the $i$-th observation (if available)
+
+and the model parameters are:
+
+* $B$ (`coef`): a matrix of regression coefficients
+* $\Sigma$ (`covariance`): the covariance matrix of the latent variables $Z_i$
+
+These models aim to capture the structure of the data through the latent variables $Z$.
+
+The `Pln` model assumes $\Sigma$ has full rank, while the `PlnPCA` model
+assumes $\Sigma$ has a low rank, which must be specified by the user. A lower
+ A lower rank introduces a trade-off, reducing computational complexity but potentially
+compromising parameter estimation accuracy.
+
+## Purpose
+
+The `pyPLNmodels` package is designed to:
+
+* Estimate the parameters $B$ and $\Sigma$
+* Retrieve the latent variables $Z$ (which typically contains more information than $Y$)
+* Visualize the latent variables and their relationships
+
+This is achieved using the input count matrix $Y$, along with optional covariate matrix $X$ (defaulting to a vector of 1's) and offsets $O$ (defaulting to a matrix of 0's).
+
+
+# Importing Data
+
+In this example, we analyze single-cell RNA-seq data provided by the `load_scrna` function in the package. Each column in the dataset represents a gene, while each row corresponds to a cell (i.e., an individual). Covariates for cell types (`labels`) are also included. For simplicity, we limit the analysis to 20 variables (dimensions).
+
+```{python}
+from pyPLNmodels import load_scrna
+rna = load_scrna(dim=20)
+print('Data: ', rna.keys())
+```
+
+## Data Structure
+
+### Count Matrix (`endog`)
+
+```{python}
+endog = rna["endog"]
+print(endog.head())
+```
+
+### Cell Type
+
+```{python}
+cell_type = rna["labels"]
+print('Possible cell types: ', cell_type.unique())
+print(cell_type.head())
+```
+
+
+# Model Initialization and Fitting
+
+To analyze the mean values for each cell type, we use cell type as a covariate, with `Macrophages` as the reference category:
+
+```{python}
+from pyPLNmodels import Pln
+pln = Pln.from_formula('endog ~ 1 + labels', data=rna).fit()
+```
+
+For more details on formula syntax and model initialization, including handling
+offsets, refer to the [dedicated tutorial](model_specifying.html).
+
+## Model Summary and Insights
+
+After fitting the model, you can print its configuration and key details:
+
+```{python}
+print(pln)
+```
+
+To gain deeper insights into the model parameters and the optimization process, use the `.show()` method:
+
+```{python}
+pln.show()
+```
+
+Monitoring the norm of each parameters allows to know if the model has
+converged. If it has not converged, one can refit the model with a lower
+tolerance (`tol`) and a bigger number iterations than the default (`maxiter=400`):
+
+```{python}
+#|eval : false
+pln.fit(maxiter=1000, tol = 0)
+```
+
+
+
+## Exploring Latent Variables
+
+The latent variables $Z$, which capture the underlying structure of the data, are accessible via the `latent_variables` attribute, or the `.transform()` method:
+
+```{python}
+Z = pln.latent_variables
+Z = pln.transform()
+print('Shape of Z:', Z.shape)
+```
+
+The effect of covariates on the latent variables can be removed by using the `remove_exog_effect` keyword:
+
+```{python}
+Z_moins_XB = pln.transform(remove_exog_effect=True)
+```
+
+
+You can visualize these latent variables using the `.viz()` method:
+
+```{python}
+pln.viz(colors=cell_type)
+```
+
+To visualize the latent positions without the effect of covariates (i.e., \(Z - XB\)), set the `remove_exog_effect` parameter to `True`:
+
+```{python}
+pln.viz(colors=cell_type, remove_exog_effect=True)
+```
+
+Additionally, you can generate a pair plot of the first Principal Components (PCs) of the latent variables:
+
+```{python}
+pln.pca_pairplot(n_components=4, colors=cell_type)
+```
+
+# Analyzing Covariate Effects
+
+The model provides insights into the effects of covariates. For example, it may reveal that the mean value for Macrophages is higher compared to T_cells_CD4+ and T_cells_CD8+.
+
+## Confidence Intervals and Statistical Significance
+
+To summarize the model, including confidence intervals and p-values, use the `summary` method:
+
+```{python}
+pln.summary()
+```
+
+You can also visualize confidence intervals for regression coefficients using the `plot_regression_forest` method:
+
+```{python}
+pln.plot_regression_forest()
+```
+
+---
+
+# Covariance and Variable Visualization
+
+The `pyPLNmodels` package provides tools to analyze the effects of variables and visualize their relationships using the `plot_correlation_circle()` and `biplot()` methods.
+
+## Correlation Circle
+
+Use the `plot_correlation_circle()` method to visualize the relationships between variables:
+
+```{python}
+pln.plot_correlation_circle(column_names=["FTL", "MALAT1", "FTH1"])
+```
+
+You can access the column names using the `column_names_endog` attribute of the model.
+
+## Biplot
+
+The `biplot()` method allows simultaneous visualization of variables and latent variables (\(Z\)):
+
+```{python}
+pln.biplot(column_names=["FTL", "MALAT1", "FTH1"], colors=cell_type)
+```
+
+---
+
+# High-dimension: `PlnPCA` Model
+
+The `PlnPCA` model [@chiquet2018variational] extends the functionality of the `Pln` model for high-dimensional data. It uses the same syntax as `Pln`:
+
+```{python}
+from pyPLNmodels import PlnPCA
+high_d_rna = load_scrna(dim=500)
+pca = PlnPCA.from_formula('endog ~ 1 + labels', data=high_d_rna, rank=5).fit()
+```
+
+**⚠️  Note:** P-values are not available in the `PlnPCA` model.
+
+
+```{python}
+print(pca)
+```
+
+This model is particularly efficient for high-dimensional datasets, offering significantly reduced computation time compared to `Pln`:
+
+## Selecting the Rank
+
+The rank is a hyperparameter that can be specified by the user. Alternatively, a data-driven approach to rank selection can be performed using the `PlnPCACollection` class, which fits multiple models with different ranks:
+
+```{python}
+from pyPLNmodels import PlnPCACollection
+pcas = PlnPCACollection.from_formula('endog ~ 1 + labels', data=high_d_rna, ranks=[3, 5, 10, 15]).fit()
+```
+
+Use the `.show()` method to explore insights about the optimal rank:
+
+```{python}
+pcas.show()
+```
+
+**⚠️ Note:** The best model typically correspond to the largest rank, which may not
+always be desirable.
+
+The best model can be accessed using the `.best_model()` method. The selection criterion can be `AIC`, `BIC`, or `ICL`:
+
+```{python}
+best_model = pcas.best_model(criterion="BIC")
+print(best_model)
+```
+
+## Accessing Individual Models
+
+All individual models in the collection can be accessed with the rank as the key:
+
+```{python}
+pca_5 = pcas[5]
+print(pca_5)
+```
+
+You can also iterate through the collection:
+
+```{python}
+for pca in pcas.values():
+    print(pca)
+```
+
+## Additional Information
+
+For further details, print the model to explore its methods and attributes.

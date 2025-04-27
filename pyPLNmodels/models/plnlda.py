@@ -669,7 +669,12 @@ class PlnLDA(Pln):
     def latent_variables(self):
         return self.latent_mean
 
-    def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
+    def pca_pairplot(
+        self,
+        n_components: int = 3,
+        colors: np.ndarray = None,
+        remove_exog_effect: bool = False,
+    ):
         raise NotImplementedError("pca pairplot not implemented for LDA models.")
 
     @property
@@ -728,6 +733,9 @@ class PlnLDA(Pln):
             If the number of clusters is 2, as the latent variables will be of dimension
             and visualization is not possible.
         """,
+        notes="""
+        The effect of covariates is always removed for visualization_purposes.
+        """,
     )
     def biplot(
         self,
@@ -736,7 +744,7 @@ class PlnLDA(Pln):
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+    ):  # pylint: disable=arguments-differ
         if self._n_cluster == 2:
             _raise_error_1D_viz()
         column_index = _process_column_index(
@@ -828,4 +836,4 @@ class _PlnPred(Pln):
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self.latent_variance)
+        return entropy_gaussian(self.latent_variance).item()

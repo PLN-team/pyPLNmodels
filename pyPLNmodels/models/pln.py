@@ -309,12 +309,14 @@ class Pln(BaseModel):  # pylint: disable=too-many-public-methods
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         super().biplot(
             column_names=column_names,
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @_add_doc(
@@ -328,8 +330,14 @@ class Pln(BaseModel):  # pylint: disable=too-many-public-methods
         >>> pln.pca_pairplot(n_components=5, colors=data["labels"])
         """,
     )
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
-        super().pca_pairplot(n_components=n_components, colors=colors)
+    def pca_pairplot(
+        self, n_components: bool = 3, colors=None, remove_exog_effect: bool = False
+    ):
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     @_add_doc(
         BaseModel,
@@ -578,4 +586,4 @@ class Pln(BaseModel):  # pylint: disable=too-many-public-methods
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()

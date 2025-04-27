@@ -18,6 +18,7 @@ from pyPLNmodels.utils._data_handler import (
 )
 from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
+from pyPLNmodels.utils._viz import PCAModelViz
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -53,6 +54,8 @@ class PlnPCA(BaseModel):
     :class:`pyPLNmodels.Pln`
     :class:`pyPLNmodels.ZIPlnPCA`
     """
+
+    _ModelViz = PCAModelViz
 
     _components: torch.Tensor
 
@@ -275,7 +278,7 @@ class PlnPCA(BaseModel):
             If the components have an invalid shape (i.e. not (dim, rank)).
         """
         _check_array_size(components, self.dim, self.rank, "components")
-        self._components = components
+        self._components = torch.clone(components)
 
     @property  # Here only to be able to define a setter.
     @_add_doc(BaseModel)
@@ -425,12 +428,14 @@ class PlnPCA(BaseModel):
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         super().biplot(
             column_names=column_names,
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @_add_doc(
@@ -444,8 +449,14 @@ class PlnPCA(BaseModel):
         >>> plnpca.pca_pairplot(n_components=5, colors=data["labels"])
         """,
     )
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
-        super().pca_pairplot(n_components=n_components, colors=colors)
+    def pca_pairplot(
+        self, n_components: bool = 3, colors=None, remove_exog_effect: bool = False
+    ):
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     @property
     def _endog_predictions(self):
@@ -507,4 +518,4 @@ class PlnPCA(BaseModel):
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()

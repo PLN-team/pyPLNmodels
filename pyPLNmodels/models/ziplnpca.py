@@ -19,6 +19,7 @@ from pyPLNmodels.utils._data_handler import (
     _check_int,
 )
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
+from pyPLNmodels.utils._viz import ZIPCAModelViz
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -66,6 +67,8 @@ class ZIPlnPCA(
     _latent_prob: torch.Tensor
     _coef_inflation: torch.Tensor
     _dirac: torch.Tensor
+
+    _ModelViz = ZIPCAModelViz
 
     def __init__(
         self,
@@ -418,8 +421,14 @@ class ZIPlnPCA(
         >>> zipca.pca_pairplot(n_components = 5, colors = data["time"])
         """,
     )
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
-        super().pca_pairplot(n_components=n_components, colors=colors)
+    def pca_pairplot(
+        self, n_components: bool = 3, colors=None, remove_exog_effect: bool = False
+    ):
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     def pca_pairplot_prob(self, n_components: int = 3, colors: np.ndarray = None):
         """
@@ -486,12 +495,14 @@ class ZIPlnPCA(
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = True,
+    ):  # pylint:disable=too-many-arguments
         super().biplot(
             column_names=column_names,
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @_add_doc(
@@ -641,7 +652,7 @@ class ZIPlnPCA(
         """,
     )
     def latent_positions(self):
-        return super().latent_positions
+        return torch.matmul(self.latent_mean, self.components.T)
 
     @property
     def _endog_predictions(self):
@@ -665,6 +676,7 @@ class ZIPlnPCA(
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(
-            self._latent_sqrt_variance**2
-        ).detach().cpu() + entropy_bernoulli(self.latent_prob)
+        return (
+            entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()
+            + entropy_bernoulli(self.latent_prob).item()
+        )

@@ -10,6 +10,7 @@ from pyPLNmodels.models.plnnetwork import PlnNetwork
 from pyPLNmodels.models.plnpcacollection import PlnPCACollection
 from pyPLNmodels.utils._utils import _add_doc
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.utils._viz import _show_collection_and_nb_links
 
 
 class PlnNetworkCollection(Collection):
@@ -126,9 +127,11 @@ class PlnNetworkCollection(Collection):
         self, next_model: PlnNetwork, current_model: PlnNetwork
     ):
         # coef is a closed form
-        next_model.components_prec = current_model.components_prec
-        next_model.latent_mean = current_model.latent_mean
-        next_model.latent_sqrt_variance = current_model.latent_sqrt_variance
+        next_model.components_prec = torch.clone(current_model.components_prec)
+        next_model.latent_mean = torch.clone(current_model.latent_mean)
+        next_model.latent_sqrt_variance = torch.clone(
+            current_model.latent_sqrt_variance
+        )
 
     @property
     def precision(self) -> Dict[float, torch.Tensor]:
@@ -219,3 +222,23 @@ class PlnNetworkCollection(Collection):
             The components of the precision.
         """
         return {key: value.components_prec for key, value in self.items()}
+
+    @property
+    def nb_links(self):
+        """Number of links of each model."""
+        return {model.penalty: model.nb_links for model in self.values()}
+
+    def show(self, figsize: tuple = (15, 10)):
+        """
+        Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+        Also show the number of links in the model.
+        The AIC and BIC criteria might not always provide meaningful guidance
+        for selecting the penalty. Instead, we recommend focusing on the desired number of links.
+
+        Parameters
+        ----------
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,15)
+        """
+        absc_label = "Penalties"
+        _show_collection_and_nb_links(self, figsize=figsize, absc_label=absc_label)

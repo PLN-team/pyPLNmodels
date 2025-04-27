@@ -14,6 +14,7 @@ from pyPLNmodels.calculations._initialization import (
     _init_coef,
     _init_latent_pln,
     _init_components_prec,
+    _init_components,
 )
 from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import (
@@ -32,8 +33,10 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
     on sample i-1. The dataset given in the initialization must be ordered !
-    The autoregressive coefficient can be per dimension or common to each dimension.
-    Note that the autregressive coefficient seems to be underestimated when the covariance is low.
+    The autoregressive coefficient can be per dimension (`diagonal` ar_type) or
+    common to each dimension (`spherical` ar type) or depend on all
+    the previous dimensions (`full` ar type). Note that the autregressive coefficient seems
+    to be underestimated when the covariance is low.
     See ?? for more details.
 
     Examples
@@ -220,7 +223,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
                 precision=self._precision,
                 ar_coef=self._ar_coef,
             )
-        # full autoregressive structure
+
         return smart_elbo_plnar_full_autoreg(
             endog=self._endog,
             marginal_mean=self._marginal_mean,
@@ -253,11 +256,12 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
             self._components_prec = _init_components_prec(self._endog).to(DEVICE)
             self._ar_diff_coef = torch.tensor([0.5]).to(DEVICE)
         else:
-            self._ar_diff_coef = torch.ones(self.dim).to(DEVICE) / 2
-            self._diff_ortho_components = torch.eye(self.dim).to(DEVICE)
-            self._diff_diag_cov = torch.ones(self.dim).to(DEVICE) / (
-                self.dim ** (3 / 2)
+            components = _init_components(self._endog, rank=self.dim).to(DEVICE)
+            _, self._diff_ortho_components = torch.linalg.eigh(
+                components @ (components.T)
             )
+            self._diff_diag_cov = torch.ones(self.dim)
+            self._ar_diff_coef = torch.ones(self.dim)
 
     @property
     def _diag_cov(self):
@@ -320,12 +324,14 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         column_index: np.ndarray = None,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+        remove_exog_effect: bool = False,
+    ):  # pylint:disable=too-many-arguments
         super().biplot(
             column_names=column_names,
             column_index=column_index,
             colors=colors,
             title=title,
+            remove_exog_effect=remove_exog_effect,
         )
 
     @_add_doc(
@@ -339,8 +345,14 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         >>> ar.pca_pairplot(n_components=3, colors=data["chrom"])
         """,
     )
-    def pca_pairplot(self, n_components: bool = 3, colors=None):
-        super().pca_pairplot(n_components=n_components, colors=colors)
+    def pca_pairplot(
+        self, n_components: bool = 3, colors=None, remove_exog_effect: bool = False
+    ):
+        super().pca_pairplot(
+            n_components=n_components,
+            colors=colors,
+            remove_exog_effect=remove_exog_effect,
+        )
 
     @_add_doc(
         BaseModel,
@@ -412,7 +424,7 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
         if self._ar_type == "spherical":
             return torch.inverse(self._precision)
         ortho_components = self._ortho_components
-        return ortho_components @ torch.diag(self._diag_cov) @ (ortho_components.T)
+        return ortho_components * self._diag_cov @ (ortho_components.T)
 
     @property
     def _ortho_components(self):
@@ -571,4 +583,4 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     @property
     @_add_doc(BaseModel)
     def entropy(self):
-        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu()
+        return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()

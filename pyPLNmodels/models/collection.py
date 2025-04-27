@@ -8,7 +8,7 @@ import numpy as np
 
 from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.utils._data_handler import _handle_data, _extract_data_from_formula
-from pyPLNmodels.utils._viz import _show_information_criterion
+from pyPLNmodels.utils._viz import _show_collection
 from pyPLNmodels.utils._utils import _add_doc, _nice_string_of_dict
 
 
@@ -383,7 +383,9 @@ class Collection(ABC):
             if i < len(self.values()) - 1:
                 next_model = self[self.grid[i + 1]]
                 self._init_next_model_with_current_model(next_model, model)
+
         self._print_ending_message()
+
         return self
 
     def _print_ending_message(self):
@@ -406,7 +408,7 @@ class Collection(ABC):
 
         Returns
         -------
-        Dict[float, int]
+        Dict[int, float]
             The BIC scores of the models.
         """
         return {grid_value: int(self[grid_value].BIC) for grid_value in self.grid}
@@ -418,7 +420,7 @@ class Collection(ABC):
 
         Returns
         -------
-        Dict[float, int]
+        Dict[int, float]
             The ICL scores of the models.
         """
         return {grid_value: int(self[grid_value].ICL) for grid_value in self.grid}
@@ -430,7 +432,7 @@ class Collection(ABC):
 
         Returns
         -------
-        Dict[float, int]
+        Dict[int, float]
             The AIC scores of the models.
         """
         return {grid_value: int(self[grid_value].AIC) for grid_value in self.grid}
@@ -449,15 +451,17 @@ class Collection(ABC):
         Any
             The best model.
         """
-        if criterion not in ("BIC", "AIC"):
-            raise ValueError(f"Unknown criterion {criterion}")
         return self[self._best_grid_value(criterion)]
 
     def _best_grid_value(self, criterion):
+        if criterion not in ("BIC", "AIC", "ICL"):
+            raise ValueError(f"Unknown criterion {criterion}")
         if criterion == "BIC":
             criterion = self.BIC
         if criterion == "AIC":
             criterion = self.AIC
+        if criterion == "ICL":
+            criterion = self.ICL
         return self.grid[np.argmin(list(criterion.values()))]
 
     @property
@@ -481,13 +485,7 @@ class Collection(ABC):
         figsize : tuple of two positive floats.
             Size of the figure that will be created. By default (10,10)
         """
-        _show_information_criterion(
-            bic=self.BIC,
-            aic=self.AIC,
-            icl=self.ICL,
-            loglikes=self.loglike,
-            figsize=figsize,
-        )
+        _show_collection(self, figsize=figsize, absc_label=self._grid_value_name)
 
     @property
     def _useful_methods_strings(self) -> str:
@@ -546,3 +544,7 @@ class Collection(ABC):
         )
 
         return to_print
+
+    @property
+    def _name(self):
+        return str(type(self).__name__)

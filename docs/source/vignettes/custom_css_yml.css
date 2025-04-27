@@ -1,0 +1,70 @@
+.sidebar-item a::before {
+  content: "• ";
+  margin-right: 0.01em;
+  color: var(--sidebar-fg);
+}
+
+.toc {
+    width: 500px; /* Adjust this value as needed */
+}
+
+.top-banner {
+  background-color: #87CEEB; /* Couleur spéciale (jaune ici) */
+  color: #000; /* Couleur du texte */
+  text-align: center;
+  padding: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+body {
+  margin-top: 50px; /* Ajuste le contenu pour éviter le chevauchement */
+}
+
+.sidebar-section-title {
+  font-weight: bold; /* Makes the section title bold */
+  font-size: 1.1em; /* Adjust the font size */
+  color: #333; /* Change the color */
+  margin-top: 1em; /* Optional: Add spacing above the section */
+}
+/* .sidebar-item { */
+/*     font-size: 1.1rem; /1* Increase size, adjust as needed *1/ */
+/*     font-weight: bold; */
+/* } */
+
+/* .sidebar-section-title { */
+/*   font-weight: bold; /1* Makes the section title bold *1/ */
+/*   font-size: 1.1em; /1* Adjust the font size *1/ */
+/*   color: #333; /1* Change the color *1/ */
+/*   margin-top: 1em; /1* Optional: Add spacing above the section *1/ */
+/* } */
+
+
+/* Make sidebar section headers (like 'Additional Resources') bigger and bold */
+/* .sidebar-section { */
+/*   font-size: 1.1rem; /1* Increase size, adjust as needed *1/ */
+/*   font-weight: bold; */
+/*   text-transform: uppercase; /1* Optional: makes them uppercase for emphasis *1/ */
+/*   margin-top: 1em; */
+/*   margin-bottom: 0.5em; */
+/*   color: #333; /1* Optional: customize color *1/ */
+/* } */
+/* .nav-section-title { */
+/*   font-size: 1.2rem;       /1* Make text bigger *1/ */
+/*   font-weight: bold;       /1* Bold text *1/ */
+/*   margin-top: 1em;         /1* Add spacing *1/ */
+/*   color: #222222;          /1* Darken text color *1/ */
+/*   text-transform: none;    /1* Keep case as is (or use uppercase if preferred) *1/ */
+/* } */
+
+/* .toc { */
+/*   font-size: 1.2em; /1* Adjust the size as needed *1/ */
+/* } */
+
+/* /1* Optionally, increase the size of TOC headings *1/ */
+/* .toc h2, .toc h3 { */
+/*   font-size: 1.3em; /1* Adjust for headings *1/ */
+/* } */

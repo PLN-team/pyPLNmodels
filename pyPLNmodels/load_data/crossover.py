@@ -88,7 +88,7 @@ def load_crossover(n_samples=500, *, chromosome_numbers=range(1, 27)):
         ]
     ]
 
-    chrom = data["chrom"]
+    chrom = data["chrom"].astype(str)
     chrom_1hot = pd.get_dummies(chrom)
     chrom_1hot.columns = "Chr " + chrom_1hot.columns.astype(str)
 

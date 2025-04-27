@@ -56,12 +56,12 @@ dependencies = [
 "networkx",
 ]
 [project.optional-dependencies]
-tests = ["pytest"]
+tests = ["pytest", "pytest-cov"]
 build-doc = ["sphinx","sphinx_rtd_theme", "sphinx_copybutton", "sphinx_codeautolink", "autoclasstoc"]
 
 [project.urls]
 Repository = "https://github.com/PLN-team/pyPLNmodels"
-Documentation = "https://bbatardiere.pages.mia.inra.fr/pyplnmodels"
+Documentation = "https://pln-team.github.io/pyPLNmodels/"
 
 
 [tool.setuptools]

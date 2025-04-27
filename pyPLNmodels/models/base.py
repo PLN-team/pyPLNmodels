@@ -251,9 +251,10 @@ class BaseModel(
         column_names,
         *,
         column_index: np.ndarray = None,
+        remove_exog_effect: bool = False,
         colors: np.ndarray = None,
         title: str = "",
-    ):
+    ):  # pylint:disable=too-many-arguments
         """
         Visualizes variables using the correlation circle along with the pca transformed samples.
         If the `endog` has been given as a pd.DataFrame, the `column_names` have been stored and
@@ -273,6 +274,8 @@ class BaseModel(
             If `None`, the indices are determined based on `column_names_endog`
             given the `column_names`, by default `None`.
             If not None, should have the same length as `column_names`.
+        remove_exog_effect: bool, optional
+            Whether to remove or not the effect of exogenous variables. Default to `False`.
         title : str optional, keyword-only
             An additional title for the plot.
         colors : list, optional, keyword-only
@@ -292,7 +295,7 @@ class BaseModel(
             column_names, column_index, self.column_names_endog
         )
         return _biplot(
-            self.transform(),
+            self.transform(remove_exog_effect=remove_exog_effect),
             column_names,
             column_index=column_index,
             colors=colors,
@@ -745,7 +748,7 @@ class BaseModel(
                 remove_exog_effect=remove_exog_effect
             )
             covariances = None
-        return _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
+        _viz_variables(variables, ax=ax, colors=colors, covariances=covariances)
 
     @abstractmethod
     def _get_two_dim_latent_variances(self, sklearn_components):
@@ -816,6 +819,9 @@ class BaseModel(
         return [
             ".latent_variables",
             ".latent_positions",
+            ".coef",
+            ".covariance",
+            ".precision",
             ".model_parameters",
             ".latent_parameters",
             ".optim_details",
@@ -847,6 +853,7 @@ class BaseModel(
             "Nb param": int(self.number_of_parameters),
             "BIC": np.round(self.BIC, 4),
             "AIC": np.round(self.AIC, 4),
+            "ICL": np.round(self.ICL, 2),
         }
 
     @property
@@ -971,27 +978,36 @@ class BaseModel(
         return self.covariance
 
     @abstractmethod
-    def pca_pairplot(self, n_components: int = 3, colors: np.ndarray = None):
+    def pca_pairplot(
+        self,
+        n_components: int = 3,
+        colors: np.ndarray = None,
+        remove_exog_effect: bool = False,
+    ):
         """
         Generates a scatter matrix plot based on Principal
         Component Analysis (PCA) on the latent variables.
 
         Parameters
         ----------
-            n_components (int, optional): The number of components to consider for plotting.
-                Defaults to 3. It Cannot be greater than 6.
-
-            colors (np.ndarray): An array with one label for each
-                sample in the endog property of the object.
-                Defaults to `None`.
+        n_components (int, optional): The number of components to consider for plotting.
+            Defaults to 3. It cannot be greater than 6.
+        colors (np.ndarray, optional): An array with one label for each
+            sample in the endog property of the object. If `None`, no colors are applied.
+            Defaults to `None`.
+        remove_exog_effect (bool, optional): Whether to remove the effect of exogenous
+            variables. Defaults to `False`.
 
         Raises
         ------
-            ValueError: If the number of components requested is greater
-                than the number of variables in the dataset.
+        ValueError: If the number of components requested is greater
+            than the number of variables in the dataset.
         """
         min_n_components = min(6, n_components)
-        array = self.transform().numpy()
+        if remove_exog_effect is True:
+            array = self.latent_positions.numpy()
+        else:
+            array = self.latent_variables.numpy()
         _pca_pairplot(array, min_n_components, colors)
 
     def plot_expected_vs_true(self, ax=None, colors=None):

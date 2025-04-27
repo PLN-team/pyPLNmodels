@@ -80,16 +80,6 @@ def _filename_to_readme_example_file():
     _write_file(examples, "readme", "example", directory=OUTPUT_DIR_README)
 
 
-new_lines = []
-lines_getting_started = _get_lines("./", "test_getting_started")
-for line in lines_getting_started:
-    if len(line) > 20:
-        if line[0:11] != "get_ipython":
-            new_lines.append(line)
-    else:
-        new_lines.append(line)
-
-
 os.makedirs(OUTPUT_DIR_README, exist_ok=True)
 os.makedirs(OUTPUT_DIR_DOCSTRINGS, exist_ok=True)
 os.makedirs(OUTPUT_DIR_GETTING_STARTED, exist_ok=True)
@@ -135,7 +125,14 @@ for _directory in directories:
             _filename_to_docstring_example_file(
                 _file, OUTPUT_DIR_DOCSTRINGS, _directory
             )
-
-_write_file([new_lines], "getting_started", "", OUTPUT_DIR_GETTING_STARTED)
-
 _filename_to_readme_example_file()
+
+new_lines = []
+lines_getting_started = _get_lines("./", "untestable_getting_started")
+for line in lines_getting_started:
+    if len(line) > 20:
+        if line[0:11] != "get_ipython":
+            new_lines.append(line)
+    else:
+        new_lines.append(line)
+_write_file([new_lines], "getting_started", "", OUTPUT_DIR_GETTING_STARTED)

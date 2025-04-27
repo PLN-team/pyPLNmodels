@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - dev
-      - github
   pull_request:
     branches:
       - main
@@ -47,15 +46,19 @@ jobs:
       image: ghcr.io/bastien-mva/docker_image:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install package and run tests
+      - name: Install package locally and run tests
         run: |
           pip install '.[tests]'
           pip install -e .
-          jupyter nbconvert Getting_started.ipynb --to python --output tests/test_getting_started
+          jupyter nbconvert Getting_started.ipynb --to python --output tests/untestable_getting_started
           cd tests
           python _create_readme_getting_started_and_docstrings_tests.py
-          rm test_getting_started.py
-          pytest .
+          pytest --cov --cov-branch --cov-report=xml .
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
 
   build_package:
     runs-on: ubuntu-22.04
@@ -123,6 +126,10 @@ jobs:
       - name: Build docs
         run: |
           pip install .
+          pip install quarto-cli
+          cd docs/source/vignettes/
+          quarto render
+          cd ../../../
           make -C docs html
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

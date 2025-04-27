@@ -9,6 +9,7 @@ from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
 from pyPLNmodels.models.plnmixture import PlnMixture
 from pyPLNmodels.utils._utils import _add_doc
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
+from pyPLNmodels.utils._viz import _show_collection_and_clustering_criterions
 
 
 class PlnMixtureCollection(Collection):
@@ -180,18 +181,89 @@ class PlnMixtureCollection(Collection):
         """
         return {model.n_clusters: model.latent_variances for model in self.values()}
 
-    @_add_doc(
-        Collection,
-        example="""
-            >>> from pyPLNmodels import PlnMixtureCollection, load_scrna
-            >>> data = load_scrna()
-            >>> mixtures = PlnMixtureCollection(endog = data["endog"], n_clusters = [2,3,4])
-            >>> mixtures.fit()
-            >>> print(mixtures.best_model())
-        """,
-        returns="""
-        PlnMixtureCollection
-        """,
-    )
     def best_model(self, criterion: str = "BIC") -> PlnMixture:
+        """
+        Get the best model according to the specified criterion.
+
+        Parameters
+        ----------
+        criterion : str, optional
+            The criterion to use ('AIC', 'BIC' or 'silhouette'), by default 'silhouette'.
+
+        Examples
+        --------
+        >>> from pyPLNmodels import PlnMixtureCollection, load_scrna
+        >>> data = load_scrna()
+        >>> mixtures = PlnMixtureCollection(endog = data["endog"], n_clusters = [2,3,4])
+        >>> mixtures.fit()
+        >>> print(mixtures.best_model())
+
+        Returns
+        -------
+        PlnMixtureCollection
+            The best model.
+        """
         return super().best_model(criterion=criterion)
+
+    @property
+    def WCSS(self) -> Dict[int, int]:
+        """
+        Compute the Within-Cluster Sum of Squares on the latent positions
+        for each model in the collection.
+
+        The higher the better, but increasing n_cluster can only increase the
+        metric. A trade-off (with the elbow method for example) must be applied.
+
+        Returns
+        -------
+        Dict[int, float]
+            The WCSS scores of the models.
+        """
+        return {grid_value: int(self[grid_value].WCSS) for grid_value in self.grid}
+
+    @property
+    def silhouette(self) -> Dict[int, int]:
+        """
+        Compute the silhouette score on the latent_positions for each model in the collection.
+        See scikit-learn.metrics.silhouette_score for more information.
+
+        The higher the better.
+
+        Returns
+        -------
+        Dict[int, float]
+            The silhouette scores of the models.
+        """
+        return {grid_value: self[grid_value].silhouette for grid_value in self.grid}
+
+    def show(self, figsize: tuple = (15, 10)):
+        """
+        Show a plot with BIC scores, AIC scores, and negative log-likelihoods of the models.
+        Also show two cluster criterion.
+
+        Parameters
+        ----------
+        figsize : tuple of two positive floats.
+            Size of the figure that will be created. By default (10,15)
+        """
+        absc_label = ""
+        _show_collection_and_clustering_criterions(
+            self, figsize=figsize, absc_label=absc_label
+        )
+
+    def _best_grid_value(self, criterion):
+        possible_criterions = ("BIC", "AIC", "silhouette")
+        if criterion not in possible_criterions:
+            raise ValueError(
+                f"Unknown criterion {criterion}. Availables: {possible_criterions}."
+            )
+        if criterion == "BIC":
+            criterion = self.BIC
+        elif criterion == "AIC":
+            criterion = self.AIC
+        elif criterion == "silhouette":
+            criterion = self.silhouette
+            criterion = {
+                grid_value: -score for grid_value, score in self.silhouette.items()
+            }
+        return self.grid[np.argmin(list(criterion.values()))]
