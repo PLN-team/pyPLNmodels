@@ -122,7 +122,10 @@ jobs:
           wget https://github.com/jgm/pandoc/releases/download/1.15.1/pandoc-1.15.1-1-amd64.deb
           sudo dpkg -i pandoc-1.15.1-1-amd64.deb
       - name: Convert README
-        run: pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
+        run: |
+          pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
+          echo "HEEEEEERE"
+          cat docs/source/readme.rst
       - name: Build docs
         run: |
           pip install .
