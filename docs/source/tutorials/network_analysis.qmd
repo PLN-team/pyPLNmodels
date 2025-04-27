@@ -1,0 +1,127 @@
+---
+title: "Network inference 🌐 "
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---
+
+
+# Introduction
+
+The `PlnNetwork` model in the pyPLNmodels package is designed for sparse network
+inference from multivariate count data, using a
+penalized precision matrix. It allows for network structure learning between
+variables, such as genes in single-cell RNA sequencing datasets.
+
+This tutorial demonstrates how to:
+
+- Initialize a `PlnNetwork` ([documentation](https://pln-team.github.io/pyPLNmodels/plnnetwork.html)) model from count data or using a formula interface
+
+- Fit the model with regularization on the precision matrix
+
+- Visualize inferred network structures and latent variables
+
+- Gives tools for selecting the optimal penalty
+
+## Statistical background
+
+Compared to the `Pln` model, a constraint is imposed on the precision matrix
+$\Sigma^{-1}$ of the latent space to enforce sparsity (@network):
+
+$$
+\begin{align}
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
+Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),
+\end{align}
+$$
+where $C$ is a penalty parameter. See @network for more details.
+
+## Data importation
+
+For visualization purposes, we use only 20 variables (i.e. genes).
+
+```{python}
+from pyPLNmodels import load_scrna
+data = load_scrna(dim = 20)
+endog = data["endog"]
+```
+
+# Model initialization and fitting
+
+A penalty needs to be specified for the model. The greater the penalty, the
+sparser the precision matrix will be and the lower the number of linked
+variables. We use a value of $200$ for now.
+
+```{python}
+from pyPLNmodels import PlnNetwork
+net = PlnNetwork(endog, penalty=200).fit()
+```
+
+# Network visualization
+
+```{python}
+net.viz_network()
+```
+
+The network can be accessed as a dictionnary through the `network` attribute:
+
+
+```{python}
+network = net.network
+print(network)
+print("Genes associated with APOE: ", network["APOE"])
+```
+
+# Use `PlnNetworkCollection` for selecting the optimal penalty
+
+The penalty is an hyperparameter that needs to be tuned. To explore multiple
+penalty solutions, use `PlnNetworkCollection`:
+
+```{python}
+from pyPLNmodels import PlnNetworkCollection
+collection = PlnNetworkCollection(endog, penalties=[0.1,10,1000]).fit()
+```
+
+
+## Evaluate model quality
+
+```{python}
+collection.show(figsize=(8, 8))
+```
+
+This displays the BIC, AIC and log-likelihood criteria for each model,
+helping to identify the most suitable one. Additionally, the number of links
+(i.e., non-zero elements in the precision matrix) is provided. You may consider
+using the ELBOW method to select the optimal model based on the number of links.
+
+## Selecting the best model
+
+
+The best model can be chosen according to the BIC or AIC:
+
+```{python}
+best_net = collection.best_model("BIC") # Could be also AIC.
+print(best_net)
+```
+One can also access each individual model in the collection, using the penalty as a key:
+
+```{python}
+print(collection[10])
+```
+and loop through the collection:
+
+```{python}
+#|eval : false
+for net in collection.values():
+    print(net)
+```

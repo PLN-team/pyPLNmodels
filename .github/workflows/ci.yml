@@ -127,7 +127,7 @@ jobs:
         run: |
           pip install .
           pip install quarto-cli
-          cd docs/source/vignettes/
+          cd docs/source/tutorials/
           quarto render
           cd ../../../
           make -C docs html

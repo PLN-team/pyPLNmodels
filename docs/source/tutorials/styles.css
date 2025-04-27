@@ -1,0 +1,8 @@
+/* Style for code output */
+.cell-output {
+  background-color: #f9f9f9;
+  border-left: 4px solid #007acc;
+  padding: 0.5em;
+  font-family: monospace;
+  color: #333;
+}

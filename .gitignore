@@ -13,3 +13,4 @@ tests/TestZIPln.pdf
 tests/ZIPln.pdf
 tests/.coverage
 *.pdf
+uv.lock

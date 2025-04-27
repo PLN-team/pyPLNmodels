@@ -1,0 +1,201 @@
+---
+title: "How to specify a model 🛠️"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---
+
+
+# Introduction
+
+This tutorial demonstrates how to specify a model in `pyPLNmodels`.
+Two primary approaches are available:
+
+- R-style formulas (relying on the [patsy](https://patsy.readthedocs.io/en/latest/) package.)
+- direcly specifying arrays
+
+The first approach is practical and more R-user-friendly, while the second
+gives more control over the input data.
+
+
+We consider the more basic model of `pyPLNmodels`, namely the [`Pln`
+model](https://pln-team.github.io/pyPLNmodels/pln.html)
+
+## Model
+
+
+Given a count matrix $Y$, the `Pln` model assumes the following [@Aitchison1989]:
+
+$$ Y_{ij}| Z_{ij} \sim \mathcal P(\exp(o_{ij} + Z_{ij})), \quad Z_{i}\sim \mathcal N(X_i^{\top} B, \Sigma),$$
+with input data
+
+* $Y_{ij}$ (denoted `endog` in the package) is the $j$-th count for the $i$-th observation
+* $X_i$ (denoted `exog`) covariates for the $i$-th observation (if available)
+* $o_i$ (denoted `offsets`) offset for the $i$-th observation (if available)
+
+and model parameters, inferred by the package:
+
+* $B$ (denoted `coef` in the package) is a matrix of regression coefficients
+* $\Sigma$ (denoted `covariance` in the package) is the covariance matrix of the latent variables $Z_i$
+
+We review here how to create the design matrix $X$ (i.e. create the `exog` data matrix).
+
+# Count Data
+
+Let's explore real count data from the microcosm dataset [@microcosm],
+introduced in the [NCBI
+BioProject](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059) and
+provided by the `load_microcsom` function in the package.
+This dataset features microbiota members sampled from various body sites of dairy cows
+throughout their lactation period. The data includes response count variables (`endog`) and explanatory variables:
+
+- Site information (`site` and `site_1hot`)
+- Time information (`time` and `time_1hot`)
+- Lineage information (`lineage` and `lineage_1hot`)
+
+The `1_hot` variables are one-hot encoded representations of the corresponding
+categorical variables.
+
+
+## Data importation
+
+```{python}
+from pyPLNmodels import load_microcosm
+micro = load_microcosm(dim = 20)
+print('Data: ')
+print(micro.keys())
+```
+
+The counts (`endog`) are composed of $400$ samples and $20$ variables:
+
+```{python}
+print('Endog shape: ', micro["endog"].shape)
+```
+
+On a log scale, here is the distribution of the counts:
+```{python}
+import matplotlib.pyplot as plt
+plt.hist(micro["endog"].values.ravel(), bins=100)
+plt.yscale('log')
+plt.show()
+```
+
+The counts are strongly zero-inflated here, but we do not make any
+zero-inflation hypothesis. To account for zero-inflation, please see the [dedicated zero-inflation tutorial](zero_inflation.html).
+
+# Model specifying
+
+## R-style formulas
+
+The model can be initialized using R-style formulas, just as in the
+[`statsmodels`](https://www.statsmodels.org/stable/example_formulas.html)
+package. Here is a quick overview
+
+```{python}
+from pyPLNmodels import Pln
+
+pln = Pln.from_formula("endog ~ 1 + site", data=micro)
+print('exog:', pln.exog)
+print('names:', pln.column_names_exog)
+```
+
+
+The formula specifies a model with an intercept (1) and the categorical covariate site.
+Internally, the formula is parsed using the patsy package, which handles categorical variables automatically by one-hot encoding them and excluding the reference level.
+
+You can specify more complex models, such as including multiple covariates:
+
+```{python}
+pln = Pln.from_formula("endog ~ 1 + site + time", data=micro)
+print('exog:', pln.exog)
+print('names:', pln.column_names_exog)
+```
+
+and interactions:
+
+```{python}
+pln = Pln.from_formula("endog ~ 1 + site * time", data=micro)
+print('exog:', pln.exog)
+print('names:', pln.column_names_exog)
+```
+
+Note that the left-hand side (`endog`) must always match the key for the count
+matrix in your data dictionary.
+The offset is computed automatically unless explicitly provided using the
+`offsets` key in the data dictionary.
+By default, it is set to zero unless you specify
+`compute_offsets_method="logsum"`, in which case the log of the row sums of the
+counts is used.
+
+```{python}
+import numpy as np
+tmp_micro = load_microcosm()
+print("No offsets:", Pln.from_formula("endog ~ 1", data = tmp_micro).offsets)
+tmp_micro["offsets"] = np.log(tmp_micro["endog"] + 2)
+print("Dumb offsets:", Pln.from_formula("endog ~ 1", data = tmp_micro).offsets)
+```
+
+
+
+## Specifying arrays
+
+
+Instead of using a formula, you can pass the arrays directly using the class
+constructor.
+This offers more flexibility, especially if your covariates are already
+processed or you want full control over preprocessing.
+
+Here is how to specify a model with site as covariates:
+
+```{python}
+import pandas as pd
+pln = Pln(
+    endog=micro["endog"],
+    exog=micro["site_1hot"],
+    add_const=False,
+    compute_offsets_method="logsum"  # use log row sums as offsets
+)
+```
+The `exog` matrix should be full-rank, otherwise the initialization will raise an error.
+By default, the model automatically adds a constant column (intercept) to the
+covariates. However, in cases where this would result in a non-full rank covariate matrix,
+you can disable this behavior by setting `add_const=False`, especially if your
+data already includes an intercept or is one hot encoded, just like the above case.
+
+If you do not wish to include covariates at all, simply omit the exog argument:
+
+```{python}
+pln = Pln(
+    endog=micro["endog"]
+)
+```
+This corresponds to a model with latent structure but no fixed effects (except the intercept, which can be removed by setting `add_const` to `False`).
+
+
+# Model fitting
+
+Once instantiate, one can simply calls `.fit()` to fit the model and infer the model parameters:
+
+
+```{python}
+pln.fit()
+```
+
+It is possible to fit the model directyly after specifying it:
+
+```{python}
+pln = Pln(endog = micro["endog"]).fit()
+```
+
+
+See the [basic analysis](basic_analysis.html) for more insights on the output of the model.

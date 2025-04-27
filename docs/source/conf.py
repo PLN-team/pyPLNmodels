@@ -83,14 +83,14 @@ exclude_patterns = []
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-# html_extra_path = ['vignettes']
+# html_extra_path = ['tutorials']
 html_title = "pyPLNmodels"
 
 
-def copy_html_vignettes(app, exception):  # pylint: disable=unused-argument
-    """Copy only HTML files from vignettes/ to the build directory."""
-    source = os.path.join(app.srcdir, "vignettes")
-    destination = os.path.join(app.outdir, "vignettes")
+def copy_html_tutorials(app, exception):  # pylint: disable=unused-argument
+    """Copy only HTML files from tutorials/ to the build directory."""
+    source = os.path.join(app.srcdir, "tutorials")
+    destination = os.path.join(app.outdir, "tutorials")
 
     if os.path.exists(source):
         os.makedirs(destination, exist_ok=True)  # Ensure the target folder exists
@@ -101,6 +101,6 @@ def copy_html_vignettes(app, exception):  # pylint: disable=unused-argument
 
 def setup(app):
     """
-    Add the copying of html vignettes after the build.
+    Add the copying of html tutorials after the build.
     """
-    app.connect("build-finished", copy_html_vignettes)
+    app.connect("build-finished", copy_html_tutorials)
