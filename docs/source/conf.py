@@ -42,10 +42,13 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_codeautolink",
     "autoclasstoc",
+    "sphinx.ext.mathjax",
 ]
 # source_suffix = [".rst", ".md"]
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
+
+mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 
 # Add any paths that contain templates here, relative to this directory.
