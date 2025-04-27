@@ -42,7 +42,3 @@ format:
     css: custom_css_yml.css
     theme: cosme
     code-copy: true
-    include-after: |
-      <div class="top-banner">
-        Enjoying <code>pyPLNmodels</code>? ⭐️ Star the <a href="https://github.com/PLN-team/pyPLNmodels" target="_blank">repo</a> ⭐️!
-      </div>
