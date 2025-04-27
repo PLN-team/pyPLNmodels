@@ -10,7 +10,7 @@ information `[pdf] <https://www.frontiersin.org/journals/ecology-and-evolution/a
 
 
 For an in-depth tutorial to the `PlnLDA` model, see the `dedicated tutorial
-<./vignettes/clustering.html>`_.
+<./tutorials/clustering.html>`_.
 
 
 PlnLDA Documentation

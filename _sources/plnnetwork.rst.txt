@@ -12,7 +12,7 @@ sparse network reconstruction from count data*  for more
 information `[pdf] <https://proceedings.mlr.press/v97/chiquet19a.html>`_.
 
 For an in-depth tutorial to the `PlnNetwork` model, see the
-`network analysis tutorial <./vignettes/network_analysis.html>`_.
+`network analysis tutorial <./tutorials/network_analysis.html>`_.
 
 PlnNetwork Documentation
 ------------------------

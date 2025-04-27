@@ -8,7 +8,7 @@ Note that the number of clusters is a hyperparameter that needs to be set by the
 user.
 
 For an in-depth tutorial to the `PlnMixture` model, see the
-`clustering tutorial <./vignettes/clustering.html>`_.
+`clustering tutorial <./tutorials/clustering.html>`_.
 
 PlnMixture Documentation
 ------------------------

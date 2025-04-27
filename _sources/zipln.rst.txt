@@ -2,7 +2,7 @@ ZIPln
 =====
 
 For an in-depth tutorial to the `ZIPln` model, see the `zero-inflation tutorial
-<./vignettes/zero_inflation.html>`_.
+<./tutorials/zero_inflation.html>`_.
 
 ZIPln Documentation
 -----------------

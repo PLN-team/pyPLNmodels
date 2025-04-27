@@ -2,7 +2,7 @@ ZIPlnPCA
 ========
 
 For an in-depth tutorial to the `ZIPlnPCA` model, see the `zero-inflation tutorial
-<./vignettes/zero_inflation.html>`_.
+<./tutorials/zero_inflation.html>`_.
 
 ZIPlnPCA Documentation
 ----------------------
