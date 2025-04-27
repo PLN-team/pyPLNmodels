@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=cfb1a285"></script>
+<script src="_static/documentation_options.js?v=38524d7c"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -89,10 +89,41 @@
 <div itemprop="articleBody">
 <section id="api-documentation">
 <h1>API documentation<a class="headerlink" href="#api-documentation" title="Link to this heading"></a></h1>
-<p>Here is the <a class="reference internal" href="documentation.html"><span class="doc">API documentation</span></a>.</p>
+<p>PLN models encompass a range of models designed to analyze count data, all
+based on the Poisson-Lognormal distribution. Each model has unique
+characteristics and serves different purposes. Covariates and offsets may be included in the models.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 50.0%"/>
+<col style="width: 50.0%"/>
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="pln.html"><span class="doc">Pln</span></a> (Basic Poisson-Lognormal)</p></td>
+<td><p><a class="reference internal" href="plnar.html"><span class="doc">PlnAR</span></a> (AutoRegressive, or Time series/ 1D spatial)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="zipln.html"><span class="doc">ZIPln</span></a> (Zero-Inflation)</p></td>
+<td><p><a class="reference internal" href="plnlda.html"><span class="doc">PlnLDA</span></a> (Supervised clustering)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="plnpca.html"><span class="doc">PlnPCA</span></a> (Dimension reduction)</p></td>
+<td><p><a class="reference internal" href="plnpcacollection.html"><span class="doc">PlnPCACollection</span></a> (Dimension reduction)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="plnmixture.html"><span class="doc">PlnMixture</span></a> (Unsupervised clustering)</p></td>
+<td><p><a class="reference internal" href="plnmixturecollection.html"><span class="doc">PlnMixtureCollection</span></a> (Unsupervised clustering)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="plnnetwork.html"><span class="doc">PlnNetwork</span></a> (Network inference)</p></td>
+<td><p><a class="reference internal" href="plnnetworkcollection.html"><span class="doc">PlnNetworkCollection</span></a> (Network inference)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="ziplnpca.html"><span class="doc">ZIPlnPCA</span></a> (Zero-Inflation and dimension reduction)</p></td>
+<td><p><a class="reference internal" href="ziplnpcacollection.html"><span class="doc">ZIPlnPCACollection</span></a> (Zero-Inflation and dimension reduction)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="plndiag.html"><span class="doc">PlnDiag</span></a> (Diagonal covariance matrix PLN)</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="getting-started">
-<h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<section id="getting-started-and-tutorials">
+<h1>Getting started and tutorials<a class="headerlink" href="#getting-started-and-tutorials" title="Link to this heading"></a></h1>
 <p>A notebook to get started with pyPLNmodels is <a class="reference external" href="https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb">available here</a>.
 In-depth tutorials are <a class="reference external" href="https://pln-team.github.io/pyPLNmodels/tutorials/">available here</a>.
 Otherwise, the next section is a quick overview of the package.</p>
@@ -133,8 +164,8 @@ covariates (if available).</p>
 are available
 <a class="reference external" href="https://pln-team.github.io/pyPLNmodels/tutorials/">here</a>.</p>
 </section>
-<section id="id2">
-<h2>Getting started<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
 <p><a class="reference external" href="https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb">A notebook to get started can be found
 here</a>.
 A more in-depth tutorial is available <a class="reference external" href="??">here</a>. If you need just a
