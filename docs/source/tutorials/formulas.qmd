@@ -18,7 +18,11 @@ nocite: |
 
 # `Pln` model
 
-This package estimates model parameters based on a count matrix $Y$, covariates (also referred to as `exogenous` variables) $X$, and offsets $o$. For each observation (or individual $i$), the following notations are used:
+This package is designed to estimate model parameters from a count matrix $Y \in \mathbb
+N^{n\times p}$, where $n$ represents the number of observations (or individuals) and $p$
+denotes the number of variables. Users can also provide additional data, such as covariates
+(also known as exogenous variables) $X$, and offsets $o$. For each observation (or individual) $i$,
+the following notations are used:
 
 - $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
 - $X_i$ (`exog`): covariates for the $i$-th observation (if available)
@@ -111,7 +115,9 @@ The hyperparameter $C$ controls the sparsity level. A non-zero entry in
 $\Sigma^{-1}_{jk}$ implies a direct dependency between variables $j$ and $k$ in
 the latent space.
 
-Model parameters are given by $(B, \Sigma) =$ (`coef`, `covariance`). The precision matrix $\Sigma^{-1}$ is denoted `precision` in the package.
+Model parameters are given by $(B, \Sigma) =$ (`coef`, `covariance`). The
+precision matrix $\Sigma^{-1}$ is denoted `precision` in the package. See
+@network for more details.
 
 
 
