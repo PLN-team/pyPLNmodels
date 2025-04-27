@@ -32,6 +32,10 @@ website:
           - text: "Getting started ⌨️ "
             href: https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb
             target: _blank
+      - section: "**References**"
+        contents:
+          - references.qmd
+
 
 format:
   html:

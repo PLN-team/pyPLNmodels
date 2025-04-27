@@ -83,8 +83,30 @@ Overview
 
 .. toctree::
    :hidden:
+   :caption: Tutorials
+
+   ↪ Home page <https://pln-team.github.io/pyPLNmodels/tutorials/>
+   ↪ How to specify a model <https://pln-team.github.io/pyPLNmodels/tutorials/model_specifying.html>
+   ↪ Basic analysis <https://pln-team.github.io/pyPLNmodels/tutorials/basic_analysis.html>
+   ↪ Zero-inflation <https://pln-team.github.io/pyPLNmodels/tutorials/zero_inflation.html>
+   ↪ Temporal/Spatial count data <https://pln-team.github.io/pyPLNmodels/tutorials/autoreg.html>
+   ↪ (Un)supervised Clustering <https://pln-team.github.io/pyPLNmodels/tutorials/clustering.html>
+   ↪ Network analysis <https://pln-team.github.io/pyPLNmodels/tutorials/network_analysis.html>
+
+
+
+.. toctree::
+   :hidden:
+   :caption: Statistical background
+
+   ↪ Formulas <https://pln-team.github.io/pyPLNmodels/tutorials/formulas.html>
+   ↪ References <https://pln-team.github.io/pyPLNmodels/tutorials/references.html>
+
+
+
+.. toctree::
+   :hidden:
    :caption: Links
 
    ↪ PyPI <https://pypi.org/project/pyPLNmodels/>
    ↪ GitHub <https://github.com/PLN-team/pyPLNmodels>
-   ↪ Tutorials <https://pln-team.github.io/pyPLNmodels/tutorials/>
