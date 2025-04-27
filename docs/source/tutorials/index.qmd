@@ -16,6 +16,14 @@ nocite: |
   @joss_bastien
 ---
 
+The Poisson lognormal model and its variants are used for the
+analysis of multivariate count data.
+This package implements efficient algorithms to extract
+meaningful insights from complex and difficult-to-interpret
+multivariate count data. It is designed to scale on large
+datasets, although it has memory limitations.
+
+
 # In-depth `pyPLNmodels` tutorials
 Unlike the [getting started
 notebook](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb),
