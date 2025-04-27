@@ -1,0 +1,268 @@
+---
+title: "Zero-inflation 0️⃣ "
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---
+
+# Introduction
+
+This tutorial demonstrates how to analyze zero-inflated count data using the `pyPLNmodels` package.
+Traditional models like Zero-Inflated Poisson Regression
+([ZIP](https://www.statsmodels.org/stable/generated/statsmodels.discrete.count_model.ZeroInflatedPoisson.html))
+may fail to capture important features, such as correlations between variables, when dealing with complex datasets.
+
+The `pyPLNmodels` package provides two specialized models for handling zero-inflated data
+(where the proportion of zeros is greater than 50%):
+
+* `ZIPln` model([documentation](https://pln-team.github.io/pyPLNmodels/zipln.html))
+* `ZIPlnPCA` model ([documentation](https://pln-team.github.io/pyPLNmodels/ziplnpca.html))
+
+The `ZIPlnPCA` model extends the functionality of the `ZIPln` model to accommodate high-dimensional data,
+though it may slightly compromise parameter estimation accuracy. These models are analogous to the
+[`Pln`](https://pln-team.github.io/pyPLNmodels/pln.html) and
+[`PlnPCA`](https://pln-team.github.io/pyPLNmodels/plnpca.html) models but are specifically designed to manage
+zero-inflation, albeit with increased computational requirements.
+
+## Statistical Background
+
+Both models operate under the following assumptions for a given count matrix $Y$:
+
+$$ Y_{ij}| Z_{ij}, W_{ij} \sim (1 - W_{ij})\mathcal P(o_{ij} + \exp(Z_{ij})), \quad Z_{i} \sim \mathcal N(o_i + X_i^{\top} B, \Sigma), \quad W_{ij} \sim \mathcal B(\sigma(X_i^{0^{\top}} B^0_j)) $$
+
+Here, the latent variable $W$ models the zero-inflation component of the data.
+More details can be found in @zeroinflation. The input data includes:
+
+* $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
+* $X_i$ (`exog`): covariates for the $i$-th observation (if available, defaults to 1)
+* $X^0_i$ (`exog_inflation`): covariates for the $i$-th observation specific to the inflation component (if available, defaults to 1)
+* $o_i$ (`offsets`): offset for the $i$-th observation (if available, defaults to a vector of 0's)
+
+The model parameters are:
+
+* $B$ (`coef`): a matrix of regression coefficients
+* $B^0$ (`coef_inflation`): a matrix of regression coefficients for the inflation component
+* $\Sigma$ (`covariance`): the covariance matrix of the latent variables $Z_i$
+
+
+
+
+The `ZIPln` model assumes that $\Sigma$ has full rank, while the `ZIPlnPCA` model
+assumes a low-rank $q$ for $\Sigma$, which must be specified by the user.
+A lower rank introduces a trade-off, reducing computational complexity but potentially
+compromising parameter estimation accuracy.
+
+## Purpose
+
+The `pyPLNmodels` package is designed to:
+
+* Estimate the parameters $B$, $B^0$, and $\Sigma$
+* Retrieve the latent variables $Z$ and $W$
+* Visualize the latent variables and their correlations
+
+This is achieved using the input count matrix $Y$, along with optional covariate matrices $X$
+(defaulting to a vector of 1's) and $X^0$ (for zero-inflation, also defaulting to a vector of 1's),
+as well as offsets $O$ (defaulting to a matrix of 0's).
+
+# Data Import
+
+In this example, we analyze real-world count data from the microcosm dataset [@microcosm],
+available via the [NCBI BioProject](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059).
+This dataset contains microbiota samples collected from various body sites of dairy cows
+during their lactation period. It includes response count variables (`endog`) and explanatory variables:
+
+- **Site information** (`site` and `site_1hot`)
+- **Time information** (`time` and `time_1hot`)
+- **Lineage information** (`lineage` and `lineage_1hot`)
+
+The `1_hot` variables are one-hot encoded representations of the corresponding categorical variables.
+Depending on the analysis objectives, you can select different variables to include in your model.
+For simplicity, we limit the analysis to 20 variables (dimensions):
+
+```{python}
+from pyPLNmodels import load_microcosm
+micro = load_microcosm(dim=20)
+print('Data: ', micro.keys())
+```
+
+## Endogenous Variables
+
+The dataset is highly zero-inflated, with approximately 96% of the values being zeros:
+
+```{python}
+endog = micro["endog"]
+print("Percentage of zeros: ", (endog == 0).sum().sum() / endog.size * 100, "%")
+```
+
+The distribution of counts can be visualized on a log scale:
+
+```{python}
+import matplotlib.pyplot as plt
+plt.hist(endog.values.ravel(), bins=100)
+plt.yscale('log')
+plt.show()
+```
+
+## Exogenous Variables
+
+Explanatory variables (also referred to as 'exogenous' or 'covariates') are available in the dataset:
+
+```{python}
+site = micro["site"]
+print('Possible sites: ', site.unique())
+time = micro["time"]
+print('Possible times: ', time.unique())
+lineage = micro["lineage"]
+print('Possible lineages: ', lineage.unique())
+```
+
+# Model Fitting Without Zero-Inflation
+
+To begin, we fit a `Pln` model without accounting for zero-inflation. This
+serves as a baseline for comparison (see [this tutorial](basic_analysis.html)
+on `Pln`).
+In this example, we only consider the `site` covariates:
+
+```{python}
+from pyPLNmodels import Pln
+pln = Pln.from_formula('endog ~ 1 + site', data=micro).fit()
+pln.viz(colors=micro["site"])
+```
+
+The latent variables demonstrate a clear `time` effect, as anticipated,
+although the associated noise appears to be relatively high.
+
+# Model Fitting With Zero-Inflation
+
+Next, we fit a `ZIPln` model that accounts for zero-inflation. This model improves the handling of datasets with a high proportion of zeros:
+
+```{python}
+from pyPLNmodels import ZIPln
+zipln = ZIPln.from_formula('endog ~ 1 + site', data=micro).fit()
+zipln.viz(colors=micro["site"])
+```
+
+Incorporating zero-inflation improves the model by minimizing noise in the latent variables. To explore the model further, you can print it to access detailed information, along with its available methods and attributes:
+
+```{python}
+print(zipln)
+```
+
+The log-likelihood of the `ZIPln` model is considerably higher compared to the `Pln` model, indicating a better fit.
+
+# Zero-Inflation Parameters
+
+The `ZIPln` model includes regression parameters for the zero-inflation component. These parameters, along with other model insights, can be visualized using the `.show()` method:
+
+```{python}
+zipln.show()
+```
+
+Additionally, the model infers the probability of zero-inflation for each entry
+in `endog`, and can be visualized using the `.show_prob()` method:
+
+```{python}
+zipln.show_prob()
+```
+This probability is naturally zero for non-zero counts. To explore the
+latent probability of zero-inflation, you can use the `latent_prob` attribute:
+
+```{python}
+print(zipln.latent_prob)
+```
+
+# Using Different Covariates for Zero-Inflation and Count Components
+
+The `ZIPln` model allows you to specify different covariates for the
+zero-inflation and count components.
+When using formula parsing, the covariates for the zero-inflation part are
+separated by a `|` symbol.
+For example, to use the `site` covariate for the count part and the `time` covariate for the zero-inflation part:
+
+```{python}
+zitime_pln = ZIPln.from_formula('endog ~ 1 + site | time', data=micro).fit()
+zitime_pln.show()
+```
+
+If no pipe `|` is specified, the model will use the
+same covariates for both components.
+
+You can also visualize the latent variables, colored by the `time` covariate:
+
+```{python}
+zitime_pln.viz(colors=micro["time"])
+```
+
+
+# Handling High-Dimensional Data: `ZIPlnPCA`
+
+The `ZIPlnPCA` model is the zero-inflated counterpart of the `PlnPCA` model, designed specifically for high-dimensional datasets.
+It introduces a trade-off by reducing the accuracy of the covariance matrix to improve computational efficiency.
+
+To fit a `ZIPlnPCA` model, you can specify the rank:
+
+```{python}
+from pyPLNmodels import ZIPlnPCA
+high_d_micro = load_microcosm(dim=500)
+zipca = ZIPlnPCA.from_formula('endog ~ 1 + site', data=high_d_micro, rank=5).fit()
+```
+
+## `ZIPlnPCACollection` for multiple ranks
+The rank is a hyperparameter that can be manually defined. Alternatively, a
+data-driven approach to rank selection can be performed using the
+`ZIPlnPCACollection` class ([documentation](https://pln-team.github.io/pyPLNmodels/ziplnpcacollection.html)). This class fits multiple models with different
+ranks:
+
+```{python}
+from pyPLNmodels import ZIPlnPCACollection
+zipcas = ZIPlnPCACollection.from_formula('endog ~ 1 + site', data=high_d_micro, ranks=[3, 5, 10, 15]).fit()
+```
+
+## Accessing the Best Model
+
+The best model can be selected using the `.best_model()` method, based on a chosen criterion (`AIC`, `BIC`, or `ICL`):
+
+```{python}
+best_zipca = zipcas.best_model(criterion="BIC")
+print(best_zipca)
+```
+
+**⚠️ Note** The best model might always correspond to the largest rank, which may not
+always be desirable. To better understand the trade-offs, you can visualize the
+criteria for all models using the `.show()` method:
+
+```{python}
+zipcas.show()
+```
+
+## Accessing Individual Models
+
+All individual models in the collection can be accessed with the rank as the key:
+
+```{python}
+zipca_rank_5 = zipcas[5]
+print(zipca_rank_5)
+```
+
+You can also iterate through the collection to explore each model:
+
+```{python}
+# |eval: false
+for zipca in zipcas.values():
+    print(zipca)
+```
+
+## Additional Information
+
+To explore the available methods and attributes of a model, simply print the model object.
+Some attributes, such as `coef_inflation` (coefficients for the zero-inflation component) and `latent_prob` (probabilities of zero-inflation), are specific to the `ZIPln` and `ZIPlnPCA` models.

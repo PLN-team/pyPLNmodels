@@ -1,0 +1,44 @@
+project:
+  type: website
+  output-dir: .
+
+website:
+  title: "pyPLNmodels"
+  sidebar:
+    style: "floating"
+    search: true
+    contents:
+      - section: "**Tutorials for count data**"
+        contents:
+          - index.qmd
+          - model_specifying.qmd
+          - basic_analysis.qmd
+          - zero_inflation.qmd
+          - autoreg.qmd
+          - clustering.qmd
+          - network_analysis.qmd
+          - formulas.qmd
+      - section: "**Additional Resources**"
+        contents:
+          - text: "Documentation 📘"
+            href: https://pln-team.github.io/pyPLNmodels/
+            target: _blank
+          - text: "GitHub 🐙"
+            href: https://github.com/PLN-team/pyPLNmodels
+            target: _blank
+          - text: "PyPI 📦"
+            href: https://pypi.org/project/pyPLNmodels/
+            target: _blank
+          - text: "Getting started ⌨️ "
+            href: https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb
+            target: _blank
+
+format:
+  html:
+    toc: true  # Enables per-page table of contents
+    toc-depth: 3
+    number-sections: true
+    math: true
+    css: custom_css_yml.css
+    theme: cosme
+    code-copy: true

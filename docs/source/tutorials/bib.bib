@@ -1,0 +1,86 @@
+@Article{Aitchison1989,
+  Title                    = {The multivariate Poisson-log normal distribution},
+  Author                   = {Aitchison, John and Ho, CH},
+  Journal                  = {Biometrika},
+  Year                     = {1989},
+  Number                   = {4},
+  Pages                    = {643--653},
+  Volume                   = {76},
+
+  Owner                    = {mmariadasso},
+  Publisher                = {Oxford University Press},
+  keywords={others},
+  Timestamp                = {2018.06.29}
+}
+
+@article{joss_bastien,
+    title={pyPLNmodels: A Python package to analyze multivariate high-dimensional count data},
+    author={Batardière, Bastien and Kwon, Joon and Chiquet, Julien},
+    year={2024},
+    keywords={package},
+    journal={Journal of Open Source Software},
+}
+
+@article{chiquet2018variational,
+  title={Variational inference for probabilistic Poisson PCA},
+  author={Chiquet, J and Mariadassou, M and Robin, S},
+  year={2018},
+  keywords={others},
+  journal = {The Annals of Applied Statistics},
+}
+
+@article{microcosm,
+  title = {Microbiota members from body sites of dairy cows are largely shared within individual hosts throughout lactation but sharing is limited in the herd},
+  author = {Mariadassou, Mahendra and Nouvel, Laurent X and Constant, Fabienne and Morgavi, Diego P and Rault, Lucie and Barbey, Sarah and Helloin, Emmanuelle and Rué, Olivier and Schbath, Sophie and Launay, Frederic and Sandra, Olivier and Lefebvre, Rachel and Le Loir, Yves and Germon, Pierre and Citti, Christine and Even, Sergine},
+  journal = {Animal Microbiome},
+  volume = {5},
+  number = {1},
+  pages = {1--17},
+  year = {2023},
+  doi = {10.1186/s42523-023-00252-w},
+  url = {https://doi.org/10.1186/s42523-023-00252-w},
+  pdf = {https://animalmicrobiome.biomedcentral.com/counter/pdf/10.1186/s42523-023-00252-w.pdf},
+  publisher = {BioMed Central}
+}
+
+@article{zeroinflation,
+      title={Zero-inflation in the Multivariate Poisson Lognormal Family},
+      author={Bastien Batardière and Julien Chiquet and François Gindraud and Mahendra Mariadassou},
+      year={2024},
+      eprint={2405.14711},
+      archivePrefix={arXiv},
+      primaryClass={stat.ME},
+      url={https://arxiv.org/abs/2405.14711},
+}
+
+@article{crossover,
+  TITLE = {{Variation in Recombination Rate and Its Genetic Determinism in Sheep Populations}},
+  AUTHOR = {Petit, Morgane and Astruc, Jean-Michel and Sarry, Julien and Drouilhet, Laurence and Fabre, St{\'e}phane and Moreno, Carole and Servin, Bertrand},
+  URL = {https://hal.inrae.fr/hal-02624341},
+  JOURNAL = {{Genetics}},
+  PUBLISHER = {{Oxford University Press}},
+  VOLUME = {207},
+  NUMBER = {2},
+  PAGES = {767-784},
+  YEAR = {2017},
+  DOI = {10.1534/genetics.117.300123},
+  KEYWORDS = {genetic map ; sheep ; recombinaison rate ; qtl ; evolution},
+  PDF = {https://hal.inrae.fr/hal-02624341v1/file/104976.full.pdf},
+  HAL_ID = {hal-02624341},
+  HAL_VERSION = {v1},
+}
+
+
+
+@InProceedings{network,
+  title = 	 {Variational Inference for sparse network reconstruction from count data},
+  author =       {Chiquet, Julien and Robin, Stephane and Mariadassou, Mahendra},
+  booktitle = 	 {Proceedings of the 36th International Conference on Machine Learning},
+  pages = 	 {1162--1171},
+  year = 	 {2019},
+  volume = 	 {97},
+  series = 	 {Proceedings of Machine Learning Research},
+  month = 	 {09--15 Jun},
+  publisher =    {PMLR},
+  abstract = 	 {Networks provide a natural yet statistically grounded way to depict and understand how a set of entities interact. However, in many situations interactions are not directly observed and the network needs to be reconstructed based on observations collected for each entity. Our work focuses on the situation where these observations consist of counts. A typical example is the reconstruction of an ecological network based on abundance data. In this setting, the abundance of a set of species is collected in a series of samples and/or environments and we aim at inferring direct interactions between the species. The abundances at hand can be, for example, direct counts of individuals (ecology of macro-organisms) or read counts resulting from metagenomic sequencing (microbial ecology). Whatever the approach chosen to infer such a network, it has to account for the peculiaraties of the data at hand. The first, obvious one, is that the data are counts, i.e. non continuous. Also, the observed counts often vary over many orders of magnitude and are more dispersed than expected under a simple model, such as the Poisson distribution. The observed counts may also result from different sampling efforts in each sample and/or for each entity, which hampers direct comparison. Furthermore, because the network is supposed to reveal only direct interactions, it is highly desirable to account for covariates describing the environment to avoid spurious edges. Many methods of network reconstruction from count data have been proposed. In the context of microbial ecology, most methods (SparCC, REBACCA, SPIEC-EASI, gCODA, BanOCC) rely on a two-step strategy: transform the counts to pseudo Gaussian observations using simple transforms before moving back to the setting of Gaussian Graphical Models, for which state of the art methods exist to infer the network, but only in a Gaussian world. In this work, we consider instead a full-fledged probabilistic model with a latent layer where the counts follow Poisson distributions, conditional to latent (hidden) Gaussian correlated variables. In this model, known as Poisson log-normal (PLN), the dependency structure is completely captured by the latent layer and we model counts, rather than transformations thereof. To our knowledge, the PLN framework is quite new and has only been used by two other recent methods (Mint and plnDAG) to reconstruct networks from count data. In this work, we use the same mathematical framework but adopt a different optimization strategy which alleviates the whole optimization process. We also fully exploit the connection between the PLN framework and generalized linear models to account for the peculiarities of microbiological data sets. The network inference step is done as usual by adding sparsity inducing constraints on the inverse covariance matrix of the latent Gaussian vector to select only the most important interactions between species. Unlike the usual Gaussian setting, the penalized likelihood is generally not tractable in this framework. We resort instead to a variational approximation for parameter inference and solve the corresponding optimization problem by alternating a gradient descent on the variational parameters and a graphical-Lasso step on the covariance matrix. We also select the sparsity parameter using the resampling-based StARS procedure. We show that the sparse PLN approach has better performance than existing methods on simulated datasets and that it extracts relevant signal from microbial ecology datasets. We also show that the inference scales to datasets made up of hundred of species and samples, in line with other methods in the field. In short, our contributions to the field are the following: we extend the use of PLN distributions in network inference by (i) accounting for covariates and offset and thus removing some spurious edges induced by confounding factors, (ii) accounting for different sampling effort to integrate data sets from different sources and thus infer interactions between different types of organisms (e.g. bacteria - fungi), (iii) developing an inference procedure based on the iterative optimization of a well defined objective function. Our objective function is a provable lower bound of the observed likelihood and our procedure accounts for the uncertainty associated with the estimation of the latent variable, unlike the algorithm presented in Mint and plnDAG.}
+}

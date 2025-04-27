@@ -1,0 +1,265 @@
+---
+title: "Clustering of count data 🔍"
+date: "2025-03-27"
+format:
+  html:
+    embed-resources: true
+    css: styles.css
+    toc: true
+    toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+  cache: true
+nocite: |
+  @joss_bastien
+---
+
+# Introduction
+
+The Poisson lognormal (PLN) model can be extended to uncover clustering structures in count data. Two main approaches are available:
+
+- **Supervised clustering**: when cluster labels are known for some samples (`PlnLDA`, [documentation](https://pln-team.github.io/pyPLNmodels/plnlda.html)).
+- **Unsupervised clustering**: when cluster labels are unknown (`PlnMixture`, [documentation](https://pln-team.github.io/pyPLNmodels/plnmixture.html)).
+
+We illustrate both using a single-cell RNA-seq dataset provided by the `load_scrna`
+function of the package. Each row represents a cell and each column a gene. Cell types are
+included as labels and used in the supervised setting.
+
+# Data Loading and Structure
+
+```{python}
+from pyPLNmodels import load_scrna
+rna = load_scrna(dim=20)
+print("Data keys:", rna.keys())
+```
+
+## Count Matrix (`endog`)
+
+```{python}
+endog = rna["endog"]
+print(endog.head())
+```
+
+## Cell Types (`labels`)
+
+```{python}
+cell_type = rna["labels"]
+print("Cell types:", cell_type.unique())
+print(cell_type.head())
+print("Sample counts:", cell_type.value_counts())
+```
+
+# Supervised Clustering with `PlnLDA`
+
+This method performs a Poisson lognormal discriminant analysis (PLN-LDA), similar to classical LDA but adapted to count data via a latent Gaussian layer.
+
+## Model Formulation
+
+Let $c_i$ denote the **known** cluster label for sample $i$:
+
+$$
+\begin{align}
+Z_i| c_i = k &\sim \mathcal{N}(X_i^\top B + \mu_{k}, \Sigma), \\
+Y_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij}))
+\end{align}
+$$
+
+## Train-Test Split
+
+We separate the data into training and test sets. The training set is used to fit the model, while the test set is used for evaluation.
+
+```{python}
+train_prop = 0.8
+n_train = int(endog.shape[0] * train_prop)
+endog_train, endog_test = endog[:n_train], endog[n_train:]
+cell_type_train, cell_type_test = cell_type[:n_train], cell_type[n_train:]
+```
+
+## Fitting the PLN-LDA Model
+
+```{python}
+from pyPLNmodels import PlnLDA
+lda = PlnLDA(endog_train, clusters=cell_type_train).fit()
+print(lda)
+```
+
+You can also define the model using R-style formulas as follows:
+
+```{python}
+data_train = {"endog_train": endog_train, "clusters_train": cell_type_train}
+_ = PlnLDA.from_formula("endog_train ~ 0 | clusters_train", data=data_train)
+```
+
+Use a pipe `|` to separate the exogenous variables from the clusters. See the
+[dedicated tutorial](model_specifying.html) for more details on how to specify
+a model.
+
+## Predicting on Test Set
+
+```{python}
+pred_test = lda.predict_clusters(endog_test)
+```
+
+```{python}
+from pyPLNmodels import plot_confusion_matrix
+plot_confusion_matrix(pred_test, cell_type_test)
+```
+
+You can enhance performance by incorporating additional variables or increasing the number of samples in your dataset.
+
+## Visualizing the Latent Space
+
+The `.transform_new()` method transforms unseen endogenous data into the latent space via LDA.
+
+```{python}
+lda.viz_transformed(lda.transform_new(endog_test), colors=cell_type_test)
+```
+
+```{python}
+lda.viz_transformed(lda.transform_new(endog_train), colors=cell_type_train)
+```
+
+### Optional: Exogenous Variables
+You can include exogenous variables in the model; however, they will not be used
+for making predictions. When predicting on new data, ensure that the corresponding
+covariates for the samples are provided.
+
+```{python}
+import torch
+dumb_lda = PlnLDA(endog_train, exog=torch.randn(endog_train.shape[0], 2), clusters=cell_type_train).fit()
+_ = dumb_lda.predict_clusters(endog_test, exog=torch.randn(endog_test.shape[0], 2))
+```
+
+⚠️ Exogenous variables must be full rank, and an intercept will be added to
+account for the cluster bias.. Avoid one-hot encodings without intercept removal.
+
+# Unsupervised Clustering with `PlnMixture`
+
+When no labels are known, `PlnMixture` fits a latent mixture model to identify
+subpopulations in an **unsupervised** way.
+
+## Model Formulation
+
+$$
+\begin{align}
+c_i &\sim \mathcal{M}(1, \pi), \\
+Z_i \mid c_i=k &\sim \mathcal{N}(X_i^\top B + \mu_k, \Sigma_k), \\
+Y_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij}))
+\end{align}
+$$
+
+Covariance matrices $\Sigma_k$ are assumed diagonal.
+
+## Model Fitting
+
+```{python}
+from pyPLNmodels import PlnMixture
+mixture = PlnMixture(endog, n_cluster=3).fit()
+print(mixture)
+```
+
+### Optional: With Covariates
+
+```{python}
+_ = PlnMixture(endog, exog=torch.randn(endog.shape[0], 2), n_cluster=3)
+```
+
+⚠️ exogenous variables must be full rank, and an intercept will be added to
+account for the cluster bias. Avoid one-hot encodings without intercept removal.
+
+### Extracting Weights
+
+```{python}
+print(mixture.weights)
+```
+
+## Visualizing and Evaluating Clusters
+
+One can access the clusters of the samples using the `.clusters` attribute:
+
+```{python}
+clusters = mixture.clusters
+```
+
+Some useful visualization and information about clusters are displayed using the `.show()` method:
+```{python}
+mixture.show()
+```
+
+One can visualize the latent variables using the `.viz()` method. By default,
+the latent variables are colored by the inferred clusters, but other colors can
+be specified using the `colors` argument.
+
+```{python}
+mixture.viz()
+```
+
+You can compare the inferred clusters with the actual cell types, although
+retrieving the exact cell types is not expected since the method is unsupervised.
+
+
+To visualize the clustering results, use the following:
+```{python}
+mixture.viz(colors=cell_type)
+```
+You can also assess the clustering performance with a confusion matrix:
+```{python}
+plot_confusion_matrix(clusters, cell_type)
+```
+
+## Predicting on New Data
+
+You can predict unseen data using the `.predict_clusters()` method.
+
+```{python}
+new_clusters = mixture.predict_clusters(endog)
+```
+
+The number of clusters has been arbitrary set to $3$. A more data-driven
+approach is given by the `PlnMixtureCollection` in the next section.
+
+## Use `PlnMixtureCollection` for selecting the optimal number of clusters
+
+To explore multiple cluster solutions, use `PlnMixtureCollection`:
+
+```{python}
+from pyPLNmodels import PlnMixtureCollection
+collection = PlnMixtureCollection(endog, n_clusters=range(2, 8)).fit()
+```
+
+### Evaluate model quality
+
+```{python}
+collection.show(figsize=(8, 8))
+```
+
+This displays BIC, AIC, log-likelihood, and clustering metric (WCSS, silhouette) for each model.
+
+Use the silhouette score (higher is better) or WCSS (lower is better) to
+determine the optimal number of clusters. In this example, 2 clusters may be
+appropriate.
+
+⚠️  WCSS always decreases with the number of clusters, so that an [ELBOW
+method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) must be used. Based on the graph and the WCSS metric, I would suggest 4 clusters.
+
+The silhouette score is not sensitive to the number of clusters.
+
+### Select the best model
+One can directly access the best model using the `best_model` method, with the metric of choice:
+```{python}
+best_mixture = collection.best_model("silhouette") # Could be also BIC, AIC, or WCSS.
+print(best_mixture)
+```
+
+You can access specific models within the collection by using the cluster number as a key:
+
+```{python}
+print(collection[3])
+```
+and loop through the collection:
+```{python}
+#|eval : false
+for mixture in collection.values():
+    print(mixture)
+```

@@ -1,0 +1,41 @@
+---
+title: "Home page 🏠"
+date: "2025-03-27"
+format:
+  html:
+    embed-resources: true
+    css: styles.css
+    toc: true
+    toc-location: left
+    code-copy: true
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+  cache: true
+nocite: |
+  @joss_bastien
+---
+
+# In-depth `pyPLNmodels` tutorials
+Unlike the [getting started
+notebook](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb),
+and the [quickstart](https://github.com/PLN-team/pyPLNmodels), this is an
+in-depth tutorial, covering in detail different parts.
+
+## Installation
+
+First of all, you should run:
+
+```{python}
+#| eval: false
+pip install pyPLNmodels
+```
+
+## Tutorials
+
+- Check [how to specify a model](model_specifying.html).
+- For a basic analysis of high-dimensional count data, see [this tutorial](basic_analysis.html).
+- If your data is zero-inflated, you may consider the [zero-inflation tutorial](zero_inflation.html).
+- If your data has temporality or one-dimensional spatiality, you should consider the [time-series tutorial for count data](autoreg.html).
+- If you want to cluster your samples, be it in a supervised or unsupervised way, you should consider the [clustering tutorial for count data](clustering.html).
+- You may do a network analysis, that is, see the link between variables, through the [network analysis tutorial for count data](network_analysis.html).

@@ -3,7 +3,7 @@ PlnMixtureCollection
 
 
 For an in-depth tutorial to the `PlnMixtureCollection` model, see the
-`clustering tutorial <./vignettes/clustering.html>`_.
+`clustering tutorial <./tutorials/clustering.html>`_.
 
 
 PlnMixtureCollection Documentation

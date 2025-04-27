@@ -2,7 +2,7 @@ PlnNetworkCollection
 ====================
 
 For an in-depth tutorial to the `PlnNetworkCollection` model, see the
-`network analysis tutorial <./vignettes/network_analysis.html>`_.
+`network analysis tutorial <./tutorials/network_analysis.html>`_.
 
 PlnNetworkCollection Documentation
 ----------------------------------
