@@ -62,6 +62,7 @@ build-doc = ["sphinx","sphinx_rtd_theme", "sphinx_copybutton", "sphinx_codeautol
 [project.urls]
 Repository = "https://github.com/PLN-team/pyPLNmodels"
 Documentation = "https://pln-team.github.io/pyPLNmodels/"
+Tutorials = "https://pln-team.github.io/pyPLNmodels/tutorials/"
 
 
 [tool.setuptools]
