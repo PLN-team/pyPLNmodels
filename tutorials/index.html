@@ -4712,10 +4712,11 @@ color: #333;
     <h2 id="toc-title">On this page</h2>
 
   <ul>
-  <li><a href="#in-depth-pyplnmodels-tutorials" id="toc-in-depth-pyplnmodels-tutorials" class="nav-link active" data-scroll-target="#in-depth-pyplnmodels-tutorials"><span class="header-section-number">1</span> In-depth <code>pyPLNmodels</code> tutorials</a>
+  <li><a href="#pyplnmodels---poisson-lognormal-models" id="toc-pyplnmodels---poisson-lognormal-models" class="nav-link active" data-scroll-target="#pyplnmodels---poisson-lognormal-models"><span class="header-section-number">1</span> <code>pyPLNmodels</code> - Poisson lognormal models</a></li>
+  <li><a href="#in-depth-pyplnmodels-tutorials" id="toc-in-depth-pyplnmodels-tutorials" class="nav-link" data-scroll-target="#in-depth-pyplnmodels-tutorials"><span class="header-section-number">2</span> In-depth <code>pyPLNmodels</code> tutorials</a>
   <ul class="collapse">
-  <li><a href="#installation" id="toc-installation" class="nav-link" data-scroll-target="#installation"><span class="header-section-number">1.1</span> Installation</a></li>
-  <li><a href="#tutorials" id="toc-tutorials" class="nav-link" data-scroll-target="#tutorials"><span class="header-section-number">1.2</span> Tutorials</a></li>
+  <li><a href="#installation" id="toc-installation" class="nav-link" data-scroll-target="#installation"><span class="header-section-number">2.1</span> Installation</a></li>
+  <li><a href="#tutorials" id="toc-tutorials" class="nav-link" data-scroll-target="#tutorials"><span class="header-section-number">2.2</span> Tutorials</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -4750,19 +4751,24 @@ color: #333;
 
 </header>
 
-<section id="in-depth-pyplnmodels-tutorials" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> In-depth <code>pyPLNmodels</code> tutorials</h1>
+<section id="pyplnmodels---poisson-lognormal-models" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> <code>pyPLNmodels</code> - Poisson lognormal models</h1>
+<p>The Poisson lognormal model and its variants are used for the analysis of multivariate count data. This package implements efficient algorithms to extract meaningful insights from complex and difficult-to-interpret multivariate count data. It is designed to scale on large datasets, although it has memory limitations.</p>
+</section>
+<section id="in-depth-pyplnmodels-tutorials" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> In-depth <code>pyPLNmodels</code> tutorials</h1>
 <p>Unlike the <a href="https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb">getting started notebook</a>, and the <a href="https://github.com/PLN-team/pyPLNmodels">quickstart</a>, this is an in-depth tutorial, covering in detail different parts.</p>
-<section id="installation" class="level2" data-number="1.1">
-<h2 data-number="1.1" class="anchored" data-anchor-id="installation"><span class="header-section-number">1.1</span> Installation</h2>
+<section id="installation" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="installation"><span class="header-section-number">2.1</span> Installation</h2>
 <p>First of all, you should run:</p>
 <div class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pip install pyPLNmodels</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="tutorials" class="level2" data-number="1.2">
-<h2 data-number="1.2" class="anchored" data-anchor-id="tutorials"><span class="header-section-number">1.2</span> Tutorials</h2>
+<section id="tutorials" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="tutorials"><span class="header-section-number">2.2</span> Tutorials</h2>
 <ul>
+<li>Check detailed <a href="formulas.html">formulas</a> of each model.</li>
 <li>Check <a href="model_specifying.html">how to specify a model</a>.</li>
 <li>For a basic analysis of high-dimensional count data, see <a href="basic_analysis.html">this tutorial</a>.</li>
 <li>If your data is zero-inflated, you may consider the <a href="zero_inflation.html">zero-inflation tutorial</a>.</li>

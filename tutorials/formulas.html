@@ -4724,7 +4724,7 @@ color: #333;
 
 <section id="pln-model" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> <code>Pln</code> model</h1>
-<p>This package estimates model parameters based on a count matrix <span class="math inline">\(Y\)</span>, covariates (also referred to as <code>exogenous</code> variables) <span class="math inline">\(X\)</span>, and offsets <span class="math inline">\(o\)</span>. For each observation (or individual <span class="math inline">\(i\)</span>), the following notations are used:</p>
+<p>This package is designed to estimate model parameters from a count matrix <span class="math inline">\(Y \in \mathbb N^{n\times p}\)</span>, where <span class="math inline">\(n\)</span> represents the number of observations (or individuals) and <span class="math inline">\(p\)</span> denotes the number of variables. Users can also provide additional data, such as covariates (also known as exogenous variables) <span class="math inline">\(X\)</span>, and offsets <span class="math inline">\(o\)</span>. For each observation (or individual) <span class="math inline">\(i\)</span>, the following notations are used:</p>
 <ul>
 <li><span class="math inline">\(Y_{ij}\)</span> (<code>endog</code>): the <span class="math inline">\(j\)</span>-th count for the <span class="math inline">\(i\)</span>-th observation</li>
 <li><span class="math inline">\(X_i\)</span> (<code>exog</code>): covariates for the <span class="math inline">\(i\)</span>-th observation (if available)</li>
@@ -4765,7 +4765,7 @@ Z_i &amp;\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \operatorname{rank}(\Sigm
 Y_{ij} \mid Z_{ij} &amp;\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).\tag{\href{https://pln-team.github.io/pyPLNmodels/plnpca.html}{\texttt{PlnPCA}}}
 \end{align}
 \]</span></p>
-<p>The rank <span class="math inline">\(q\)</span> must be chosen (e.g., via BIC minimization). See <span class="citation" data-cites="chiquet2018variational">Chiquet, Mariadassou, and Robin (<a href="#ref-chiquet2018variational" role="doc-biblioref">2018</a>)</span> for details. Model parameters are given by <span class="math inline">\((B, \Sigma) =\)</span> (<code>coef</code>, <code>covariance</code>).</p>
+<p>The rank <span class="math inline">\(q\)</span> must be chosen (e.g., via BIC minimization). See <span class="citation" data-cites="chiquet2018variational">J. Chiquet, Mariadassou, and Robin (<a href="#ref-chiquet2018variational" role="doc-biblioref">2018</a>)</span> for details. Model parameters are given by <span class="math inline">\((B, \Sigma) =\)</span> (<code>coef</code>, <code>covariance</code>).</p>
 </section>
 <section id="plnar-autoregressive-latent-dynamics" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="plnar-autoregressive-latent-dynamics"><span class="header-section-number">1.3</span> <code>PlnAR</code>: Autoregressive Latent Dynamics</h2>
@@ -4795,7 +4795,7 @@ Y_{ij} \mid Z_{ij} &amp;\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).\tag{\href{https
 \end{align}
 \]</span></p>
 <p>The hyperparameter <span class="math inline">\(C\)</span> controls the sparsity level. A non-zero entry in <span class="math inline">\(\Sigma^{-1}_{jk}\)</span> implies a direct dependency between variables <span class="math inline">\(j\)</span> and <span class="math inline">\(k\)</span> in the latent space.</p>
-<p>Model parameters are given by <span class="math inline">\((B, \Sigma) =\)</span> (<code>coef</code>, <code>covariance</code>). The precision matrix <span class="math inline">\(\Sigma^{-1}\)</span> is denoted <code>precision</code> in the package.</p>
+<p>Model parameters are given by <span class="math inline">\((B, \Sigma) =\)</span> (<code>coef</code>, <code>covariance</code>). The precision matrix <span class="math inline">\(\Sigma^{-1}\)</span> is denoted <code>precision</code> in the package. See <span class="citation" data-cites="network">Julien Chiquet, Robin, and Mariadassou (<a href="#ref-network" role="doc-biblioref">2019</a>)</span> for more details.</p>
 </section>
 <section id="plnlda-supervised-clustering-throught-latent-discriminant-analysis" class="level2" data-number="1.5">
 <h2 data-number="1.5" class="anchored" data-anchor-id="plnlda-supervised-clustering-throught-latent-discriminant-analysis"><span class="header-section-number">1.5</span> <code>PlnLDA</code>: Supervised clustering throught latent discriminant analysis</h2>
@@ -4865,6 +4865,9 @@ Batardière, Bastien, Joon Kwon, and Julien Chiquet. 2024. <span>“pyPLNmodels:
 </div>
 <div id="ref-chiquet2018variational" class="csl-entry" role="listitem">
 Chiquet, J, M Mariadassou, and S Robin. 2018. <span>“Variational Inference for Probabilistic Poisson PCA.”</span> <em>The Annals of Applied Statistics</em>.
+</div>
+<div id="ref-network" class="csl-entry" role="listitem">
+Chiquet, Julien, Stephane Robin, and Mahendra Mariadassou. 2019. <span>“Variational Inference for Sparse Network Reconstruction from Count Data.”</span> In <em>Proceedings of the 36th International Conference on Machine Learning</em>, 97:1162–71. Proceedings of Machine Learning Research. PMLR.
 </div>
 </div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
