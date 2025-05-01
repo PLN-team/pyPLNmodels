@@ -644,7 +644,9 @@ class PlnNetwork(
 
     @property
     def _description(self):
-        return f" penalty {self.penalty}."
+        descr = f"penalty {self.penalty} on the precision matrix and {self.penalty_coef_type}"
+        descr += f"  penalty {self.penalty_coef} on the regression coefficients."
+        return descr
 
     def _init_latent_parameters(self):
         if not hasattr(self, "_latent_mean") or not hasattr(
