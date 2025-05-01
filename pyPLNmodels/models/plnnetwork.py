@@ -237,11 +237,14 @@ class PlnNetwork(
             print(f"Changing `penalty` from {self.penalty} to : ", penalty, ".")
         if penalty_coef is not None:
             if self.penalty_coef == 0 and penalty_coef > 0:
-                self.__coef = (
-                    _closed_formula_coef(self._exog, self._latent_mean)
-                    .detach()
-                    .requires_grad_(True)
-                )
+                if self.nb_cov == 0:
+                    self.__coef = None
+                else:
+                    self.__coef = (
+                        _closed_formula_coef(self._exog, self._latent_mean)
+                        .detach()
+                        .requires_grad_(True)
+                    )
             self._set_penalty_coef(penalty_coef)
             print(
                 f"Changing `penalty_coef` from {self.penalty_coef} to : ",
