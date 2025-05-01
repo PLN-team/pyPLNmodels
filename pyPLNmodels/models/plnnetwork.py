@@ -398,10 +398,23 @@ class PlnNetwork(
         >>> net.viz_network()
         """
         _viz_network(
-            self.precision * (torch.abs(self.precision) > THRESHOLD),
+            self.precision,
             ax=ax,
             node_labels=self.column_names_endog,
         )
+
+    @property
+    def precision(self):
+        """
+        Property representing the precision of the model, that is the inverse covariance matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            The precision matrix of size (dim, dim).
+        """
+        precision = self._precision
+        return (precision * (torch.abs(precision) > THRESHOLD)).detach().cpu()
 
     @property
     def network(self):
@@ -418,7 +431,7 @@ class PlnNetwork(
         >>> print(net.network)
         """
         _, connections = _build_graph(
-            self.precision * (torch.abs(self.precision) > THRESHOLD),
+            self.precision,
             node_labels=self.column_names_endog,
         )
         return connections
@@ -681,3 +694,19 @@ class PlnNetwork(
     @_add_doc(BaseModel)
     def entropy(self):
         return entropy_gaussian(self._latent_sqrt_variance**2).detach().cpu().item()
+
+    @property
+    def coef(self):
+        """
+        Property representing the regression coefficients of size (`nb_cov`, `dim`).
+        If no exogenous (`exog`) is available, returns `None`.
+
+        Returns
+        -------
+        torch.Tensor or None
+            The coefficients or `None` if no coefficients are given in the model.
+        """
+        if self._coef is not None:
+            coef_thresholded = (torch.abs(self._coef) > THRESHOLD) * self._coef
+            return coef_thresholded.detach().cpu()
+        return None
