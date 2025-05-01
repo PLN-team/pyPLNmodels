@@ -367,7 +367,7 @@ class PlnNetwork(
                     self.__coef = coef.detach().to(DEVICE)
                 else:
                     self.__coef = None
-                    warnings.warns(
+                    warnings.warn(
                         "No covariates in the model, `penalty_coef` is useless."
                     )
 
