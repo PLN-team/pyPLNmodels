@@ -35,7 +35,8 @@ class PlnNetwork(
     """
     Pln model with regularization on the number of parameters
     of the precision matrix (inverse covariance matrix) representing correlation
-    between variables.
+    between variables. A penalty can also be imposed on the coef
+    to have a sparse regression matrix.
 
     For more details, see:
     J. Chiquet, S. Robin, M. Mariadassou: "Variational Inference for sparse network
@@ -54,7 +55,7 @@ class PlnNetwork(
 
     >>> from pyPLNmodels import PlnNetwork, load_scrna
     >>> data = load_scrna()
-    >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data, penalty = 200)
+    >>> net = PlnNetwork.from_formula("endog ~ 1 + labels", data=data, penalty = 200, penalty_coef = 10) #pylint: disable=line-too-long
     >>> net.fit()
     >>> print(net)
     >>> net.viz(colors=data["labels"])
@@ -62,6 +63,7 @@ class PlnNetwork(
     """
 
     penalty: float
+    penalty_coef: float
     _components_prec: torch.Tensor
     _mask: torch.Tensor
 
@@ -306,7 +308,6 @@ class PlnNetwork(
         )
         if self.penalty_coef > 0:
             penalty_coef_value = self._get_penalty_coef_value()
-            print("penalty coef", penalty_coef_value)
             elbo_penalty -= self.penalty_coef * penalty_coef_value
         return elbo_penalty
 
@@ -315,12 +316,12 @@ class PlnNetwork(
 
     def _get_penalty_coef_value(self):
         if self.penalty_coef_type == "lasso":
-            return self.penalty_coef * _lasso_penalty(self.__coef)
+            return _lasso_penalty(self.__coef)
         if self.penalty_coef_type == "group_lasso":
-            return self.penalty_coef * _group_lasso_penalty(self.__coef)
+            return _group_lasso_penalty(self.__coef)
         if self.penalty_coef_type == "sparse_group_lasso":
-            return self.penalty_coef * _sparse_group_lasso_penalty(self.__coef)
-        raise ValueError(f"Unknown penalty coef. Got {self.penalty_coef_type}.")
+            return _sparse_group_lasso_penalty(self.__coef)
+        raise ValueError(f"Unknown penalty coef type. Got {self.penalty_coef_type}.")
 
     @property
     def _precision(self):
