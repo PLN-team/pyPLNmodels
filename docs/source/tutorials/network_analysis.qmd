@@ -21,7 +21,8 @@ nocite: |
 The `PlnNetwork` model in the pyPLNmodels package is designed for sparse network
 inference from multivariate count data, using a
 penalized precision matrix. It allows for network structure learning between
-variables, such as genes in single-cell RNA sequencing datasets.
+variables, such as genes in single-cell RNA sequencing datasets. Moreover, it
+can induce sparsity on the coefficients of the regression matrix.
 
 This tutorial demonstrates how to:
 
@@ -32,6 +33,8 @@ This tutorial demonstrates how to:
 - Visualize inferred network structures and latent variables
 
 - Gives tools for selecting the optimal penalty
+
+- Induce sparsity on the regression matrix
 
 ## Statistical background
 
@@ -125,3 +128,27 @@ and loop through the collection:
 for net in collection.values():
     print(net)
 ```
+
+
+## Inducing sparsity on the regression matrix
+
+
+By default, `PlnNetwork` does not impose any sparsity on the regression matrix. To
+induce sparsity, set the `penalty_coef` parameter to a positive float when initializing the model:
+
+```{python}
+net = PlnNetwork.from_formula("endog ~ 1 + labels", data = data,  penalty_coef=20, penalty=200).fit()
+net.show()
+```
+
+The default sparsity is the `lasso` penalty, but you can also use the
+`group_lasso` and `sparse_group_lasso` penalties. This can be done by
+specifying the `penalty_coef_type` parameter when initializing the model:
+
+```{python}
+net = PlnNetwork.from_formula("endog ~ 1 + labels", data = data, penalty_coef_type="group_lasso",  penalty_coef=50, penalty=200).fit()
+net.show()
+```
+
+
+The coefficients of the regression matrix are therefore sparse.
