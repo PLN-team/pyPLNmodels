@@ -1,4 +1,5 @@
 from typing import Optional, Union
+import warnings
 
 import torch
 import numpy as np
@@ -312,6 +313,8 @@ class PlnNetwork(
         elbo_penalty = elbo_no_penalty - self.penalty * self._l1_penalty_precision(
             precision
         )
+        if self.nb_cov == 0:
+            return elbo_penalty
         if self.penalty_coef > 0:
             penalty_coef_value = self._get_penalty_coef_value()
             elbo_penalty -= self.penalty_coef * penalty_coef_value
@@ -364,6 +367,9 @@ class PlnNetwork(
                     self.__coef = coef.detach().to(DEVICE)
                 else:
                     self.__coef = None
+                    warnings.warns(
+                        "No covariates in the model, `penalty_coef` is useless."
+                    )
 
     @property
     @_add_doc(BaseModel)
