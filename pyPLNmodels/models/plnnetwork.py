@@ -370,7 +370,7 @@ class PlnNetwork(
             self._latent_sqrt_variance,
             self._components_prec,
         ]
-        if self.penalty_coef > 0:
+        if self.penalty_coef > 0 and self.__coef is not None:
             list_params.append(self.__coef)
         return list_params
 
