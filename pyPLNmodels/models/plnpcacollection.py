@@ -11,8 +11,6 @@ from pyPLNmodels.utils._utils import _add_doc, _init_next_model_pca
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 from pyPLNmodels.utils._viz import _show_collection_and_explained_variance
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 class PlnPCACollection(Collection):
     """

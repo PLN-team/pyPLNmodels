@@ -1,13 +1,20 @@
 from typing import Optional, Union
+import warnings
 
 import torch
 import numpy as np
 import pandas as pd
 
 
-from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL, DEVICE
 from pyPLNmodels.calculations.elbos import elbo_pln
-from pyPLNmodels.utils._utils import _add_doc, _get_two_dim_latent_variances
+from pyPLNmodels.utils._utils import (
+    _add_doc,
+    _get_two_dim_latent_variances,
+    _group_lasso_penalty,
+    _lasso_penalty,
+    _sparse_group_lasso_penalty,
+)
 from pyPLNmodels.utils._viz import _viz_network, NetworkModelViz, _build_graph
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula, _array2tensor
 from pyPLNmodels.calculations._closed_forms import _closed_formula_coef
@@ -15,13 +22,16 @@ from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.calculations._initialization import (
     _init_components_prec,
     _init_latent_pln,
+    _init_coef,
 )
 
 
 THRESHOLD = 1e-5
 
 
-class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
+class PlnNetwork(
+    BaseModel
+):  # pylint:disable=too-many-public-methods,too-many-instance-attributes
     """
     Pln model with regularization on the number of parameters
     of the precision matrix (inverse covariance matrix) representing correlation
@@ -56,6 +66,7 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
     _mask: torch.Tensor
 
     _ModelViz = NetworkModelViz
+    __coef: torch.Tensor
 
     @_add_doc(
         BaseModel,
@@ -75,6 +86,22 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
         :class:`pyPLNmodels.PlnMixture`
         :class:`pyPLNmodels.Pln`
         """,
+        params="""
+        penalty: float
+            - The penalty parameter for the precision matrix. The larger the penalty, the larger the
+               sparsity of the precision matrix.
+        penalty_coef: float
+            - The penalty parameter for the coef matrix. The larger the penalty, the larger the
+               sparsity of the coef matrix. Default is 0 (no penalty).
+        penalty_coef_type: optional ("lasso", "group_lasso", "sparse_group_lasso")
+            - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:
+                - "lasso": Enforces sparsity on each coefficient independently, encouraging
+                   many coefficients to be exactly zero.
+                - "group_lasso": Enforces group sparsity, encouraging entire groups of
+                   coefficients (e.g., corresponding to a covariate) to be zero.
+                - "sparse_group_lasso": Combines the effects of "lasso" and
+                   "group_lasso", enforcing both individual and group sparsity.
+        """,
     )
     def __init__(
         self,
@@ -85,10 +112,18 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
         offsets: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame]] = None,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
+        penalty_coef: float = 0,
+        penalty_coef_type: {"lasso", "group_lasso", "sparse_group_lasso"} = "lasso",
     ):  # pylint: disable=too-many-arguments
         if penalty < 0:
-            raise AttributeError(f"Penalty should be positive. Got {penalty}")
-        self.penalty = penalty
+            raise AttributeError(f"`penalty` should be positive. Got {penalty}")
+        if penalty_coef < 0:
+            raise AttributeError(
+                f"`penalty_coef` should be positive. Got {penalty_coef}"
+            )
+        self._set_penalty(penalty)
+        self._set_penalty_coef(penalty_coef)
+        self._set_penalty_coef_type(penalty_coef_type)
         super().__init__(
             endog,
             exog=exog,
@@ -114,7 +149,23 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
         see_also="""
         :class:`pyPLNmodels.PlnNetwork`
         :func:`pyPLNmodels.PlnNetwork.__init__`
-    """,
+        """,
+        params="""
+        penalty: float
+            - The penalty parameter for the precision matrix. The larger the penalty, the larger the
+               sparsity of the precision matrix.
+        penalty_coef: float
+            - The penalty parameter for the coef matrix. The larger the penalty, the larger the
+               sparsity of the coef matrix. Default is 0 (no penalty).
+        penalty_coef_type: optional ("lasso", "group_lasso", "sparse_group_lasso")
+            - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:
+                - "lasso": Enforces sparsity on each coefficient independently, encouraging
+                   many coefficients to be exactly zero.
+                - "group_lasso": Enforces group sparsity, encouraging entire groups of
+                   coefficients (e.g., corresponding to a covariate) to be zero.
+                - "sparse_group_lasso": Combines the effects of "lasso" and
+                   "group_lasso", enforcing both individual and group sparsity.
+        """,
     )
     def from_formula(
         cls,
@@ -123,7 +174,9 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
         *,
         penalty: float,
         compute_offsets_method: {"zero", "logsum"} = "zero",
-    ):  # pylint: disable=arguments-differ
+        penalty_coef: float = 0,
+        penalty_coef_type: {"lasso", "group_lasso", "sparse_group_lasso"} = "lasso",
+    ):  # pylint: disable=arguments-differ,too-many-arguments
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog,
@@ -132,6 +185,8 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
             offsets=offsets,
             compute_offsets_method=compute_offsets_method,
             add_const=False,
+            penalty_coef=penalty_coef,
+            penalty_coef_type=penalty_coef_type,
         )
 
     @_add_doc(
@@ -153,8 +208,19 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
         """,
         params="""
         penalty: float
-            - The penalty parameter. The larger the penalty, the larger the
+            - The penalty parameter for the precision matrix. The larger the penalty, the larger the
                sparsity of the precision matrix.
+        penalty_coef: float
+            - The penalty parameter for the coef matrix. The larger the penalty, the larger the
+               sparsity of the coef matrix. Default is 0 (no penalty).
+        penalty_coef_type: optional ("lasso", "group_lasso", "sparse_group_lasso")
+            - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:
+                - "lasso": Enforces sparsity on each coefficient independently, encouraging
+                   many coefficients to be exactly zero.
+                - "group_lasso": Enforces group sparsity, encouraging entire groups of
+                   coefficients (e.g., corresponding to a covariate) to be zero.
+                - "sparse_group_lasso": Combines the effects of "lasso" and
+                   "group_lasso", enforcing both individual and group sparsity.
         """,
         returns="""
         PlnNetwork object
@@ -168,13 +234,51 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
         penalty: float = None,
+        penalty_coef: float = None,
+        penalty_coef_type: {"lasso", "group_lasso", "sparse_group_lasso"} = None,
     ):  # pylint: disable = too-many-arguments
         if penalty is not None:
-            if not isinstance(penalty, (int, float)):
-                raise ValueError("penalty must be a float.")
-            print(f"Changing penalty from {self.penalty} to : ", penalty, ".")
-            self.penalty = penalty
+            self._set_penalty(penalty)
+            print(f"Changing `penalty` from {self.penalty} to : ", penalty, ".")
+        if penalty_coef is not None:
+            self._set_penalty_coef(penalty_coef)
+            print(
+                f"Changing `penalty_coef` from {self.penalty_coef} to : ",
+                penalty_coef,
+                ".",
+            )
+        if penalty_coef_type is not None:
+            self._set_penalty_coef_type(penalty_coef_type)
+            print(
+                f"Changing `penalty_coef_type` from {self.penalty} to : ", penalty, "."
+            )
         return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
+
+    def _set_penalty(self, penalty):
+        if not isinstance(penalty, (int, float)):
+            raise ValueError(
+                f"`penalty` must be a float, got {type(penalty).__name__}."
+            )
+        self.penalty = penalty
+
+    def _set_penalty_coef(self, penalty_coef):
+        if not isinstance(penalty_coef, (int, float)):
+            raise ValueError(
+                f"`penalty_coef` must be a float, got {type(penalty_coef).__name__}."
+            )
+        self.penalty_coef = penalty_coef
+
+    def _set_penalty_coef_type(self, penalty_coef_type):
+        if penalty_coef_type not in ["lasso", "group_lasso", "sparse_group_lasso"]:
+            msg = "`penalty_coef_type` should be either 'lasso',"
+            msg += f"'group_lasso', or 'sparse_group_lasso', got {penalty_coef_type}"
+            raise ValueError(msg)
+        self.penalty_coef_type = penalty_coef_type
+        if self.penalty_coef == 0 and penalty_coef_type not in [
+            "group_lasso",
+            "sparse_group_lasso",
+        ]:
+            warnings.warn("`penalty_coef` is 0, no penalty will be imposed.")
 
     @_add_doc(
         BaseModel,
@@ -197,10 +301,26 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
             latent_sqrt_variance=self._latent_sqrt_variance,
             precision=precision,
         )
-        return elbo_no_penalty - self.penalty * self._l1_penalty(precision)
+        elbo_penalty = elbo_no_penalty - self.penalty * self._l1_penalty_precision(
+            precision
+        )
+        if self.penalty_coef > 0:
+            penalty_coef_value = self._get_penalty_coef_value()
+            print("penalty coef", penalty_coef_value)
+            elbo_penalty -= self.penalty_coef * penalty_coef_value
+        return elbo_penalty
 
-    def _l1_penalty(self, precision):
+    def _l1_penalty_precision(self, precision):
         return torch.norm(precision * self._mask, p=1)
+
+    def _get_penalty_coef_value(self):
+        if self.penalty_coef_type == "lasso":
+            return self.penalty_coef * _lasso_penalty(self.__coef)
+        if self.penalty_coef_type == "group_lasso":
+            return self.penalty_coef * _group_lasso_penalty(self.__coef)
+        if self.penalty_coef_type == "sparse_group_lasso":
+            return self.penalty_coef * _sparse_group_lasso_penalty(self.__coef)
+        raise ValueError(f"Unknown penalty coef. Got {self.penalty_coef_type}.")
 
     @property
     def _precision(self):
@@ -227,6 +347,16 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
     def _init_model_parameters(self):
         if not hasattr(self, "_components_prec"):
             self._components_prec = _init_components_prec(self._endog)
+        if self.penalty_coef > 0:
+            # if penalty coef is positive, then no closed forms for the coef
+            if not hasattr(self, "__coef"):
+                coef = _init_coef(
+                    endog=self._endog, exog=self._exog, offsets=self._offsets
+                )
+                if coef is not None:
+                    self.__coef = coef.detach().to(DEVICE)
+                else:
+                    self.__coef = None
 
     @property
     @_add_doc(BaseModel)
@@ -236,6 +366,8 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
             self._latent_sqrt_variance,
             self._components_prec,
         ]
+        if self.penalty_coef > 0:
+            list_params.append(self.__coef)
         return list_params
 
     def viz_network(self, ax=None):
@@ -290,6 +422,8 @@ class PlnNetwork(BaseModel):  # pylint:disable=too-many-public-methods
 
     @property
     def _coef(self):
+        if self.penalty_coef > 0:
+            return self.__coef
         return _closed_formula_coef(self._exog, self._latent_mean)
 
     @property

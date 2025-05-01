@@ -33,6 +33,8 @@ from pyPLNmodels.utils._viz import (
 
 DEFAULT_TOL = 1e-6
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class BaseModel(
     ABC
@@ -74,11 +76,12 @@ class BaseModel(
             The covariate data. Defaults to `None`.
         offsets : Union[torch.Tensor, np.ndarray, pd.DataFrame], optional(keyword-only)
             The offsets data. Defaults to `None`.
-        compute_offsets_method : str, optional(keyword-only)
+        compute_offsets_method : str ("zero", "logsum"), optional(keyword-only)
             Method to compute offsets if not provided. Options are:
                 - "zero" that will set the offsets to zero.
                 - "logsum" that will take the logarithm of the sum (per line) of the counts.
             Overridden (useless) if `offsets` is not None.
+            Default is "zero".
         add_const: bool, optional(keyword-only)
             Whether to add a column of one in the `exog`. Defaults to `True`.
         """

@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL, DEVICE
 from pyPLNmodels.calculations.elbos import elbo_plnpca
 from pyPLNmodels.calculations._initialization import (
     _init_coef,
@@ -19,9 +19,6 @@ from pyPLNmodels.utils._data_handler import (
 from pyPLNmodels.calculations.entropies import entropy_gaussian
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 from pyPLNmodels.utils._viz import PCAModelViz
-
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class PlnPCA(BaseModel):
