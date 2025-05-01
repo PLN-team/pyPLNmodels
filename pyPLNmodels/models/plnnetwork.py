@@ -1,5 +1,4 @@
 from typing import Optional, Union
-import warnings
 
 import torch
 import numpy as np
@@ -117,12 +116,6 @@ class PlnNetwork(
         penalty_coef: float = 0,
         penalty_coef_type: {"lasso", "group_lasso", "sparse_group_lasso"} = "lasso",
     ):  # pylint: disable=too-many-arguments
-        if penalty < 0:
-            raise AttributeError(f"`penalty` should be positive. Got {penalty}")
-        if penalty_coef < 0:
-            raise AttributeError(
-                f"`penalty_coef` should be positive. Got {penalty_coef}"
-            )
         self._set_penalty(penalty)
         self._set_penalty_coef(penalty_coef)
         self._set_penalty_coef_type(penalty_coef_type)
@@ -243,6 +236,12 @@ class PlnNetwork(
             self._set_penalty(penalty)
             print(f"Changing `penalty` from {self.penalty} to : ", penalty, ".")
         if penalty_coef is not None:
+            if self.penalty_coef == 0 and penalty_coef > 0:
+                self.__coef = (
+                    _closed_formula_coef(self._exog, self._latent_mean)
+                    .detach()
+                    .requires_grad_(True)
+                )
             self._set_penalty_coef(penalty_coef)
             print(
                 f"Changing `penalty_coef` from {self.penalty_coef} to : ",
@@ -261,6 +260,8 @@ class PlnNetwork(
             raise ValueError(
                 f"`penalty` must be a float, got {type(penalty).__name__}."
             )
+        if penalty < 0:
+            raise ValueError(f"`penalty` should be positive. Got {penalty}")
         self.penalty = penalty
 
     def _set_penalty_coef(self, penalty_coef):
@@ -268,6 +269,8 @@ class PlnNetwork(
             raise ValueError(
                 f"`penalty_coef` must be a float, got {type(penalty_coef).__name__}."
             )
+        if penalty_coef < 0:
+            raise ValueError(f"`penalty_coef` should be positive. Got {penalty_coef}")
         self.penalty_coef = penalty_coef
 
     def _set_penalty_coef_type(self, penalty_coef_type):
@@ -276,11 +279,11 @@ class PlnNetwork(
             msg += f"'group_lasso', or 'sparse_group_lasso', got {penalty_coef_type}"
             raise ValueError(msg)
         self.penalty_coef_type = penalty_coef_type
-        if self.penalty_coef == 0 and penalty_coef_type not in [
+        if self.penalty_coef == 0 and penalty_coef_type in [
             "group_lasso",
             "sparse_group_lasso",
         ]:
-            warnings.warn("`penalty_coef` is 0, no penalty will be imposed.")
+            raise ValueError("`penalty_coef` is 0, no penalty can be imposed.")
 
     @_add_doc(
         BaseModel,

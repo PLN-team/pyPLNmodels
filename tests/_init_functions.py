@@ -15,6 +15,7 @@ from pyPLNmodels import (
 )
 
 PENALTY = 200
+PENALTY_COEF = 10
 PENALTIES = [1, 100]
 RANKS = [3, 6]
 N_CLUSTERS = [2, 3]
@@ -150,11 +151,15 @@ def _PlnNetwork_init(init_method, **kwargs):
             offsets=offsets,
             add_const=add_const,
             penalty=PENALTY,
+            penalty_coef=PENALTY_COEF,
+            penalty_coef_type="group_lasso",
         )
     if init_method == "formula":
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
-        return PlnNetwork.from_formula(formula, data=data, penalty=PENALTY)
+        return PlnNetwork.from_formula(
+            formula, data=data, penalty=PENALTY, penalty_coef=0
+        )
     raise ValueError('init_method must be "explicit" or "formula"')
 
 
@@ -274,11 +279,16 @@ def _PlnNetworkCollection_init(init_method, **kwargs):
             offsets=offsets,
             add_const=add_const,
             penalties=PENALTIES,
+            penalty_coef=0,
         )
     if init_method == "formula":
         data = kwargs.get("data", None)
         formula = kwargs.get("formula", None)
         return PlnNetworkCollection.from_formula(
-            formula, data=data, penalties=PENALTIES
+            formula,
+            data=data,
+            penalties=PENALTIES,
+            penalty_coef=PENALTY_COEF,
+            penalty_coef_type="sparse_group_lasso",
         )
     raise ValueError('init_method must be "explicit" or "formula"')
