@@ -46,4 +46,4 @@ format:
     css: custom_css_yml.css
     theme: cosme
     code-copy: true
-    page-navigation: true
+    # page-navigation: true
