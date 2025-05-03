@@ -4,7 +4,7 @@ import torch
 import pandas as pd
 import numpy as np
 
-from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL, DEVICE
 from pyPLNmodels.calculations.elbos import (
     elbo_plnar_diag_autoreg,
     elbo_plnar_scalar_autoreg,
@@ -24,8 +24,6 @@ from pyPLNmodels.utils._utils import (
 )
 from pyPLNmodels.utils._viz import _viz_dims, ARModelViz
 from pyPLNmodels.utils._data_handler import _extract_data_from_formula
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes

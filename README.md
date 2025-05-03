@@ -46,6 +46,9 @@ that an `R` version of the package is available [here](https://pln-team.github.i
 ```sh
 pip install pyPLNmodels
 ```
+The package depends on resource-intensive libraries like `torch`, so it may
+require significant storage space.
+
 
 ## Statistical description
 

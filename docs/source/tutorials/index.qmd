@@ -38,6 +38,8 @@ First of all, you should run:
 #| eval: false
 pip install pyPLNmodels
 ```
+The package depends on resource-intensive libraries like `torch`, so it may
+require significant storage space.
 
 ## Tutorials
 

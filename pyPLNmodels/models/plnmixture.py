@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.metrics import silhouette_score
 
-from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL, DEVICE
 from pyPLNmodels.models.plndiag import PlnDiag
 from pyPLNmodels.utils._data_handler import (
     _extract_data_from_formula,
@@ -26,9 +26,6 @@ from pyPLNmodels.calculations.entropies import (
 )
 from pyPLNmodels.calculations.elbos import per_sample_elbo_pln_mixture_diag
 from pyPLNmodels.utils._viz import MixtureModelViz, _viz_variables
-
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class PlnMixture(

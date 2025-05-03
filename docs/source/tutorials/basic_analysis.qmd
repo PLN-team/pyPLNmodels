@@ -49,7 +49,7 @@ and the model parameters are:
 These models aim to capture the structure of the data through the latent variables $Z$.
 
 The `Pln` model assumes $\Sigma$ has full rank, while the `PlnPCA` model
-assumes $\Sigma$ has a low rank, which must be specified by the user. A lower
+assumes $\Sigma$ has a low rank, which must be specified by the user.
  A lower rank introduces a trade-off, reducing computational complexity but potentially
 compromising parameter estimation accuracy.
 
@@ -61,16 +61,20 @@ The `pyPLNmodels` package is designed to:
 * Retrieve the latent variables $Z$ (which typically contains more information than $Y$)
 * Visualize the latent variables and their relationships
 
-This is achieved using the input count matrix $Y$, along with optional covariate matrix $X$ (defaulting to a vector of 1's) and offsets $O$ (defaulting to a matrix of 0's).
+This is achieved using the input count matrix $Y$, along with optional covariate matrix $X$ (defaulting to a vector of 1s) and offsets $O$ (defaulting to a matrix of 0s).
 
 
 # Importing Data
 
-In this example, we analyze single-cell RNA-seq data provided by the `load_scrna` function in the package. Each column in the dataset represents a gene, while each row corresponds to a cell (i.e., an individual). Covariates for cell types (`labels`) are also included. For simplicity, we limit the analysis to 20 variables (dimensions).
+In this example, we analyze single-cell RNA-seq data provided by the
+`load_scrna` function in the package. Each column in the dataset represents a
+gene, while each row corresponds to a cell (i.e., an individual). Covariates
+for cell types (`labels`) are also included. For simplicity, we limit the
+analysis to $10$ variables (dimensions).
 
 ```{python}
 from pyPLNmodels import load_scrna
-rna = load_scrna(dim=20)
+rna = load_scrna(dim=10)
 print('Data: ', rna.keys())
 ```
 
@@ -118,16 +122,14 @@ To gain deeper insights into the model parameters and the optimization process, 
 pln.show()
 ```
 
-Monitoring the norm of each parameters allows to know if the model has
-converged. If it has not converged, one can refit the model with a lower
-tolerance (`tol`) and a bigger number iterations than the default (`maxiter=400`):
+Monitoring the norm of each parameter is essential to assess model convergence.
+If the model has not converged, consider refitting it with additional iterations and
+a reduced tolerance (`tol`). To adjust the number of iterations, use the
+`maxiter` parameter:
 
 ```{python}
-#|eval : false
-pln.fit(maxiter=1000, tol = 0)
+pln.fit(maxiter=1000, tol = 0).show()
 ```
-
-
 
 ## Exploring Latent Variables
 
@@ -139,12 +141,6 @@ Z = pln.transform()
 print('Shape of Z:', Z.shape)
 ```
 
-The effect of covariates on the latent variables can be removed by using the `remove_exog_effect` keyword:
-
-```{python}
-Z_moins_XB = pln.transform(remove_exog_effect=True)
-```
-
 
 You can visualize these latent variables using the `.viz()` method:
 
@@ -152,7 +148,16 @@ You can visualize these latent variables using the `.viz()` method:
 pln.viz(colors=cell_type)
 ```
 
-To visualize the latent positions without the effect of covariates (i.e., \(Z - XB\)), set the `remove_exog_effect` parameter to `True`:
+By default the effect of covariates on the latent variables is included in the
+visualization. This means that the latent variables are represented as $Z +
+XB$. The effect of covariates on the latent variables can be removed by using
+the `remove_exog_effect` keyword:
+
+```{python}
+Z_moins_XB = pln.transform(remove_exog_effect=True)
+```
+
+To visualize the latent positions without the effect of covariates (i.e., \(Z - XB\)), set the `remove_exog_effect` parameter to `True` in the `.viz()` method:
 
 ```{python}
 pln.viz(colors=cell_type, remove_exog_effect=True)
@@ -163,6 +168,7 @@ Additionally, you can generate a pair plot of the first Principal Components (PC
 ```{python}
 pln.pca_pairplot(n_components=4, colors=cell_type)
 ```
+The `remove_exog_effect` parameter is also available in the `pca_pairplot` method.
 
 # Analyzing Covariate Effects
 
@@ -175,6 +181,8 @@ To summarize the model, including confidence intervals and p-values, use the `su
 ```{python}
 pln.summary()
 ```
+The p-value corresponds to the coding used in one-hot encoding, with
+`Macrophages` set as the reference category.
 
 You can also visualize confidence intervals for regression coefficients using the `plot_regression_forest` method:
 
@@ -220,12 +228,23 @@ pca = PlnPCA.from_formula('endog ~ 1 + labels', data=high_d_rna, rank=5).fit()
 
 **⚠️  Note:** P-values are not available in the `PlnPCA` model.
 
-
 ```{python}
 print(pca)
 ```
 
-This model is particularly efficient for high-dimensional datasets, offering significantly reduced computation time compared to `Pln`:
+A low-dimensional of dimension `rank` of the latent variables can be obtained using the `project` keyword of the `.transform()` method:
+
+```{python}
+Z_low_dim = pca.transform(project=True)
+print('Shape of Z_low_dim:', Z_low_dim.shape)
+```
+
+
+
+This model is particularly efficient for high-dimensional datasets, offering
+significantly reduced computation time compared to `Pln`. See [this
+paper](https://joss.theoj.org/papers/10.21105/joss.06969) for a computational
+comparison between `Pln` and `PlnPCA`
 
 ## Selecting the Rank
 

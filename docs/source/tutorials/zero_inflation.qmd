@@ -46,7 +46,7 @@ More details can be found in @zeroinflation. The input data includes:
 * $Y_{ij}$ (`endog`): the $j$-th count for the $i$-th observation
 * $X_i$ (`exog`): covariates for the $i$-th observation (if available, defaults to 1)
 * $X^0_i$ (`exog_inflation`): covariates for the $i$-th observation specific to the inflation component (if available, defaults to 1)
-* $o_i$ (`offsets`): offset for the $i$-th observation (if available, defaults to a vector of 0's)
+* $o_i$ (`offsets`): offset for the $i$-th observation (if available, defaults to a vector of 0s)
 
 The model parameters are:
 
@@ -71,8 +71,8 @@ The `pyPLNmodels` package is designed to:
 * Visualize the latent variables and their correlations
 
 This is achieved using the input count matrix $Y$, along with optional covariate matrices $X$
-(defaulting to a vector of 1's) and $X^0$ (for zero-inflation, also defaulting to a vector of 1's),
-as well as offsets $O$ (defaulting to a matrix of 0's).
+(defaulting to a vector of 1) and $X^0$ (for zero-inflation, also defaulting to a vector of 1s),
+as well as offsets $O$ (defaulting to a matrix of 0s).
 
 # Data Import
 
