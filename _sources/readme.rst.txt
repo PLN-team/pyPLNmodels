@@ -59,6 +59,9 @@ Package installation
 
     pip install pyPLNmodels
 
+The package depends on resource-intensive libraries like ``torch``, so
+it may require significant storage space.
+
 Statistical description
 -----------------------
 

@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=e863380b"></script>
+<script src="_static/documentation_options.js?v=7f2e0b8d"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -198,9 +198,9 @@ See ?? for more details.</p>
 <li><p><strong>endog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em>)</p></li>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>Series</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
-<li><p><strong>ar_type</strong> (<em>{'full'</em><em>, </em><em>'diagonal'</em><em>, </em><em>'spherical'}</em>)</p></li>
+<li><p><strong>ar_type</strong> (<em>{'diagonal'</em><em>, </em><em>'full'</em><em>, </em><em>'spherical'}</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -214,14 +214,15 @@ See ?? for more details.</p>
 <li><p><strong>endog</strong> (<em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>np.ndarray</em><em>, </em><em>pd.DataFrame</em><em>]</em>) – The count data.</p></li>
 <li><p><strong>exog</strong> (<em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>np.ndarray</em><em>, </em><em>pd.DataFrame</em><em>]</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – The covariate data. Defaults to <cite>None</cite>.</p></li>
 <li><p><strong>offsets</strong> (<em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>np.ndarray</em><em>, </em><em>pd.DataFrame</em><em>]</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – The offsets data. Defaults to <cite>None</cite>.</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>str</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – <dl class="simple">
+<li><p><strong>compute_offsets_method</strong> (<em>str</em><em> (</em><em>"zero"</em><em>, </em><em>"logsum"</em><em>)</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – <dl class="simple">
 <dt>Method to compute offsets if not provided. Options are:</dt><dd><ul>
 <li><p>”zero” that will set the offsets to zero.</p></li>
 <li><p>”logsum” that will take the logarithm of the sum (per line) of the counts.</p></li>
 </ul>
 </dd>
 </dl>
-<p>Overridden (useless) if <cite>offsets</cite> is not None.</p>
+<p>Overridden (useless) if <cite>offsets</cite> is not None.
+Default is “zero”.</p>
 </p></li>
 <li><p><strong>add_const</strong> (<em>bool</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – Whether to add a column of one in the <cite>exog</cite>. Defaults to <cite>True</cite>.</p></li>
 <li><p><strong>ar_type</strong> (<em>str</em><em> (</em><em>optional</em><em>)</em>) – The autregression type. Can be either “diagonal”, “spherical” or “full”.

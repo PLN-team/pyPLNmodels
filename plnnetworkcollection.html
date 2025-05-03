@@ -13,7 +13,7 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=e863380b"></script>
+<script src="_static/documentation_options.js?v=7f2e0b8d"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -146,11 +146,12 @@
 <h2>PlnNetworkCollection Documentation<a class="headerlink" href="#plnnetworkcollection-documentation" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnNetworkCollection">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyPLNmodels.</span></span><span class="sig-name descname"><span class="pre">PlnNetworkCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endog</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">100,</span> <span class="pre">1000)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnnetworkcollection.html#PlnNetworkCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnNetworkCollection" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyPLNmodels.</span></span><span class="sig-name descname"><span class="pre">PlnNetworkCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endog</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">100,</span> <span class="pre">1000)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_coef_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lasso'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnnetworkcollection.html#PlnNetworkCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnNetworkCollection" title="Link to this definition"></a></dt>
 <dd><p>A collection of <cite>PlnNetwork</cite> models, each with a different penalty.
 For more details, see:
 J. Chiquet, S. Robin, M. Mariadassou: “Variational Inference for sparse network
 reconstruction from count data”</p>
+<p>Unlike the PlnNetwork, the penalty coef can not be changed at fitting time.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels</span><span class="w"> </span><span class="kn">import</span> <a class="sphinx-codeautolink-a" href="plnnetworkcollection.html#pyPLNmodels.PlnNetworkCollection" title="pyPLNmodels.models.plnnetworkcollection.PlnNetworkCollection"><span class="n">PlnNetworkCollection</span></a><span class="p">,</span> <span class="n">load_scrna</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load_scrna</span><span class="p">()</span>
@@ -172,9 +173,11 @@ reconstruction from count data”</p>
 <li><p><strong>endog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em>)</p></li>
 <li><p><strong>exog</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>{'zero'</em><em>, </em><em>'logsum'}</em>)</p></li>
+<li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
 <li><p><strong>penalties</strong> (<em>Iterable</em><em>[</em><em>float</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>penalty_coef</strong> (<em>float</em>)</p></li>
+<li><p><strong>penalty_coef_type</strong> (<em>{'group_lasso'</em><em>, </em><em>'sparse_group_lasso'</em><em>, </em><em>'lasso'}</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -185,7 +188,7 @@ reconstruction from count data”</p>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnNetworkCollection.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endog</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">100,</span> <span class="pre">1000)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnnetworkcollection.html#PlnNetworkCollection.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnNetworkCollection.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endog</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">100,</span> <span class="pre">1000)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_coef_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lasso'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnnetworkcollection.html#PlnNetworkCollection.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnNetworkCollection.__init__" title="Link to this definition"></a></dt>
 <dd><p>Initializes the collection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -204,6 +207,38 @@ reconstruction from count data”</p>
 </p></li>
 <li><p><strong>add_const</strong> (<em>bool</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – Whether to add a column of one in the <cite>exog</cite>. Defaults to <cite>True</cite>.</p></li>
 <li><p><strong>penalties</strong> (<em>Iterable</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – The range of penalties, by default <cite>(1, 10, 100, 1000)</cite>.</p></li>
+<li><p><strong>penalty_coef</strong> (<em>float</em>) – <ul>
+<li><dl class="simple">
+<dt>The penalty parameter for the coef matrix. The larger the penalty, the larger the</dt><dd><p>sparsity of the coef matrix. Default is 0 (no penalty).</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+<li><p><strong>penalty_coef_type</strong> (<em>optional</em><em> (</em><em>"lasso"</em><em>, </em><em>"group_lasso"</em><em>, </em><em>"sparse_group_lasso"</em><em>)</em>) – <ul>
+<li><dl class="simple">
+<dt>The penalty type for the <cite>coef</cite>. Useless if <cite>penalty_coef</cite> is 0. Can be either:</dt><dd><ul>
+<li><dl class="simple">
+<dt>”lasso”: Enforces sparsity on each coefficient independently, encouraging</dt><dd><p>many coefficients to be exactly zero.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>”group_lasso”: Enforces group sparsity, encouraging entire groups of</dt><dd><p>coefficients (e.g., corresponding to a covariate) to be zero.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>”sparse_group_lasso”: Combines the effects of “lasso” and</dt><dd><p>”group_lasso”, enforcing both individual and group sparsity.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -225,7 +260,7 @@ reconstruction from count data”</p>
 </dd></dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnNetworkCollection.from_formula">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_formula</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">formula</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">100,</span> <span class="pre">1000)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnnetworkcollection.html#PlnNetworkCollection.from_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnNetworkCollection.from_formula" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_formula</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">formula</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">100,</span> <span class="pre">1000)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_coef_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lasso'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnnetworkcollection.html#PlnNetworkCollection.from_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnNetworkCollection.from_formula" title="Link to this definition"></a></dt>
 <dd><p>Create an instance from a formula and data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -234,7 +269,8 @@ reconstruction from count data”</p>
 <li><p><strong>data</strong> (<em>dict</em>) – The data dictionary. Each value can be either a torch.Tensor,
 <cite>np.ndarray</cite>, <cite>pd.DataFrame</cite> or <cite>pd.Series</cite>. The categorical exogenous
 variables should be 1-dimensional.</p></li>
-<li><p><strong>compute_offsets_method</strong> (<em>str</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – <dl class="simple">
+<li><p><strong>compute_offsets_method</strong> (<em>str</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – <blockquote>
+<div><dl class="simple">
 <dt>Method to compute offsets if not provided. Options are:</dt><dd><ul>
 <li><p>”zero” that will set the offsets to zero.</p></li>
 <li><p>”logsum” that will take the logarithm of the sum (per line) of the counts.</p></li>
@@ -242,9 +278,40 @@ variables should be 1-dimensional.</p></li>
 </dd>
 </dl>
 <p>Overridden (useless) if data[“offsets”] is not <cite>None</cite>.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>penalties<span class="classifier">Iterable[float], optional(keyword-only)</span></dt><dd><p>The penalties that needs to be tested. By default
+(1, 10, 100, 1000).</p>
+</dd>
+</dl>
 </p></li>
-<li><p><strong>penalties</strong> (<em>Iterable</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em><em>(</em><em>keyword-only</em><em>)</em>) – The penalties that needs to be tested. By default
-(1, 10, 100, 1000).</p></li>
+<li><p><strong>penalty_coef</strong> (<em>float</em>) – <dl class="simple">
+<dt>The penalty parameter for the coef matrix. The larger the penalty, the larger the</dt><dd><p>sparsity of the coef matrix. Default is 0 (no penalty).</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>penalty_coef_type</strong> (<em>optional</em><em> (</em><em>"lasso"</em><em>, </em><em>"group_lasso"</em><em>, </em><em>"sparse_group_lasso"</em><em>)</em>) – <dl class="simple">
+<dt>The penalty type for the <cite>coef</cite>. Useless if <cite>penalty_coef</cite> is 0. Can be either:</dt><dd><ul>
+<li><dl class="simple">
+<dt>”lasso”: Enforces sparsity on each coefficient independently, encouraging</dt><dd><p>many coefficients to be exactly zero.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>”group_lasso”: Enforces group sparsity, encouraging entire groups of</dt><dd><p>coefficients (e.g., corresponding to a covariate) to be zero.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>”sparse_group_lasso”: Combines the effects of “lasso” and</dt><dd><p>”group_lasso”, enforcing both individual and group sparsity.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>penalties</strong> (<em>Iterable</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
 </dd>
 </dl>

@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e863380b"></script>
+      <script src="../../../_static/documentation_options.js?v=7f2e0b8d"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -134,6 +134,8 @@
 <span class="sd">    J. Chiquet, S. Robin, M. Mariadassou: &quot;Variational Inference for sparse network</span>
 <span class="sd">    reconstruction from count data&quot;</span>
 
+<span class="sd">    Unlike the PlnNetwork, the penalty coef can not be changed at fitting time.</span>
+
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnNetworkCollection, load_scrna</span>
@@ -166,6 +168,17 @@
         <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            penalties : Iterable[float], optional(keyword-only)</span>
 <span class="s2">                The range of penalties, by default `(1, 10, 100, 1000)`.</span>
+<span class="s2">            penalty_coef: float</span>
+<span class="s2">                - The penalty parameter for the coef matrix. The larger the penalty, the larger the</span>
+<span class="s2">                   sparsity of the coef matrix. Default is 0 (no penalty).</span>
+<span class="s2">            penalty_coef_type: optional (&quot;lasso&quot;, &quot;group_lasso&quot;, &quot;sparse_group_lasso&quot;)</span>
+<span class="s2">                - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:</span>
+<span class="s2">                    - &quot;lasso&quot;: Enforces sparsity on each coefficient independently, encouraging</span>
+<span class="s2">                       many coefficients to be exactly zero.</span>
+<span class="s2">                    - &quot;group_lasso&quot;: Enforces group sparsity, encouraging entire groups of</span>
+<span class="s2">                       coefficients (e.g., corresponding to a covariate) to be zero.</span>
+<span class="s2">                    - &quot;sparse_group_lasso&quot;: Combines the effects of &quot;lasso&quot; and</span>
+<span class="s2">                       &quot;group_lasso&quot;, enforcing both individual and group sparsity.</span>
 <span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
         <span class="n">example</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            &gt;&gt;&gt; from pyPLNmodels import PlnNetworkCollection, load_scrna</span>
@@ -190,7 +203,11 @@
         <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
         <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">penalties</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span>
+        <span class="n">penalty_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">penalty_coef_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;lasso&quot;</span><span class="p">,</span>
     <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">=</span> <span class="n">penalty_coef</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span> <span class="o">=</span> <span class="n">penalty_coef_type</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">endog</span><span class="o">=</span><span class="n">endog</span><span class="p">,</span>
             <span class="n">grid</span><span class="o">=</span><span class="n">penalties</span><span class="p">,</span>
@@ -210,6 +227,17 @@
 <span class="s2">              penalties : Iterable[float], optional(keyword-only)</span>
 <span class="s2">                The penalties that needs to be tested. By default</span>
 <span class="s2">                (1, 10, 100, 1000).</span>
+<span class="s2">            penalty_coef: float</span>
+<span class="s2">                The penalty parameter for the coef matrix. The larger the penalty, the larger the</span>
+<span class="s2">                   sparsity of the coef matrix. Default is 0 (no penalty).</span>
+<span class="s2">            penalty_coef_type: optional (&quot;lasso&quot;, &quot;group_lasso&quot;, &quot;sparse_group_lasso&quot;)</span>
+<span class="s2">                The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:</span>
+<span class="s2">                    - &quot;lasso&quot;: Enforces sparsity on each coefficient independently, encouraging</span>
+<span class="s2">                       many coefficients to be exactly zero.</span>
+<span class="s2">                    - &quot;group_lasso&quot;: Enforces group sparsity, encouraging entire groups of</span>
+<span class="s2">                       coefficients (e.g., corresponding to a covariate) to be zero.</span>
+<span class="s2">                    - &quot;sparse_group_lasso&quot;: Combines the effects of &quot;lasso&quot; and</span>
+<span class="s2">                       &quot;group_lasso&quot;, enforcing both individual and group sparsity.</span>
 <span class="s2">              &quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_formula</span><span class="p">(</span>
@@ -219,7 +247,9 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
         <span class="n">penalties</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span>
-    <span class="p">):</span>  <span class="c1"># pylint: disable=missing-function-docstring, arguments-differ</span>
+        <span class="n">penalty_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">penalty_coef_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;lasso&quot;</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=missing-function-docstring, arguments-differ, too-many-arguments</span>
         <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">_extract_data_from_formula</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">endog</span><span class="o">=</span><span class="n">endog</span><span class="p">,</span>
@@ -228,6 +258,8 @@
             <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
             <span class="n">penalties</span><span class="o">=</span><span class="n">penalties</span><span class="p">,</span>
             <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">penalty_coef</span><span class="o">=</span><span class="n">penalty_coef</span><span class="p">,</span>
+            <span class="n">penalty_coef_type</span><span class="o">=</span><span class="n">penalty_coef_type</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -238,6 +270,8 @@
             <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span><span class="p">,</span>
             <span class="n">penalty</span><span class="o">=</span><span class="n">grid_value</span><span class="p">,</span>
             <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">penalty_coef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span><span class="p">,</span>
+            <span class="n">penalty_coef_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_is_right_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid_value</span><span class="p">):</span>
@@ -297,7 +331,7 @@
         <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
         <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable = too-many-arguments</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">maxiter</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
 
 

@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=e863380b"></script>
+      <script src="../../../_static/documentation_options.js?v=7f2e0b8d"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -111,15 +111,22 @@
              
   <h1>Source code for pyPLNmodels.models.plnnetwork</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span> <span class="n">DEVICE</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations.elbos</span><span class="w"> </span><span class="kn">import</span> <span class="n">elbo_pln</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_doc</span><span class="p">,</span> <span class="n">_get_two_dim_latent_variances</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_add_doc</span><span class="p">,</span>
+    <span class="n">_get_two_dim_latent_variances</span><span class="p">,</span>
+    <span class="n">_group_lasso_penalty</span><span class="p">,</span>
+    <span class="n">_lasso_penalty</span><span class="p">,</span>
+    <span class="n">_sparse_group_lasso_penalty</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._viz</span><span class="w"> </span><span class="kn">import</span> <span class="n">_viz_network</span><span class="p">,</span> <span class="n">NetworkModelViz</span><span class="p">,</span> <span class="n">_build_graph</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.utils._data_handler</span><span class="w"> </span><span class="kn">import</span> <span class="n">_extract_data_from_formula</span><span class="p">,</span> <span class="n">_array2tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._closed_forms</span><span class="w"> </span><span class="kn">import</span> <span class="n">_closed_formula_coef</span>
@@ -127,6 +134,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels.calculations._initialization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_init_components_prec</span><span class="p">,</span>
     <span class="n">_init_latent_pln</span><span class="p">,</span>
+    <span class="n">_init_coef</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -135,11 +143,14 @@
 
 <div class="viewcode-block" id="PlnNetwork">
 <a class="viewcode-back" href="../../../plnnetwork.html#pyPLNmodels.PlnNetwork">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">PlnNetwork</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>  <span class="c1"># pylint:disable=too-many-public-methods</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlnNetwork</span><span class="p">(</span>
+    <span class="n">BaseModel</span>
+<span class="p">):</span>  <span class="c1"># pylint:disable=too-many-public-methods,too-many-instance-attributes</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pln model with regularization on the number of parameters</span>
 <span class="sd">    of the precision matrix (inverse covariance matrix) representing correlation</span>
-<span class="sd">    between variables.</span>
+<span class="sd">    between variables. A penalty can also be imposed on the coef</span>
+<span class="sd">    to have a sparse regression matrix.</span>
 
 <span class="sd">    For more details, see:</span>
 <span class="sd">    J. Chiquet, S. Robin, M. Mariadassou: &quot;Variational Inference for sparse network</span>
@@ -158,7 +169,7 @@
 
 <span class="sd">    &gt;&gt;&gt; from pyPLNmodels import PlnNetwork, load_scrna</span>
 <span class="sd">    &gt;&gt;&gt; data = load_scrna()</span>
-<span class="sd">    &gt;&gt;&gt; net = PlnNetwork.from_formula(&quot;endog ~ 1 + labels&quot;, data=data, penalty = 200)</span>
+<span class="sd">    &gt;&gt;&gt; net = PlnNetwork.from_formula(&quot;endog ~ 1 + labels&quot;, data=data, penalty = 200, penalty_coef = 10) #pylint: disable=line-too-long</span>
 <span class="sd">    &gt;&gt;&gt; net.fit()</span>
 <span class="sd">    &gt;&gt;&gt; print(net)</span>
 <span class="sd">    &gt;&gt;&gt; net.viz(colors=data[&quot;labels&quot;])</span>
@@ -166,10 +177,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">penalty</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">penalty_coef</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">_components_prec</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
 
     <span class="n">_ModelViz</span> <span class="o">=</span> <span class="n">NetworkModelViz</span>
+    <span class="n">__coef</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
 
 <div class="viewcode-block" id="PlnNetwork.__init__">
 <a class="viewcode-back" href="../../../plnnetwork.html#pyPLNmodels.PlnNetwork.__init__">[docs]</a>
@@ -191,6 +204,22 @@
 <span class="s2">        :class:`pyPLNmodels.PlnMixture`</span>
 <span class="s2">        :class:`pyPLNmodels.Pln`</span>
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        penalty: float</span>
+<span class="s2">            - The penalty parameter for the precision matrix. The larger the penalty, the larger the</span>
+<span class="s2">               sparsity of the precision matrix.</span>
+<span class="s2">        penalty_coef: float</span>
+<span class="s2">            - The penalty parameter for the coef matrix. The larger the penalty, the larger the</span>
+<span class="s2">               sparsity of the coef matrix. Default is 0 (no penalty).</span>
+<span class="s2">        penalty_coef_type: optional (&quot;lasso&quot;, &quot;group_lasso&quot;, &quot;sparse_group_lasso&quot;)</span>
+<span class="s2">            - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:</span>
+<span class="s2">                - &quot;lasso&quot;: Enforces sparsity on each coefficient independently, encouraging</span>
+<span class="s2">                   many coefficients to be exactly zero.</span>
+<span class="s2">                - &quot;group_lasso&quot;: Enforces group sparsity, encouraging entire groups of</span>
+<span class="s2">                   coefficients (e.g., corresponding to a covariate) to be zero.</span>
+<span class="s2">                - &quot;sparse_group_lasso&quot;: Combines the effects of &quot;lasso&quot; and</span>
+<span class="s2">                   &quot;group_lasso&quot;, enforcing both individual and group sparsity.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -201,10 +230,12 @@
         <span class="n">offsets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
         <span class="n">add_const</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">penalty_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">penalty_coef_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;lasso&quot;</span><span class="p">,</span>
     <span class="p">):</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
-        <span class="k">if</span> <span class="n">penalty</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Penalty should be positive. Got </span><span class="si">{</span><span class="n">penalty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">penalty</span> <span class="o">=</span> <span class="n">penalty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_penalty</span><span class="p">(</span><span class="n">penalty</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_penalty_coef</span><span class="p">(</span><span class="n">penalty_coef</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_penalty_coef_type</span><span class="p">(</span><span class="n">penalty_coef_type</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">endog</span><span class="p">,</span>
             <span class="n">exog</span><span class="o">=</span><span class="n">exog</span><span class="p">,</span>
@@ -233,7 +264,23 @@
         <span class="n">see_also</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">        :class:`pyPLNmodels.PlnNetwork`</span>
 <span class="s2">        :func:`pyPLNmodels.PlnNetwork.__init__`</span>
-<span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        penalty: float</span>
+<span class="s2">            - The penalty parameter for the precision matrix. The larger the penalty, the larger the</span>
+<span class="s2">               sparsity of the precision matrix.</span>
+<span class="s2">        penalty_coef: float</span>
+<span class="s2">            - The penalty parameter for the coef matrix. The larger the penalty, the larger the</span>
+<span class="s2">               sparsity of the coef matrix. Default is 0 (no penalty).</span>
+<span class="s2">        penalty_coef_type: optional (&quot;lasso&quot;, &quot;group_lasso&quot;, &quot;sparse_group_lasso&quot;)</span>
+<span class="s2">            - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:</span>
+<span class="s2">                - &quot;lasso&quot;: Enforces sparsity on each coefficient independently, encouraging</span>
+<span class="s2">                   many coefficients to be exactly zero.</span>
+<span class="s2">                - &quot;group_lasso&quot;: Enforces group sparsity, encouraging entire groups of</span>
+<span class="s2">                   coefficients (e.g., corresponding to a covariate) to be zero.</span>
+<span class="s2">                - &quot;sparse_group_lasso&quot;: Combines the effects of &quot;lasso&quot; and</span>
+<span class="s2">                   &quot;group_lasso&quot;, enforcing both individual and group sparsity.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_formula</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -242,7 +289,9 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">penalty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">compute_offsets_method</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span> <span class="s2">&quot;logsum&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;zero&quot;</span><span class="p">,</span>
-    <span class="p">):</span>  <span class="c1"># pylint: disable=arguments-differ</span>
+        <span class="n">penalty_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">penalty_coef_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="s2">&quot;lasso&quot;</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=arguments-differ,too-many-arguments</span>
         <span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">_extract_data_from_formula</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">endog</span><span class="p">,</span>
@@ -251,6 +300,8 @@
             <span class="n">offsets</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
             <span class="n">compute_offsets_method</span><span class="o">=</span><span class="n">compute_offsets_method</span><span class="p">,</span>
             <span class="n">add_const</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">penalty_coef</span><span class="o">=</span><span class="n">penalty_coef</span><span class="p">,</span>
+            <span class="n">penalty_coef_type</span><span class="o">=</span><span class="n">penalty_coef_type</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -275,8 +326,19 @@
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
         <span class="n">params</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">        penalty: float</span>
-<span class="s2">            - The penalty parameter. The larger the penalty, the larger the</span>
+<span class="s2">            - The penalty parameter for the precision matrix. The larger the penalty, the larger the</span>
 <span class="s2">               sparsity of the precision matrix.</span>
+<span class="s2">        penalty_coef: float</span>
+<span class="s2">            - The penalty parameter for the coef matrix. The larger the penalty, the larger the</span>
+<span class="s2">               sparsity of the coef matrix. Default is 0 (no penalty).</span>
+<span class="s2">        penalty_coef_type: optional (&quot;lasso&quot;, &quot;group_lasso&quot;, &quot;sparse_group_lasso&quot;)</span>
+<span class="s2">            - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:</span>
+<span class="s2">                - &quot;lasso&quot;: Enforces sparsity on each coefficient independently, encouraging</span>
+<span class="s2">                   many coefficients to be exactly zero.</span>
+<span class="s2">                - &quot;group_lasso&quot;: Enforces group sparsity, encouraging entire groups of</span>
+<span class="s2">                   coefficients (e.g., corresponding to a covariate) to be zero.</span>
+<span class="s2">                - &quot;sparse_group_lasso&quot;: Combines the effects of &quot;lasso&quot; and</span>
+<span class="s2">                   &quot;group_lasso&quot;, enforcing both individual and group sparsity.</span>
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
         <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">        PlnNetwork object</span>
@@ -290,14 +352,65 @@
         <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TOL</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">penalty</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">penalty_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">penalty_coef_type</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">}</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>  <span class="c1"># pylint: disable = too-many-arguments</span>
         <span class="k">if</span> <span class="n">penalty</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;penalty must be a float.&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Changing penalty from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="si">}</span><span class="s2"> to : &quot;</span><span class="p">,</span> <span class="n">penalty</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">penalty</span> <span class="o">=</span> <span class="n">penalty</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_penalty</span><span class="p">(</span><span class="n">penalty</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Changing `penalty` from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="si">}</span><span class="s2"> to : &quot;</span><span class="p">,</span> <span class="n">penalty</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">penalty_coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">penalty_coef</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">_closed_formula_coef</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+                        <span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_penalty_coef</span><span class="p">(</span><span class="n">penalty_coef</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Changing `penalty_coef` from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span><span class="si">}</span><span class="s2"> to : &quot;</span><span class="p">,</span>
+                <span class="n">penalty_coef</span><span class="p">,</span>
+                <span class="s2">&quot;.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">penalty_coef_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_penalty_coef_type</span><span class="p">(</span><span class="n">penalty_coef_type</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Changing `penalty_coef_type` from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="si">}</span><span class="s2"> to : &quot;</span><span class="p">,</span> <span class="n">penalty</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="n">maxiter</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">penalty</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;`penalty` must be a float, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">penalty</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">penalty</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`penalty` should be positive. Got </span><span class="si">{</span><span class="n">penalty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">penalty</span> <span class="o">=</span> <span class="n">penalty</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_penalty_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">penalty_coef</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">penalty_coef</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;`penalty_coef` must be a float, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">penalty_coef</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">penalty_coef</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`penalty_coef` should be positive. Got </span><span class="si">{</span><span class="n">penalty_coef</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">=</span> <span class="n">penalty_coef</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_penalty_coef_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">penalty_coef_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">penalty_coef_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">]:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;`penalty_coef_type` should be either &#39;lasso&#39;,&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;&#39;group_lasso&#39;, or &#39;sparse_group_lasso&#39;, got </span><span class="si">{</span><span class="n">penalty_coef_type</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span> <span class="o">=</span> <span class="n">penalty_coef_type</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">penalty_coef_type</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="s2">&quot;group_lasso&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">,</span>
+        <span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`penalty_coef` is 0, no penalty can be imposed.&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PlnNetwork.compute_elbo">
 <a class="viewcode-back" href="../../../plnnetwork.html#pyPLNmodels.PlnNetwork.compute_elbo">[docs]</a>
@@ -322,11 +435,28 @@
             <span class="n">latent_sqrt_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
             <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">elbo_no_penalty</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_l1_penalty</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span></div>
+        <span class="n">elbo_penalty</span> <span class="o">=</span> <span class="n">elbo_no_penalty</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_l1_penalty_precision</span><span class="p">(</span>
+            <span class="n">precision</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nb_cov</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">elbo_penalty</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">penalty_coef_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_penalty_coef_value</span><span class="p">()</span>
+            <span class="n">elbo_penalty</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">*</span> <span class="n">penalty_coef_value</span>
+        <span class="k">return</span> <span class="n">elbo_penalty</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_l1_penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precision</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_l1_penalty_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precision</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">precision</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_penalty_coef_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span> <span class="o">==</span> <span class="s2">&quot;lasso&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_lasso_penalty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__coef</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span> <span class="o">==</span> <span class="s2">&quot;group_lasso&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_group_lasso_penalty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__coef</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span> <span class="o">==</span> <span class="s2">&quot;sparse_group_lasso&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_sparse_group_lasso_penalty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__coef</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown penalty coef type. Got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -353,6 +483,19 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_model_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_components_prec&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span> <span class="o">=</span> <span class="n">_init_components_prec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># if penalty coef is positive, then no closed forms for the coef</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__coef&quot;</span><span class="p">):</span>
+                <span class="n">coef</span> <span class="o">=</span> <span class="n">_init_coef</span><span class="p">(</span>
+                    <span class="n">endog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endog</span><span class="p">,</span> <span class="n">exog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_offsets</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="s2">&quot;No covariates in the model, `penalty_coef` is useless.&quot;</span>
+                    <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
@@ -362,6 +505,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_components_prec</span><span class="p">,</span>
         <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">list_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__coef</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">list_params</span>
 
 <div class="viewcode-block" id="PlnNetwork.viz_network">
@@ -381,11 +526,24 @@
 <span class="sd">        &gt;&gt;&gt; net.viz_network()</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_viz_network</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">precision</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">precision</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">precision</span><span class="p">,</span>
             <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
             <span class="n">node_labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_names_endog</span><span class="p">,</span>
         <span class="p">)</span></div>
 
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">precision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property representing the precision of the model, that is the inverse covariance matrix.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            The precision matrix of size (dim, dim).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precision</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">precision</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">network</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -402,7 +560,7 @@
 <span class="sd">        &gt;&gt;&gt; print(net.network)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">connections</span> <span class="o">=</span> <span class="n">_build_graph</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">precision</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">precision</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">precision</span><span class="p">,</span>
             <span class="n">node_labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_names_endog</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">connections</span>
@@ -419,6 +577,8 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coef</span>
         <span class="k">return</span> <span class="n">_closed_formula_coef</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exog</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_mean</span><span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -631,7 +791,9 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot; penalty </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="n">descr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;penalty </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="si">}</span><span class="s2"> on the precision matrix and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">descr</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  penalty </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty_coef</span><span class="si">}</span><span class="s2"> on the regression coefficients.&quot;</span>
+        <span class="k">return</span> <span class="n">descr</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_latent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_latent_mean&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
@@ -680,7 +842,23 @@
     <span class="nd">@property</span>
     <span class="nd">@_add_doc</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">entropy_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latent_sqrt_variance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coef</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Property representing the regression coefficients of size (`nb_cov`, `dim`).</span>
+<span class="sd">        If no exogenous (`exog`) is available, returns `None`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor or None</span>
+<span class="sd">            The coefficients or `None` if no coefficients are given in the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">coef_thresholded</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coef</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coef</span>
+            <span class="k">return</span> <span class="n">coef_thresholded</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
 
 </pre></div>
 
