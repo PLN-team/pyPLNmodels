@@ -328,9 +328,7 @@ class PlnNetwork(
             return _lasso_penalty(self.__coef)
         if self.penalty_coef_type == "group_lasso":
             return _group_lasso_penalty(self.__coef)
-        if self.penalty_coef_type == "sparse_group_lasso":
-            return _sparse_group_lasso_penalty(self.__coef)
-        return None
+        return _sparse_group_lasso_penalty(self.__coef)
 
     @property
     def _precision(self):
