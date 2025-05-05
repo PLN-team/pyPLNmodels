@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL, DEVICE
 from pyPLNmodels.calculations._initialization import _init_coef_coef_inflation
 from pyPLNmodels.calculations._closed_forms import (
     _closed_formula_coef,
@@ -21,7 +21,6 @@ from pyPLNmodels.utils._data_handler import (
     _extract_data_inflation_from_formula,
 )
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 NULL_TENSOR = torch.tensor([0], device=DEVICE)
 

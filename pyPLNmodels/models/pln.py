@@ -22,9 +22,6 @@ from pyPLNmodels.utils._utils import (
 from pyPLNmodels.utils._viz import _plot_forest_coef
 
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-
 class Pln(BaseModel):  # pylint: disable=too-many-public-methods
     """Simplest model, that is the original PLN model from
     Aitchison, J., and C. H. Ho. “The Multivariate Poisson-Log Normal Distribution.” Biometrika.

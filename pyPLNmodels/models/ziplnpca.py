@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL
+from pyPLNmodels.models.base import BaseModel, DEFAULT_TOL, DEVICE
 from pyPLNmodels.models.zipln import ZIPln
 from pyPLNmodels.calculations.elbos import elbo_ziplnpca
 from pyPLNmodels.calculations._initialization import (
@@ -20,8 +20,6 @@ from pyPLNmodels.utils._data_handler import (
 )
 from pyPLNmodels.utils._utils import _add_doc, _check_array_size
 from pyPLNmodels.utils._viz import ZIPCAModelViz
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 REGULARIZATION = 0.0001

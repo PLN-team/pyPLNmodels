@@ -10,7 +10,8 @@ def load_microcosm(
 ):
     """
     Get real count data from the microcosm
-    (https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059) dataset.
+    (https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA875059) dataset of the
+    bioproject PRJNA875059.
 
     References:
         "Microbiota members from body sites of dairy cows are largely shared within

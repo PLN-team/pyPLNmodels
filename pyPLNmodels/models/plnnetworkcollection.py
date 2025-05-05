@@ -20,6 +20,8 @@ class PlnNetworkCollection(Collection):
     J. Chiquet, S. Robin, M. Mariadassou: "Variational Inference for sparse network
     reconstruction from count data"
 
+    Unlike the PlnNetwork, the penalty coef can not be changed at fitting time.
+
     Examples
     --------
     >>> from pyPLNmodels import PlnNetworkCollection, load_scrna
@@ -50,6 +52,17 @@ class PlnNetworkCollection(Collection):
         params="""
             penalties : Iterable[float], optional(keyword-only)
                 The range of penalties, by default `(1, 10, 100, 1000)`.
+            penalty_coef: float
+                - The penalty parameter for the coef matrix. The larger the penalty, the larger the
+                   sparsity of the coef matrix. Default is 0 (no penalty).
+            penalty_coef_type: optional ("lasso", "group_lasso", "sparse_group_lasso")
+                - The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:
+                    - "lasso": Enforces sparsity on each coefficient independently, encouraging
+                       many coefficients to be exactly zero.
+                    - "group_lasso": Enforces group sparsity, encouraging entire groups of
+                       coefficients (e.g., corresponding to a covariate) to be zero.
+                    - "sparse_group_lasso": Combines the effects of "lasso" and
+                       "group_lasso", enforcing both individual and group sparsity.
             """,
         example="""
             >>> from pyPLNmodels import PlnNetworkCollection, load_scrna
@@ -74,7 +87,11 @@ class PlnNetworkCollection(Collection):
         compute_offsets_method: {"zero", "logsum"} = "zero",
         add_const: bool = True,
         penalties: Optional[Iterable[float]] = (1, 10, 100, 1000),
+        penalty_coef: float = 0,
+        penalty_coef_type: {"lasso", "group_lasso", "sparse_group_lasso"} = "lasso",
     ):  # pylint: disable=too-many-arguments
+        self.penalty_coef = penalty_coef
+        self.penalty_coef_type = penalty_coef_type
         super().__init__(
             endog=endog,
             grid=penalties,
@@ -91,6 +108,17 @@ class PlnNetworkCollection(Collection):
               penalties : Iterable[float], optional(keyword-only)
                 The penalties that needs to be tested. By default
                 (1, 10, 100, 1000).
+            penalty_coef: float
+                The penalty parameter for the coef matrix. The larger the penalty, the larger the
+                   sparsity of the coef matrix. Default is 0 (no penalty).
+            penalty_coef_type: optional ("lasso", "group_lasso", "sparse_group_lasso")
+                The penalty type for the `coef`. Useless if `penalty_coef` is 0. Can be either:
+                    - "lasso": Enforces sparsity on each coefficient independently, encouraging
+                       many coefficients to be exactly zero.
+                    - "group_lasso": Enforces group sparsity, encouraging entire groups of
+                       coefficients (e.g., corresponding to a covariate) to be zero.
+                    - "sparse_group_lasso": Combines the effects of "lasso" and
+                       "group_lasso", enforcing both individual and group sparsity.
               """,
     )
     def from_formula(
@@ -100,7 +128,9 @@ class PlnNetworkCollection(Collection):
         *,
         compute_offsets_method: {"zero", "logsum"} = "zero",
         penalties: Optional[Iterable[int]] = (1, 10, 100, 1000),
-    ):  # pylint: disable=missing-function-docstring, arguments-differ
+        penalty_coef: float = 0,
+        penalty_coef_type: {"lasso", "group_lasso", "sparse_group_lasso"} = "lasso",
+    ):  # pylint: disable=missing-function-docstring, arguments-differ, too-many-arguments
         endog, exog, offsets = _extract_data_from_formula(formula, data)
         return cls(
             endog=endog,
@@ -109,6 +139,8 @@ class PlnNetworkCollection(Collection):
             compute_offsets_method=compute_offsets_method,
             penalties=penalties,
             add_const=False,
+            penalty_coef=penalty_coef,
+            penalty_coef_type=penalty_coef_type,
         )
 
     def _instantiate_model(self, grid_value):
@@ -118,6 +150,8 @@ class PlnNetworkCollection(Collection):
             offsets=self._offsets,
             penalty=grid_value,
             add_const=False,
+            penalty_coef=self.penalty_coef,
+            penalty_coef_type=self.penalty_coef_type,
         )
 
     def _is_right_instance(self, grid_value):
@@ -175,7 +209,7 @@ class PlnNetworkCollection(Collection):
         lr: float = 0.01,
         tol: float = DEFAULT_TOL,
         verbose: bool = False,
-    ):
+    ):  # pylint: disable = too-many-arguments
         return super().fit(maxiter=maxiter, lr=lr, tol=tol, verbose=verbose)
 
     @property

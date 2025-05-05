@@ -40,24 +40,24 @@ jobs:
       - name: Run Pylint
         run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
 
-  # tests:
-  #   runs-on: ubuntu-22.04
-  #   container:
-  #     image: ghcr.io/bastien-mva/docker_image:latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install package locally and run tests
-  #       run: |
-  #         pip install '.[tests]'
-  #         pip install -e .
-  #         jupyter nbconvert Getting_started.ipynb --to python --output tests/untestable_getting_started
-  #         cd tests
-  #         python _create_readme_getting_started_and_docstrings_tests.py
-  #         pytest --cov --cov-branch --cov-report=xml .
-  #     - name: Upload coverage reports to Codecov
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
+  tests:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/bastien-mva/docker_image:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install package locally and run tests
+        run: |
+          pip install '.[tests]'
+          pip install -e .
+          jupyter nbconvert Getting_started.ipynb --to python --output tests/untestable_getting_started
+          cd tests
+          python _create_readme_getting_started_and_docstrings_tests.py
+          pytest --cov --cov-branch --cov-report=xml .
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
   build_package:
@@ -80,30 +80,30 @@ jobs:
           name: dist
           path: dist/
 
-  # publish_package:
-  #   runs-on: ubuntu-22.04
-  #   needs:
-  #     - build_package
-  #     - tests
-  #   if: github.event_name == 'release'
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: '3.9'
-  #     - name: Install Twine
-  #       run: pip install twine
-  #     - name: download artifacts and publish
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: dist
-  #         path: dist/
-  #     - name: Publish package
-  #       env:
-  #         TWINE_USERNAME: __token__
-  #         TWINE_PASSWORD: ${{ secrets.PYPLN_TOKEN }}
-  #       run: python -m twine upload dist/*
+  publish_package:
+    runs-on: ubuntu-22.04
+    needs:
+      - build_package
+      - tests
+    if: github.event_name == 'release'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Twine
+        run: pip install twine
+      - name: download artifacts and publish
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish package
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPLN_TOKEN }}
+        run: python -m twine upload dist/*
 
   pages:
     runs-on: ubuntu-22.04
@@ -122,7 +122,10 @@ jobs:
           wget https://github.com/jgm/pandoc/releases/download/1.15.1/pandoc-1.15.1-1-amd64.deb
           sudo dpkg -i pandoc-1.15.1-1-amd64.deb
       - name: Convert README
-        run: pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
+        run: |
+          pandoc README.md --from markdown --to rst -s -o docs/source/readme.rst
+          echo "HEEEEEERE"
+          cat docs/source/readme.rst
       - name: Build docs
         run: |
           pip install .
@@ -136,3 +139,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build/html
+          force: true

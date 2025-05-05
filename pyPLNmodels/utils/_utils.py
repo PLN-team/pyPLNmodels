@@ -387,3 +387,18 @@ def _get_uncumsum(eigenvalues):
     diff_diag_cov[0] = torch.sqrt(eigenvalues[0])
     diff_diag_cov[1:] = torch.sqrt(eigenvalues[1:] - eigenvalues[:-1])
     return diff_diag_cov
+
+
+def _lasso_penalty(coef):
+    return torch.sum(torch.abs(coef))
+
+
+def _group_lasso_penalty(coef):
+    return torch.sum(torch.norm(coef, p=2, dim=0))
+
+
+def _sparse_group_lasso_penalty(coef, alpha=0.5):
+    l1_penalty = torch.sum(torch.abs(coef))
+    group_norms = torch.norm(coef, p=2, dim=0)
+    group_lasso_penalty = torch.sum(group_norms)
+    return alpha * l1_penalty + (1 - alpha) * group_lasso_penalty
