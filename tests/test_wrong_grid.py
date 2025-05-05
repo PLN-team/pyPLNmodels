@@ -28,4 +28,8 @@ def test_wrong_grid_value():
         net = PlnNetwork(data["endog"], penalty=-1)
 
     with pytest.raises(ValueError):
-        net = PlnNetwork(data["endog"], penalty=-1, penalty_coef=-1)
+        net = PlnNetwork(data["endog"], penalty=-1, penalty_coef=2)
+    with pytest.raises(ValueError):
+        net = PlnNetwork(data["endog"], penalty="dumb", penalty_coef=2)
+    with pytest.raises(ValueError):
+        net = PlnNetwork(data["endog"], penalty=1, penalty_coef="dumb")

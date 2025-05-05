@@ -51,9 +51,9 @@ def test_penalty_coef_network():
             penalty_coef_type="dumb",
         )
 
-    _ = PlnNetwork.from_formula(
-        "endog ~ 0 + labels", data=data, penalty=10, penalty_coef=1
-    ).fit(maxiter=10, penalty_coef=5)
+    _ = PlnNetwork.from_formula("endog ~ 0", data=data, penalty=10, penalty_coef=1).fit(
+        maxiter=10, penalty_coef=5
+    )
     net = PlnNetwork.from_formula(
         "endog ~ 1 + labels",
         data=data,
