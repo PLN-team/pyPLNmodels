@@ -25,4 +25,7 @@ def test_wrong_grid_value():
         pca = PlnMixture(data["endog"], n_cluster=-1)
 
     with pytest.raises(ValueError):
-        pca = PlnNetwork(data["endog"], penalty=-1)
+        net = PlnNetwork(data["endog"], penalty=-1)
+
+    with pytest.raises(ValueError):
+        net = PlnNetwork(data["endog"], penalty=-1, penalty_coef=-1)
