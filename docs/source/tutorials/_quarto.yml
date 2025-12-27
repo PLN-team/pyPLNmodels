@@ -18,6 +18,7 @@ website:
           - clustering.qmd
           - network_analysis.qmd
           - formulas.qmd
+          - gpu.qmd
       - section: "**Additional Resources**"
         contents:
           - text: "Documentation 📘"

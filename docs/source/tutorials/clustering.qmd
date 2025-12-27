@@ -22,8 +22,8 @@ The Poisson lognormal (PLN) model can be extended to uncover clustering structur
 - **Supervised clustering**: when cluster labels are known for some samples (`PlnLDA`, [documentation](https://pln-team.github.io/pyPLNmodels/plnlda.html)).
 - **Unsupervised clustering**: when cluster labels are unknown (`PlnMixture`, [documentation](https://pln-team.github.io/pyPLNmodels/plnmixture.html)).
 
-We illustrate both using a single-cell RNA-seq dataset provided by the `load_scrna`
-function of the package. Each row represents a cell and each column a gene. Cell types are
+We illustrate both using a single-cell RNA-seq dataset (@scmark) provided by the
+`load_scrna` function of the package. Each row represents a cell and each column a gene. Cell types are
 included as labels and used in the supervised setting.
 
 # Data Loading and Structure

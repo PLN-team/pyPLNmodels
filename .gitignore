@@ -12,5 +12,6 @@ tests/TestPln.pdf
 tests/TestZIPln.pdf
 tests/ZIPln.pdf
 tests/.coverage
+docs/source/tutorials/*.html
 *.pdf
 uv.lock

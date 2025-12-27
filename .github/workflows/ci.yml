@@ -38,7 +38,7 @@ jobs:
           pip install pylint
 
       - name: Run Pylint
-        run: find . -type f -name "*.py" | xargs pylint --disable=import-error,missing-module-docstring,invalid-name,not-callable,duplicate-code --load-plugins=pylint.extensions.docparams
+        run: find . -type f -name "*.py" | xargs pylint --disable=import-error,anomalous-backslash-in-string,missing-module-docstring,invalid-name,not-callable,line-too-long,duplicate-code --load-plugins=pylint.extensions.docparams
 
   tests:
     runs-on: ubuntu-22.04

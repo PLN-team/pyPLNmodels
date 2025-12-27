@@ -47,6 +47,34 @@ class PlnLDA(Pln):
     See J. Chiquet, M. Mariadassou, S. Robin: "The Poisson-Lognormal Model as a Versatile Framework
     for the Joint Analysis of Species Abundances" for more information.
 
+    The model is the following:
+
+    .. math::
+
+    \begin{align}
+    Z_i &\sim \mathcal{N} \left( X_i^{\top} B +  \sum_k \mu_k \mathbf{1}_{\{c_i = k\}}, \Sigma \right),\quad \quad \quad \quad \quad \quad \text{for known } c_i \\
+    Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})). \tag{\href{https://pln-team.github.io/pyPLNmodels/plnlda.html}{\texttt{PlnLDA}}}
+    \end{align}
+
+    The model parameters are:
+
+    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients
+    - :math:`\mu_k \in \mathbb{R}^{p}` :code:`coef_clusters`: mean of cluster :math:`k`
+    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`
+
+    Data provided is
+
+    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.
+    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
+    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0's.
+    - :math:`c` a vector of categorical variables representing clusters. Required.
+
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)
+    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
+
+    Note that :code`coef` does not depend on the cluster membership.
+
+
     Examples
     --------
     >>> from pyPLNmodels import PlnLDA, load_scrna, plot_confusion_matrix

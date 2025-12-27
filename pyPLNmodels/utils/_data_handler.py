@@ -10,7 +10,7 @@ from pyPLNmodels.utils._utils import _get_log_sum_of_endog
 
 if torch.cuda.is_available():
     DEVICE = "cuda"
-    print("Using GPU.")
+    print(f"Using the GPU {torch.cuda.get_device_name(torch.cuda.current_device())}.")
 else:
     DEVICE = "cpu"
 

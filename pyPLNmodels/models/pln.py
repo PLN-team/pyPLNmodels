@@ -23,14 +23,36 @@ from pyPLNmodels.utils._viz import _plot_forest_coef
 
 
 class Pln(BaseModel):  # pylint: disable=too-many-public-methods
-    """Simplest model, that is the original PLN model from
+    r"""Simplest model, that is the original PLN model from
     Aitchison, J., and C. H. Ho. “The Multivariate Poisson-Log Normal Distribution.” Biometrika.
     Variance estimation of regression coefficients are available,
     thanks to:
     "Evaluating Parameter Uncertainty in the Poisson Lognormal Model
     with Corrected Variational Estimators" from Batardière, B., Chiquet, J., Mariadassou, M.
 
-        .
+    The model is the following:
+
+    .. math::
+
+        \begin{align}
+        Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+        Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
+        \end{align}
+
+    The model parameters are:
+
+    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients
+    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`
+
+    Data provided is
+
+    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.
+    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
+    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0's.
+
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)
+    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
+
 
     Examples
     --------

@@ -66,7 +66,7 @@ This is achieved using the input count matrix $Y$, along with optional covariate
 
 # Importing Data
 
-In this example, we analyze single-cell RNA-seq data provided by the
+In this example, we analyze single-cell RNA-seq data (@scmark) provided by the
 `load_scrna` function in the package. Each column in the dataset represents a
 gene, while each row corresponds to a cell (i.e., an individual). Covariates
 for cell types (`labels`) are also included. For simplicity, we limit the
