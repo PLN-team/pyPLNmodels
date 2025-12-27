@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=6f4c09fd"></script>
+      <script src="../../../_static/documentation_options.js?v=377e76b0"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -141,7 +141,7 @@
 <div class="viewcode-block" id="PlnAR">
 <a class="viewcode-back" href="../../../plnar.html#pyPLNmodels.PlnAR">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlnAR</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>  <span class="c1"># pylint: disable=too-many-instance-attributes</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.</span>
 <span class="sd">    This basically assumes the latent variable of sample i depends on the latent variable</span>
 <span class="sd">    on sample i-1. The dataset given in the initialization must be ordered !</span>
@@ -150,6 +150,44 @@
 <span class="sd">    the previous dimensions (`full` ar type). Note that the autregressive coefficient seems</span>
 <span class="sd">    to be underestimated when the covariance is low.</span>
 <span class="sd">    See ?? for more details.</span>
+
+<span class="sd">    The model is the following:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \begin{align}</span>
+<span class="sd">        Z_i &amp;\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\</span>
+<span class="sd">        Z_i \mid Z_{i-1} &amp;\sim \Phi Z_{i-1} + \mathcal{N}(\mu_i^\epsilon, \Sigma^\epsilon), \\</span>
+<span class="sd">        Y_{ij} \mid Z_{ij} &amp;\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),</span>
+<span class="sd">        \end{align}</span>
+
+<span class="sd">    with</span>
+
+<span class="sd">    :math:`\mu_i^\epsilon = \mu_i - \Phi \mu_{i-1}`,</span>
+<span class="sd">    :math:`\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top`,</span>
+<span class="sd">    :math:`\mu_i = X_i^{\top} B`</span>
+
+
+
+<span class="sd">    The model parameters are:</span>
+
+<span class="sd">    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients</span>
+<span class="sd">    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`</span>
+<span class="sd">    - :math:`\Phi` :code:`ar_coef`: autoregressive coefficients.</span>
+
+<span class="sd">    The parameter :math:`\Phi` can be of multiples shapes, depending on the :code:`ar_type` keyword argument:</span>
+<span class="sd">        - :code:`diagonal` :math:`\in \mathbb R^p_{+}`</span>
+<span class="sd">        - :code:`full` :math:`\in \mathcal S^p_{++}`</span>
+<span class="sd">        - :code:`scalar` :math:`\in \mathbb R_+`</span>
+
+<span class="sd">    Data provided is</span>
+
+<span class="sd">    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.</span>
+<span class="sd">    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1&#39;s.</span>
+<span class="sd">    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0&#39;s.</span>
+
+<span class="sd">    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)</span>
+<span class="sd">    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -384,8 +422,8 @@
             <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_ortho_components</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span>
                 <span class="n">components</span> <span class="o">@</span> <span class="p">(</span><span class="n">components</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_diff_diag_cov</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ar_diff_coef</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_diag_cov</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

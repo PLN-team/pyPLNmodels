@@ -13,11 +13,12 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=6f4c09fd"></script>
+<script src="_static/documentation_options.js?v=377e76b0"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
 <script src="_static/copybutton.js?v=f281be69"></script>
+<script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script src="_static/js/theme.js"></script>
 <link href="genindex.html" rel="index" title="Index"/>
 <link href="search.html" rel="search" title="Search"/>
@@ -179,11 +180,36 @@ information <a class="reference external" href="https://www.frontiersin.org/jour
 <dl class="py class">
 <dt class="sig sig-object py" id="pyPLNmodels.PlnLDA">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyPLNmodels.</span></span><span class="sig-name descname"><span class="pre">PlnLDA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clusters</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_offsets_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zero'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyPLNmodels/models/plnlda.html#PlnLDA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyPLNmodels.PlnLDA" title="Link to this definition"></a></dt>
-<dd><p>Supervised Pln model. The classification is based on Linear Discriminant Analysis (LDA).
+<dd><blockquote>
+<div><p>Supervised Pln model. The classification is based on Linear Discriminant Analysis (LDA).
 This assumes the user have knowledge of clusters, and should be given in the initialization.
 See J. Chiquet, M. Mariadassou, S. Robin: “The Poisson-Lognormal Model as a Versatile Framework
 for the Joint Analysis of Species Abundances” for more information.</p>
-<p class="rubric">Examples</p>
+<p>The model is the following:</p>
+<div class="math notranslate nohighlight">
+\[\]</div>
+<p>egin{align}
+Z_i &amp;sim mathcal{N} left( X_i^{  op} B +  sum_k mu_k mathbf{1}_{{c_i = k}}, Sigma</p>
+</div></blockquote>
+<dl>
+<dt>ight),quad quad quad quad quad quad       ext{for known } c_i </dt><dd><p>Y_{ij} mid Z_{ij} &amp;sim mathcal{P}(exp(o_{ij} + Z_{ij})).        ag{href{<a class="reference external" href="https://pln-team.github.io/pyPLNmodels/plnlda.html">https://pln-team.github.io/pyPLNmodels/plnlda.html</a>}{   exttt{PlnLDA}}}
+end{align}</p>
+<p>The model parameters are:</p>
+<ul class="simple">
+<li><p><span class="math">B \in \mathbb{R}^{d        imes p}</span> <code class="code docutils literal notranslate"><span class="pre">coef</span></code>: matrix of regression coefficients</p></li>
+<li><p><span class="math">\mu_k \in \mathbb{R}^{p}</span> <code class="code docutils literal notranslate"><span class="pre">coef_clusters</span></code>: mean of cluster <span class="math">k</span></p></li>
+<li><p><span class="math">\Sigma  \in \mathcal{S}_{+}^{p}</span> <code class="code docutils literal notranslate"><span class="pre">covariance</span></code>: covariance matrix of the latent variables <span class="math">Z_i</span></p></li>
+</ul>
+<p>Data provided is</p>
+<ul class="simple">
+<li><p><span class="math">Y \in \mathbb{R}^{n        imes p}</span> <code class="code docutils literal notranslate"><span class="pre">endog</span></code>: matrix of endogenous variables (counts). Required.</p></li>
+<li><p><span class="math">X \in \mathbb{R}^{n        imes d}</span> <code class="code docutils literal notranslate"><span class="pre">exog</span></code>: matrix of exogenous variables (covariates). Defaults to vector of 1’s.</p></li>
+<li><p><span class="math">O  \in \mathbb{R}^{n       imes p}</span> <code class="code docutils literal notranslate"><span class="pre">offsets</span></code>: offsets (in log space). Defaults to matrix of 0’s.</p></li>
+<li><p><span class="math">c</span> a vector of categorical variables representing clusters. Required.</p></li>
+</ul>
+<p>The number of covariates is denoted by <span class="math">d</span> (<code class="code docutils literal notranslate"><span class="pre">nb_cov</span></code>), while <span class="math">n</span> denotes the number of samples (<code class="code docutils literal notranslate"><span class="pre">n_samples</span></code>)
+and <span class="math">p</span> denotes the number of dimensions (<code class="code docutils literal notranslate"><span class="pre">dim</span></code>), i.e. features or number of variables.</p>
+<p>Note that :code`coef` does not depend on the cluster membership.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels</span><span class="w"> </span><span class="kn">import</span> <a class="sphinx-codeautolink-a" href="plnlda.html#pyPLNmodels.PlnLDA" title="pyPLNmodels.models.plnlda.PlnLDA"><span class="n">PlnLDA</span></a><span class="p">,</span> <span class="n">load_scrna</span><span class="p">,</span> <span class="n">plot_confusion_matrix</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load_scrna</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">endog_train</span><span class="p">,</span> <span class="n">endog_test</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"endog"</span><span class="p">][:</span><span class="mi">100</span><span class="p">],</span><span class="n">data</span><span class="p">[</span><span class="s2">"endog"</span><span class="p">][</span><span class="mi">100</span><span class="p">:]</span>
@@ -193,10 +219,13 @@ for the Joint Analysis of Species Abundances” for more information.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plot_confusion_matrix</span><span class="p">(</span><span class="n">pred_test</span><span class="p">,</span> <span class="n">labels_test</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="pln.html#pyPLNmodels.Pln" title="pyPLNmodels.Pln"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyPLNmodels.Pln</span></code></a>, <a class="reference internal" href="plnpca.html#pyPLNmodels.PlnPCA" title="pyPLNmodels.PlnPCA"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyPLNmodels.PlnPCA</span></code></a>, <a class="reference internal" href="plnmixture.html#pyPLNmodels.PlnMixture" title="pyPLNmodels.PlnMixture"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyPLNmodels.PlnMixture</span></code></a>, <a class="reference internal" href="#pyPLNmodels.PlnLDA.__init__" title="pyPLNmodels.PlnLDA.__init__"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnLDA.__init__()</span></code></a>, <a class="reference internal" href="#pyPLNmodels.PlnLDA.from_formula" title="pyPLNmodels.PlnLDA.from_formula"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnLDA.from_formula()</span></code></a></p>
-</div>
+<p><a class="reference internal" href="pln.html#pyPLNmodels.Pln" title="pyPLNmodels.Pln"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyPLNmodels.Pln</span></code></a>
+<a class="reference internal" href="plnpca.html#pyPLNmodels.PlnPCA" title="pyPLNmodels.PlnPCA"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyPLNmodels.PlnPCA</span></code></a>
+<a class="reference internal" href="plnmixture.html#pyPLNmodels.PlnMixture" title="pyPLNmodels.PlnMixture"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyPLNmodels.PlnMixture</span></code></a>
+<a class="reference internal" href="#pyPLNmodels.PlnLDA.__init__" title="pyPLNmodels.PlnLDA.__init__"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnLDA.__init__()</span></code></a>
+<a class="reference internal" href="#pyPLNmodels.PlnLDA.from_formula" title="pyPLNmodels.PlnLDA.from_formula"><code class="xref py py-func docutils literal notranslate"><span class="pre">pyPLNmodels.PlnLDA.from_formula()</span></code></a></p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

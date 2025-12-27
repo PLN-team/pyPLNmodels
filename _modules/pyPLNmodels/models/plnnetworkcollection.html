@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=6f4c09fd"></script>
+      <script src="../../../_static/documentation_options.js?v=377e76b0"></script>
       <script src="../../../_static/doctools.js?v=9a2dae69"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -133,6 +133,32 @@
 <span class="sd">    For more details, see:</span>
 <span class="sd">    J. Chiquet, S. Robin, M. Mariadassou: &quot;Variational Inference for sparse network</span>
 <span class="sd">    reconstruction from count data&quot;</span>
+
+<span class="sd">    A single model assumes the following:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \begin{align}</span>
+<span class="sd">        Z_i &amp;\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\</span>
+<span class="sd">        Y_{ij} \mid Z_{ij} &amp;\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).</span>
+<span class="sd">        \end{align}</span>
+
+<span class="sd">    The hyperparameter $\lambda$ (:code:`penalty`) controls the sparsity level. A non-zero entry in $\Sigma^{-1}_{jk}$</span>
+<span class="sd">    implies a direct dependency between variables $j$ and $k$ in the latent space.</span>
+
+<span class="sd">    The model parameters are:</span>
+
+<span class="sd">    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients</span>
+<span class="sd">    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`</span>
+
+<span class="sd">    Data provided is</span>
+
+<span class="sd">    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.</span>
+<span class="sd">    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1&#39;s.</span>
+<span class="sd">    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0&#39;s.</span>
+
+<span class="sd">    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)</span>
+<span class="sd">    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.</span>
 
 <span class="sd">    Unlike the PlnNetwork, the penalty coef can not be changed at fitting time.</span>
 

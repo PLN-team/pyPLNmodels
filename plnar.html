@@ -13,11 +13,12 @@
 <link href="_static/autoclasstoc.css?v=08871587" rel="stylesheet" type="text/css"/>
 <script src="_static/jquery.js?v=5d32c60e"></script>
 <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-<script src="_static/documentation_options.js?v=6f4c09fd"></script>
+<script src="_static/documentation_options.js?v=377e76b0"></script>
 <script src="_static/doctools.js?v=9a2dae69"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script src="_static/clipboard.min.js?v=a7894cd8"></script>
 <script src="_static/copybutton.js?v=f281be69"></script>
+<script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script src="_static/js/theme.js"></script>
 <link href="genindex.html" rel="index" title="Index"/>
 <link href="search.html" rel="search" title="Search"/>
@@ -173,6 +174,39 @@ common to each dimension (<cite>spherical</cite> ar type) or depend on all
 the previous dimensions (<cite>full</cite> ar type). Note that the autregressive coefficient seems
 to be underestimated when the covariance is low.
 See ?? for more details.</p>
+<p>The model is the following:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+Z_i &amp;\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+Z_i \mid Z_{i-1} &amp;\sim \Phi Z_{i-1} + \mathcal{N}(\mu_i^\epsilon, \Sigma^\epsilon), \\
+Y_{ij} \mid Z_{ij} &amp;\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),
+\end{align}\end{split}\]</div>
+<p>with</p>
+<p><span class="math">\mu_i^\epsilon = \mu_i - \Phi \mu_{i-1}</span>,
+<span class="math">\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top</span>,
+<span class="math">\mu_i = X_i^{\top} B</span></p>
+<p>The model parameters are:</p>
+<ul class="simple">
+<li><p><span class="math">B \in \mathbb{R}^{d \times p}</span> <code class="code docutils literal notranslate"><span class="pre">coef</span></code>: matrix of regression coefficients</p></li>
+<li><p><span class="math">\Sigma  \in \mathcal{S}_{+}^{p}</span> <code class="code docutils literal notranslate"><span class="pre">covariance</span></code>: covariance matrix of the latent variables <span class="math">Z_i</span></p></li>
+<li><p><span class="math">\Phi</span> <code class="code docutils literal notranslate"><span class="pre">ar_coef</span></code>: autoregressive coefficients.</p></li>
+</ul>
+<dl class="simple">
+<dt>The parameter <span class="math">\Phi</span> can be of multiples shapes, depending on the <code class="code docutils literal notranslate"><span class="pre">ar_type</span></code> keyword argument:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">diagonal</span></code> <span class="math">\in \mathbb R^p_{+}</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">full</span></code> <span class="math">\in \mathcal S^p_{++}</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scalar</span></code> <span class="math">\in \mathbb R_+</span></p></li>
+</ul>
+</dd>
+</dl>
+<p>Data provided is</p>
+<ul class="simple">
+<li><p><span class="math">Y \in \mathbb{R}^{n \times p}</span> <code class="code docutils literal notranslate"><span class="pre">endog</span></code>: matrix of endogenous variables (counts). Required.</p></li>
+<li><p><span class="math">X \in \mathbb{R}^{n \times d}</span> <code class="code docutils literal notranslate"><span class="pre">exog</span></code>: matrix of exogenous variables (covariates). Defaults to vector of 1’s.</p></li>
+<li><p><span class="math">O  \in \mathbb{R}^{n \times p}</span> <code class="code docutils literal notranslate"><span class="pre">offsets</span></code>: offsets (in log space). Defaults to matrix of 0’s.</p></li>
+</ul>
+<p>The number of covariates is denoted by <span class="math">d</span> (<code class="code docutils literal notranslate"><span class="pre">nb_cov</span></code>), while <span class="math">n</span> denotes the number of samples (<code class="code docutils literal notranslate"><span class="pre">n_samples</span></code>)
+and <span class="math">p</span> denotes the number of dimensions (<code class="code docutils literal notranslate"><span class="pre">dim</span></code>), i.e. features or number of variables.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyPLNmodels</span><span class="w"> </span><span class="kn">import</span> <a class="sphinx-codeautolink-a" href="plnar.html#pyPLNmodels.PlnAR" title="pyPLNmodels.models.plnar.PlnAR"><span class="n">PlnAR</span></a><span class="p">,</span> <span class="n">load_crossover</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load_crossover</span><span class="p">()</span>
@@ -200,7 +234,7 @@ See ?? for more details.</p>
 <li><p><strong>offsets</strong> (<em>Tensor</em><em> | </em><em>ndarray</em><em> | </em><em>DataFrame</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>compute_offsets_method</strong> (<em>{'logsum'</em><em>, </em><em>'zero'}</em>)</p></li>
 <li><p><strong>add_const</strong> (<em>bool</em>)</p></li>
-<li><p><strong>ar_type</strong> (<em>{'diagonal'</em><em>, </em><em>'full'</em><em>, </em><em>'spherical'}</em>)</p></li>
+<li><p><strong>ar_type</strong> (<em>{'spherical'</em><em>, </em><em>'full'</em><em>, </em><em>'diagonal'}</em>)</p></li>
 </ul>
 </dd>
 </dl>
