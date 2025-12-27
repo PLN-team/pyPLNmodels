@@ -97,7 +97,9 @@ with
 - $\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top$,
 - $\mu_i = X_i^{\top} B$
 
-Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite. Model parameters are given by $(B, \Sigma, \Phi) =$ (`coef`, `covariance`, `ar_coef`).
+Constraints on $\Phi$ ensure that $\Sigma^\epsilon$ is positive definite. Model
+parameters are given by $(B, \Sigma, \Phi) =$ (`coef`, `covariance`,
+`ar_coef`).
 
 
 ## `PlnNetwork`: Sparse Network Inference
@@ -106,12 +108,12 @@ The `PlnNetwork` model encourages sparsity in the latent dependency structure by
 
 $$
 \begin{align}
-Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
+Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq \lambda \\
 Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).\tag{\href{https://pln-team.github.io/pyPLNmodels/plnnetwork.html}{\texttt{PlnNetwork}}}
 \end{align}
 $$
 
-The hyperparameter $C$ controls the sparsity level. A non-zero entry in
+The hyperparameter $\lambda$ controls the sparsity level. A non-zero entry in
 $\Sigma^{-1}_{jk}$ implies a direct dependency between variables $j$ and $k$ in
 the latent space.
 

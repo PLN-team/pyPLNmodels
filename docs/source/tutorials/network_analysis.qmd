@@ -51,7 +51,7 @@ where $C$ is a penalty parameter. See @network for more details.
 
 ## Data importation
 
-For visualization purposes, we use only 20 variables (i.e. genes).
+We load a subset of the scMARK dataset (@scmark), tFor visualization purposes, we use only 20 variables (i.e. genes).
 
 ```{python}
 from pyPLNmodels import load_scrna

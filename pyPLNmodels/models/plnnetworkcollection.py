@@ -20,6 +20,32 @@ class PlnNetworkCollection(Collection):
     J. Chiquet, S. Robin, M. Mariadassou: "Variational Inference for sparse network
     reconstruction from count data"
 
+    A single model assumes the following:
+
+    .. math::
+
+        \begin{align}
+        Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \quad \|\Sigma^{-1}\|_1 \leq C \\
+        Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
+        \end{align}
+
+    The hyperparameter $\lambda$ (:code:`penalty`) controls the sparsity level. A non-zero entry in $\Sigma^{-1}_{jk}$
+    implies a direct dependency between variables $j$ and $k$ in the latent space.
+
+    The model parameters are:
+
+    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients
+    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`
+
+    Data provided is
+
+    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.
+    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
+    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0's.
+
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)
+    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
+
     Unlike the PlnNetwork, the penalty coef can not be changed at fitting time.
 
     Examples

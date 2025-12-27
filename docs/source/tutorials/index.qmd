@@ -50,3 +50,4 @@ require significant storage space.
 - If your data has temporality or one-dimensional spatiality, you should consider the [time-series tutorial for count data](autoreg.html).
 - If you want to cluster your samples, be it in a supervised or unsupervised way, you should consider the [clustering tutorial for count data](clustering.html).
 - You may do a network analysis, that is, see the link between variables, through the [network analysis tutorial for count data](network_analysis.html).
+- To see how to enable GPU acceleration, check the [GPU tutorial](gpu.html).

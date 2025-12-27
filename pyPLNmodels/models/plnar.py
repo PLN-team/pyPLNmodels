@@ -27,7 +27,7 @@ from pyPLNmodels.utils._data_handler import _extract_data_from_formula
 
 
 class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
-    """
+    r"""
     AutoRegressive PLN (PlnAR) model with one step autocorrelation  on the latent variables.
     This basically assumes the latent variable of sample i depends on the latent variable
     on sample i-1. The dataset given in the initialization must be ordered !
@@ -36,6 +36,44 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
     the previous dimensions (`full` ar type). Note that the autregressive coefficient seems
     to be underestimated when the covariance is low.
     See ?? for more details.
+
+    The model is the following:
+
+    .. math::
+
+        \begin{align}
+        Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma), \\
+        Z_i \mid Z_{i-1} &\sim \Phi Z_{i-1} + \mathcal{N}(\mu_i^\epsilon, \Sigma^\epsilon), \\
+        Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})),
+        \end{align}
+
+    with
+
+    :math:`\mu_i^\epsilon = \mu_i - \Phi \mu_{i-1}`,
+    :math:`\Sigma^\epsilon = \Sigma - \Phi \Sigma \Phi^\top`,
+    :math:`\mu_i = X_i^{\top} B`
+
+
+
+    The model parameters are:
+
+    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients
+    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`
+    - :math:`\Phi` :code:`ar_coef`: autoregressive coefficients.
+
+    The parameter :math:`\Phi` can be of multiples shapes, depending on the :code:`ar_type` keyword argument:
+        - :code:`diagonal` :math:`\in \mathbb R^p_{+}`
+        - :code:`full` :math:`\in \mathcal S^p_{++}`
+        - :code:`scalar` :math:`\in \mathbb R_+`
+
+    Data provided is
+
+    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.
+    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
+    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0's.
+
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)
+    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
 
     Examples
     --------
@@ -258,8 +296,8 @@ class PlnAR(BaseModel):  # pylint: disable=too-many-instance-attributes
             _, self._diff_ortho_components = torch.linalg.eigh(
                 components @ (components.T)
             )
-            self._diff_diag_cov = torch.ones(self.dim)
-            self._ar_diff_coef = torch.ones(self.dim)
+            self._diff_diag_cov = torch.ones(self.dim).to(DEVICE)
+            self._ar_diff_coef = torch.ones(self.dim).to(DEVICE)
 
     @property
     def _diag_cov(self):

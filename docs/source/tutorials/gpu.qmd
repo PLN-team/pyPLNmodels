@@ -1,0 +1,54 @@
+---
+title: "How to use GPU 🎟"
+date: "2025-03-27"
+format:
+    html:
+        embed-resources: true
+        css: styles.css
+        toc: true
+        toc-location: left
+bibliography: bib.bib
+bibliographystyle: apa
+execute:
+    cache: true
+nocite: |
+  @joss_bastien
+---
+
+# Using GPU with `pyPLNmodels`
+
+This tutorial introduces the basics of GPU usage with the `pyPLNmodels` package. The package is built on top of `torch` and automatically detects and utilizes the GPU if available. This means you don't need to manually move tensors to the GPU—`pyPLNmodels` handles it for you.
+
+In this tutorial, we will walk through a simple example using the `Pln` model and the `scMARK` dataset provided by the `load_scrna` function in the package.
+
+---
+
+## Step 1: Check GPU Availability
+
+Before proceeding, ensure that your system has a GPU available and that it is properly configured for PyTorch. You can check this by running the following code:
+
+```{python}
+import torch
+print(torch.cuda.is_available())
+```
+
+If the output is `True`, your GPU is ready to use. If it returns `False`, ensure that you have installed the correct GPU drivers and the CUDA-enabled version of PyTorch.
+
+---
+
+## Step 2: Load the Dataset and Fit the Model
+
+Next, we will load the `scMARK` dataset and fit a simple `Pln` model. The `pyPLNmodels` package will automatically detect the GPU and use it for computations. Here's the code:
+
+```{python}
+from pyPLNmodels import Pln, load_scrna
+
+# Load the scMARK dataset
+data = load_scrna()
+
+# Fit the Pln model
+pln = Pln(endog=data["endog"]).fit()
+```
+
+When you run this code, you should see a message indicating that the GPU is
+being used. This confirms that the computations are offloaded to the GPU.

@@ -26,11 +26,39 @@ NULL_TENSOR = torch.tensor([0], device=DEVICE)
 
 
 class ZIPln(BaseModel):  # pylint: disable=too-many-public-methods
-    """
+    r"""
     Zero-Inflated Pln (ZIPln) class. Like a Pln but adds zero-inflation.
     Fitting such a model is slower than fitting a Pln. For more details,
     see Batardière, Chiquet, Gindraud, Mariadassou (2024) “Zero-inflation
     in the Multivariate Poisson Lognormal Family.”
+
+    The model is the following:
+
+    .. math::
+
+        \begin{align}
+        Z_i &\sim \mathcal{N}(X_i^{\top} B, \Sigma),\\
+        W_{ij} &\sim \mathcal{B}(\sigma(X_i^{0^{\top}} B^0_j)), \\
+        Y_{ij} \mid Z_{ij}, W_{ij} &\sim (1- W_{ij})\mathcal{P}(\exp(o_{ij} + Z_{ij})).
+        \end{align}
+
+    The model parameters are:
+
+    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients
+    - :math:`B^0 \in \mathbb{R}^{d_0 \times p}` :code:`coef_inflation`: matrix of regression coefficients for the inflation part
+    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`
+
+    Data provided is
+
+    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.
+    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
+    - :math:`X^0 \in \mathbb{R}^{n \times d_0}` :code:`exog_inflation`: matrix of exogenous variables (covariates) for the inflation part. Defaults to vector of 1's.
+    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0's.
+
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`) and the number
+    of covariates for the inflation is denoted by :math:`d_0`(:code:`nb_cov_infla`),
+    while :math:`n` denotes the number of samples (:code:`n_samples`)
+    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
 
     Examples
     --------

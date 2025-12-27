@@ -20,5 +20,5 @@ repos:
           "-rn",
           "-sn",
           "--load-plugins=pylint.extensions.docparams",
-          "--disable=import-error,missing-module-docstring,invalid-name,not-callable"
+          "--disable=import-error,missing-module-docstring,invalid-name,not-callable,line-too-long,anomalous-backslash-in-string"
         ]

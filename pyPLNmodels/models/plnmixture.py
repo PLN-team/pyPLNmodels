@@ -36,6 +36,30 @@ class PlnMixture(
     The effect of covariates is shared with clusters. Note that stability
     may significantly decrease with the number of covariates.
 
+    The model is the following:
+
+    .. math::
+
+        \begin{align}
+        c_i | \pi & \sim \mathcal M(1, \pi), \quad \quad \quad \quad \quad \quad \text{for unknown } c_i \\
+        Z_i \mid c_i = k & \sim \mathcal{N}(X_i^{\top} B + \mu_k, \Sigma_k),\\
+        Y_{ij} \mid Z_{ij} &\sim \mathcal{P}(\exp(o_{ij} + Z_{ij})).
+        \end{align}
+
+    The model parameters are:
+
+    - :math:`B \in \mathbb{R}^{d \times p}` :code:`coef`: matrix of regression coefficients
+    - :math:`\Sigma  \in \mathcal{S}_{+}^{p}` :code:`covariance`: covariance matrix of the latent variables :math:`Z_i`
+
+    Data provided is
+
+    - :math:`Y \in \mathbb{R}^{n \times p}` :code:`endog`: matrix of endogenous variables (counts). Required.
+    - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
+    - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). defaults to matrix of 0's.
+
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)
+    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
+
     Examples
     --------
     >>> import seaborn as sns
