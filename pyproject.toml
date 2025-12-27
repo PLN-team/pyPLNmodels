@@ -57,7 +57,7 @@ dependencies = [
 ]
 [project.optional-dependencies]
 tests = ["pytest", "pytest-cov"]
-build-doc = ["sphinx","sphinx_rtd_theme", "sphinx_copybutton", "sphinx_codeautolink", "autoclasstoc"]
+build-doc = ["sphinx","sphinx_rtd_theme", "sphinx_copybutton", "sphinx_codeautolink", "autoclasstoc", "jupyter-cache"]
 
 [project.urls]
 Repository = "https://github.com/PLN-team/pyPLNmodels"
