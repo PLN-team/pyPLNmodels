@@ -50,8 +50,9 @@ class Pln(BaseModel):  # pylint: disable=too-many-public-methods
     - :math:`X \in \mathbb{R}^{n \times d}` :code:`exog`: matrix of exogenous variables (covariates). Defaults to vector of 1's.
     - :math:`O  \in \mathbb{R}^{n \times p}` :code:`offsets`: offsets (in log space). Defaults to matrix of 0's.
 
-    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes the number of samples (:code:`n_samples`)
-    and :math:`p` denotes the number of dimensions (:code:`dim`), i.e. features or number of variables.
+    The number of covariates is denoted by :math:`d` (:code:`nb_cov`), while :math:`n` denotes
+    the number of samples (:code:`n_samples`) and :math:`p` denotes the number of
+    dimensions (:code:`dim`), i.e. features or number of variables.
 
 
     Examples
