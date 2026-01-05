@@ -7,7 +7,9 @@
 [![codecov](https://codecov.io/gh/PLN-team/pyPLNmodels/graph/badge.svg?token=TNFROMLF9Z)](https://codecov.io/gh/PLN-team/pyPLNmodels)
 [![last commit](https://img.shields.io/github/last-commit/PLN-team/pyPLNmodels)](https://github.com/PLN-team/pyPLNmodels)
 
-# PLNmodels: Poisson lognormal models
+# Multivariate count data analysis in Python
+
+## PLNmodels: Poisson lognormal models
 
 > The Poisson lognormal model and its variants are used for the
 > analysis of multivariate count data.
@@ -28,21 +30,21 @@
 > the significance of each variable, their correlations, and the
 > weight of covariates (if available).
 
-## Documentation and tutorials
+### Documentation and tutorials
 
 The package documentation can be found [here](https://pln-team.github.io/pyPLNmodels/).
 In-depth tutorials are available [here](https://pln-team.github.io/pyPLNmodels/tutorials/).
 
-## Getting started
+### Getting started
 [A notebook to get started can be found here](https://github.com/PLN-team/pyPLNmodels/blob/main/Getting_started.ipynb). A more in-depth tutorial is available [here](https://pln-team.github.io/pyPLNmodels/tutorials/).
 If you need just a quick view of the package, see the quickstart next. Note
 that an `R` version of the package is available [here](https://pln-team.github.io/PLNmodels/).
 
-## 🛠 Installation
+### 🛠 Installation
 
 **pyPLNmodels** is available on [pypi](https://pypi.org/project/pyPLNmodels/).
 
-### Package installation
+#### Package installation
 ```sh
 pip install pyPLNmodels
 ```
@@ -50,7 +52,7 @@ The package depends on resource-intensive libraries like `torch`, so it may
 require significant storage space.
 
 
-## Statistical description
+### Statistical description
 
 For those unfamiliar with Poisson or Gaussian random variables,
 it's not necessary to delve into these statistical concepts. The
@@ -90,7 +92,7 @@ different statistical tasks adequate for count data, by modifying the $Z_i$ late
 A normalization procedure adequate to count data can be applied
 by extracting the `latent_variables` $\mathbf Z_i$ once the parameters are learned.
 
-## ⚡️ Quickstart
+### ⚡️ Quickstart
 
 The package comes with a single-cell RNA sequencing dataset to present the functionalities:
 ```python
@@ -101,7 +103,7 @@ data = load_scrna()
 This dataset contains the number of occurrences of each gene in each cell in
 `data["endog"]`. Each cell is labelled by its cell-type in `data["labels"]`.
 
-### How to specify a model
+#### How to specify a model
 Each model can be specified in two distinct manners:
 
 * by formula (similar to R), where a data frame is passed and the formula is specified using the `from_formula` initialization:
@@ -125,7 +127,7 @@ The parameters `exog` and `offsets` are optional. By default,
 `exog` is set to represent an intercept, which is a vector of ones. Similarly,
 `offsets` defaults to a matrix of zeros. The `offsets` should be on the scale of the log of the counts.
 
-### Motivation
+#### Motivation
 
 The count data is often very noisy, and inferring the latent variables $Z_i$
 may reduce noise and increase signal. Suppose we try to infer the cell type of
@@ -172,7 +174,7 @@ transformed_data = pln.transform()
 pln.show()
 ```
 
-### Dimension reduction with the PLN Principal Component Analysis (aka `PlnPCA` and `PlnPCACollection`)
+#### Dimension reduction with the PLN Principal Component Analysis (aka `PlnPCA` and `PlnPCACollection`)
 
 This model excels in dimension reduction and is capable of scaling to
 high-dimensional count data ($p >> 1$), by constraining the covariance matrix
@@ -196,7 +198,7 @@ best_pca = pca_col.best_model()
 print(best_pca)
 ```
 
-### Zero inflation with the Zero-Inflated PLN Model (aka `ZIPln` and `ZIPlnPCA`)
+#### Zero inflation with the Zero-Inflated PLN Model (aka `ZIPln` and `ZIPlnPCA`)
 
 The `ZIPln` model, a variant of the PLN model, is designed to handle zero
 inflation in the data. It is defined as follows:
@@ -220,7 +222,7 @@ print(r'$W$ latent variables shape', w_latent_variables.shape)
 
 Similar to the `PlnPCA` model, the `ZIPlnPCA` model is capable of dimension reduction.
 
-### Network inference with the `PlnNetwork` model
+#### Network inference with the `PlnNetwork` model
 
 The `PlnNetwork` model is designed to infer the network structure of the data.
 It creates a network where the nodes are the count variables and the edges
@@ -233,7 +235,7 @@ net.viz_network()
 print(net.network)
 ```
 
-### Supervised clustering with the `PlnLDA` model
+#### Supervised clustering with the `PlnLDA` model
 
 One can do supervised clustering using Linear Discriminant Analysis
 designed for count data.
@@ -246,7 +248,7 @@ pred_test = lda.predict_clusters(endog_test)
 plot_confusion_matrix(pred_test, labels_test)
 ```
 
-### Unsupervised clustering with the `PlnMixture` model
+#### Unsupervised clustering with the `PlnMixture` model
 
 ```python
 from pyPLNmodels import PlnMixture
@@ -256,7 +258,7 @@ clusters = mixture.clusters
 plot_confusion_matrix(clusters, data["labels"])
 ```
 
-### Autoregressive models with the `PlnAR` model
+#### Autoregressive models with the `PlnAR` model
 
 The `PlnAR` model is designed to handle time series data. It is a simple (one step) autoregressive model that can be used to predict the next time point.
 (This assumes the endog variable is a time series, which is not the case in the example below)
@@ -266,7 +268,7 @@ ar = PlnAR.from_formula("endog ~ 1  + labels ", data = data).fit()
 ar.show()
 ```
 
-### Visualization
+#### Visualization
 
 The package is equipped with a set of visualization functions designed to help
 the user interpret the data. The `viz` function conducts `PCA`
