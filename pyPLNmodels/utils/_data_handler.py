@@ -435,7 +435,7 @@ def _remove_zero_columns(
         endog = endog[:, ~zero_columns]
         offsets = offsets[:, ~zero_columns]
         if column_names_endog is not None:
-            column_names_endog = column_names_endog[~(zero_columns.cpu())]
+            column_names_endog = column_names_endog[~(zero_columns.cpu().numpy())]
         print(f"Now dataset of size {endog.shape}.")
     return endog, offsets, column_names_endog
 
